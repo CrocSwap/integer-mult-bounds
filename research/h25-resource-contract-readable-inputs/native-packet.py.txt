@@ -1,0 +1,346 @@
+"""Cold native metadata packet orchestration; source draft, all gates closed.
+
+This module is imported only after the pristine root and native TCB receipt.
+The parent owns the outer process guard. No binary or runtime PASS is reused.
+"""
+import hashlib
+import json
+from pathlib import Path
+import stat
+import cold_build_evidence
+import sysconfig
+
+import adapters
+
+BOOTSTRAP_ROOT_SHA256 = 'f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0'
+PROBE_PROVIDER_SHA256 = '9cbb7368f89e71d1e6cc46db5dc77efed3e03ed2a801c98c88fe316e4d9f3ef2'
+BUILD_CONTRACT = {'compiler': ('/usr/bin/x86_64-linux-gnu-gcc-13',),
+ 'dependencies': (('/usr/bin/x86_64-linux-gnu-as',
+                   '21aff249b692b5c31a44007491f922dcb49f41323e362c57d2ada3f52eddb7f0',
+                   745768),
+                  ('/usr/bin/x86_64-linux-gnu-gcc-13',
+                   '1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26',
+                   1023032),
+                  ('/usr/bin/x86_64-linux-gnu-ld.bfd',
+                   'e9ceb054c12207970f2726dfc07e9a66b411602748628baf27399f02a9bbb31b',
+                   1359128),
+                  ('/usr/lib/gcc/x86_64-linux-gnu/13/crtbeginS.o',
+                   '667ff5f1edc931d44d1f2bb44d313907aa274bcc207c0beff71a398335f0d29f',
+                   2752),
+                  ('/usr/lib/gcc/x86_64-linux-gnu/13/crtendS.o',
+                   '9c8b2caad195193301ef072895dc89bea1d23371d4c19accd821debe27773063',
+                   1168),
+                  ('/usr/lib/gcc/x86_64-linux-gnu/13/libgcc.a',
+                   'd9376c55f97863a4e5fbb6c6beca2591b319bf786f3a7ca56da8964c5662171f',
+                   3093656),
+                  ('/usr/lib/gcc/x86_64-linux-gnu/13/libgcc_eh.a',
+                   'f853cbbf842ff8714cc8dd986e2fd5bb309d34d490b0707203223ee4d52c76bc',
+                   66708),
+                  ('/usr/lib/gcc/x86_64-linux-gnu/13/libgcc_s.so',
+                   '69a56a9993b7729b29b274e65016031c81f2397f176ed5ad44d59bd50425e0bd',
+                   132),
+                  ('/usr/lib/x86_64-linux-gnu/crti.o',
+                   '077ccb6c68db1794da3ee262c4a16a3c6f8e902845dd0829110ad4b7065e5aa3',
+                   1192),
+                  ('/usr/lib/x86_64-linux-gnu/crtn.o',
+                   'a2266079f95b84ccc2162ebbf279bcd78858a748aa1882e0bdb912316c76a58f',
+                   760),
+                  ('/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2',
+                   'c20a2dc8917c755f02b94049356320fe1f62ac7d9f8994731f807d9df39302da',
+                   236616),
+                  ('/usr/lib/x86_64-linux-gnu/libbfd-2.42-system.so',
+                   '11f084bc6ff5fc64e91c0b6422040fab1245419e7ff29560a95c1176ce1b9ff4',
+                   1479888),
+                  ('/usr/lib/x86_64-linux-gnu/libc.so',
+                   'fe2a4ce2930fc6b3966aa987fae808375446c8d3823b8c21792e991aad9c75df',
+                   283),
+                  ('/usr/lib/x86_64-linux-gnu/libc.so.6',
+                   '3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf',
+                   2129424),
+                  ('/usr/lib/x86_64-linux-gnu/libc_nonshared.a',
+                   '3341391290ddd596521a61152b4e2612f4625cc85f737d875b918f6cfb2b2786',
+                   5594),
+                  ('/usr/lib/x86_64-linux-gnu/libctf.so.0.0.0',
+                   '25c8f765c259d05b59a3dc3634d711912a7f5ce9be8a28ace081507b925b3ad1',
+                   220384),
+                  ('/usr/lib/x86_64-linux-gnu/libgcc_s.so.1',
+                   'd93224d2b0dab4247598be683adca02f5cf00586f99c187579cd7e92058fb7cb',
+                   183024),
+                  ('/usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0',
+                   '0ccdfb6d6f5c039465f6d002cf7e4c072d48ac6a2cffc8dd6c748dec31592804',
+                   534896),
+                  ('/usr/lib/x86_64-linux-gnu/libisl.so.23.3.0',
+                   'db4f717fd1678b48e5dddea1cbdd2d239594a70b57e96d0923bfd9533351efa8',
+                   1863352),
+                  ('/usr/lib/x86_64-linux-gnu/libjansson.so.4.14.0',
+                   'c49935a4b3ac599064281b1f257576087806d0dad7ec46f353bd983b052c5e26',
+                   64008),
+                  ('/usr/lib/x86_64-linux-gnu/libm.so.6',
+                   'fce00b6f25f459cf4ae0b7fae4257909a1a8a86f9149e7c029a5d617baf1ccd0',
+                   952616),
+                  ('/usr/lib/x86_64-linux-gnu/libmpc.so.3.3.1',
+                   '91d2b2b0b794028c733431e01acc227ff39ee289384fdf22869c8b42ad3aaa3b',
+                   134440),
+                  ('/usr/lib/x86_64-linux-gnu/libmpfr.so.6.2.1',
+                   '2156351fa3dedd04a7381c6ac7a8a26efa2d6fb08b80f8a2d644ccdd653710ae',
+                   760464),
+                  ('/usr/lib/x86_64-linux-gnu/libsframe.so.1.0.0',
+                   '1693a2dbd77c909d279ae34aa9b5d8d08d97f116f8d0ed724063df11151b3c69',
+                   35168),
+                  ('/usr/lib/x86_64-linux-gnu/libz.so.1.3',
+                   'f61677c7bdb7c2aa2a243ea781bfd16afcb361cede7b4ef76127a9d8eb9a5242',
+                   113000),
+                  ('/usr/lib/x86_64-linux-gnu/libzstd.so.1.5.5',
+                   '0a2128bc10841fb29e76d08d945864dfb0b6a66da5df6df5d8299197439e54bb',
+                   755864),
+                  ('/usr/libexec/gcc/x86_64-linux-gnu/13/cc1',
+                   '5d1679131184e2de4435b426eb264bf13472fe026db8e5c6bc97445814e8e2f4',
+                   30487984),
+                  ('/usr/libexec/gcc/x86_64-linux-gnu/13/collect2',
+                   '4d1f341ae5b763b513258ee2812422a45e063c30a2f1924a0cf63d3699f3a158',
+                   336056),
+                  ('/usr/libexec/gcc/x86_64-linux-gnu/13/liblto_plugin.so',
+                   '14469ff8498fca3871c29dbf678c2330123207fffb8308151314a08395309ddf',
+                   68296)),
+ 'extension_suffix': '.cpython-312-x86_64-linux-gnu.so',
+ 'include': '/usr/include/python3.12',
+ 'timeout_seconds': 15}
+SOURCE_EXECUTION_CONTRACT = {'status': 'INDEPENDENT_SOURCE_AND_FINITE_EXECUTION_APPROVED', 'scope': 'Reviewed source and finite control union only. Actual configured stage and outer queue still require separate independent approval before any execution. This literal is not a runtime PASS or full-funding approval.', 'actual_stage_queue_approval_required': True, 'independent_source_and_route_reviews': {'review/predecessor-entry-execution-v1/REVIEW.json': '77bb53df13164d6aaf4445602ae6433632105f13f001133ea00135f86770a5d9', 'review/cold-authority-v7-source-v1/final-delta-v1/REVIEW.json': 'b474afae9b78464aac8385b4c892e343ddb0b92329ef5a3f630cb49d171cf0a7', 'review/cold-authority-v7-source-v1/control-oracle-v8-delta/REVIEW.json': '026bf7b55c6960c037131893c9af3184842238d2ea0ae7738bb7a3565f876f21', 'review/cold-authority-v7-source-v1/control-disposal-v9-delta/REVIEW.json': '63074555355c2f89d5f58904d62fbc05098e902fca8e6b052aa0f53faa568ea8', 'review/cache-validity-v8-source/REVIEW.json': 'bc9d08ed88f23bc7b90778e620bbfbd52ab3f6ab5c5de1f1c82e53b4e76f14e6', 'review/cache-validity-v8-source/control-oracle-v9-delta/REVIEW.json': '57df4c14ca3353b9d390b9f3126bbb99515e9ece4cdcecbf3104f81141262be4', 'review/combined-v2-log-repair-source/REVIEW.json': 'c4af401839798a5fe27720578eda54d2943373c938a0864efc4bd8bd252dbe1b', 'review/predecessor-installed-v1/REVIEW.json': 'f7ffc373721c818c15f5feed78d4776704af2945a712d8e4b3d503cfe21e05c7', 'review/cold-authority-scalar-vectors-v1/REVIEW.json': '157195cc4cbfcd11123ff692e370122465aece2f6dbbe64afe2dc2023f2f6a49', 'review/scalar-vector-diagnostic-v1-concrete/REVIEW.json': 'a2a21a7740a184ec80808d038c8230a5757c120c8a0077f4b9135d75cb71fa8d', 'review/authority-scalar-mechanism-v1-execution/REVIEW.json': '4620090d441a95b357afcf02c72effb3502bf0ef9dc719aa7c92596754793d7a'}, 'full_candidate_admission': False, 'scalar_reuse_scope': 'Observed scalar metadata reused only within one existing private callback-free interval; every independent expected comparison retained. Not a saved runtime PASS.', 'mechanism_diagnostic': '14 cases/19 scopes independently accepted; instrumented counts are not production timings. Existing complete live finite union still required.'}
+FULL_EXECUTION_CONTRACT = {'activity': 'S03.08', 'approval_assertion': 'No complete caller-and-cost approval is asserted by this pending definition. Only a real independent complete original source/caller/cost acceptance may authorize the exact final status literal; configured approval never substitutes for current runtime predicates or measured fit.', 'caller_definition': {'bytes': 10515, 'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/cache-s0308-source-completion-v1/contracts/CALLER-EQUALITY-DEFINITION-v1.json', 'sha256': '4a11f90727c636bdbaaf683d1ac95aa9234324698fb594a7da92a92f6a45c7eb'}, 'complete_cost_definition': {'bytes': 9184, 'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/cache-s0308-source-completion-v1/contracts/COMPLETE-SYMBOLIC-COST-DEFINITION-v1.json', 'sha256': '6ab22ebb387f15f9a1fd91e257ecae649eb4b177af32d4652c2eaec061e3b48c'}, 'configuration_binding': 'Exact actual selected tuple is bound by existing immutable stage/Root/source maps and external independent review/installation metadata. No runtime approval loader or new trust service is added.', 'execution_authorized': False, 'native_source_profile_definition': {'bytes': 8040, 'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/cache-s0308-source-completion-v1/contracts/NATIVE-SOURCE-PROFILE-DEFINITION-v1.json', 'sha256': 'bc444f4d844629691e9b16b0c5403cf680daacb5afc5748df983363b2bf259af'}, 'original_guard': {'approved_status_required': 'INDEPENDENT_COMPLETE_COST_AND_CALLER_APPROVED', 'condition': 'type(FULL_EXECUTION_CONTRACT) is dict and FULL_EXECUTION_CONTRACT.get(status)==INDEPENDENT_COMPLETE_COST_AND_CALLER_APPROVED', 'function': 'require_execution_contract'}, 'owner': {'attribute': 'FULL_EXECUTION_CONTRACT', 'module': 'driver.native_packet', 'predecessor': {'bytes': 21478, 'path': '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/stages/combined-finite-v8/integration/native_packet.py', 'sha256': '6adbcd1dfeb77fb6da7ee8f725796b1bfdbf0a4f397ef23f3a266a6b89d55892'}}, 'runtime_observations': 0, 'schema': 'cache-s0308-typed-full-source-contract-v1', 'selected_caller_roles': ['FULL_BASELINE_NORMAL', 'FULL_CANDIDATE_NORMAL', 'P08_BODY_NORMAL', 'ABSENT_RECORD_NORMAL'], 'source_requirements': ['CP01', 'CP02', 'CP03', 'CP04', 'CP05', 'CP06', 'CP07', 'CP11', 'CP12', 'CP13', 'CP14', 'CP15'], 'status': 'INDEPENDENT_COMPLETE_COST_AND_CALLER_APPROVED'}
+
+# These names/counts are source-derived expectations, never observed results.
+CONTROL_STATUS = {
+    'native_probe': 'NATIVE_METADATA_CONTROLS_PASS',
+    'bootstrap_preload': 'BOOTSTRAP_PRELOAD_CONTROLS_PASS',
+    'bootstrap_late': 'BOOTSTRAP_LATE_CONTROL_PASS',
+    'native_metadata': 'PASS',
+}
+_SOURCES = (
+    ('production', 'dict_probe_v2.c', '_h25_dict_probe'),
+    ('watcher', 'probe_watcher_fixture.c', '_h25_probe_watch_fixture'),
+    ('bounds', 'probe_bounds_fixture_v2.c', '_h25_probe_bounds_fixture'),
+)
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def require_execution_contract(arm, finite_only):
+    need(arm in ('baseline', 'candidate'), 'Unsupported combined arm')
+    need(type(SOURCE_EXECUTION_CONTRACT) is dict and
+         SOURCE_EXECUTION_CONTRACT.get('status') == 'INDEPENDENT_SOURCE_AND_FINITE_EXECUTION_APPROVED',
+         'Combined v2 execution withheld: source/TCB/compiler/finite queue gates are not configured')
+    if not finite_only:
+        need(type(FULL_EXECUTION_CONTRACT) is dict and
+             FULL_EXECUTION_CONTRACT.get('status') == 'INDEPENDENT_COMPLETE_COST_AND_CALLER_APPROVED',
+             'Both full arms withheld: cache V7 complete cost and full-caller equality remain unqualified; no historical factor or cached PASS applies')
+
+
+def _file(path):
+    path = Path(path)
+    need(path.is_file() and not path.is_symlink(), 'Expected regular native source or binary')
+    before = path.stat()
+    digest, size = hashlib.sha256(), 0
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            size += len(block)
+            need(size <= 64 * 1024 * 1024, 'Native build input/output exceeds source-reviewed file bound')
+            digest.update(block)
+    after = path.stat()
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size,
+                              value.st_mtime_ns, value.st_ctime_ns)
+    need(identity(before) == identity(after) and size == before.st_size, 'Native file changed during hash')
+    return {'sha256': digest.hexdigest(), 'bytes': size, 'mode': stat.S_IMODE(after.st_mode)}
+
+
+def _source(root, relative, custody):
+    need(relative in custody, 'Native source absent from immutable stage custody')
+    row = _file(root / relative)
+    need({key: row[key] for key in ('sha256', 'mode')} == custody[relative],
+         'Native source differs from immutable stage')
+    return row
+
+
+def _fresh(packet):
+    need(not packet['late_started'], 'Native qualification is closed after late audit control')
+    api = packet['bootstrap_api']
+    need(api[0]() == BOOTSTRAP_ROOT_SHA256, 'Actual bootstrap source changed')
+    return api[1](packet['bootstrap_capability'], PROBE_PROVIDER_SHA256)
+
+
+def _preflight(packet):
+    _fresh(packet)
+    # Identity is checked immediately before the mutable root dispatch lookup.
+    packet['bootstrap_api'][0]()
+    return packet['bootstrap_root'].preflight(packet['bootstrap_capability'])
+
+
+def _dependencies():
+    need(type(BUILD_CONTRACT) is dict and
+         set(BUILD_CONTRACT) == {'compiler', 'dependencies', 'extension_suffix', 'include', 'timeout_seconds'},
+         'Cold compiler/header/link contract is not configured')
+    need(type(BUILD_CONTRACT['compiler']) is tuple and BUILD_CONTRACT['compiler'] and
+         all(type(arg) is str for arg in BUILD_CONTRACT['compiler']) and
+         Path(BUILD_CONTRACT['compiler'][0]).is_absolute(), 'Pinned compiler command required')
+    need(type(BUILD_CONTRACT['dependencies']) is tuple and BUILD_CONTRACT['dependencies'],
+         'Pinned compiler/link dependency closure required')
+    rows = {}
+    for path, expected_sha, expected_size in BUILD_CONTRACT['dependencies']:
+        need(type(path) is str and Path(path).is_absolute(), 'Compiler dependency path must be absolute')
+        row = _file(path)
+        need(row['sha256'] == expected_sha and row['bytes'] == expected_size,
+             'Cold compiler/link dependency identity differs')
+        rows[path] = row
+    need(BUILD_CONTRACT['compiler'][0] in rows, 'Compiler executable not in authenticated build closure')
+    return rows
+
+
+def prepare(root, output, custody, bootstrap_root, bootstrap_capability, bootstrap_api):
+    """Build three cold modules before any original or new control is run."""
+    root, output = Path(root), Path(output)
+    packet = {'bootstrap_root': bootstrap_root, 'bootstrap_capability': bootstrap_capability,
+              'bootstrap_api': bootstrap_api, 'builds': {}, 'controls': {},
+              'late_started': False, 'late_completed': False, 'direct_close_stop': None}
+    _fresh(packet)
+    _source(root, 'integration/cold_build_evidence.py', custody)
+    before = _dependencies()
+    need(sysconfig.get_config_var('EXT_SUFFIX') == BUILD_CONTRACT['extension_suffix'] and
+         sysconfig.get_paths()['include'] == BUILD_CONTRACT['include'],
+         'Native build Python suffix/header path differs')
+    need(type(BUILD_CONTRACT['timeout_seconds']) is int and
+         1 <= BUILD_CONTRACT['timeout_seconds'] <= 90, 'Cold compiler timeout outside reviewed bound')
+    directory = output / 'cold-native-metadata'
+    need(not directory.exists(), 'Refusing any prior native metadata build directory')
+    directory.mkdir()
+    packet['preflight_before_build'] = _preflight(packet)
+    source_root = root / 'areas/cache-validity/probe-native'
+    sources_before = {filename: _source(root, 'areas/cache-validity/probe-native/' + filename, custody)
+                      for _, filename, _ in _SOURCES}
+    for key, filename, module_name in _SOURCES:
+        target = directory / (module_name + BUILD_CONTRACT['extension_suffix'])
+        command = list(BUILD_CONTRACT['compiler']) + [
+            '-shared', '-fPIC', '-O3', '-std=c11', '-Wall', '-Wextra', '-Werror',
+            '-I' + BUILD_CONTRACT['include'], str(source_root / filename), '-o', str(target)]
+        context = {'source': sources_before[filename], 'source_name': filename,
+                   'no_cached_binary': True, 'module_name': module_name, 'target': str(target)}
+        attempt = cold_build_evidence.run(command, directory, key,
+                                          BUILD_CONTRACT['timeout_seconds'], context)
+        receipt = {'command': command, 'returncode': attempt['returncode'],
+                   'stdout': attempt['logs']['stdout'], 'stderr': attempt['logs']['stderr'],
+                   'attempt_path': attempt['attempt_path'], 'attempt_journal_path': attempt['journal_path'],
+                   'process_policy': attempt['process_group_policy'],
+                   'source': sources_before[filename], 'source_name': filename,
+                   'no_cached_binary': True, 'module_name': module_name, 'path': str(target),
+                   'status': 'EXIT0_LOGS_STABLE_PENDING_FINAL_SOURCE_CUSTODY'}
+        (directory / (key + '-build.json')).write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
+        need(attempt['returncode'] == 0, 'Cold metadata compilation failed; no retry')
+        receipt['binary'] = _file(target)
+        packet['builds'][key] = receipt
+        (directory / (key + '-build.json')).write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
+    after = {filename: _source(root, 'areas/cache-validity/probe-native/' + filename, custody)
+             for _, filename, _ in _SOURCES}
+    need(sources_before == after and _dependencies() == before, 'Cold build source/compiler custody changed')
+    for key, receipt in packet['builds'].items():
+        receipt['status'] = 'COLD_NATIVE_BUILD_SOURCE_CUSTODY_PASS'
+        (directory / (key + '-build.json')).write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
+    packet['compiler_dependencies'] = before
+    packet['preflight_after_build'] = _preflight(packet)
+    for key, filename in (('direct_controls', 'direct_controls.py'),
+                          ('bootstrap_controls', 'bootstrap_controls_v2.py'),
+                          ('metadata_controls', 'metadata_controls_v3.py')):
+        relative = 'areas/cache-validity/probe-native/' + filename
+        _source(root, relative, custody)
+        packet[key] = adapters.load(root / relative, '_h25_v2_' + key)
+    production = packet['builds']['production']
+    packet['extension_path'] = production['path']
+    packet['extension_sha256'] = production['binary']['sha256']
+    return packet
+
+
+def _arguments(packet):
+    return (packet['bootstrap_root'], packet['bootstrap_capability'], packet['bootstrap_api'],
+            packet['extension_path'], packet['extension_sha256'], PROBE_PROVIDER_SHA256)
+
+
+def _raw_control(packet, key):
+    build = packet['builds'][key]
+    _fresh(packet)
+    packet['bootstrap_api'][0]()
+    return packet['bootstrap_root'].load_control_module(
+        packet['bootstrap_capability'], build['path'], build['binary']['sha256'], build['module_name'])
+
+
+def run_controls(packet, phases):
+    """No scientific authority is shared with these distinct direct fixtures."""
+    pre = phases.call('bootstrap_preload_controls', packet['bootstrap_controls'].run_preload_controls,
+                      *_arguments(packet))
+    need(pre.get('schema') == 'h25-bootstrap-preload-controls-v2' and
+         pre.get('expected_records') == 21 and len(pre.get('records', [])) == 21 and
+         pre.get('scientific_calls') == 0, 'Bootstrap preload control census differs')
+    pre['status'] = CONTROL_STATUS['bootstrap_preload']
+    packet['controls']['bootstrap_preload'] = pre
+    metadata = phases.call('native_metadata_controls', packet['metadata_controls'].run_metadata_controls,
+                           packet['bootstrap_root'], packet['bootstrap_capability'],
+                           packet['bootstrap_api'], PROBE_PROVIDER_SHA256)
+    need(metadata.get('schema') == 'h25-native-metadata-controls-v3' and
+         metadata.get('status') == 'PASS' and metadata.get('expected_records') == 16 and
+         metadata.get('observed_record_count') == len(metadata.get('records', [])) == 16 and
+         metadata.get('native_lifecycle_before') == metadata.get('native_lifecycle_after') and
+         metadata.get('scientific_calls') == 0 and metadata.get('native_creations') == 0 and
+         metadata.get('native_checks') == 0 and metadata.get('native_inspections') == 0,
+         'Native metadata control census or actual lifecycle continuity differs')
+    packet['controls']['native_metadata'] = metadata
+    direct = packet['direct_controls']
+    disarmed = phases.call('native_disarmed_controls', direct.run_disarmed_controls, _raw_control(packet, 'production'))
+    bounds = phases.call('native_bounds_controls', direct.run_bounds_controls, _raw_control(packet, 'bounds'))
+    watcher = _raw_control(packet, 'watcher')
+    provider = _fresh(packet)
+    binding = packet['bootstrap_api'][2](packet['bootstrap_capability'], packet['extension_path'], packet['extension_sha256'])
+    captured_close = binding.close
+    try:
+        result = phases.call('native_direct_controls', direct.run_controls, provider, binding, watcher)
+    except BaseException:
+        try:
+            captured_close()
+        except BaseException as close_error:
+            packet['direct_close_stop'] = {'type': type(close_error).__name__, 'message': str(close_error)}
+        raise
+    need(result.get('schema') == 'h25-native-direct-control-results-v1' and
+         result.get('inspection_calls') == 58 and len(result.get('records', [])) == 60 and
+         result.get('scientific_imports') == 0 and result.get('scientific_arithmetic_calls') == 0 and
+         len(disarmed) == 1 and len(bounds) == 1, 'Native direct/fixture control census differs')
+    packet['controls']['native_probe'] = {
+        'status': CONTROL_STATUS['native_probe'], 'direct': result,
+        'disarmed': disarmed, 'bounds': bounds, 'records': len(result['records']) + len(disarmed) + len(bounds)}
+    return packet['controls']
+
+
+def before_late(packet):
+    """Last fresh native/root checks, after every cache owner is terminal."""
+    provider = _fresh(packet)
+    need(not provider._OWNERS, 'Late control requires all admitted probe owners closed')
+    packet['final_native_diagnostics_before_late'] = packet['bootstrap_api'][3](packet['bootstrap_capability'])
+    packet['final_preflight_before_late'] = _preflight(packet)
+
+
+def late_last(packet):
+    """The last native/scientific call. Caller may only write/check source afterward."""
+    need(not packet['late_started'], 'Late bootstrap control may run only once')
+    packet['late_started'] = True
+    result = packet['bootstrap_controls'].run_late_control_last(*_arguments(packet))
+    need(result.get('schema') == 'h25-bootstrap-late-control-v2' and len(result.get('records', [])) == 1,
+         'Late bootstrap control census differs')
+    result['status'] = CONTROL_STATUS['bootstrap_late']
+    packet['controls']['bootstrap_late'] = result
+    packet['late_completed'] = True
+    return result
+
+
+def receipt(packet):
+    """Pure receipt assembly; deliberately no guards, provider, or native calls."""
+    return {key: packet.get(key) for key in (
+        'builds', 'compiler_dependencies', 'preflight_before_build', 'preflight_after_build',
+        'final_native_diagnostics_before_late', 'final_preflight_before_late',
+        'late_started', 'late_completed', 'direct_close_stop')}

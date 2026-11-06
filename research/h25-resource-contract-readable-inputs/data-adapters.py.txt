@@ -1,0 +1,1664 @@
+"""Source-only draft for parent-reviewed data-handling integration.
+
+Installed only by the parent into a new immutable stage. Original adapters and
+reference modules are independent. Every helper/control import and scientific
+operation below runs only inside the parent-owned serial guarded process.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import stat
+import sys
+from types import ModuleType
+
+import adapters
+import native_packet
+
+# Final V8 author census is configured only after the source packet freezes.
+EXPECTED_CACHE_TRANSCRIPT_RECORDS = 155
+EXPECTED_V7_CONSUMER_CASES = ('source-before-native', 'source-before-trace', 'builtin-before-native', 'builtin-shadow-and-key-cleanup', 'row-calling-environment-full-and-light', 'row-key-first-error-and-cleanup', 'actual-row-native-observation', 'cold-_code_named-code', 'cold-_code_named-defaults', 'cold-_code_named-globals', 'cold-_check_factory_environment-code', 'cold-_check_factory_environment-defaults', 'cold-_check_factory_environment-globals', 'final-class-__init__-code', 'final-class-__init__-defaults', 'final-class-__init__-closure', 'final-class-check-code', 'final-class-check-defaults', 'final-class-check-closure', 'final-class-check_backend-code', 'final-class-check_backend-defaults', 'final-class-check_backend-closure', 'unregistered-final-subclass', 'restored-final-class-binds')
+EXPECTED_V8_CALLER_CASES = ('cold-dispatcher-code', 'cold-dispatcher-defaults', 'cold-dispatcher-kwdefaults', 'cold-dispatcher-closure', 'runtime-dispatcher-code', 'runtime-dispatcher-defaults', 'runtime-dispatcher-kwdefaults', 'runtime-dispatcher-closure', 'runtime-collector-code', 'runtime-collector-defaults', 'runtime-collector-kwdefaults', 'runtime-collector-closure')
+EXPECTED_AUTHORITY_CONTROL_CASES = ('A1-authority-entry-and-helper-fields', 'A2-caller-dispatcher-fields', 'A3-every-owned-module-helper', 'A4-registered-product-methods-and-closure-helpers', 'A5-foreign-key-failure-disposal', 'A6-runtime-child-dispatcher-and-helper-fields')
+
+DATA_CONTROL_STATUS = {
+    'construction': 'PASS',
+    'serialization': 'SERIALIZATION_FINITE_PASS',
+    'cache_validity': 'PASS',
+    'cold_authority': 'PASS',
+    'rank_metadata': 'AREA6_METADATA_HELPER_CONTROLS_PASS',
+    'rank_native': 'NATIVE_OBSERVATION_DIFFERENTIAL_CONTROLS_PASS',
+    'inventory': 'INVENTORY_DIFFERENTIAL_CONTROLS_PASS',
+    'combined_composition': 'BOUNDED_COMBINED_COMPOSITION_PASS',
+    'cache_reference_v3': 'PASS',
+    'native_initial_tcb': 'NATIVE_INITIAL_TCB_CONTROLS_PASS',
+    **native_packet.CONTROL_STATUS,
+}
+_MODULES = (
+    ('construction', 'areas/construction/construction_v2.py', '_h25_data_construction'),
+    ('construction_controls', 'areas/construction/construction_controls_v2.py', '_h25_data_construction_controls'),
+    ('serializer', 'areas/serialization/bounded_serialization.py', 'bounded_serialization'),
+    ('serialization_controls', 'areas/serialization/serialization_controls.py', '_h25_data_serialization_controls'),
+    ('cache', 'areas/cache-validity/cache_contract_v8.py', '_h25_data_cache'),
+    ('cache_controls', 'areas/cache-validity/cache_controls_v8.py', '_h25_data_cache_controls'),
+    ('cold_authority_controls', 'areas/cache-validity/cold_authority_controls_v7.py', '_h25_data_cold_authority_controls'),
+    ('cache_reference', 'areas/cache-validity/cache_contract_v3.py', '_h25_data_cache_reference'),
+    ('cache_reference_controls', 'areas/cache-validity/cache_controls_v3.py', '_h25_data_cache_reference_controls'),
+    ('rows', 'integration/row_interner_v3.py', '_h25_data_rows'),
+    ('row_derivation', 'integration/derive_row_bind_v3.py', '_h25_data_private_row_derivation'),
+    ('digests', 'areas/hashing-traces/digest_snapshot.py', '_h25_data_digests'),
+    ('metadata_controls', 'areas/hashing-traces/metadata_controls.py', '_h25_data_metadata_controls'),
+    ('native_controls', 'areas/hashing-traces/native_observation_controls.py', '_h25_data_native_controls'),
+    ('inventory_controls', 'areas/hashing-traces/inventory_controls.py', '_h25_data_inventory_controls'),
+    ('derive_backend', 'integration/derive_backend.py', '_h25_data_backend_derivation'),
+    ('composition_controls', 'integration/composition_controls.py', '_h25_data_composition_controls'),
+)
+
+_CONTROL_CONTRACT = {'cache_counts': {'binding_rejections': 12,
+                  'cases': 29,
+                  'requests': 71,
+                  'source_admission_rejections': 2,
+                  'tamper_rejections': 1,
+                  'unsupported_rejections': 2},
+ 'construction_normal_names': ['complete-constructor-h8',
+                               'complete-constructor-h9',
+                               'exact-add-0',
+                               'exact-add-1',
+                               'exact-add-2',
+                               'exact-add-3',
+                               'exact-add-4',
+                               'exact-add-5',
+                               'exact-add-6',
+                               'exact-add-7',
+                               'exact-add-8',
+                               'exact-add-9',
+                               'exact-add-10',
+                               'overlap-assertion-matching-mode',
+                               'negative-index',
+                               'index-outside',
+                               'none-index',
+                               'float-index',
+                               'bool-index',
+                               'unhashable-kind',
+                               'mask-callback',
+                               'index-callback',
+                               'kind-callback',
+                               'support-callback',
+                               'lookup-callback',
+                               'unarmed-construction-remains-incremental',
+                               'retired-complete-index-and-private-snapshot',
+                               'resumed-run-loses-frozen-tail-qualification',
+                               'resumed-duplicate-restores-same-dictionary',
+                               'reinitialized-run-loses-qualification-h8',
+                               'retired-object-literal-reinitialization-h8',
+                               'reinitialized-run-loses-qualification-h9',
+                               'retired-object-literal-reinitialization-h9',
+                               'reinitialized-run-loses-qualification-h7',
+                               'retired-object-literal-reinitialization-h7',
+                               'resumption-restores-original-index-after-graph-edits',
+                               'lookup-entry-mutation',
+                               'lookup-replacement',
+                               'snapshot-binding',
+                               'double-finalize',
+                               'wrong-finalizer',
+                               'factory-rejects-changed-original-add',
+                               'factory-rejects-source-builtin-shadow',
+                               'seal-rejects-late-add-replacement',
+                               'scope-cannot-be-rearmed',
+                               'hook-bearing-constructor-trace',
+                               'hook-bearing-constructor-profile',
+                               'hook-bearing-constructor-gc',
+                               'hook-bearing-constructor-thread',
+                               'hook-bearing-constructor-signal',
+                               'hook-bearing-constructor-monitoring',
+                               'invalid-dimension-original-assertion',
+                               'malformed-complete-index-before-clear',
+                               'generic-subclass-add-fallback',
+                               'factory-rejects-original-defaults',
+                               'factory-rejects-original-code',
+                               'factory-rejects-original-helper',
+                               'factory-rejects-original-descriptor',
+                               'owner-rejects-changed-wrapper-defaults',
+                               'public-total-helper-restores-before-add',
+                               'p1-original-authentication-and-final-wrapper-composition'],
+ 'construction_optimized_names': ['complete-constructor-h8',
+                                  'complete-constructor-h9',
+                                  'exact-add-0',
+                                  'exact-add-1',
+                                  'exact-add-2',
+                                  'exact-add-3',
+                                  'exact-add-4',
+                                  'exact-add-5',
+                                  'exact-add-6',
+                                  'exact-add-7',
+                                  'exact-add-8',
+                                  'exact-add-9',
+                                  'exact-add-10',
+                                  'overlap-assertion-matching-mode',
+                                  'negative-index',
+                                  'index-outside',
+                                  'none-index',
+                                  'float-index',
+                                  'bool-index',
+                                  'unhashable-kind',
+                                  'mask-callback',
+                                  'index-callback',
+                                  'kind-callback',
+                                  'support-callback',
+                                  'lookup-callback',
+                                  'unarmed-construction-remains-incremental',
+                                  'retired-complete-index-and-private-snapshot',
+                                  'resumed-run-loses-frozen-tail-qualification',
+                                  'resumed-duplicate-restores-same-dictionary',
+                                  'reinitialized-run-loses-qualification-h8',
+                                  'retired-object-literal-reinitialization-h8',
+                                  'reinitialized-run-loses-qualification-h9',
+                                  'retired-object-literal-reinitialization-h9',
+                                  'reinitialized-run-loses-qualification-h7',
+                                  'retired-object-literal-reinitialization-h7',
+                                  'resumption-restores-original-index-after-graph-edits',
+                                  'lookup-entry-mutation',
+                                  'lookup-replacement',
+                                  'snapshot-binding',
+                                  'double-finalize',
+                                  'wrong-finalizer',
+                                  'factory-rejects-changed-original-add',
+                                  'factory-rejects-source-builtin-shadow',
+                                  'seal-rejects-late-add-replacement',
+                                  'scope-cannot-be-rearmed',
+                                  'hook-bearing-constructor-trace',
+                                  'hook-bearing-constructor-profile',
+                                  'hook-bearing-constructor-gc',
+                                  'hook-bearing-constructor-thread',
+                                  'hook-bearing-constructor-signal',
+                                  'hook-bearing-constructor-monitoring',
+                                  'malformed-complete-index-before-clear',
+                                  'generic-subclass-add-fallback',
+                                  'factory-rejects-original-defaults',
+                                  'factory-rejects-original-code',
+                                  'factory-rejects-original-helper',
+                                  'factory-rejects-original-descriptor',
+                                  'owner-rejects-changed-wrapper-defaults',
+                                  'public-total-helper-restores-before-add',
+                                  'p1-original-authentication-and-final-wrapper-composition'],
+ 'inventory_cases': [['valid', 'value'],
+                     ['list-pins', 'value'],
+                     ['wrong-digest', 'error'],
+                     ['missing', 'error'],
+                     ['extra', 'error'],
+                     ['extra-nonexact', 'value'],
+                     ['symlink', 'error'],
+                     ['root-symlink', 'error'],
+                     ['changed-mode', 'value'],
+                     ['fresh-call-after-mutation', 'error'],
+                     ['restored', 'value']],
+ 'rank_guard_mutation_names': ['__code__',
+                               '__defaults__',
+                               '__kwdefaults__',
+                               '_LEN',
+                               '_GET',
+                               '_MAX_ENTRIES',
+                               'make_row_interner',
+                               'make_runtime_guard',
+                               'builtin/len',
+                               'builtin/int',
+                               'cell/exact_int',
+                               'cell/exact_tuple',
+                               'cell/exact_type',
+                               'cell/get',
+                               'cell/length',
+                               'cell/max_entries',
+                               'cell/max_rows',
+                               'cell/max_value',
+                               'cell/missing',
+                               'cell/table',
+                               'empty-cell'],
+ 'serialization_names': ['ordinary',
+                         'empty',
+                         'rows-1',
+                         'rows-1023',
+                         'rows-1024',
+                         'rows-1025',
+                         'rows-2048',
+                         'byte-bound-169',
+                         'byte-bound-170',
+                         'byte-bound-171',
+                         'scalars-unicode-wide',
+                         'wide-unlimited',
+                         'wide-digit-error',
+                         'interned-rank-rows',
+                         'depth-30',
+                         'depth-33',
+                         'circular',
+                         'callback-list',
+                         'callback-dict',
+                         'callback-error',
+                         'int-subclass',
+                         'unsupported-object',
+                         'malformed-result',
+                         'malformed-witness',
+                         'malformed-rank',
+                         'nonstring-supported-keys',
+                         'expected-result_sha256',
+                         'expected-exact_witness_sha256',
+                         'expected-rank_trace_sha256',
+                         'expected-rank_call_count',
+                         'expected-rank_distinct_matrix_count',
+                         'failure-stage_create',
+                         'failure-stage_open',
+                         'failure-stage_write',
+                         'failure-stage_flush',
+                         'failure-stage_after_close',
+                         'failure-stage_hash',
+                         'failure-final_open-result.json',
+                         'failure-final_write-result.json',
+                         'failure-final_flush-result.json',
+                         'failure-final_after_close-result.json',
+                         'failure-final_open-witness.json',
+                         'failure-final_write-witness.json',
+                         'failure-final_flush-witness.json',
+                         'failure-final_after_close-witness.json',
+                         'failure-final_open-rank-trace.json',
+                         'failure-final_write-rank-trace.json',
+                         'failure-final_flush-rank-trace.json',
+                         'failure-final_after_close-rank-trace.json',
+                         'short-final-0',
+                         'short-final-1',
+                         'copy-corrupt-content',
+                         'stage-mutated-size',
+                         'copy-read-error',
+                         'copy-hash-error',
+                         'cleanup-unlink-error',
+                         'cleanup-rmdir-error',
+                         'primary-plus-close-error',
+                         'primary-plus-manifest-error',
+                         'drift-reference_global',
+                         'drift-json_default',
+                         'drift-expected_value',
+                         'drift-effective_builtin',
+                         'drift-json_global_shadow',
+                         'drift-keyword_default',
+                         'exit-json-drift',
+                         'fallback-exit-json-drift',
+                         'existing-finals',
+                         'state-mutation-between-writes',
+                         'path-subclass-fallback']}
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def _relative(name):
+    need(type(name) is str, 'Stage path must be exact text')
+    path = PurePosixPath(name)
+    need(bool(path.parts) and not path.is_absolute() and '..' not in path.parts and
+         '\\' not in name and path.as_posix() == name, 'Noncanonical stage path: ' + name)
+    return name
+
+
+def _row(path):
+    need(path.is_file() and not path.is_symlink(), 'Missing or symlinked data source: ' + str(path))
+    hasher = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            hasher.update(block)
+    return {'sha256': hasher.hexdigest(), 'mode': stat.S_IMODE(path.stat().st_mode)}
+
+
+def _manifest(root):
+    path = root / 'STAGE.json'
+    need(path.is_file() and not path.is_symlink(), 'Missing regular data stage manifest')
+    manifest = json.loads(path.read_bytes())
+    need(manifest.get('schema') == 'h25-data-handling-immutable-stage-v1' and
+         type(manifest.get('files')) is dict, 'Wrong immutable data stage contract')
+    for name in manifest['files']:
+        _relative(name)
+    return manifest
+
+
+def custody(root):
+    """Fresh complete new helper/control/integration source census and hashes."""
+    manifest = _manifest(root)
+    selected = {name for name in manifest['files']
+                if (name.startswith(('areas/', 'integration/')) or '/' not in name)
+                and Path(name).suffix in ('.py', '.c')}
+    actual = set()
+    for path in root.iterdir():
+        need(not path.is_symlink(), 'Symlink in stage root: ' + str(path))
+        if path.is_file() and path.suffix in ('.py', '.c'):
+            actual.add(path.name)
+    for directory in (root / 'areas', root / 'integration'):
+        need(directory.is_dir() and not directory.is_symlink(), 'Missing regular new source directory')
+        for path in directory.rglob('*'):
+            need(not path.is_symlink(), 'Symlink in new data source tree: ' + str(path))
+            if path.is_file() and path.suffix in ('.py', '.c'):
+                actual.add(path.relative_to(root).as_posix())
+    need(actual == selected, 'Complete new data source census changed')
+    need({name for _, name, _ in _MODULES} | {'integration/full_driver.py', 'integration/scientific_driver.py', 'integration/data_adapters.py',
+         'integration/native_packet.py', 'integration/probe_binding_v3.py',
+         'integration/guarded_adapters_v4.py', 'areas/cache-validity/cold_authority_v7.py'} <= selected,
+         'Required data-handling source missing from stage')
+    result = {}
+    for name in sorted(selected):
+        observed = _row(root / name)
+        need(observed == manifest['files'][name], 'New data source custody failed: ' + name)
+        result[name] = observed
+    return result
+
+
+def _load(root, relative, name, source_custody):
+    need(relative in source_custody and _row(root / relative) == source_custody[relative],
+         'Fresh data import custody failed: ' + relative)
+    return adapters.load(root / relative, name)
+
+
+def prepare(root, backend, comparison, extensions, arm, source_custody, packet, *,
+            authority, cold_caller_descriptor, integration_handles, backend_handle, adapters_handle, setup_handle,
+            factory_environment, preloaded_cache):
+    """Both arms load/pay the same complete controls; production installation differs."""
+    need(arm in ('baseline', 'candidate'), 'Unsupported data arm')
+    # Preserve the original preceding field evaluations before source dispatch.
+    _prepared_backend_source = Path(backend.__file__)
+    _prepared_comparison_source = Path(comparison.__file__)
+    _prepared_set_adapter = extensions['set_adapter']
+    # BEGIN evaluated dispatch arguments data_adapters:366
+    _ca_args = (backend_handle,)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments data_adapters:366
+    # BEGIN caller admission data_adapters:366
+    _ca_desc = cold_caller_descriptor
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:366
+    _prepared_backend_source_pin = _ca_dispatch(6, *_ca_args, **_ca_kwargs)[2]
+    state = {'arm': arm, 'enabled': arm == 'candidate', 'controls': {},
+             'construction_binding': None, 'cache_binding': None, 'row_helper': None,
+             'writer': None, 'writer_handle': None, 'backend_derivation': None,
+             'runtime_before': None, 'runtime_after': None, 'final_receipt': None,
+             'backend_source': _prepared_backend_source,
+             'comparison_source': _prepared_comparison_source, 'set_adapter': _prepared_set_adapter,
+             'native_packet': packet, 'authority': authority, 'authority_handles': {},
+             'cold_caller_descriptor': cold_caller_descriptor,
+             'early_authority_handles': tuple(sorted(integration_handles.items())),
+             'cold_authority_input_census': None,
+             'backend_handle': backend_handle, 'adapters_handle': adapters_handle,
+             'setup_handle': setup_handle, 'backend_source_pin': _prepared_backend_source_pin,
+             'factory_environment': factory_environment, 'cache_teardown_attempted': False,
+             'cache_teardown_receipt': None, 'cache_teardown_stop': None, 'cleanup_errors': []}
+    state['owned_states'] = [state]
+    for key, relative, name in _MODULES:
+        need(relative in source_custody and _row(root / relative) == source_custody[relative],
+             'Fresh data authority import custody failed: ' + relative)
+        if key == 'cache':
+            need(type(preloaded_cache) is tuple and len(preloaded_cache) == 2,
+                 'The original early cache module/handle pair is required')
+            state[key], state['authority_handles'][key] = preloaded_cache
+            # BEGIN evaluated dispatch arguments data_adapters:389
+            _ca_args = (state['authority_handles'][key],)
+            _ca_kwargs = {}
+            # END evaluated dispatch arguments data_adapters:389
+            # BEGIN caller admission data_adapters:389
+            _ca_desc = cold_caller_descriptor
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # END caller admission data_adapters:389
+            admitted = _ca_dispatch(6, *_ca_args, **_ca_kwargs)
+            need(admitted[0] is state[key] and admitted[1] == str(root / relative) and
+                 admitted[2] == source_custody[relative]['sha256'],
+                 'The early cache module differs from the actual immutable stage')
+        else:
+            # BEGIN evaluated dispatch arguments data_adapters:394
+            _ca_args = (str(root / relative), source_custody[relative]['sha256'], name)
+            _ca_kwargs = {}
+            # END evaluated dispatch arguments data_adapters:394
+            # BEGIN caller admission data_adapters:394
+            _ca_desc = cold_caller_descriptor
+            _ca_p = _ca_desc[5]
+            _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+            _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+            _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+            if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+                raise _ca_error('Cold authority caller dispatcher identity differs')
+            for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+                if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher environment differs')
+            if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+                raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+            for _ca_cell, _ca_expected in _ca_record[8]:
+                try:
+                    _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+                except _ca_value_error:
+                    raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+                if _ca_observed_id != _ca_id(_ca_expected):
+                    raise _ca_error('Cold authority caller dispatcher cell differs')
+            # END caller admission data_adapters:394
+            state[key], state['authority_handles'][key] = _ca_dispatch(0, *_ca_args, **_ca_kwargs)
+    return state
+
+
+def isolated_state(prototype, arm):
+    """Independent mutable scope for bounded controls; code modules may be shared."""
+    need(arm in ('baseline', 'candidate'), 'Unsupported isolated data arm')
+    state = {'arm': arm, 'enabled': arm == 'candidate', 'controls': {},
+             'construction_binding': None, 'cache_binding': None, 'row_helper': None,
+             'writer': None, 'writer_handle': None, 'backend_derivation': None,
+             'runtime_before': None, 'runtime_after': None, 'final_receipt': None,
+             'backend_source': prototype['backend_source'],
+             'comparison_source': prototype['comparison_source'], 'set_adapter': prototype['set_adapter']}
+    state.update({'native_packet': prototype['native_packet'], 'owned_states': prototype['owned_states'],
+                  'authority': prototype['authority'], 'authority_handles': prototype['authority_handles'],
+                  'cold_caller_descriptor': prototype['cold_caller_descriptor'],
+                  'adapters_handle': prototype['adapters_handle'], 'setup_handle': prototype['setup_handle'],
+                  'backend_source_pin': prototype['backend_source_pin'], 'backend_handle': None,
+                  'factory_environment': None,
+                  'cache_teardown_attempted': False, 'cache_teardown_receipt': None,
+                  'cache_teardown_stop': None, 'cleanup_errors': []})
+    state['owned_states'].append(state)
+    for key, _, _ in _MODULES:
+        if key in prototype:
+            state[key] = prototype[key]
+    return state
+
+
+def require_execution_contract(arm, finite_only):
+    native_packet.require_execution_contract(arm, finite_only)
+
+
+def _backend(state, suffix):
+    return adapters.load(state['backend_source'], '_h25_data_backend_' + suffix)
+
+def _authority_backend(state, suffix):
+    # Initial stdlib provenance belongs to the original early authority. This
+    # later fresh backend is raw source-loaded before its scientific exposure.
+    # BEGIN evaluated dispatch arguments data_adapters:433
+    _ca_args = (str(state['backend_source']), state['backend_source_pin'], '_h25_data_authority_backend_' + suffix)
+    _ca_kwargs = {'kind': 'backend'}
+    # END evaluated dispatch arguments data_adapters:433
+    # BEGIN caller admission data_adapters:433
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:433
+    return _ca_dispatch(0, *_ca_args, **_ca_kwargs)
+
+
+
+def capture_factory_environment(state, backend, backend_handle):
+    """Authenticate each fresh backend before its own scientific exposure."""
+    packet = state['native_packet']
+    # BEGIN evaluated dispatch arguments data_adapters:441
+    _ca_args = (state['authority_handles']['cache'], 'capture_backend_factory_environment', backend)
+    _ca_kwargs = {'cold_authority': state['authority'], 'cold_caller_descriptor': state['cold_caller_descriptor'], 'backend_handle': backend_handle, 'cache_handle': state['authority_handles']['cache'], 'bootstrap_root': packet['bootstrap_root'], 'bootstrap_capability': packet['bootstrap_capability'], 'bootstrap_api': packet['bootstrap_api']}
+    # END evaluated dispatch arguments data_adapters:441
+    # BEGIN caller admission data_adapters:441
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:441
+    return _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+
+
+
+def _check_controls(state, *, include_late=False):
+    controls = state['controls']
+    expected_status = {name: status for name, status in DATA_CONTROL_STATUS.items()
+                       if include_late or name != 'bootstrap_late'}
+    need(set(controls) == set(expected_status), 'Complete data control union missing')
+    for name, expected in expected_status.items():
+        need(type(controls[name]) is dict and controls[name].get('status') == expected,
+             'Data control did not pass: ' + name)
+    expected_names = _CONTROL_CONTRACT['construction_optimized_names' if sys.flags.optimize else 'construction_normal_names']
+    construction = controls['construction']
+    need(construction.get('schema') == 'h25-construction-controls-v2' and
+         construction.get('cases') == len(expected_names) and
+         construction.get('optimized') is bool(sys.flags.optimize) and
+         [row['name'] for row in construction.get('controls', [])] == expected_names and
+         all(row['status'] == 'PASS' for row in construction['controls']),
+         'Exact construction control census changed')
+    serialization = controls['serialization']
+    need(serialization.get('case_count') == 70 and serialization.get('optimization') == sys.flags.optimize and
+         [row['case'] for row in serialization.get('cases', [])] == _CONTROL_CONTRACT['serialization_names'],
+         'Exact serialization control census changed')
+    cache_counts = dict(_CONTROL_CONTRACT['cache_counts'], cases=30, requests=74)
+    cache = controls['cache_validity']
+    need(cache.get('counts') == cache_counts and
+         type(EXPECTED_CACHE_TRANSCRIPT_RECORDS) is int and
+         cache.get('transcript_record_count') == EXPECTED_CACHE_TRANSCRIPT_RECORDS and
+         cache.get('native_consumer_case_count') == 10 and
+         cache.get('native_consumer_cases') == [
+             'empty-first-result-authority', 'offhash-foreign-key', 'offhash-value-resize',
+             'eligible-native-exit-unsupported', 'provider-function-binding',
+             'binding-inspect-code', 'binding-inspect-defaults', 'isolated-module-close',
+             'teardown-validation-rejection', 'teardown-attempted-native-accounting-rejection'],
+         'Exact retained native-consumer control census changed')
+    need(cache.get('v6_consumer_case_count') == 18 and
+         len(cache.get('v6_consumer_cases', [])) == 18, 'Exact additive v6 control count changed')
+    need(type(EXPECTED_V7_CONSUMER_CASES) is tuple and
+         cache.get('v7_consumer_case_count') == len(EXPECTED_V7_CONSUMER_CASES) and
+         cache.get('v7_consumer_cases') == list(EXPECTED_V7_CONSUMER_CASES),
+         'Exact additive V7 control census is unconfigured or changed')
+    need(type(EXPECTED_V8_CALLER_CASES) is tuple and
+         cache.get('v8_caller_case_count') == len(EXPECTED_V8_CALLER_CASES) and
+         cache.get('v8_caller_cases') == list(EXPECTED_V8_CALLER_CASES),
+         'Exact additive V8 caller control census is unconfigured or changed')
+    authority_controls = controls['cold_authority']
+    authority_rows = authority_controls.get('records', [])
+    need(authority_controls.get('schema') == 'h25-cold-authority-controls-v7' and
+         type(EXPECTED_AUTHORITY_CONTROL_CASES) is tuple and
+         authority_controls.get('expected_records') == authority_controls.get('observed_record_count') == len(authority_rows) == 6 and
+         [row['case'] for row in authority_rows] == list(EXPECTED_AUTHORITY_CONTROL_CASES) and
+         all(type(row['expected_cases']) is int and type(row['observed_cases']) is int and
+             row['expected_cases'] == row['observed_cases'] for row in authority_rows) and
+         authority_controls.get('expected_subcases') == authority_controls.get('observed_subcases') ==
+         sum(row['observed_cases'] for row in authority_rows) and
+         authority_controls.get('scientific_calls') == authority_controls.get('native_private_calls') == 0,
+         'Exact cold authority grouped and derived subcase census changed')
+    metadata_native = controls['native_metadata']
+    need(metadata_native.get('schema') == 'h25-native-metadata-controls-v3' and
+         metadata_native.get('observed_record_count') == len(metadata_native.get('records', [])) == 16 and
+         metadata_native.get('native_lifecycle_before') == metadata_native.get('native_lifecycle_after'),
+         'Exact additive native metadata control census changed')
+    need(controls['cache_reference_v3'].get('counts') == cache_counts,
+         'Separate bounded v3 reference control census changed')
+    initial_tcb = controls['native_initial_tcb']
+    need(initial_tcb.get('schema') == 'h25-native-tcb-controls-v1' and
+         len(initial_tcb.get('records', [])) == 5 and initial_tcb.get('expected_records') == 5 and
+         initial_tcb.get('scientific_calls') == 0 and initial_tcb.get('probe_native_imports') == 0,
+         'Initial native TCB control census changed')
+    native_controls = controls['native_probe']
+    need(native_controls.get('records') == 62 and
+         native_controls['direct'].get('inspection_calls') == 58 and
+         len(native_controls['direct'].get('records', [])) == 60 and
+         len(native_controls.get('disarmed', [])) == 1 and len(native_controls.get('bounds', [])) == 1,
+         'Native metadata direct/fixture census changed')
+    need(len(controls['bootstrap_preload'].get('records', [])) == 21 and
+         controls['bootstrap_preload'].get('scientific_calls') == 0, 'Bootstrap preload census changed')
+    if include_late:
+        need(state['native_packet']['late_completed'] is True and
+             len(controls['bootstrap_late'].get('records', [])) == 1, 'Bootstrap late-last census changed')
+    metadata = controls['rank_metadata']
+    rows, guard, digests = metadata['rows'], metadata['guard'], metadata['digests']
+    need(rows['status'] == 'ROW_METADATA_CONTROLS_PASS' and rows['event_fixture_count'] == 8 and
+         rows['unsupported_cases'] == 9 and rows['table_cap_tested'] == 4096 and rows['callback_events'] == [],
+         'Exact immutable-row control census changed')
+    need(guard['status'] == 'OBSERVATION_GUARD_CONTROLS_PASS' and guard['base_check_calls'] == 43 and
+         len(guard['mutations']) == 21 and
+         {row[0] for row in guard['mutations']} == set(_CONTROL_CONTRACT['rank_guard_mutation_names']),
+         'Exact observation-guard control census changed')
+    need(digests['status'] == 'DIGEST_SNAPSHOT_CONTROLS_PASS' and
+         digests['declared_fixture_bytes'] == 2097172 and digests['same_snapshot_sha_calls'] == 3 and
+         digests['stream_request_bytes'] == [1048576] * 4 and
+         digests['read_once_same_snapshot'] is True and digests['fresh_after_mutation'] is True,
+         'Exact same-call digest control census changed')
+    native = controls['rank_native']
+    need(native['rank_events'] == 17 and len(native['outcomes']) == 18 and
+         native['callbacks'] == ['basis.values', 'basis.values'] and
+         native['counters'] == {'complement_native': 0, 'complement_fallback': 0,
+                                'gram_native': 14, 'gram_fallback': 4},
+         'Exact native observation control census changed')
+    need([list(row) for row in controls['inventory']['cases']] == _CONTROL_CONTRACT['inventory_cases'],
+         'Exact inventory control census changed')
+    composition = controls['combined_composition']
+    need(composition['height'] == 8 and composition['optimized'] == sys.flags.optimize and
+         composition['arms'] == ['baseline', 'candidate'] and
+         set(composition['files']) == {'result.json', 'witness.json', 'rank-trace.json', 'complements.json'} and
+         composition['production_writer_expected_unchanged'] is True and
+         composition['production_writer_executed'] is False and composition['full_h25_gate_passed'] is False,
+         'Exact bounded composition scope changed')
+
+
+def run_controls(state, native, output, phases, reference_driver, candidate_inventory, extensions):
+    """Isolated backends: production's finalized class/owner state is untouched."""
+    controls = state['controls']
+    controls.update(state['native_packet']['controls'])
+    controls['construction'] = phases.call(
+        'data_construction_controls', state['construction_controls'].run_controls,
+        _backend(state, 'construction_controls'), state['set_adapter'], state['construction'])
+    comparison = adapters.load(state['comparison_source'], '_h25_data_comparison_controls')
+    controls['serialization'] = phases.call(
+        'data_serialization_controls', state['serialization_controls'].run_controls,
+        comparison, output / 'serialization-controls')
+    controls['cache_reference_v3'] = phases.call(
+        'data_cache_reference_v3_controls', state['cache_reference_controls'].run_controls,
+        _backend(state, 'cache_reference_controls'), native, state['cache_reference'])
+    packet = state['native_packet']
+    cache_backend, cache_backend_handle = _authority_backend(state, 'cache_controls')
+    cache_environment = capture_factory_environment(state, cache_backend, cache_backend_handle)
+    # BEGIN evaluated dispatch arguments data_adapters:576
+    _ca_args = (state['setup_handle'], 'trace_entries', state['authority'], extensions)
+    _ca_kwargs = {'cold_caller_descriptor': state['cold_caller_descriptor']}
+    # END evaluated dispatch arguments data_adapters:576
+    # BEGIN caller admission data_adapters:576
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:576
+    cache_trace_entries = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments data_adapters:579
+    _ca_args = (state['setup_handle'], 'compose_guard_stack', state['authority'], cache_backend, cache_backend_handle, extensions['authority_handles']['guard_adapter'], state['adapters_handle'], cache_trace_entries)
+    _ca_kwargs = {'cold_caller_descriptor': state['cold_caller_descriptor']}
+    # END evaluated dispatch arguments data_adapters:579
+    # BEGIN caller admission data_adapters:579
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:579
+    _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments data_adapters:585
+    _ca_args = (state['authority_handles']['cache_controls'], 'run_controls', cache_backend, native, state['cache'], packet['extension_path'], packet['extension_sha256'])
+    _ca_kwargs = {'bootstrap_root': packet['bootstrap_root'], 'bootstrap_capability': packet['bootstrap_capability'], 'bootstrap_api': packet['bootstrap_api'], 'cold_authority': state['authority'], 'cold_caller_descriptor': state['cold_caller_descriptor'], 'cache_handle': state['authority_handles']['cache'], 'backend_handle': cache_backend_handle, 'row_handle': state['authority_handles']['rows'], 'row_producer_handle': state['authority_handles']['row_derivation'], 'factory_environment': cache_environment}
+    # END evaluated dispatch arguments data_adapters:585
+    # BEGIN caller admission data_adapters:585
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:585
+    controls['cache_validity'] = phases.call('data_cache_controls', _ca_dispatch, 1, *_ca_args, **_ca_kwargs)
+    controls['rank_metadata'] = phases.call(
+        'data_rank_metadata_controls', state['metadata_controls'].run_controls,
+        state['rows'], state['digests'], output / 'digest-controls')
+    reference_backend = _backend(state, 'rank_reference')
+    candidate_backend = _backend(state, 'rank_candidate')
+    phases.call('data_control_backend_derivation', state['derive_backend'].install, candidate_backend)
+    reference_module = reference_backend.load_source('_h25_data_rank_reference')
+    candidate_module = candidate_backend.load_source('_h25_data_rank_candidate')
+    reference_calls, candidate_calls = [], []
+    helper = state['rows'].make_row_interner()
+    candidate_backend.RuntimeGuard = state['rows'].make_runtime_guard(candidate_backend.RuntimeGuard, helper)
+    reference_binding = reference_backend.bind(reference_module, native, reference_calls)
+    candidate_binding = candidate_backend.bind(candidate_module, native, candidate_calls, rank_row_intern=helper)
+    reference = {'module': reference_module, 'binding': reference_binding, 'rank_calls': reference_calls}
+    candidate = {'module': candidate_module, 'binding': candidate_binding, 'rank_calls': candidate_calls}
+    controls['rank_native'] = phases.call(
+        'data_rank_native_controls', state['native_controls'].run_bound_controls, reference, candidate, helper)
+    reference_inventory = adapters.load(reference_driver, '_h25_data_inventory_reference').inventory
+    controls['inventory'] = phases.call(
+        'data_inventory_controls', state['inventory_controls'].run_controls,
+        reference_inventory, candidate_inventory, output / 'inventory-controls')
+    controls['combined_composition'] = phases.call(
+        'data_combined_composition_controls', state['composition_controls'].run_controls,
+        sys.modules[__name__], state, extensions, native, comparison, phases, output / 'composition-controls')
+    # Generic authority controls use only already registered original products
+    # plus one fresh metadata-only row helper. Final cache/private row products
+    # retain their separate V8 consumer controls.
+    # BEGIN evaluated dispatch arguments data_adapters:621
+    _ca_args = (state['authority_handles']['rows'], 'make_row_interner')
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments data_adapters:621
+    # BEGIN caller admission data_adapters:621
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:621
+    authority_row_helper = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    authority_products = tuple(extensions['authority_product_cases']) + (
+        ('fresh-row-helper', authority_row_helper, state['authority_handles']['rows'],
+         'make_row_interner', (), {}),)
+    authority_modules = [('production-backend', state['backend_handle']),
+                         ('cache-control-backend', cache_backend_handle)]
+    authority_modules.extend(('composition-backend-' + str(index), owned['backend_handle'])
+                             for index, owned in enumerate(state['owned_states'][1:]))
+    authority_modules.extend(('early-' + name, handle) for name, handle in state['early_authority_handles'])
+    authority_modules.extend(('setup-' + name, handle) for name, handle in sorted(extensions['authority_handles'].items()))
+    authority_modules.extend(('data-' + name, handle) for name, handle in sorted(state['authority_handles'].items()))
+    unique_modules, seen_handles = [], set()
+    for label, handle in authority_modules:
+        if id(handle) not in seen_handles:
+            unique_modules.append((label, handle))
+            seen_handles.add(id(handle))
+    authority_modules = tuple(unique_modules)
+    # BEGIN evaluated dispatch arguments data_adapters:639
+    _ca_args = (state['authority_handles']['cold_authority_controls'], 'run_controls', state['authority'], state['cold_caller_descriptor'], authority_modules, authority_products)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments data_adapters:639
+    # BEGIN caller admission data_adapters:639
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:639
+    controls['cold_authority'] = phases.call('data_cold_authority_controls', _ca_dispatch, 1, *_ca_args, **_ca_kwargs)
+    state['cold_authority_input_census'] = {
+        'module_labels': [label for label, _ in authority_modules],
+        'module_handle_count': len(authority_modules),
+        'product_labels': [row[0] for row in authority_products],
+        'product_count': len(authority_products),
+        'product_scope': 'Original P2 guard and trace class plus fresh row helper; final cache/private/final-row controls remain in V8.'}
+    _check_controls(state)
+    return controls
+
+
+def _runtime_images(writer):
+    """Fresh bounded hash reads of actual interpreter/JSON runtime file paths.
+
+    This records file custody, not a claim about arbitrary process memory. The
+    writer separately checks live module/class/function bindings at entry/exit.
+    """
+    paths = {'python_executable': Path(sys.executable).resolve()}
+    modules = {}
+    for owner, _, _ in writer._h25_serialization_bindings:
+        if type(owner) is ModuleType and owner.__name__ in ('json', 'json.encoder', '_json'):
+            modules[owner.__name__] = owner
+    need(set(modules) == {'json', 'json.encoder', '_json'}, 'Actual JSON runtime module census changed')
+    for name, module in modules.items():
+        need(type(module.__file__) is str, 'JSON runtime path missing')
+        paths[name] = Path(module.__file__).resolve()
+    result = {}
+    for name, path in sorted(paths.items()):
+        need(path.is_file() and not path.is_symlink(), 'JSON runtime image missing')
+        before = path.stat()
+        hasher, count = hashlib.sha256(), 0
+        with path.open('rb') as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b''):
+                count += len(block)
+                hasher.update(block)
+        after = path.stat()
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size,
+                                  value.st_mtime_ns, value.st_ctime_ns)
+        need(identity(before) == identity(after) and count == before.st_size, 'JSON runtime image changed while read')
+        result[name] = {'path': str(path), 'sha256': hasher.hexdigest(), 'bytes': count,
+                        'mode': stat.S_IMODE(after.st_mode)}
+    return result
+
+
+def install_circuit(state, extensions, module, comparison):
+    """Original P1/cache/construction admission precedes every class mutation."""
+    if not state['enabled']:
+        adapters.install_set(extensions, module)
+        state['writer'] = comparison.write_scientific
+        state['writer_handle'] = state['writer']
+        return
+    p1 = state['set_adapter'].bind_verify_map(module)
+    construction = state['construction'].bind_construction(module)
+    packet = state['native_packet']
+    # BEGIN evaluated dispatch arguments data_adapters:694
+    _ca_args = (state['authority_handles']['cache'], 'prepare_cache_contract', module, packet['extension_path'], packet['extension_sha256'])
+    _ca_kwargs = {'bootstrap_root': packet['bootstrap_root'], 'bootstrap_capability': packet['bootstrap_capability'], 'bootstrap_api': packet['bootstrap_api'], 'factory_environment': state['factory_environment']}
+    # END evaluated dispatch arguments data_adapters:694
+    # BEGIN caller admission data_adapters:694
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if state['authority'] is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:694
+    cache = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # Register ownership before any class mutation/writer setup can fail.
+    state['cache_binding'] = cache
+    original_checks_init = module.Checks.__init__
+    capture_checks = p1['owner'].capture_checks
+
+    def captured_checks(self, *args, **kwargs):
+        result = original_checks_init(self, *args, **kwargs)
+        capture_checks(self)
+        return result
+
+    module.Checks.verify_map = p1['verify_map']
+    module.ComplexSideCircuit.add = construction['add']
+    module.ComplexSideCircuit.__init__ = construction['wrap_constructor'](
+        construction['original_init'], p1['owner'].capture_c)
+    module.Checks.__init__ = captured_checks
+    module.Checks.residual_ok = cache['residual_ok']
+    module.Checks.label_ok = cache['label_ok']
+    extensions['set_binding'] = p1
+    state['construction_binding'], state['cache_binding'] = construction, cache
+    writer = state['serializer'].make_writer(
+        comparison.write_scientific, comparison.canonical, comparison.EXPECTED, comparison.require)
+    need(writer._h25_serialization_faults_enabled is False, 'Production serializer contains test faults')
+    state['writer'] = state['writer_handle'] = writer
+    state['runtime_before'] = _runtime_images(writer)
+
+
+def bind_native(state, backend, module, native, rank_calls, complement):
+    """Call only after every CS/Checks/phase/observer wrapper is final."""
+    authority, handles = state['authority'], state['authority_handles']
+    if not state['enabled']:
+        # BEGIN evaluated dispatch arguments data_adapters:729
+        _ca_args = (state['backend_handle'], 'bind', module, native, rank_calls, complement)
+        _ca_kwargs = {}
+        # END evaluated dispatch arguments data_adapters:729
+        # BEGIN caller admission data_adapters:729
+        _ca_desc = state['cold_caller_descriptor']
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+        _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+        _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        # END caller admission data_adapters:729
+        return _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments data_adapters:730
+    _ca_args = (handles['rows'], 'make_row_interner')
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments data_adapters:730
+    # BEGIN caller admission data_adapters:730
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:730
+    helper = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    state['row_helper'] = helper
+    # BEGIN evaluated dispatch arguments data_adapters:732
+    _ca_args = (handles['cache'], 'compose_runtime_guard', backend.RuntimeGuard, state['cache_binding'])
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments data_adapters:732
+    # BEGIN caller admission data_adapters:732
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:732
+    cache_guard = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments data_adapters:734
+    _ca_args = (handles['rows'], 'make_cache_runtime_guard', cache_guard, helper)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments data_adapters:734
+    # BEGIN caller admission data_adapters:734
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:734
+    final_guard = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments data_adapters:735
+    _ca_args = (state['backend_handle'], final_guard)
+    _ca_kwargs = {}
+    # END evaluated dispatch arguments data_adapters:735
+    # BEGIN caller admission data_adapters:735
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:735
+    _ca_dispatch(5, *_ca_args, **_ca_kwargs)
+    # BEGIN evaluated dispatch arguments data_adapters:736
+    _ca_args = (handles['cache'], 'bind_cache_backend', backend, module, native, state['cache_binding'], state['factory_environment'])
+    _ca_kwargs = {'row_producer_handle': handles['row_derivation'], 'row_handle': handles['rows'], 'rank_row_intern': helper, 'final_guard': final_guard, 'rank_calls': rank_calls, 'complement_trace': complement}
+    # END evaluated dispatch arguments data_adapters:736
+    # BEGIN caller admission data_adapters:736
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = _ca_p[0], _ca_p[1], _ca_p[2]
+    _ca_error, _ca_value_error, _ca_zip = _ca_p[7], _ca_p[8], _ca_p[18]
+    _ca_dispatch, _ca_record = _ca_desc[2], _ca_desc[3]
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    # END caller admission data_adapters:736
+    result = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    state['backend_derivation'] = state['cache_binding']['owner'].binding_derivation
+    return result
+
+
+def seal(state):
+    if state['enabled']:
+        state['construction_binding']['owner'].seal()
+
+
+def arm(state, extensions):
+    if state['enabled']:
+        # Fresh Fraction/source/class check immediately before optimized
+        # construction; the original later P1 check remains unchanged.
+        need(extensions['set_binding']['owner']._fresh(), 'Fresh original P1 environment required before construction')
+        state['construction_binding']['owner'].arm_cli()
+    adapters.arm(extensions)
+
+
+def scientific_writer(state):
+    need(state['writer'] is state['writer_handle'], 'Scientific writer binding changed')
+    return state['writer_handle']
+
+
+def finite_receipt(state):
+    _check_controls(state, include_late=True)
+    return {'schema': 'h25-data-handling-v2', 'enabled': state['enabled'], 'arm': state['arm'],
+            'controls': state['controls'], 'full_caller_run': False,
+            'cold_authority_input_census': state['cold_authority_input_census'],
+            'full_candidate_admission': False,
+            'native_packet': native_packet.receipt(state['native_packet']),
+            'cache_teardown_stops': [item['cache_teardown_stop'] for item in state['owned_states']
+                                     if item['cache_teardown_stop'] is not None],
+            'admission_hold': 'Final cache V8 complete cost and caller equality are unqualified; source/execution/funding gates remain separate'}
+
+
+def finish(state, binding):
+    """After exact outputs and original source checks; cleanup remains timed."""
+    _check_controls(state)
+    binding['runtime_guard'].check()
+    if not state['enabled']:
+        result = {'schema': 'h25-data-handling-v2', 'enabled': False, 'arm': 'baseline',
+                  'controls': state['controls'], 'full_caller_run': True}
+    else:
+        writer = scientific_writer(state)
+        need(writer._h25_serialization_faults_enabled is False and
+             type(writer.last_operation) is dict and
+             writer.last_operation.get('status') == 'BOUNDED_SERIALIZATION_PASS',
+             'Complete candidate did not use the bounded scientific writer')
+        state['runtime_after'] = _runtime_images(writer)
+        need(state['runtime_after'] == state['runtime_before'], 'JSON runtime image custody changed')
+        construction = state['construction_binding']['owner'].finish()
+        cache = teardown_cache(state)
+        need(cache['teardowns'] == 1 and cache['current_authority_entries'] == 0,
+             'Cache private state cleanup incomplete')
+        result = {'schema': 'h25-data-handling-v2', 'enabled': True, 'arm': 'candidate',
+                  'controls': state['controls'], 'full_caller_run': True,
+                  'construction': construction, 'cache_validity': cache,
+                  'serialization': writer.last_operation,
+                  'rank_observation': {'native_success_only': True, 'collector': 'exact built-in list',
+                                       'table_entry_cap': 4096, 'rank_answers_cached': False},
+                  'backend_derivation': state['backend_derivation'],
+                  'serialization_runtime_files': state['runtime_before']}
+    result['cold_authority_input_census'] = state['cold_authority_input_census']
+    state['final_receipt'] = result
+    return result
+
+
+def transport(root, baseline, output):
+    """Original bounded historical artifact transport; no scientific imports."""
+    need(sys.flags.optimize == 0, 'Transport requires original assertions enabled')
+    output = output.resolve()
+    need(not output.exists() and not output.is_relative_to(root), 'Fresh external transport evidence required')
+    original_before = adapters.custody(root, 'all')
+    data_before = custody(root)
+    manifest = _manifest(root)
+    baseline_names = {name for name in manifest['files'] if name.startswith('baseline/')}
+    need(baseline_names, 'Historical transport closure absent')
+    before = {}
+    for name in sorted(baseline_names):
+        observed = _row(root / name)
+        need(observed == manifest['files'][name], 'Historical transport stage custody failed: ' + name)
+        before[name] = observed
+    checker_path = baseline / 'check_artifacts.py'
+    checker_name = checker_path.relative_to(root).as_posix()
+    need(checker_name in before and _row(checker_path) == before[checker_name],
+         'Fresh historical checker source admission failed')
+    checker = adapters.load(checker_path, '_h25_data_historical_transport')
+    old_argv = sys.argv
+    try:
+        sys.argv = [str(checker_path)]
+        checker.main()
+    finally:
+        sys.argv = old_argv
+    for name, expected in before.items():
+        need(_row(root / name) == expected, 'Historical transport closure changed: ' + name)
+    need(adapters.custody(root, 'all') == original_before and custody(root) == data_before,
+         'Transport integration source custody changed')
+    need(_manifest(root) == manifest, 'Transport stage manifest changed')
+    output.mkdir(parents=True)
+    receipt = {'schema': 'h25-data-handling-transport-v1', 'status': 'H25_DATA_HANDLING_TRANSPORT_PASS',
+               'mode': 'transport', 'optimized': sys.flags.optimize,
+               'historical_checker_sha256': before[checker_name]['sha256'],
+               'scientific_cli_run': False, 'native_build_run': False,
+               'new_source_custody': original_before, 'data_source_custody': data_before}
+    (output / 'receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+    print(json.dumps(receipt, sort_keys=True))
+    return receipt
+
+
+def teardown_cache(state):
+    """Exactly one terminal attempt; retain actual owner's diagnostic on failure."""
+    if state['cache_binding'] is None:
+        return None
+    need(not state['native_packet']['late_started'], 'Cache teardown forbidden after late audit control')
+    need(not state['cache_teardown_attempted'], 'Cache teardown already attempted')
+    state['cache_teardown_attempted'] = True
+    owner = state['cache_binding']['owner']
+    try:
+        receipt = owner.teardown()
+    except BaseException:
+        # Copy only the JSON-ready diagnostic; never manufacture missing counters.
+        try:
+            state['cache_teardown_stop'] = owner.teardown_stop
+        except BaseException as diagnostic_error:
+            state['cleanup_errors'].append({'stage': 'read-owner-teardown-stop',
+                                            'type': type(diagnostic_error).__name__})
+        raise
+    state['cache_teardown_receipt'] = receipt
+    return receipt
+
+
+def cleanup_owned(state):
+    """Failure-path cleanup, preserving primary exceptions and every STOP record."""
+    if state is None or state['native_packet']['late_started']:
+        return []
+    errors = []
+    for owned in reversed(state['owned_states']):
+        if owned['cache_binding'] is not None and not owned['cache_teardown_attempted']:
+            try:
+                teardown_cache(owned)
+            except BaseException as error:
+                item = {'type': type(error).__name__, 'message': str(error),
+                        'arm': owned['arm'], 'cache_teardown_stop': owned['cache_teardown_stop']}
+                owned['cleanup_errors'].append(item)
+                errors.append(item)
+    return errors
+
+
+def finish_before_late(state):
+    """Finish every owner and native qualification before adding the late hook."""
+    _check_controls(state)
+    errors = cleanup_owned(state)
+    need(not errors, 'Terminal native/cache cleanup failed; retained STOP diagnostics required')
+    need(all(owned['cache_binding'] is None or owned['cache_teardown_attempted']
+             for owned in state['owned_states']), 'An owned native cache remains live')
+    native_packet.before_late(state['native_packet'])
+
+
+def finish_late_last(state):
+    """No native/scientific API, guard, or owner call is permitted after this."""
+    state['controls']['bootstrap_late'] = native_packet.late_last(state['native_packet'])
+    _check_controls(state, include_late=True)  # Pure control-result validation only.
+    if state['final_receipt'] is not None:
+        state['final_receipt']['native_packet'] = native_packet.receipt(state['native_packet'])
+    return None
+
+
+def stop_diagnostics(state):
+    """Pure recorded evidence, safe after the deliberately terminal late control."""
+    if state is None:
+        return None
+    return {'controls_completed': sorted(state['controls']),
+            'native_packet': native_packet.receipt(state['native_packet']),
+            'owners': [{'arm': item['arm'], 'teardown_attempted': item['cache_teardown_attempted'],
+                        'teardown_receipt': item['cache_teardown_receipt'],
+                        'teardown_stop': item['cache_teardown_stop'], 'cleanup_errors': item['cleanup_errors']}
+                       for item in state['owned_states']]}
+
+
+# Appended to the unchanged legacy data adapter. Legacy install/bind/control APIs stay intact.
+import types as _epoch_data_types
+
+
+def _epoch_data_dispatch(state,descriptor,index,*args,**kwargs):
+    need(type(state) is dict and all(type(k) is str for k in state),'Epoch source state domain')
+    legacy=state['cold_caller_descriptor'];p=legacy[5];dispatch=legacy[2];record=legacy[3]
+    need(type(p) is tuple and len(p)==19 and p[0] is type and p[1] is _epoch_data_types.FunctionType and p[2] is id,
+         'Epoch legacy native caller primitives')
+    if dispatch is not record[0] or type(dispatch) is not p[1]:raise RuntimeError('Epoch legacy dispatcher identity')
+    for (_,getter),expected in zip(p[4],record[1:7]):
+        if getter(dispatch,p[1]) is not expected:raise RuntimeError('Epoch legacy dispatcher fields')
+    for cell,expected in record[8]:
+        if p[6](cell,p[5]) is not expected:raise RuntimeError('Epoch legacy dispatcher cell')
+    dispatch(2)
+    # New authority dispatcher checks this exact immutable bootstrap transport at
+    # each invocation before target entry; the read is inside that closed scope.
+    authority=state['authority'];need(authority is legacy[1] and len(authority)==7,'Epoch legacy source tuple')
+    attrs=_epoch_data_types.FunctionType.__dict__['__dict__'].__get__(authority[0],_epoch_data_types.FunctionType)
+    bundle=attrs.get('_h25_epoch_bundle')
+    need(type(bundle) is tuple and len(bundle)==4 and bundle[0]=='h25-cold-authority-epoch-bundle-v1' and
+         bundle[1] is authority and bundle[3] is descriptor,'Epoch actual initial bundle transport')
+    p=descriptor[5];dispatch=descriptor[2];record=descriptor[3]
+    need(type(p) is tuple and len(p)==19 and p[0] is type and p[1] is _epoch_data_types.FunctionType and p[2] is id,'Epoch native caller primitives')
+    if dispatch is not record[0] or type(dispatch) is not p[1]:raise RuntimeError('Epoch dispatcher identity')
+    for (_,getter),expected in zip(p[4],record[1:7]):
+        if getter(dispatch,p[1]) is not expected:raise RuntimeError('Epoch dispatcher fields')
+    for cell,expected in record[8]:
+        if p[6](cell,p[5]) is not expected:raise RuntimeError('Epoch dispatcher cell')
+    return dispatch(index,*args,**kwargs)
+
+
+def _epoch_cache_invoke(state,export,*args,**kwargs):
+    descriptor=state['cold_caller_descriptor'];p=descriptor[5];dispatch=descriptor[2];rec=descriptor[3]
+    need(type(export) is str and type(p) is tuple and p[0] is type and p[1] is _epoch_data_types.FunctionType and p[2] is id,'Epoch source cache export')
+    if dispatch is not rec[0] or type(dispatch) is not p[1]:raise RuntimeError('Epoch cache dispatcher identity')
+    for (_,getter),expected in zip(p[4],rec[1:7]):
+        if getter(dispatch,p[1]) is not expected:raise RuntimeError('Epoch cache dispatcher fields')
+    for cell,expected in rec[8]:
+        if p[6](cell,p[5]) is not expected:raise RuntimeError('Epoch cache dispatcher cell')
+    return dispatch(1,state['authority_handles']['cache'],export,*args,**kwargs)
+
+
+def epoch_load(state,descriptor):
+    return _epoch_data_dispatch(state,descriptor,0,'load',state['backend_handle'])
+
+
+def install_epoch_circuit(state,extensions,module,comparison,descriptor,load_ticket,context):
+    """New production-only export. All legacy isolated/control callers use install_circuit."""
+    need(state['enabled'] is True,'Epoch candidate-owned installation only')
+    packet=state['native_packet']
+    need(state['cache_binding'] is None and 'epoch_acquisition' not in state,'Epoch fresh acquisition disposition')
+    state['epoch_acquisition']={'phase':'BEFORE_ACQUISITION','prepared':None,'owner':None,'probe_binding':None,
+        'close_attempted':False,'close_result':None,'primary':None,'secondary':None,'uncertain':False,
+        'published':False,'origin_handle':None}
+    handle,p1,construction,cache=_epoch_data_dispatch(state,descriptor,0,'factories',load_ticket,
+        extensions['authority_handles']['set_adapter'],state['authority_handles']['construction'],
+        state['authority_handles']['cache'],(packet['extension_path'],packet['extension_sha256']),
+        {'bootstrap_root':packet['bootstrap_root'],'bootstrap_capability':packet['bootstrap_capability'],
+         'bootstrap_api':packet['bootstrap_api'],'factory_environment':state['factory_environment']},context)
+    need(state['cache_binding'] is cache and state['epoch_acquisition']['prepared'] is cache,'Epoch continuous acquisition handoff')
+    suite=_epoch_data_dispatch(state,descriptor,1,handle,context)
+    state['epoch_suite']=suite;state['epoch_descriptor']=descriptor
+    _epoch_cache_invoke(state,'epoch_suite_call',suite,0)
+    original_checks_init=module.Checks.__init__
+    capture_checks=p1['owner'].capture_checks
+    def captured_checks(self,*args,**kwargs):
+        result=original_checks_init(self,*args,**kwargs)
+        capture_checks(self)
+        return result
+    _epoch_cache_invoke(state,'epoch_suite_call',suite,1,'checks','verify_map','p1',p1['verify_map'])
+    _epoch_cache_invoke(state,'epoch_suite_call',suite,1,'circuit','add','construction_add',construction['add'])
+    _epoch_cache_invoke(state,'epoch_suite_call',suite,2)
+    _epoch_cache_invoke(state,'epoch_suite_call',suite,1,'checks','__init__','checks_capture',captured_checks)
+    _epoch_cache_invoke(state,'epoch_suite_call',suite,1,'checks','residual_ok','public_residual',cache['residual_ok'])
+    _epoch_cache_invoke(state,'epoch_suite_call',suite,1,'checks','label_ok','public_label',cache['label_ok'])
+    extensions['set_binding']=p1
+    state['construction_binding'],state['cache_binding']=construction,cache
+    writer=state['serializer'].make_writer(comparison.write_scientific,comparison.canonical,comparison.EXPECTED,comparison.require)
+    need(writer._h25_serialization_faults_enabled is False,'Production serializer contains test faults')
+    state['writer']=state['writer_handle']=writer
+    state['runtime_before']=_runtime_images(writer)
+    return suite
+
+
+def epoch_phase_wrap(state,phases,kind,owner,attribute,name):
+    suite=state['epoch_suite']
+    return _epoch_cache_invoke(state,'epoch_suite_call',suite,3,phases,kind,owner,attribute,name)
+
+
+def epoch_role_observer(state,function):
+    return _epoch_cache_invoke(state,'epoch_suite_call',state['epoch_suite'],1,
+                               'module','verify_role_frames','roles_observer',function)
+
+
+def epoch_seal(state):
+    return _epoch_cache_invoke(state,'epoch_suite_call',state['epoch_suite'],5)
+
+
+def epoch_arm(state,invocation_token):
+    return _epoch_cache_invoke(state,'epoch_suite_call',state['epoch_suite'],4,invocation_token)
+
+
+def epoch_retire(state,reason,primary=None,secondary=None,restoration_error=None,error_channel=None,cleanup_scope=None):
+    if state is None:return None
+    record=state.get('epoch_acquisition')
+    if record is not None and primary is not None and record['primary'] is None:record['primary']=primary
+    if record is not None and restoration_error is not None and restoration_error is not primary:
+        if record['secondary'] is None:record['secondary']=restoration_error
+        record['uncertain']=True
+    if record is not None and secondary is not None and secondary is not primary:
+        if record['secondary'] is None:record['secondary']=secondary
+        record['uncertain']=True
+    suite=state.get('epoch_suite')
+    if suite is None:return None
+    if primary is not None and suite.primary_error is None:suite.primary_error=primary
+    if restoration_error is not None and restoration_error is not primary:
+        if suite.secondary_error is None:suite.secondary_error=restoration_error
+        suite.uncertain=True
+    if secondary is not None and secondary is not primary:
+        if suite.secondary_error is None:suite.secondary_error=secondary
+        suite.uncertain=True
+        try:suite.secondary.append(secondary)
+        except BaseException:pass
+    # Retirement is source-only plain metadata disposal, not a late native check.
+    cleanup=state.get('epoch_cli_cleanup')
+    scope=('outer' if error_channel is None else 'inner') if cleanup_scope is None else cleanup_scope
+    need(type(scope) is str and scope in ('inner','outer'),'Epoch exact retirement scope')
+    outer=scope=='outer'
+    if error_channel is not None:channel=error_channel
+    elif cleanup is not None:channel=cleanup['outer_retirement_channel' if outer else 'retirement_channel']
+    else:channel=suite.outer_retirement_channel if outer else suite.inner_retirement_channel
+    try:return suite.retire_preserving(reason,primary,channel)
+    finally:
+        # Every declared attempt has its own channel and fixed R/J handoff.
+        # No ACKed channel is cleared, reused or inferred from journal growth.
+        if outer:
+            suite.outer_retirement_error=channel['error'];suite.outer_journal_error=channel['journal_error']
+        else:
+            suite.inner_retirement_error=channel['error'];suite.inner_journal_error=channel['journal_error']
+        if cleanup is not None and channel['error'] is not None:
+            name='outer_retirement_error' if outer else 'retirement_error'
+            if cleanup[name] is None:cleanup[name]=channel['error']
+            cleanup['uncertain']=True
+        channel['acknowledged']=True
+
+
+
+def epoch_stop_diagnostics(state):
+    result=stop_diagnostics(state)
+    if state is not None and state.get('epoch_suite') is not None:
+        suite=state['epoch_suite']
+        result=dict(result)
+        result['epoch']={'receipt':dict(suite.receipt),'active':suite.active,'terminal':suite.terminal,
+            'pending':suite.pending is not None,'registry_entries':len(suite.registry),
+            'secondary_types':[type(error).__name__ for error in suite.secondary],
+            'uncertain':suite.uncertain,'primary_type':None if suite.primary_error is None else type(suite.primary_error).__name__,
+            'first_secondary_type':None if suite.secondary_error is None else type(suite.secondary_error).__name__,
+            'inner_retirement_type':None if suite.inner_retirement_error is None else type(suite.inner_retirement_error).__name__,
+            'inner_journal_type':None if suite.inner_journal_error is None else type(suite.inner_journal_error).__name__,
+            'outer_retirement_type':None if suite.outer_retirement_error is None else type(suite.outer_retirement_error).__name__,
+            'outer_journal_type':None if suite.outer_journal_error is None else type(suite.outer_journal_error).__name__,
+            'runtime_or_resource_admitted':False}
+    if state is not None and state.get('epoch_acquisition') is not None:
+        record=state['epoch_acquisition'];result=dict(result)
+        result['epoch_acquisition']={'phase':record['phase'],'published':record['published'],
+            'close_attempted':record['close_attempted'],'uncertain':record['uncertain'],
+            'primary_type':None if record['primary'] is None else type(record['primary']).__name__,
+            'secondary_type':None if record['secondary'] is None else type(record['secondary']).__name__,
+            'actual_close_result_retained':record['close_result'] is not None,
+            'owner_acquisition_does_not_grant_provenance':True}
+    if state is not None and state.get('epoch_cli_cleanup') is not None:
+        record=state['epoch_cli_cleanup'];result=dict(result)
+        result['epoch_cli_cleanup']={'primary_type':None if record['primary'] is None else type(record['primary']).__name__,
+            'argv_error_type':None if record['argv_error'] is None else type(record['argv_error']).__name__,
+            'disarm_error_type':None if record['disarm_error'] is None else type(record['disarm_error']).__name__,
+            'retirement_error_type':None if record['retirement_error'] is None else type(record['retirement_error']).__name__,
+            'outer_retirement_error_type':None if record['outer_retirement_error'] is None else type(record['outer_retirement_error']).__name__,
+            'retirement_journal_error_type':None if record['retirement_channel']['journal_error'] is None else type(record['retirement_channel']['journal_error']).__name__,
+            'raw_retirement_acknowledged':record['retirement_channel']['acknowledged'],
+            'uncertain':record['uncertain']}
+    return result
+
+
+def epoch_driver_entry(authority,legacy_descriptor,epoch_descriptor,function,phase_class,invocation_token):
+    """Mint the initial driver record through the source-owned authority."""
+    return _epoch_data_dispatch({'authority':authority,'cold_caller_descriptor':legacy_descriptor},
+        epoch_descriptor,0,'driver_entry',function,phase_class,invocation_token)
+
+
+def epoch_cleanup_owned(state):
+    """Pending/acquired owners remain on the original parent cleanup path."""
+    if state is None or state['native_packet']['late_started']:return []
+    errors=[]
+    for owned in reversed(state['owned_states']):
+        record=owned.get('epoch_acquisition')
+        if record is None or owned['cache_binding'] is None or owned['cache_teardown_attempted']:continue
+        record['close_attempted']=True;record['phase']='PARENT_CLOSE_ATTEMPTING'
+        try:
+            teardown_cache(owned)
+        except BaseException as secondary:
+            if record['secondary'] is None:record['secondary']=secondary
+            record['uncertain']=True;record['phase']='PARENT_CLOSE_FAILED'
+            # Retain the raw error before any evidence formatting/allocation.
+            item={'type':type(secondary).__name__,'arm':owned['arm'],'cache_teardown_stop':owned['cache_teardown_stop']}
+            owned['cleanup_errors'].append(item);errors.append(item)
+        else:
+            record['close_result']=owned['cache_teardown_receipt'];record['phase']='PARENT_TEARDOWN_RETURNED'
+    errors.extend(cleanup_owned(state))  # legacy owners; attempted epoch owner is skipped
+    return errors
+
+
+
+def bind_epoch_native(state, backend, module, native, rank_calls, complement):
+    """Call only after every CS/Checks/phase/observer wrapper is final."""
+    need(state['enabled'] is True and state.get('epoch_suite') is not None, 'Epoch genuine candidate bind path required')
+    authority, handles = (state['authority'], state['authority_handles'])
+    if not state['enabled']:
+        _ca_args = (state['backend_handle'], 'bind', module, native, rank_calls, complement)
+        _ca_kwargs = {}
+        _ca_desc = state['cold_caller_descriptor']
+        _ca_p = _ca_desc[5]
+        _ca_type, _ca_function, _ca_id = (_ca_p[0], _ca_p[1], _ca_p[2])
+        _ca_error, _ca_value_error, _ca_zip = (_ca_p[7], _ca_p[8], _ca_p[18])
+        _ca_dispatch, _ca_record = (_ca_desc[2], _ca_desc[3])
+        if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+            raise _ca_error('Cold authority caller dispatcher identity differs')
+        for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+            if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher environment differs')
+        if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+            raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+        for _ca_cell, _ca_expected in _ca_record[8]:
+            try:
+                _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+            except _ca_value_error:
+                raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+            if _ca_observed_id != _ca_id(_ca_expected):
+                raise _ca_error('Cold authority caller dispatcher cell differs')
+        return _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    _ca_args = (handles['rows'], 'make_row_interner')
+    _ca_kwargs = {}
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = (_ca_p[0], _ca_p[1], _ca_p[2])
+    _ca_error, _ca_value_error, _ca_zip = (_ca_p[7], _ca_p[8], _ca_p[18])
+    _ca_dispatch, _ca_record = (_ca_desc[2], _ca_desc[3])
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    helper = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    state['row_helper'] = helper
+    _ca_args = (handles['cache'], 'compose_runtime_guard', backend.RuntimeGuard, state['cache_binding'])
+    _ca_kwargs = {}
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = (_ca_p[0], _ca_p[1], _ca_p[2])
+    _ca_error, _ca_value_error, _ca_zip = (_ca_p[7], _ca_p[8], _ca_p[18])
+    _ca_dispatch, _ca_record = (_ca_desc[2], _ca_desc[3])
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    cache_guard = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    cache_guard = _epoch_cache_invoke(state, 'compose_epoch_runtime_guard', cache_guard, state['epoch_suite'])
+    _ca_args = (handles['rows'], 'make_cache_runtime_guard', cache_guard, helper)
+    _ca_kwargs = {}
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = (_ca_p[0], _ca_p[1], _ca_p[2])
+    _ca_error, _ca_value_error, _ca_zip = (_ca_p[7], _ca_p[8], _ca_p[18])
+    _ca_dispatch, _ca_record = (_ca_desc[2], _ca_desc[3])
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    final_guard = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    _ca_args = (state['backend_handle'], final_guard)
+    _ca_kwargs = {}
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = (_ca_p[0], _ca_p[1], _ca_p[2])
+    _ca_error, _ca_value_error, _ca_zip = (_ca_p[7], _ca_p[8], _ca_p[18])
+    _ca_dispatch, _ca_record = (_ca_desc[2], _ca_desc[3])
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    _ca_dispatch(5, *_ca_args, **_ca_kwargs)
+    _ca_args = (handles['cache'], 'bind_epoch_cache_backend', backend, module, native, state['cache_binding'], state['factory_environment'])
+    _ca_kwargs = {'row_producer_handle': handles['row_derivation'], 'row_handle': handles['rows'], 'rank_row_intern': helper, 'final_guard': final_guard, 'rank_calls': rank_calls, 'complement_trace': complement, 'epoch_assembler': state['epoch_suite'].assembler}
+    _ca_desc = state['cold_caller_descriptor']
+    _ca_p = _ca_desc[5]
+    _ca_type, _ca_function, _ca_id = (_ca_p[0], _ca_p[1], _ca_p[2])
+    _ca_error, _ca_value_error, _ca_zip = (_ca_p[7], _ca_p[8], _ca_p[18])
+    _ca_dispatch, _ca_record = (_ca_desc[2], _ca_desc[3])
+    if authority is not _ca_desc[1] or _ca_dispatch is not _ca_record[0] or _ca_type(_ca_dispatch) is not _ca_function:
+        raise _ca_error('Cold authority caller dispatcher identity differs')
+    for (_ca_name, _ca_getter), _ca_expected in _ca_zip(_ca_p[4], _ca_record[1:7]):
+        if _ca_id(_ca_getter(_ca_dispatch, _ca_function)) != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher environment differs')
+    if _ca_record[4] is not None or _ca_record[5] is not None or _ca_record[7]:
+        raise _ca_error('Cold authority caller dispatcher defaults contract differs')
+    for _ca_cell, _ca_expected in _ca_record[8]:
+        try:
+            _ca_observed_id = _ca_id(_ca_p[6](_ca_cell, _ca_p[5]))
+        except _ca_value_error:
+            raise _ca_error('Cold authority caller dispatcher cell became empty') from None
+        if _ca_observed_id != _ca_id(_ca_expected):
+            raise _ca_error('Cold authority caller dispatcher cell differs')
+    result = _ca_dispatch(1, *_ca_args, **_ca_kwargs)
+    state['backend_derivation'] = state['cache_binding']['owner'].binding_derivation
+    return result
