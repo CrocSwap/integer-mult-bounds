@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Check the new column completion and forced-label obstruction, read-only."""
+"""Check the new forced-label obstruction, with cited column premises."""
 
 from hashlib import sha256
-from itertools import combinations
+from itertools import product
 import json
 from pathlib import Path
-import types
 
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-EXTRACTOR = "research/centre-block-repair-information/independent.py"
-PREMISES = "research/centre-block-moore-bound/RESULT.json"
 GRAPH = "research/centre-equality-six-cycles/WITNESS.json"
 
 
@@ -29,63 +26,14 @@ def read_inputs():
             continue
         path = ROOT / row["path"]
         require(path.is_file() and not path.is_symlink(), "regular input")
+        require(path.stat().st_size <= 4096, "bounded input")
         raw = path.read_bytes()
-        require(len(raw) <= 8 * 1024 * 1024, "bounded input")
+        require(len(raw) <= 4096, "bounded input")
         require(sha256(raw).hexdigest() == row["sha256"], "input SHA256")
         require(row["path"] not in inputs, "unique input path")
         inputs[row["path"]] = raw
-    require(len(inputs) == 4, "complete four-input closure")
+    require(set(inputs) == {GRAPH}, "complete graph-input closure")
     return inputs
-
-
-def selected_columns(inputs):
-    # Execute only the fixed, authenticated extractor to prepare the input R.
-    # Its main verifier, route census and old scientific comparisons do not run.
-    source = types.ModuleType("retained_row_extractor")
-    source.__file__ = str(ROOT / EXTRACTOR)
-    exec(compile(inputs[EXTRACTOR], source.__file__, "exec", optimize=0),
-         source.__dict__)
-    word, _phases = source.sources()
-    rows, _later_rows = source.query_rows(word)
-    require(len(rows) == 8 and all(len(row) == 112 for row in rows),
-            "selected R shape")
-    return tuple(zip(*rows))
-
-
-def completions(columns, a, b):
-    require(2 <= len(columns) <= 112 and 0 <= a < b < len(columns),
-            "bounded column pair")
-    width = len(columns[0])
-    require(2 <= width <= 8 and all(len(x) == width for x in columns),
-            "bounded equal column dimensions")
-    x, y = columns[a], columns[b]
-    pivots = [(i, j) for i, j in combinations(range(width), 2)
-              if x[i] * y[j] != x[j] * y[i]]
-    require(bool(pivots), "independent pair")
-    i, j = pivots[0]
-    determinant = x[i] * y[j] - x[j] * y[i]
-    found = []
-    for c, z in enumerate(columns):
-        if c in (a, b):
-            continue
-        u = z[i] * y[j] - z[j] * y[i]
-        v = x[i] * z[j] - x[j] * z[i]
-        if all(u * xx + v * yy == determinant * zz
-               for xx, yy, zz in zip(x, y, z)):
-            require(u != 0 and v != 0, "nonparallel completion")
-            found.append(c)
-    return found
-
-
-def completion_certificate(columns, pairs):
-    require(len(pairs) == 50 and len({tuple(p) for p in pairs}) == 50,
-            "complete cited braid-pair inventory")
-    result = []
-    for a, b in pairs:
-        found = completions(columns, a, b)
-        require(len(found) == 1, "unique third column for every braid pair")
-        result.append([a, b, found[0]])
-    return result
 
 
 def cycle_boundaries(rows, cycles):
@@ -161,13 +109,6 @@ def expect_failure(function, message):
 
 
 def controls(rows, cycles):
-    # A third coordinate defeats an incorrect two-coordinate span test.
-    require(completions(((1, 0, 0), (0, 1, 0), (1, 1, 1)), 0, 1) == [],
-            "full-coordinate span control")
-    require(completions(((1, 0), (0, 1), (1, 1), (1, -1)), 0, 1) == [2, 3],
-            "nonunique completion control")
-    expect_failure(lambda: completions(((1, 0), (2, 0)), 0, 1),
-                   "independent pair")
     leaf_rows = [[1, 2, 3], [0, 2, 4], [0, 1, 5], [0], [1], [2]]
     one_cycle = [{"B": [0, 1, 2], "D": [0, 1, 2]}]
     require(forcing_certificate(leaf_rows, one_cycle) is None,
@@ -176,6 +117,8 @@ def controls(rows, cycles):
     broken[0].remove(1)
     expect_failure(lambda: forcing_certificate(broken, cycles),
                    "two cycle edges and one external edge on B")
+    expect_failure(lambda: forcing_certificate(rows, cycles + cycles[:1]),
+                   "disjoint named cycles")
     # Independent permutations of both parts must preserve the obstruction.
     for shift in range(1, 4):
         pb = [(v + shift) % 15 for v in range(15)]
@@ -187,15 +130,27 @@ def controls(rows, cycles):
                          "D": [pd[d] for d in c["D"]]} for c in cycles]
         require(forcing_certificate(moved, moved_cycles) is not None,
                 "part-preserving relabeling")
-    return {"span_controls": 2, "rejections": 2,
+    return {"rejections": 2,
             "positive_cycle_boundary": 1, "relabelings": 3}
+
+
+def assignment_certificate(forcing):
+    # Four cycle labels use at most four distinct values, after renaming.
+    checked, linked, legal = 0, 0, 0
+    for labels in product(range(4), repeat=4):
+        checked += 1
+        if all(labels[a] == labels[b] for a, b in forcing["cycle_links"]):
+            linked += 1
+            if labels[0] != labels[3]:
+                legal += 1
+    require((checked, linked, legal) == (256, 4, 0),
+            "complete external-label assignment certificate")
+    return {"assignments": checked, "obey_cycle_links": linked,
+            "distinct_ports_at_B3": legal}
 
 
 def main():
     inputs = read_inputs()
-    columns = selected_columns(inputs)
-    premises = json.loads(inputs[PREMISES])["source_premises"]
-    completed = completion_certificate(columns, premises["braid_edges"])
     graph = json.loads(inputs[GRAPH])
     rows, cycles = graph["rows"], graph["six_cycles"]
     require(len(rows) == 15 and len(cycles) == 4, "cited equality graph shape")
@@ -206,8 +161,8 @@ def main():
             and forcing["equal_label_edges"] == [[3, 0], [3, 7]],
             "explicit collision at B3")
     receipt = {"claim_type": "scoped proof with exact finite corroboration",
-               "completion_tests": 50 * 110, "completions": completed,
-               "forcing": forcing, "controls": controls(rows, cycles)}
+               "forcing": forcing, "controls": controls(rows, cycles),
+               "label_assignments": assignment_certificate(forcing)}
     receipt["package_sha256"] = {
         p.relative_to(HERE).as_posix(): sha256(p.read_bytes()).hexdigest()
         for p in sorted(HERE.rglob("*")) if p.is_file()
@@ -215,7 +170,7 @@ def main():
     receipt["inputs_sha256"] = {p: sha256(raw).hexdigest()
                                  for p, raw in sorted(inputs.items())}
     print(json.dumps(receipt, sort_keys=True))
-    print("PASS_FIFTEEN_OWNER_CYCLE_ROUTE_OBSTRUCTION pairs=50 tests=5500 collision=B3")
+    print("PASS_FIFTEEN_OWNER_CYCLE_ROUTE_OBSTRUCTION assignments=256 legal=0 collision=B3")
 
 
 if __name__ == "__main__":

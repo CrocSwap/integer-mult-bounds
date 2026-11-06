@@ -9,15 +9,16 @@ classifies the entire nonzero-six-cycle branch as this graph. The new result
 excludes its realization by the selected historical calls-0/4 centre routes
 and nonzero query coefficients.
 
-For each of the fifty allowed braid pairs, exactly one other query column
-lies in their span. Consequently every edge leaving a given six-cycle must
+dcharb78's [PR #3147](https://github.com/CrocSwap/integer-mult-bounds/pull/3147)
+supplies the unique dependent-triple completion of every allowed braid pair.
+Consequently every edge leaving a given six-cycle must
 have the same port label. Edges between the four cycles force all those
 external labels to agree. The two edges B3-D0 and B3-D7 would then have equal
 labels, contrary to the distinct-port requirement at B3.
 
 Thus a nonzero common-kernel perturbation on exactly fifteen source owners
 must have a six-cycle-free incidence graph, conditional on the cited graph
-classification and source route premises. The support floor remains fifteen.
+classification, unique completion and source route premises. The support floor remains fifteen.
 The six-cycle-free branch is unresolved.
 
 [PROOF.md](PROOF.md) states the precise model, separates inherited premises
@@ -36,24 +37,21 @@ From the repository root, using the available CPython 3.12 interpreter:
 ```
 
 Substitute another installed absolute CPython 3.12 path elsewhere. In a sparse
-checkout, first materialize this package and the four input paths declared in
-[VERIFY.json](VERIFY.json). Their directories are `centre-block-moore-bound`,
-`centre-block-repair-information`, `centre-equality-six-cycles` and
-`community-frontier1094-audit`, all under `research/`.
+checkout, first materialize this package and the graph input path declared in
+[VERIFY.json](VERIFY.json). The input directory is `research/centre-equality-six-cycles`.
 
 The direct verifier prints a generated JSON receipt bound to every package
-file and all four input files, followed by
-`PASS_FIFTEEN_OWNER_CYCLE_ROUTE_OBSTRUCTION pairs=50 tests=5500 collision=B3`.
-It enumerates the 110 candidate third columns for each of fifty cited braid
-pairs, tests all eight coordinates exactly, and prints the complete completion
-table. It checks the new external-edge implication on the cited graph and
-three independent relabelings of its two parts.
+file and the cited graph input, followed by
+`PASS_FIFTEEN_OWNER_CYCLE_ROUTE_OBSTRUCTION assignments=256 legal=0 collision=B3`.
+It checks the external-edge implication and three independent relabelings of
+the graph's two parts. All 256 assignments of four colors to the four cycle
+labels yield four assignments obeying the cycle links and zero with distinct
+ports at B3. Renaming colors covers every equality pattern on four labels.
 
-Controls distinguish full-coordinate span membership from a false test using
-only two coordinates, detect a nonunique completion, reject a parallel pair
-and a broken named cycle, and admit a single cycle with separate external
-leaves. That last fixture shows that one cycle alone does not trigger the
-new collision test. Normal and optimized execution retain every check.
+Controls reject a broken named cycle and repeated cycle vertices. A positive
+fixture admits one cycle with separate external leaves, so a single cycle
+alone does not trigger the collision test. Normal and optimized execution
+retain every check. The replay does not enumerate a predecessor's result.
 
 ## Scope and sources
 
@@ -65,11 +63,11 @@ with selected kappa `781451/250000000`, and is only a metadata control.
 
 [SOURCES.json](SOURCES.json) pins all inputs at canonical main
 `7c49fe32c55de02c2c873655c804b16e4c3fef0a`, priority revision eight.
-The predecessor row extractor prepares the exact query matrix from the pinned
-canonical archive. Its main verifier and historical scientific comparisons
-do not run. The fifty braid pairs and the graph classification remain cited
-mathematical premises. Source-byte authentication does not independently
-prove those premises.
+The graph is the sole executable input. The route and coefficient premises,
+including dcharb78's unique-completion result at exact head
+`5cbc48b18cb05327a8dacab3f626412d3bc5e924`, are mathematical citations. The
+registered command neither fetches that pending source nor validates it.
+Source-byte authentication of the graph does not prove these premises.
 
 The live overlap helper covered 744 open PRs and 6,863 Discussion records at
 2026-11-06 13:44 UTC. Its local scan was sparse, so separate Git searches
@@ -80,16 +78,15 @@ work remain outside that coverage. The advance
 [CLAIM](https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-19441291)
 states the delivered scope.
 
-The code uses bounded collections, exact arithmetic and no recursion,
-subprocesses, network or write paths. Its main domains are fifty pairs,
-112 columns of height eight and a fifteen-by-fifteen graph with four named
-cycles. The single pinned extractor uses source compilation; its authenticated
-bytes and explicit calls bound that exception to the metaprogramming rule.
-Python managed allocation replaces fixed allocation. Input sizes and finite
-domains bound live memory; no static-allocation claim is made. The receipt
-hash walk scales with the package file inventory. Warning-strict normal and
-optimized runs provide the available diagnostics. No static type checker is
-configured for this isolated standard-library script.
+The code uses bounded collections, integer label comparisons and no
+recursion, subprocesses, network, source compilation or write paths. Its main
+domains are a fifteen-by-fifteen graph, four cycle labels and 256 assignments.
+Functions stay below sixty physical lines. Python managed allocation replaces
+fixed allocation. Input size and finite domains bound live memory; no static
+allocation claim is made. The receipt hash walk scales with the package file
+inventory. The failure controls have two fixed callback targets. Warning-strict
+normal and optimized runs provide the available diagnostics. No static type
+checker is configured for this isolated standard-library script.
 
 ## Open next questions
 
@@ -110,12 +107,13 @@ proof-kernel review, the selected cold replay, Lean and Docker are unrun.
 
 ## Credit
 
-Credit Krzysztof Wójt #5239 for the graph and nonzero-cycle classification;
+Credit dcharb78 #3147 for unique completion; Krzysztof Wójt #5239 for the
+graph and nonzero-cycle classification;
 Sagar Thakrar #3291 for the sharp abstract floor and route-to-graph theorem;
 Nick Petalas #5182 for the equality reduction; and Matarener #3656 for the
 distinct 4,080-owner construction. Retain Ross Richardson #3071, dcharb78
 #3147, Gonzalo Mier #3097, Sudarsh Chaturvedi #3168, Aaron Wang/navinor,
 ywz65 and the selected centre lineage for the observations, source extraction
-and route premises. The new work is the unique-completion property and the
-forced-label exclusion. Predecessor files and notices remain unchanged.
+and route premises. The new work is the forced-label exclusion and its
+application to this graph. Predecessor files and notices remain unchanged.
 Apache-2.0.
