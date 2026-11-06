@@ -1,0 +1,68 @@
+--- outputs/s04-02-completion-20261105T2226Z/implementation/controls/exact_role_controls_v1.py	2026-11-06 10:02:47.521642524 +1100
++++ outputs/s04-02-completion-20261105T2226Z/implementation-v2/controls/exact_role_controls_v1.py	2026-11-06 10:07:45.211807732 +1100
+@@ -253,12 +253,40 @@
+         legacy[name], unused = entry._read_source(path, new.RECORD_CAP,
+             {'path': path, 'sha256': sha, 'bytes': size, 'mode': 0o444})
+     outcomes = []
++    # Establish genuine native positive contexts before perturbing either API.
++    # The legacy JSON is an envelope: original full_prepare_child.py:13 extracts
++    # constructor_request. Testing its outer dictionary would mask this gate.
++    bind_pristine = entry._json(legacy['LEGACY-REQUEST-v2.json'])['constructor_request']
++    new.exact(bind_pristine, new.REQUEST_KEYS)
++    new.plain(bind_pristine)
++    positive_owner = new.PreparationOwner.before_root_acquisition()
++    new.bind_full_preparation(positive_owner, copy.deepcopy(bind_pristine),
++        legacy['LEGACY-COMPATIBILITY-v2.json'], legacy['LEGACY-SELECTION-v2.json'], 'normal')
++    approved = entry._json(legacy['LEGACY-SELECTION-v2.json'])['approved_preparation']
++    new.need(plans.typed_equal(positive_owner.full_proposal,
++        {'binding': dict(new.FULL_PROPOSAL_BINDING), 'mode': 'normal',
++         'parent': approved['parents']['normal'], 'destination': approved['destinations']['normal'],
++         'stage_name': approved['stage_name']}) and positive_owner.next_slot[0] == 0,
++        'genuine legacy bind positive context without target acquisition')
++    new.finish_preparation(positive_owner)
++    prepare_pristine = request_for(role)
++    new.exact(prepare_pristine, new.REQUEST_KEYS)
++    new.plain(prepare_pristine)
++    prepare_bound = dict(recipe, role=role)
++    prepare_pool = {}
++    for row in prepare_pristine['manifest']:
++        pin = row['pin_provenance']
++        raw, unused = entry._read_source(pin['path'], new.FILE_CAP, pin)
++        prepare_pool[pin['sha256']] = raw
++    files, unused_directories = new.validate_request(prepare_pristine, prepare_pool)
++    plans.validate_exact_role_binding(prepare_pristine, prepare_bound)
++    new.need(len(files) == role['source_file_count'] + 1,
++             'genuine complete prepare request and recipe positive context')
+     for api in ('prepare', 'bind'):
+         for kind in ('non_dict', 'dict_subclass', 'foreign_subject', 'foreign_nested', 'existing_primary'):
+             calls = []
+             poison = CallbackSentinel(calls)
+-            pristine = (entry._json(legacy['LEGACY-REQUEST-v2.json'])
+-                        if api == 'bind' else request_for(role))
++            pristine = copy.deepcopy(bind_pristine if api == 'bind' else prepare_pristine)
+             if kind in ('non_dict', 'existing_primary'):
+                 request = poison
+             elif kind == 'dict_subclass':
+@@ -285,8 +313,8 @@
+                     # reach this foreign nested value and invoke its sentinel.
+                     # A wrong-type recipe would merely reject first and mask
+                     # the exact plain-before-binding ordering regression.
+-                    supplied_recipe = dict(recipe, role=role) if kind == 'foreign_nested' else poison
+-                    new.prepare_full_stage(request, {}, owner, exact_recipe=supplied_recipe)
++                    supplied_recipe = prepare_bound if kind == 'foreign_nested' else poison
++                    new.prepare_full_stage(request, prepare_pool, owner, exact_recipe=supplied_recipe)
+                 else:
+                     new.bind_full_preparation(owner, request,
+                         legacy['LEGACY-COMPATIBILITY-v2.json'],
+@@ -296,7 +324,10 @@
+             if kind == 'existing_primary':
+                 new.need(caught is primary and owner.used[0] is False, 'existing primary wins before malformed request')
+             else:
+-                new.need(type(caught) is ValueError, 'direct exact/plain API refusal')
++                expected_phase = ('exact fields' if kind in ('non_dict', 'dict_subclass')
++                                  else 'wire type/container')
++                new.need(type(caught) is ValueError and str(caught) == expected_phase,
++                         'direct exact/plain API refusal at prescribed phase')
+                 if api == 'prepare':
+                     new.need(owner.used[0] and owner.primary[0] is caught and owner.quarantine[0],
+                              'original one-use and protected error ordering')

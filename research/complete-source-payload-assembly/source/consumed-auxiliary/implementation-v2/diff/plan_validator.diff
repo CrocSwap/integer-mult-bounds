@@ -1,0 +1,150 @@
+--- outputs/s04-role-payload-assembly-20261105T2116Z/implementation/constructor/plan_validator.py	2026-11-06 08:28:53.867813172 +1100
++++ outputs/s04-02-completion-20261105T2226Z/implementation/constructor/plan_validator.py	2026-11-06 09:51:36.442271613 +1100
+@@ -207,3 +207,147 @@
+     need(role['runtime_stage_root'] == EXACT_STAGE_PARENT + '/' + role['runtime_stage_name'],
+          'fixed original role stage destination')
+     return True
++
++# Frozen command DATA has two structural families and NO per-record schema
++# field. These positions/cases come from the independent frozen catalogue and
++# source-input comparison; delimiter presence never chooses a family.
++PREPARATION_COMMAND_POSITIONS = {36: 'N22', 41: 'P02', 46: 'P07'}
++ROOT_COMMAND_KEYS = {'argv', 'cwd', 'environment', 'execution_authorized',
++                     'optimize', 'role', 'scope', 'selection_id',
++                     'source_method', 'variant'}
++PREPARATION_COMMAND_KEYS = {'argv', 'catalog_row_currently_ready', 'cwd',
++    'environment', 'execution_authorized', 'mode', 'optimize',
++    'preliteral_whole_code_accepted', 'preparation_pin', 'role', 'selection_id',
++    'status', 'whole_source_acceptance', 'whole_source_acceptance_scope'}
++COMMAND_ENVIRONMENT = {'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'PATH': '/usr/bin:/bin',
++    'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0', 'TZ': 'UTC'}
++
++
++def command_plain(value):
++    """Bounded built-in DATA only, before comparison, formatting or dispatch.
++
++    This is a per-command SOURCE record bound; no runtime/wire cap is raised.
++    """
++    budget = [0, 0]
++    def visit(item, depth):
++        budget[0] += 1
++        need(depth <= 24 and budget[0] <= 8192, 'command DATA node/depth bound')
++        if item is None or type(item) is bool:
++            return
++        if type(item) is int:
++            need(-(1 << 127) <= item < (1 << 127), 'command DATA integer')
++            return
++        if type(item) is str:
++            budget[1] += len(item)
++            need(len(item) <= 8192 and budget[1] <= 524288, 'command DATA text bound')
++            return
++        need(type(item) in (dict, list) and len(item) <= 8192, 'command native DATA container')
++        if type(item) is dict:
++            for key, sub in item.items():
++                need(type(key) is str, 'command native DATA key')
++                visit(key, depth + 1)
++                visit(sub, depth + 1)
++        else:
++            for sub in item:
++                visit(sub, depth + 1)
++    visit(value, 0)
++
++
++def typed_equal(left, right):
++    """For already checked native DATA, bool is never interchangeable with int."""
++    if type(left) is not type(right):
++        return False
++    if type(left) is dict:
++        return set(left) == set(right) and all(typed_equal(left[k], right[k]) for k in left)
++    if type(left) is list:
++        return len(left) == len(right) and all(typed_equal(a, b) for a, b in zip(left, right))
++    return left == right
++
++
++def _command_fields(value, keys, message):
++    need(type(value) is dict, message)
++    command_plain(value)
++    need(set(value) == keys, message)
++
++
++def _validate_root_command(command, expected, role):
++    _command_fields(command, ROOT_COMMAND_KEYS, 'Root command exact fields')
++    need(type(command['optimize']) is int and command['optimize'] in (0, 1), 'Root optimize exact integer')
++    need(command['execution_authorized'] is False, 'Root execution authority remains false')
++    need(type(command['argv']) is list and all(type(v) is str for v in command['argv']), 'Root argv native strings')
++    argv = command['argv']
++    prefix = [PYTHON] + (['-O'] if command['optimize'] else []) + ['-S', '-s', '-P', '-B']
++    root, locators = role['runtime_stage_root'], role['source_locator']
++    driver_path = expected['argv'][len(prefix) + 7]
++    need(driver_path.startswith(root + '/') and driver_path[len(root) + 1:] in locators,
++         'Root prescribed driver belongs to exact role')
++    # The complete Root boundary is fixed, including flag ordering. Tail argv
++    # remains exact DATA from the independently frozen full row below.
++    head = prefix + [root + '/integration/full_driver.py', '--root-sha256',
++        locators['integration/full_driver.py']['sha256'], '--provider',
++        root + '/integration/probe_binding_v3.py', locators['integration/probe_binding_v3.py']['sha256'],
++        '--driver', driver_path, locators[driver_path[len(root) + 1:]]['sha256'],
++        '--integration', root + '/integration', '--']
++    need(argv[:len(head)] == head and argv.count('--') == 1, 'Root exact grammar and delimiter')
++    need(command['cwd'] == EXACT_WORKSPACE + '/outputs/h25-data-handling-20261028'
++         and typed_equal(command['environment'], COMMAND_ENVIRONMENT), 'Root cwd/environment')
++    need(typed_equal(command, expected), 'Root complete prescribed record')
++
++
++def validate_command_catalogue(commands, fixed, roles, expected_commands):
++    """Pure mixed-catalogue validation; no file IO, imports or commands run.
++
++    expected_commands comes from the separately frozen original COMMANDS input,
++    not from observed results or this validator's emitted labels. Controls may
++    mutate commands in memory while this independent expected DATA stays fixed.
++    Outer file hashes remain an additional authentication boundary in the real
++    authenticate_recipe caller, never a semantic-test bypass.
++    """
++    need(type(commands) is list and len(commands) == 100, 'exact ordered 100 command records')
++    need(type(expected_commands) is list and len(expected_commands) == 100, 'frozen expected command records')
++    need(type(fixed) is dict and type(fixed.get('commands')) is dict
++         and type(fixed.get('preparations')) is dict, 'frozen fixed preparations')
++    need(type(roles) is list and len(roles) == 71, 'all 71 source roles remain required')
++    by_role = {r['role']: r for r in roles}
++    need(len(by_role) == 71, 'distinct source role identities')
++    command_roles, identities = set(), set()
++    root_count, prep_count, normal_count, optimized_count = 0, 0, 0, 0
++    for index in range(100):
++        command, expected = commands[index], expected_commands[index]
++        need(type(command) is dict and type(expected) is dict, 'native command record')
++        command_plain(command)
++        command_plain(expected)
++        kind = PREPARATION_COMMAND_POSITIONS.get(index)
++        keys = PREPARATION_COMMAND_KEYS if kind is not None else ROOT_COMMAND_KEYS
++        _command_fields(command, keys, 'prescribed structural command family')
++        _command_fields(expected, keys, 'frozen structural command family')
++        for field in ('role', 'selection_id', 'optimize'):
++            need(typed_equal(command[field], expected[field]), 'ordered command identity')
++        need(type(command['role']) is str and command['role'] in by_role, 'known command role')
++        need(type(command['optimize']) is int and command['optimize'] in (0, 1), 'command optimize exact integer')
++        identity = (command['role'], command['optimize'])
++        need(identity not in identities, 'duplicate command identity')
++        identities.add(identity)
++        command_roles.add(command['role'])
++        if kind is not None:
++            joined = dict(fixed['commands'][kind])
++            need(not ({'optimize', 'role', 'selection_id'} & set(joined)), 'fixed preparation annotation collision')
++            joined.update(optimize=0, role='selection:' + kind + ':', selection_id=kind + ':')
++            command_plain(joined)
++            need(typed_equal(command, joined) and typed_equal(expected, joined), 'complete typed fixed preparation join')
++            need(typed_equal(command['preparation_pin'], fixed['preparations'][kind]), 'fixed preparation pin join')
++            need(command['execution_authorized'] is False and type(command['mode']) is int
++                 and command['mode'] == 0, 'preparation inert authority and mode')
++            prep_count += 1
++        else:
++            _validate_root_command(command, expected, by_role[command['role']])
++            root_count += 1
++            if command['optimize'] == 0:
++                normal_count += 1
++            else:
++                optimized_count += 1
++    need((root_count, prep_count, normal_count, optimized_count) == (97, 3, 64, 33), 'mixed command denominators')
++    need(len(command_roles) == 69 and set(by_role) - command_roles == {'reference:G12', 'reference:P02'},
++         '69 command roles and two required source-only references')
++    return {'commands': 100, 'root_commands': 97, 'preparation_commands': 3,
++            'root_normal': 64, 'root_optimized': 33, 'command_roles': 69, 'source_roles': 71}

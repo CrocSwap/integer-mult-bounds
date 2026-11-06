@@ -1,0 +1,341 @@
+--- outputs/s04-role-payload-assembly-20261105T2116Z/implementation/controls/exact_role_controls_v1.py	2026-11-06 08:31:17.041709992 +1100
++++ outputs/s04-02-completion-20261105T2226Z/implementation/controls/exact_role_controls_v1.py	2026-11-06 10:02:47.521642524 +1100
+@@ -55,8 +55,15 @@
+         request = copy.deepcopy(pristine)
+         if label == 'missing_source':
+             request['manifest'].pop()
+-        elif label in ('extra_source', 'duplicate_destination'):
+-            request['manifest'].append(copy.deepcopy(request['manifest'][0]))
++        elif label == 'extra_source':
++            extra = copy.deepcopy(request['manifest'][0])
++            extra.update(occurrence_id='new-extra-occurrence', logical_name='new-extra-source.py',
++                         installed_relative_path='new-extra-source.py')
++            request['manifest'].append(extra)
++        elif label == 'duplicate_destination':
++            # Preserve the original row count and distinct occurrence identity;
++            # alias the second row onto the first installed relative path.
++            request['manifest'][1]['installed_relative_path'] = request['manifest'][0]['installed_relative_path']
+         elif label == 'arm_substitution':
+             path = 'integration/scientific_driver.py'
+             baseline = role['source_locator'][path]
+@@ -77,10 +84,241 @@
+     return outcomes
+ 
+ 
++def mixed_command_controls(recipe):
++    frozen = entry._json(recipe['raw_records']['commands'])['commands']
++    fixed = entry._json(recipe['raw_records']['fixed'])
++    expected_raw, unused = entry._read_source(entry.COMMAND_EXPECTATIONS, entry.OUTER_RECORD_CAP,
++        {'path': entry.COMMAND_EXPECTATIONS, 'sha256': plans.EXACT_RECORDS['commands'][1],
++         'bytes': 245246, 'mode': 0o444})
++    expected = entry._json(expected_raw)['commands']
++    def check(candidate):
++        return plans.validate_command_catalogue(candidate, fixed, recipe['roles'], expected)
++    # Whole authentic mixed input FIRST. These prescribed totals come from the
++    # independent source-input comparison, not from an emitted validator label.
++    positive = check(copy.deepcopy(frozen))
++    new.need(plans.typed_equal(positive, {'commands': 100, 'root_commands': 97,
++        'preparation_commands': 3, 'root_normal': 64, 'root_optimized': 33,
++        'command_roles': 69, 'source_roles': 71}), 'whole mixed catalogue independent positive oracle')
++    outcomes = ['mixed_catalogue_positive']
++    for label in ('missing_record', 'extra_record', 'duplicate_balanced', 'swapped_records',
++                  'unknown_role', 'unknown_delimiter_free', 'wrong_record_shape', 'invented_schema'):
++        mutation = copy.deepcopy(frozen)
++        if label == 'missing_record':
++            mutation.pop()
++        elif label == 'extra_record':
++            mutation.append(copy.deepcopy(mutation[0]))
++        elif label == 'duplicate_balanced':
++            mutation[1] = copy.deepcopy(mutation[0])
++        elif label == 'swapped_records':
++            mutation[0], mutation[1] = mutation[1], mutation[0]
++        elif label == 'unknown_role':
++            mutation[36]['role'] = 'selection:UNKNOWN:'
++        elif label == 'unknown_delimiter_free':
++            mutation[0] = copy.deepcopy(mutation[36])
++            mutation[0]['role'] = frozen[0]['role']
++            mutation[0]['selection_id'] = frozen[0]['selection_id']
++        elif label == 'wrong_record_shape':
++            mutation[36] = list(mutation[36].items())
++        else:
++            mutation[36]['schema'] = 'invented-schema'
++        outcomes.append(refused(lambda: check(mutation), 'command_' + label))
++    prep_fields = ('argv_path', 'argv_hash', 'argv_size', 'argv_mode', 'pin_hash', 'pin_size',
++                   'pin_mode', 'cwd', 'environment', 'mode_type', 'optimize_type', 'authority',
++                   'status', 'scope', 'selection_id', 'role', 'acceptance_literal', 'unknown_field')
++    for index, case in ((36, 'N22'), (41, 'P02'), (46, 'P07')):
++        for field in prep_fields:
++            mutation = copy.deepcopy(frozen)
++            row = mutation[index]
++            if field == 'argv_path':
++                row['argv'][7] += '.changed'
++            elif field == 'argv_hash':
++                row['argv'][8] = '0' * 64
++            elif field == 'argv_size':
++                row['argv'][9] = str(int(row['argv'][9]) + 1)
++            elif field == 'argv_mode':
++                row['argv'][10] = '0644'
++            elif field == 'pin_hash':
++                row['preparation_pin']['sha256'] = '0' * 64
++            elif field == 'pin_size':
++                row['preparation_pin']['bytes'] += 1
++            elif field == 'pin_mode':
++                row['preparation_pin']['mode'] = 0o644
++            elif field == 'cwd':
++                row['cwd'] += '/changed'
++            elif field == 'environment':
++                row['environment']['PATH'] = '/bin'
++            elif field in ('mode_type', 'optimize_type'):
++                row[field[:-5]] = False
++            elif field == 'authority':
++                row['execution_authorized'] = True
++            elif field == 'status':
++                row['status'] += '_CHANGED'
++            elif field == 'scope':
++                row['whole_source_acceptance_scope'] += ' changed'
++            elif field == 'selection_id':
++                row['selection_id'] = 'UNKNOWN:'
++            elif field == 'role':
++                row['role'] = 'selection:UNKNOWN:'
++            elif field == 'acceptance_literal':
++                row['whole_source_acceptance'] = True
++            else:
++                row['unexpected'] = None
++            outcomes.append(refused(lambda: check(mutation), 'preparation_' + case + '_' + field))
++    root_fields = ('delimiter_missing', 'flag_after_boundary', 'entry', 'provider_path',
++                   'provider_hash', 'driver_path', 'driver_hash', 'root_hash',
++                   'interpreter', 'mode_type', 'authority', 'wrong_role_arm')
++    for index, mode in ((0, 'normal'), (1, 'optimized')):
++        for field in root_fields:
++            mutation = copy.deepcopy(frozen)
++            row = mutation[index]
++            argv = row['argv']
++            offset = 6 if mode == 'optimized' else 5
++            if field == 'delimiter_missing':
++                argv.remove('--')
++            elif field == 'flag_after_boundary':
++                flag = argv.index('--provider')
++                boundary = argv.index('--')
++                argv[flag], argv[boundary] = argv[boundary], argv[flag]
++            elif field == 'entry':
++                argv[offset] += '.changed'
++            elif field == 'provider_path':
++                argv[argv.index('--provider') + 1] += '.changed'
++            elif field == 'provider_hash':
++                argv[argv.index('--provider') + 2] = '0' * 64
++            elif field == 'driver_path':
++                argv[argv.index('--driver') + 1] += '.changed'
++            elif field == 'driver_hash':
++                argv[argv.index('--driver') + 2] = '0' * 64
++            elif field == 'root_hash':
++                argv[argv.index('--root-sha256') + 1] = '0' * 64
++            elif field == 'interpreter':
++                argv[0] = '/usr/bin/python3.11'
++            elif field == 'mode_type':
++                row['optimize'] = bool(row['optimize'])
++            elif field == 'authority':
++                row['execution_authorized'] = True
++            else:
++                replacement = frozen[99 if mode == 'optimized' else 97]['argv']
++                row['argv'] = list(replacement)
++            outcomes.append(refused(lambda: check(mutation), 'Root_' + mode + '_' + field))
++    return outcomes
++
++
++class CallbackSentinel:
++    def __init__(self, calls):
++        self.calls = calls
++    def get(self, *args):
++        self.calls.append('get')
++        raise Marker('unexpected get callback')
++    def __getitem__(self, key):
++        self.calls.append('getitem')
++        raise Marker('unexpected item callback')
++    def __eq__(self, other):
++        self.calls.append('eq')
++        raise Marker('unexpected comparison callback')
++    def __str__(self):
++        self.calls.append('str')
++        raise Marker('unexpected formatting callback')
++
++
++class CallbackDictionary(dict):
++    def __init__(self, value, calls):
++        dict.__init__(self, value)
++        self.calls = calls
++    def get(self, *args):
++        self.calls.append('dict_get')
++        raise Marker('unexpected dictionary get callback')
++    def __getitem__(self, key):
++        self.calls.append('dict_item')
++        raise Marker('unexpected dictionary item callback')
++
++
++class NoOperations:
++    def __init__(self, calls):
++        self.calls = calls
++    def __getattr__(self, name):
++        self.calls.append('operation:' + name)
++        raise Marker('unexpected operation')
++
++
++def api_order_controls(recipe):
++    role = next(r for r in recipe['roles'] if r['role'] == 'full:baseline')
++    reference = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'reference')
++    legacy = {}
++    for name, sha, size in (
++        ('LEGACY-COMPATIBILITY-v2.json', 'c93f9fe47cc7575c86cc3ccf2f92b6d213461ce7e28daea39137171fdeaac737', 38536),
++        ('LEGACY-SELECTION-v2.json', 'f84ffd9e494ed669602683f845fa5f2f76cfbe74308ed7631719227eb9f1ddec', 24039),
++        ('LEGACY-REQUEST-v2.json', '26c4dd7edb85263512d0ef98f0b9fec51571d475429f07bbfb1b26405ec519d8', 237245)):
++        path = reference + '/' + name
++        legacy[name], unused = entry._read_source(path, new.RECORD_CAP,
++            {'path': path, 'sha256': sha, 'bytes': size, 'mode': 0o444})
++    outcomes = []
++    for api in ('prepare', 'bind'):
++        for kind in ('non_dict', 'dict_subclass', 'foreign_subject', 'foreign_nested', 'existing_primary'):
++            calls = []
++            poison = CallbackSentinel(calls)
++            pristine = (entry._json(legacy['LEGACY-REQUEST-v2.json'])
++                        if api == 'bind' else request_for(role))
++            if kind in ('non_dict', 'existing_primary'):
++                request = poison
++            elif kind == 'dict_subclass':
++                request = CallbackDictionary(pristine, calls)
++            else:
++                request = pristine
++                if kind == 'foreign_subject':
++                    request['subject_kind'] = poison
++                elif api == 'bind':
++                    # With valid old records, the predecessor indexes and
++                    # iterates this foreign manifest before any plain gate.
++                    request['manifest'] = poison
++                else:
++                    request['manifest'][0]['pin_provenance'] = poison
++            owner = new.PreparationOwner.before_root_acquisition()
++            owner.ops = NoOperations(calls)
++            primary = Marker('already retained primary')
++            if kind == 'existing_primary':
++                owner.primary[0] = primary
++            caught = None
++            try:
++                if api == 'prepare':
++                    # A VALID bound recipe makes the old premature binding
++                    # reach this foreign nested value and invoke its sentinel.
++                    # A wrong-type recipe would merely reject first and mask
++                    # the exact plain-before-binding ordering regression.
++                    supplied_recipe = dict(recipe, role=role) if kind == 'foreign_nested' else poison
++                    new.prepare_full_stage(request, {}, owner, exact_recipe=supplied_recipe)
++                else:
++                    new.bind_full_preparation(owner, request,
++                        legacy['LEGACY-COMPATIBILITY-v2.json'],
++                        legacy['LEGACY-SELECTION-v2.json'], 'normal')
++            except BaseException as error:
++                caught = error
++            if kind == 'existing_primary':
++                new.need(caught is primary and owner.used[0] is False, 'existing primary wins before malformed request')
++            else:
++                new.need(type(caught) is ValueError, 'direct exact/plain API refusal')
++                if api == 'prepare':
++                    new.need(owner.used[0] and owner.primary[0] is caught and owner.quarantine[0],
++                             'original one-use and protected error ordering')
++                else:
++                    new.need(owner.used[0] is False and owner.full_proposal is None,
++                             'binding refusal retains original unconsumed owner')
++            new.need(calls == [] and owner.next_slot[0] == 0, 'zero callbacks and acquisitions')
++            try:
++                new.finish_preparation(owner)
++            except BaseException as error:
++                new.need(error is caught, 'API teardown preserves exact primary')
++            new.need(calls == [], 'no callbacks during API teardown')
++            outcomes.append('api_' + api + '_' + kind)
++    return outcomes
++
++
+ class FaultOps:
+     def __init__(self, kind, primary, secondary):
+         self.kind, self.primary, self.secondary = kind, primary, secondary
+         self.close_failed = False
++        self.close_errors = [secondary, Marker(kind + ':secondary:2'), Marker(kind + ':secondary:3')]
++        self.close_error_count = 0
+     def __getattr__(self, name):
+         return getattr(os, name)
+     def open(self, name, flags, mode=0o777, *, dir_fd=None):
+@@ -90,6 +328,8 @@
+     def write(self, fd, raw):
+         if self.kind == 'write_primary_close_secondary':
+             raise self.primary
++        if self.kind == 'invalid_write_progress':
++            return 0
+         return os.write(fd, raw[:3] if self.kind == 'positive_short_write' else raw)
+     def read(self, fd, count):
+         raw = os.read(fd, count)
+@@ -97,7 +337,9 @@
+     def close(self, fd):
+         os.close(fd)
+         if self.kind == 'write_primary_close_secondary':
+-            raise self.secondary
++            error = self.close_errors[min(self.close_error_count, len(self.close_errors) - 1)]
++            self.close_error_count += 1
++            raise error
+         if self.kind == 'close_only' and not self.close_failed:
+             self.close_failed = True
+             raise self.primary
+@@ -118,7 +360,14 @@
+                'compatibility_sha256': '0' * 64, 'selection_sha256': '1' * 64,
+                'forbidden_runtime_names': list(new.RUNTIME_NAMES), 'claims': dict(new.CLAIMS)}
+     primary, secondary = Marker(kind), Marker(kind + ':secondary')
+-    owner = new.PreparationOwner(os.open(path, entry.DIR_FLAGS), FaultOps(kind, primary, secondary))
++    owner = new.PreparationOwner.before_root_acquisition()
++    try:
++        new._acquire(owner, path, entry.DIR_FLAGS, 0, None)
++    except BaseException as error:
++        entry._record_primary(owner, error)
++        new.finish_preparation(owner)
++        raise
++    owner.ops = FaultOps(kind, primary, secondary)
+     caught = None
+     try:
+         new.prepare_full_stage(request, {sha: raw}, owner)
+@@ -140,14 +389,15 @@
+     new.need(owner.close_attempted == attempted, 'no repeated close attempt')
+     if kind == 'positive_short_write':
+         new.need(caught is None and owner.result is not None, 'positive short-write exact readback')
+-    elif kind == 'readback_corruption':
+-        new.need(type(caught) is ValueError and owner.quarantine[0], 'corrupt readback refused')
++    elif kind in ('readback_corruption', 'invalid_write_progress'):
++        new.need(type(caught) is ValueError and owner.quarantine[0], 'invalid IO refused')
+     else:
+         new.need(caught is primary and owner.primary[0] is primary and owner.quarantine[0], 'raw primary identity')
+         if kind == 'acquire_uncertain':
+             new.need(owner.pending[0], 'uncertain acquire remains latched')
+         if kind == 'write_primary_close_secondary':
+-            new.need(owner.secondary_count[0] > 0 and owner.secondary[0] is secondary, 'raw secondary identity')
++            new.need(owner.secondary_count[0] >= 2 and owner.secondary[0] is secondary
++                     and owner.secondary[1] is owner.ops.close_errors[1], 'ordered raw secondary identity')
+     return kind
+ 
+ 
+@@ -155,16 +405,20 @@
+     new.need(len(sys.argv) == 3 and sys.argv[1] == '--root', 'usage: --root NEW_OWNED_FIXTURE_ROOT')
+     base = sys.argv[2]
+     plans.clean_absolute(base)
+-    new.need(base.startswith(plans.EXACT_WORKSPACE + '/outputs/s04-role-payload-assembly-20261105T2116Z/'), 'bounded fixture root')
++    new.need(base.startswith(plans.EXACT_WORKSPACE + '/outputs/s04-02-completion-20261105T2226Z/'), 'bounded fixture root')
+     recipe = entry.authenticate_recipe()
+-    outcomes = semantic_controls(recipe)
++    outcomes = mixed_command_controls(recipe)
++    outcomes.extend(semantic_controls(recipe))
++    outcomes.extend(api_order_controls(recipe))
+     os.mkdir(base, 0o700)
+     for kind in ('positive_short_write', 'readback_corruption', 'acquire_uncertain',
+-                 'close_only', 'write_primary_close_secondary'):
++                 'close_only', 'write_primary_close_secondary', 'invalid_write_progress'):
+         outcomes.append(io_control(base, kind))
+     sys.stdout.buffer.write(new.canonical({'schema': 's04-exact-role-source-controls-v1',
+         'status': 'OWNED_SOURCE_CONTROLS_COMPLETED_ONLY', 'outcomes': outcomes,
+         'scientific_execution': False, 'declared_role_installations': 0,
++        'complete_authentication_before_first_fixture': True,
++        'command_summary': recipe['command_summary'], 'observations': len(outcomes),
+         'claims': dict(new.CLAIMS)}))
+ 
+ 

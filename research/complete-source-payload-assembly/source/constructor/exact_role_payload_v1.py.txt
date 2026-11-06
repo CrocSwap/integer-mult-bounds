@@ -1,0 +1,315 @@
+"""Inert S04.02 source bytes only; no scientific module is loaded or run.
+
+Adapted v26 constructor entry. One role per invocation, no retries, deletion,
+repair, archive decoding, producer invocation or runtime authority. Parent owns
+serial execution, deadlines, resource monitoring, receipts and acceptance.
+"""
+import hashlib
+import json
+import os
+import stat
+import sys
+
+# -I/-S/-B entry: only this reviewed constructor directory is added.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fresh_sc as constructor
+import plan_validator as plans
+
+OUTER_RECORD_CAP = 8 * 1024 * 1024  # New outer source map only, not runtime wire.
+DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+READ_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+need = constructor.need
+LAST_FAILED_OWNER = [None]  # Preserve raw primary/secondaries through enclosing teardown.
+RECORD_SIZES = {'gate': 98535, 'caller': 20011, 'catalog': 649966,
+                'manifest': 32701, 'maps': 5778616, 'commands': 245246,
+                'fixed': 10620, 'adoption': 12187}
+COMMAND_EXPECTATIONS = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/reference/COMMANDS-v1.json'
+
+
+def _record_primary(owner, error):
+    if owner.primary[0] is None:
+        owner.primary[0] = error
+    elif error is not owner.primary[0]:
+        constructor._secondary(owner, error)
+    owner.quarantine[0] = True
+
+
+def _root_owner():
+    owner = constructor.PreparationOwner.before_root_acquisition()
+    try:
+        constructor._acquire(owner, '/', DIR_FLAGS, 0, None)
+    except BaseException as error:
+        _record_primary(owner, error)
+        LAST_FAILED_OWNER[0] = owner
+        constructor.finish_preparation(owner)
+        raise
+    return owner
+
+
+def _read_source(path, cap, expected=None):
+    """Held no-follow ancestor walk, bounded read, stable named identity.
+
+    Source hard links are read-only provenance, never installation mechanics.
+    Every known FD is retired exactly once; cleanup cannot replace a primary.
+    """
+    plans.clean_absolute(path)
+    need(path.startswith(plans.EXACT_WORKSPACE + '/'), 'source outside fixed workspace')
+    owner = _root_owner()
+    raw = None
+    identity = None
+    try:
+        parent = owner.fds[0]
+        chain = []
+        parts = constructor.relative(path[1:])
+        for name in parts[:-1]:
+            slot = constructor._acquire(owner, name, DIR_FLAGS, 0, parent)
+            fd = owner.fds[slot]
+            info = os.fstat(fd)
+            need(stat.S_ISDIR(info.st_mode), 'source ancestor directory')
+            chain.append((parent, name, fd, (info.st_dev, info.st_ino)))
+            parent = fd
+        slot = constructor._acquire(owner, parts[-1], READ_FLAGS, 0, parent)
+        fd = owner.fds[slot]
+        first = os.fstat(fd)
+        need(stat.S_ISREG(first.st_mode) and 0 <= first.st_size <= cap, 'bounded ordinary source file')
+        identity = constructor._identity(first)
+        chunks, count, calls = [], 0, 0
+        while count < first.st_size:
+            calls += 1
+            need(calls <= 8192, 'source read call bound')
+            block = os.read(fd, min(65536, first.st_size - count))
+            need(type(block) is bytes and 0 < len(block) <= first.st_size - count, 'source read progress')
+            chunks.append(block)
+            count += len(block)
+        need(os.read(fd, 1) == b'', 'source grew during read')
+        raw = b''.join(chunks)
+        need(constructor._identity(os.fstat(fd)) == identity
+             and constructor._identity(os.stat(parts[-1], dir_fd=parent, follow_symlinks=False)) == identity,
+             'stable complete source identity')
+        for parent_fd, name, held_fd, key in chain:
+            held, named = os.fstat(held_fd), os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            need(stat.S_ISDIR(named.st_mode) and (held.st_dev, held.st_ino) == key
+                 and (named.st_dev, named.st_ino) == key, 'source ancestor replaced')
+        if expected is not None:
+            need(len(raw) == expected['bytes'] and stat.S_IMODE(first.st_mode) == expected['mode']
+                 and hashlib.sha256(raw).hexdigest() == expected['sha256'], 'actual source pin mismatch')
+    except BaseException as error:
+        _record_primary(owner, error)
+        LAST_FAILED_OWNER[0] = owner
+    try:
+        constructor.finish_preparation(owner)
+    except BaseException:
+        LAST_FAILED_OWNER[0] = owner
+        raise
+    return raw, identity
+
+
+def _json(raw):
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            need(key not in value, 'duplicate JSON field')
+            value[key] = item
+        return value
+    return json.loads(raw, object_pairs_hook=unique,
+                      parse_constant=lambda value: (_ for _ in ()).throw(ValueError('non-finite JSON')))
+
+
+def _pin_key(value):
+    need(type(value) is dict and {'path', 'sha256', 'bytes', 'mode'} <= set(value), 'source pin fields')
+    plans.clean_absolute(value['path'])
+    constructor.pin(value['sha256'])
+    need(type(value['bytes']) is int and 0 <= value['bytes'] <= constructor.FILE_CAP, 'source file cap')
+    need(type(value['mode']) is int and 0 <= value['mode'] <= 0o777, 'source pin mode')
+    return tuple(value[k] for k in ('path', 'sha256', 'bytes', 'mode'))
+
+
+def authenticate_recipe():
+    """Authenticate COMPLETE recipe closure before acquiring any target FD."""
+    raw_records, records = {}, {}
+    for name, (path, sha) in plans.EXACT_RECORDS.items():
+        raw, unused = _read_source(path, OUTER_RECORD_CAP,
+            {'path': path, 'sha256': sha, 'bytes': RECORD_SIZES[name], 'mode': 0o444})
+        need(hashlib.sha256(raw).hexdigest() == sha, 'exact frozen record hash')
+        raw_records[name] = raw
+        records[name] = _json(raw)
+    manifest = records['manifest']
+    for key, record_name in (('catalog', 'catalog'), ('commands', 'commands'),
+                             ('fixed_preparations', 'fixed'), ('role_stage_source_maps', 'maps')):
+        value = manifest[key]
+        need((value['path'], value['sha256']) == plans.EXACT_RECORDS[record_name], 'manifest record join')
+        need(value['bytes'] == len(raw_records[record_name]), 'manifest record size')
+    roles = records['maps']['roles']
+    gate = records['gate']
+    need(type(roles) is list and len(roles) == 71 and len(gate['roles']) == 71, 'complete role denominator')
+    # The exact adoption receipt supersedes historical pending freeze literals;
+    # never rewrite those originals or turn source acceptance into execution.
+    need(records['catalog']['source_graph_materialized'] is True, 'selected materialized source graph')
+    adoption_pin = gate['authority']['actual_S03_08_adoption']
+    need((adoption_pin['path'], adoption_pin['sha256']) == plans.EXACT_RECORDS['adoption']
+         and adoption_pin['bytes'] == len(raw_records['adoption']), 'actual adoption receipt join')
+    need(records['adoption']['source_adopted'] is True
+         and records['adoption']['source_complete'] is True
+         and records['adoption']['S03_08_completed'] is True, 'actual S03 source adoption')
+    ids, destinations, source_pins, manifest_pins = set(), set(), {}, {}
+    file_count, logical_bytes, manifest_bytes = 0, 0, 0
+    gate_roles = {r['role']: r for r in gate['roles']}
+    need(len(gate_roles) == 71, 'duplicate accepted role')
+    for role in roles:
+        ident, root = role['role'], role['runtime_stage_root']
+        need(ident not in ids and root not in destinations, 'duplicate role or stage destination')
+        ids.add(ident)
+        destinations.add(root)
+        need(len(constructor.relative(role['runtime_stage_name'])) == 1
+             and root == plans.EXACT_STAGE_PARENT + '/' + role['runtime_stage_name'], 'fixed role destination')
+        accepted = gate_roles[ident]
+        need(accepted['declared_stage_root'] == root and accepted['detached_manifest'] == role['manifest']
+             and accepted['source_bytes'] == role['source_bytes']
+             and accepted['source_file_count'] == role['source_file_count'], 'accepted exact role join')
+        locators = role['source_locator']
+        need(type(locators) is dict and len(locators) == role['source_file_count'] <= constructor.MAX_ROWS,
+             'role complete source count')
+        paths, directories, role_bytes = set(), set(), 0
+        for relative, value in locators.items():
+            parts = constructor.relative(relative)
+            need(relative != 'STAGE.json' and parts[0] not in constructor.RUNTIME_NAMES, 'source reserved destination')
+            paths.add(relative)
+            directories.update('/'.join(parts[:i]) for i in range(1, len(parts)))
+            key = _pin_key(value)
+            need(value['mode'] == 0o444, 'immutable role source mode')
+            previous = source_pins.setdefault(value['path'], key)
+            need(previous == key, 'same source path conflicting pins')
+            role_bytes += value['bytes']
+        need(not paths & directories, 'role file directory collision')
+        need(role_bytes == role['source_bytes'] and role_bytes <= constructor.TOTAL_CAP, 'per-role source cap')
+        raw, unused = _read_source(role['manifest']['path'], constructor.RECORD_CAP, role['manifest'])
+        stage = _json(raw)
+        need(stage['files'] == {name: {'mode': p['mode'], 'sha256': p['sha256']} for name, p in locators.items()},
+             'detached STAGE exact file map')
+        manifest_pins[ident] = role['manifest']
+        manifest_bytes += len(raw)
+        file_count += len(locators)
+        logical_bytes += role_bytes
+    need(file_count == 13992 and logical_bytes == 1386572714 and len(source_pins) == 332,
+         'fixed complete payload denominator')
+    need(logical_bytes + manifest_bytes == 1388508016, 'complete installed byte denominator including 71 manifests')
+    # Read and authenticate all332 paths NOW. No all-role body pool is retained.
+    source_identities = {}
+    for path, key in sorted(source_pins.items()):
+        expected = dict(zip(('path', 'sha256', 'bytes', 'mode'), key))
+        unused_raw, identity = _read_source(path, constructor.FILE_CAP, expected)
+        source_identities[path] = identity
+    prep_pins = gate['producer_reference_preparations']['transitive_input_source_pins']
+    need(len(prep_pins) == 36, 'fixed transitive preparation denominator')
+    for value in prep_pins:
+        _pin_key(value)
+        _read_source(value['path'], constructor.FILE_CAP, value)
+    commands = records['commands']['commands']
+    # Separate frozen expectation bytes provide a stable semantic-control
+    # oracle. This is the untouched adopted catalogue, not validator output.
+    expected_raw, unused = _read_source(COMMAND_EXPECTATIONS, OUTER_RECORD_CAP,
+        {'path': COMMAND_EXPECTATIONS, 'sha256': plans.EXACT_RECORDS['commands'][1],
+         'bytes': RECORD_SIZES['commands'], 'mode': 0o444})
+    command_summary = plans.validate_command_catalogue(commands, records['fixed'], roles,
+                                                       _json(expected_raw)['commands'])
+    return {'schema': 's04-authenticated-role-recipe-v1', 'raw_records': raw_records,
+            'roles': roles, 'source_identities': source_identities,
+            'all_source_preauthenticated': True, 'authenticated_source_paths': 332,
+            'authenticated_manifests': 71, 'authenticated_preparation_pins': 36,
+            'authenticated_commands': 100, 'command_summary': command_summary,
+            'installed_file_occurrences': 14063, 'installed_logical_bytes': 1388508016}
+
+
+def _held_target_parent():
+    """Acquire only after complete preauthentication; all ancestors no-follow."""
+    owner = _root_owner()
+    try:
+        parent = owner.fds[0]
+        chain = []
+        for name in constructor.relative(plans.EXACT_STAGE_PARENT[1:]):
+            slot = constructor._acquire(owner, name, DIR_FLAGS, 0, parent)
+            child = owner.fds[slot]
+            info = os.fstat(child)
+            chain.append((parent, name, child, (info.st_dev, info.st_ino)))
+            parent = child
+        for parent_fd, name, held_fd, key in chain:
+            held, named = os.fstat(held_fd), os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            need(stat.S_ISDIR(named.st_mode) and (held.st_dev, held.st_ino) == key
+                 and (named.st_dev, named.st_ino) == key, 'target ancestor replaced')
+        # Keep ONE enclosing owner and every ancestor descriptor through final
+        # teardown. Swap the exact target parent into root slot0, preserving
+        # the initial slash descriptor in the final slot, with no close here.
+        owner.fds[0], owner.fds[slot] = owner.fds[slot], owner.fds[0]
+    except BaseException as error:
+        _record_primary(owner, error)
+        LAST_FAILED_OWNER[0] = owner
+        constructor.finish_preparation(owner)
+        raise
+    return owner
+
+
+def prepare_role(recipe, role_id):
+    selected = [r for r in recipe['roles'] if r['role'] == role_id]
+    need(len(selected) == 1, 'exact selected role')
+    role = selected[0]
+    rows = plans.exact_role_rows(role)
+    pool = {}
+    total = 0
+    # Complete THIS role's body pool before target acquisition. Recheck all
+    # source pins and their earlier preauthentication identities; no flattening.
+    for row in rows:
+        value = row['pin_provenance']
+        raw, identity = _read_source(value['path'], constructor.FILE_CAP, value)
+        if row['installed_relative_path'] != 'STAGE.json':
+            need(identity == recipe['source_identities'][value['path']], 'source drift since complete preauthentication')
+        pool[value['sha256']] = raw
+        total += len(raw)
+        need(total <= constructor.TOTAL_CAP, 'per-role aggregate cap including STAGE')
+    request = {'schema': 'fresh-sc-request-v1', 'subject_kind': 'S04_EXACT_ROLE_PROPOSAL_V1',
+               'stage_name': role['runtime_stage_name'], 'manifest': rows,
+               'manifest_sha256': constructor.digest(constructor.canonical(rows)),
+               'compatibility_sha256': plans.EXACT_RECORDS['gate'][1],
+               'selection_sha256': plans.EXACT_RECORDS['catalog'][1],
+               'forbidden_runtime_names': list(constructor.RUNTIME_NAMES),
+               'claims': dict(constructor.CLAIMS)}
+    bound = dict(recipe, role=role)
+    plans.validate_exact_role_binding(request, bound)
+    constructor.validate_request(request, pool)  # No target FD until ALL checks.
+    owner = _held_target_parent()
+    try:
+        result = constructor.prepare_full_stage(request, pool, owner, exact_recipe=bound)
+        result.update({'role': role_id, 'stage_root': role['runtime_stage_root'],
+                       'source_file_occurrences': role['source_file_count'],
+                       'detached_manifest_installed': True,
+                       'scientific_execution': False, 'physical_costs': 'OPEN_NOT_ZERO'})
+    except BaseException as error:
+        _record_primary(owner, error)
+        LAST_FAILED_OWNER[0] = owner
+    try:
+        constructor.finish_preparation(owner)
+    except BaseException:
+        LAST_FAILED_OWNER[0] = owner
+        raise
+    return result
+
+
+def main():
+    need((len(sys.argv) == 3 and sys.argv[1] == '--role')
+         or sys.argv[1:] in (['--list-roles'], ['--authenticate-only']),
+         'usage: --role EXACT_ROLE, --list-roles or --authenticate-only')
+    recipe = authenticate_recipe()
+    if sys.argv[1:] in (['--list-roles'], ['--authenticate-only']):
+        sys.stdout.buffer.write(constructor.canonical({'schema': 's04-exact-role-list-v1',
+            'roles': [{'role': r['role'], 'stage_root': r['runtime_stage_root']} for r in recipe['roles']],
+            'source_paths': 332, 'source_occurrences': 13992, 'logical_bytes': 1386572714,
+            'manifests': 71, 'preparation_pins': 36, 'commands': 100,
+            **recipe['command_summary'],
+            'installed_file_occurrences': 14063, 'installed_logical_bytes': 1388508016,
+            'target_acquisitions': 0, 'scientific_execution': False}))
+        return
+    result = prepare_role(recipe, sys.argv[2])
+    sys.stdout.buffer.write(constructor.canonical(result))
+
+
+if __name__ == '__main__':
+    main()
