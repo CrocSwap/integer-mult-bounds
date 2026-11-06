@@ -1,0 +1,64 @@
+"""Exact historical-case classifier, never native owner or dispatch authority.
+
+Only fixed role-owned read/census ports may call full_snapshot while their real
+EX is verified before/after. layout_only performs metadata-only checks before
+acquisition or after release; it authorizes no payload and caches no PASS.
+Historical output records never create or transfer a lease. No marker writes.
+"""
+import hashlib
+import os
+from pathlib import Path
+import stat
+
+OLD_BARRIER = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/INDEPENDENT-DATA-EXECUTION-BARRIER')
+PINS = {'/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/runs/IndependentPrefixDATAOwnedV1-EXECUTION-QUARANTINE/START.json': {'bytes': 722, 'sha256': '868aaa6701f170f580d9e2694e413eb9675036f999c5c81ee9b3774b102cb67a', 'mode': 384}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/runs/IndependentPrefixDATAOwnedV1-EXECUTION-QUARANTINE/details.jsonl': {'bytes': 1265, 'sha256': 'e29a9c6aa1acbbb2bebb9193c49397df01c55c6a6982734ffcae8fa408c7fcf1', 'mode': 384}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/control/fresh-metered-round-v1/ATTEMPT-001-NATIVE-TOOL-RESULT.json': {'bytes': 685, 'sha256': 'd5d3f6839947aef762149ca3dff3df33b6aef90a260715600edb50f00f3abfa0', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/control/FRESH-ROUND-OWNERSHIP-METER-v1-PARENT-ADMISSION.json': {'bytes': 2882, 'sha256': '40c77cb2bdaa758e142b545c024f60d918e2c6017fce75c132f53f8ec554ea51', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/control/FRESH-ROUND-OWNERSHIP-METER-v1-ACTUAL-GRANT.json': {'bytes': 650, 'sha256': '94b0fcd96958417f37b9ce8e2e3a2a4921b810f46cd092527fa00bf9e7373470', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/FreshOwnershipObservationRound1V1-PROVIDER-CAPTURE/outer.stdout.raw': {'bytes': 2062, 'sha256': 'b476f77955f0ff7d88afd6a81cb9801a659f8e9a9c48b6b5f3cfe725ffce038e', 'mode': 256}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/FreshOwnershipObservationRound1V1-PROVIDER-CAPTURE/outer.stderr.raw': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'mode': 256}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/FreshOwnershipObservationRound1V1-OUTER-INCOMPLETE/probe.stdout.raw': {'bytes': 5060, 'sha256': '2791d3881bcbbf14124d6483063c04d4991892ed25b3f335b6eaf8392edae5d2', 'mode': 256}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/FreshOwnershipObservationRound1V1-OUTER-INCOMPLETE/probe.stderr.raw': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'mode': 256}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/FreshOwnershipObservationRound1V1-OUTER-INCOMPLETE/START.json': {'bytes': 396, 'sha256': 'ed901d7a6069d142f5d6f5bf5f135968f9104decd44cb747ae18fb08090ac011', 'mode': 384}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-round-outer-meter-v2/outer_meter.py': {'bytes': 21111, 'sha256': '7a88df0b33745433e91faa975c6ae969e0abc7c738fe98677a262b92a5a2ece6', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-ownership-observation-source-v2/observe_ownership.py': {'bytes': 18035, 'sha256': '4e50ea7a9afea0614bcf01b85f39823c954781a8d2c9425fcc660678296ff30b', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/review/known-pre-root-quarantine-recovery-v1/REVIEW.json': {'bytes': 23481, 'sha256': 'f77462cf9a52732592efb3883355923dded602b223f2ac2e7c80d106e29dc9e3', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/review/fresh-round-owner-outcome-v1/REVIEW.json': {'bytes': 20785, 'sha256': 'a69bbb1153eb39cede20af533b330586b647c4eb6a6db709d81925e6e77be463', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/independent-data-fresh-namespace-v1/controller/owned_data_parent.py': {'bytes': 67528, 'sha256': 'be36f1427694c786efc1cf04958a6fb002776f586641828ce569f36e2f289895', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/independent-data-fresh-namespace-configured-v1/launch_exact_data.py': {'bytes': 26960, 'sha256': '073cbd51a1c18a46473006236eb05f5c701734f1f96f2b17463be6287849b7b6', 'mode': 292}, '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/independent-data-fresh-parent-capture-v1/capture_data_parent.py': {'bytes': 25876, 'sha256': 'f523f1ce5f5c9bc145196e7b006e0aab6fe6d3c919271c20605419f445dfc2be', 'mode': 292}}
+DIRECTORIES = {'/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/runs/IndependentPrefixDATAOwnedV1-EXECUTION-QUARANTINE': ['START.json', 'details.jsonl'], '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/FreshOwnershipObservationRound1V1-OUTER-INCOMPLETE': ['START.json', 'probe.stdout.raw', 'probe.stderr.raw'], '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/FreshOwnershipObservationRound1V1-PROVIDER-CAPTURE': ['outer.stdout.raw', 'outer.stderr.raw']}
+
+class EligibilityStop(RuntimeError):
+    pass
+
+
+def need(value, text):
+    if value is not True:
+        raise EligibilityStop(text)
+
+
+def layout_only(active_paths):
+    # No file content or directory traversal at pre-EX/post-release phases.
+    need(not os.path.lexists(OLD_BARRIER), 'unclassified old BARRIER')
+    observed = {}
+    for name in DIRECTORIES:
+        path = Path(name)
+        info = path.lstat()
+        need(path.resolve(strict=True) == path and stat.S_ISDIR(info.st_mode) and
+             info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700,
+             'canonical current-owner historical directory0700')
+        observed[name] = (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_nlink,
+                          info.st_mtime_ns,info.st_ctime_ns)
+    for name in active_paths:
+        need(not os.path.lexists(name), 'active successor barrier/quarantine still blocks')
+    return observed  # Metadata observation only, never historical/source eligibility.
+
+
+def full_snapshot(read_leaf, names, active_paths):
+    # Ports are closed immutable caller code with real owned IO, never JSON or
+    # untrusted user callbacks. This function cannot authenticate a native lease.
+    before = layout_only(active_paths)
+    for directory, expected in DIRECTORIES.items():
+        actual = names(directory,len(expected))
+        need(type(actual) is list and len(actual) == len(expected) and set(actual) == set(expected),
+             'exact historical directory membership')
+    rows = {}
+    for path, expected in PINS.items():
+        raw = read_leaf(path,expected)
+        need(type(raw) is bytes and len(raw) == expected['bytes'] and
+             hashlib.sha256(raw).hexdigest() == expected['sha256'], 'fixed history bytes')
+        rows[path] = {'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),
+                      'expected_mode':expected['mode']}
+    need(layout_only(active_paths) == before, 'historical layout changed')
+    for directory, expected in DIRECTORIES.items():
+        actual = names(directory,len(expected))
+        need(type(actual) is list and len(actual) == len(expected) and set(actual) == set(expected),
+             'final exact historical directory membership')
+    return {'schema':'exact-known-preRoot-plus-closed-metadata-history-v1',
+            'directories':before,'files':rows,'role':'HISTORY_ONLY_NO_LIVE_LEASE_OR_DISPATCH'}

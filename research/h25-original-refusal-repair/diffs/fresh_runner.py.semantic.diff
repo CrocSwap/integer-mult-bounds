@@ -1,0 +1,49 @@
+--- outputs/joined-full-caller-implementation-20261106T2010Z/implementation/source/fresh_runner.py [path-rebased-only]
++++ outputs/caller-refusal-repair-20261106T2119Z/implementation/source/fresh_runner.py
+@@ -521,6 +521,25 @@
+         '--time-image',profile['time_path'],profile['time_sha256'],str(profile['time_bytes']),
+         '--read-root',str(HERE),'--artifact-parent',str(artifact),str(info.st_dev),str(info.st_ino),
+         '--science-leaf','science','--usage',str(timed[4]),str(usage_identity[0]),str(usage_identity[1]),'--',*timed]
++
++
++def original_optimized_refusal(exit_code, stderr_raw, stdout_bytes,
++                               positive_receipt_present, stop_present, capture_complete):
++    """Original SC4 refusal after legitimate startup; native closure is separate.
++
++    The original startup creates science/initial-tcb-controls before the -O
++    guard. Only positive receipt/STOP/stdout defeat this negative disposition.
++    The unchanged outer owner still requires real waits, groups and retirement.
++    """
++    return (type(exit_code) is int and exit_code == 1 and
++            type(stderr_raw) is bytes and 0 < len(stderr_raw) <= 2097152 and
++            stderr_raw.startswith(b'Traceback (most recent call last):\n') and
++            b'_epoch_sc4_full_entry' in stderr_raw and
++            stderr_raw.endswith(b'RuntimeError: SC4 fixed assertion-on fresh candidate full invocation required\n') and
++            b'STOP evidence write failed:' not in stderr_raw and
++            type(stdout_bytes) is int and stdout_bytes == 0 and
++            positive_receipt_present is False and stop_present is False and
++            capture_complete is True)
+ 
+ 
+ def main():
+@@ -757,10 +776,16 @@
+         if expected_refusal:
+             with _owned_stream(folder/'stderr.txt','rb') as refusal_stream:
+                 refusal_bytes=refusal_stream.read(OUTPUT_CAP+1)
+-        successful_disposition = ((code == 1 and 0 < len(refusal_bytes) <= OUTPUT_CAP and
+-            refusal_bytes.startswith(b'Traceback (most recent call last):\n') and
+-            refusal_bytes.endswith(full_receiver.REFUSAL) and not Path(intent['completed_layout']['science_root']).exists())
+-            if expected_refusal else (code == 0 and stderr['bytes'] == 0))
++        if expected_refusal:
++            science_root=Path(intent['completed_layout']['science_root'])
++            capture=relay.snapshot()
++            complete_capture=(stdout['stable'] and stderr['stable'] and
++                capture['eof_complete'] and capture['all_descriptors_known_closed'] and
++                not capture['overflow'] and not capture['raw_error_present'])
++            successful_disposition=original_optimized_refusal(code,refusal_bytes,stdout['bytes'],
++                (science_root/'receipt.json').exists(),(science_root/'STOP.json').exists(),complete_capture)
++        else:
++            successful_disposition=(code == 0 and stderr['bytes'] == 0)
+         receipt = dict(started, exit=code, wall_seconds=elapsed, usage=measurement,
+                        termination=stop, sampled_process_group_rss_bytes=peak,
+                        source_bytes_and_modes_unchanged=unchanged,
