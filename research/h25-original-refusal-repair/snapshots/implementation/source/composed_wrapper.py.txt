@@ -1,0 +1,157 @@
+"""Same-process explicit Root transport derived from the reviewed v4 wrapper.
+
+The original command, native outcome, raw-stream and cleanup checks remain
+except exact declared transport/path/source-packet seams. No global alias or
+native owner is reconstructed from a manifest. Original packet bytes are kept
+under separate predecessor envelope custody by the complete controller.
+"""
+import argparse
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+def need(value,message):
+    if not value:
+        raise RuntimeError(message)
+
+_COMPLETED = None
+_PROXY = None
+
+def configure_completed_source(layout, registry, guardian):
+    global _COMPLETED
+    need(_COMPLETED is None and registry.layout is layout and guardian is not None,
+         'one actual complete-source binding before producers')
+    _COMPLETED = (layout, registry, guardian)
+    return True
+
+def completed_source():
+    need(_COMPLETED is not None, 'actual complete-source binding required')
+    return _COMPLETED
+
+def source_packet(kernel, manifest_pin, required_sources):
+    """Pinned selected-source custody; actual module authentication is external.
+
+    Original predecessor packet census remains separately checked by its exact
+    envelope. This new manifest cannot restore a native process or lease.
+    """
+    manifest, retained = kernel.read_json(Path(manifest_pin['path']),262144,0o444,manifest_pin)
+    kernel.exact(manifest,('schema','files'))
+    kernel.need(manifest['schema'] == 'fresh-composed-source-packet-v1' and
+                type(manifest['files']) is dict and manifest['files'] == required_sources,
+                'exact selected complete source closure')
+    kernel.need(0 < len(manifest['files']) <= 64, 'finite selected source closure')
+    rows = {}
+    for name,expected in manifest['files'].items():
+        kernel.need(type(name) is str and Path(name).is_absolute() and Path(name).suffix == '.py',
+                    'fixed absolute Python source member; control manifest excluded')
+        kernel.exact(expected,('bytes','sha256','mode'))
+        kernel.need(type(expected['bytes']) is int and 0 < expected['bytes'] <= 2097152 and
+                    type(expected['mode']) is int and expected['mode'] == 0o444, 'bounded exact source row0444')
+        kernel.sha_value(expected['sha256'])
+        rows[name] = kernel.IO.read(Path(name),2097152,0o444,expected)[0]
+    return {'manifest':retained,'files':rows}
+
+
+class RootProxy:
+    def __init__(self, supervisor, bound_consumer, held_run_root, root, cases, nested_root, policy, deadline, *, layout=None, registry=None, guardian=None):
+        global _PROXY
+        need(_PROXY is None,'one actual root proxy')
+        _PROXY = self
+        if _COMPLETED is None:
+            configure_completed_source(layout,registry,guardian)
+        self.layout,self.registry,self.guardian = completed_source()
+        self.s, self.root, self.cases = supervisor, root, cases
+        self.evidence, self.policy, self.deadline = nested_root, policy, deadline
+        self.bound, self.held_run_root = bound_consumer, held_run_root
+        self.next = 0
+        self.records = []
+
+    def run(self, command, **kwargs):
+        attempt = self.registry.attempt(self.cases[self.next]['label'])
+        try:
+            return self._run(command,**kwargs)
+        except BaseException as error:
+            if attempt.error is None:
+                attempt.error = error
+            self.registry.capture_error(attempt,error)
+            primary = self.registry.primary_for(attempt)
+            raise BaseException.with_traceback(primary,attempt.traceback)
+
+    def _run(self, command, **kwargs):
+        s = self.s
+        s.need(self.next < len(self.cases), 'Unregistered extra queue root command')
+        case = self.cases[self.next]
+        expected = ['/usr/bin/python3.12', *s.FLAGS, str(s.RUNNER_PATH),
+                    case['stage'], case['job'], case['label']]
+        s.need(command == expected and set(kwargs) == {'cwd', 'env', 'capture_output', 'timeout'} and
+               kwargs['cwd'] == self.root and kwargs['env'] == s.ENV and
+               kwargs['capture_output'] is True and kwargs['timeout'] == 190,
+               'Queue subprocess alias call exceeded its exact reviewed interface')
+        attempt = self.registry.attempt(case['label'])
+        self.registry.assert_open(attempt,launch=True)
+        folder = attempt.layout.supervision_root
+        result = self.held_run_root(self.root, case, folder, self.policy['root_seconds'], self.deadline,
+                            self.policy['root_address_space_bytes'], self.policy['root_rss_sum_bytes'])
+        original_rc = result['returncode']
+        receipt_path = attempt.layout.runner_root / 'receipt.json'
+        if receipt_path.exists():
+            root_receipt, root_pin = s.read_json(receipt_path, 4 * 1024 * 1024)
+        else:
+            root_receipt, root_pin = {'status': 'ABSENT_UNCLOSED_ROOT'}, None
+        failure = result['failure']
+        if original_rc == 0 and (result['cleanup']['observed_after_root_exit'] or
+                                 result['cleanup']['reaped_adopted']):
+            failure = failure or {'type': 'OrphanAfterApparentPass',
+                                  'message': 'Original root exit 0 retained; supervisor admission STOP'}
+        if not result['cleanup']['complete']:
+            failure = failure or {'type': 'CleanupIncomplete', 'message': 'Owned process groups not empty'}
+        originals = {'root_returncode': original_rc, 'root_status': root_receipt['status'],
+                     'root_receipt_pin': root_pin, 'root_stdout': result['outer_logs']['root.stdout.raw'],
+                     'root_stderr': result['outer_logs']['root.stderr.raw']}
+        row = {'label': case['label'], 'actual_consumer': 'wrapper+explicit-transport+joined-supervisor+full-terminal-receiver',
+               'original': originals, 'effective_admission': 'STOP' if failure else 'DEFER_TO_FULL_TERMINAL_RECEIVER',
+               'supervision_failure': failure, 'original_root_receipt_unchanged': True,
+               'cleanup_before_queue_validation': True}
+        self.registry.write_json(attempt,'proxy',folder / 'PROXY.json',row)
+        self.registry.required_writer_closed(attempt,'proxy')
+        self.records.append(row)
+        if failure:
+            self.bound.stop_supplement(self.root, case['label'], failure)
+            self.registry.required_writer_closed(attempt,'stop-supplement')
+            original_error = self.registry.primary_for(attempt)
+            if original_error is not None:
+                raise BaseException.with_traceback(original_error,attempt.traceback)
+            raise RuntimeError('Root supervision rejected case; original status retained: ' + case['label'])
+        stdout_record, stdout = s.stable_file(folder / 'root.stdout.raw', s.LOG_CAP, True)
+        stderr_record, stderr = s.stable_file(folder / 'root.stderr.raw', s.LOG_CAP, True)
+        s.need(stdout_record == originals['root_stdout'] and stderr_record == originals['root_stderr'],
+               'Original root command streams changed before queue consumption')
+        self.registry.required_writer_closed(attempt,'stop-supplement')
+        self.next += 1
+        return subprocess.CompletedProcess(command, original_rc, stdout, stderr)
+
+
+
+def finalize_completed_source(error=None):
+    layout,registry,guardian = completed_source()
+    need(_PROXY is not None,'actual proxy finalizer')
+    for item in registry.snapshot()['attempts']:
+        attempt = registry.attempt(item['label'])
+        if attempt.status is not None:
+            continue
+        registry.prepare_finalizer_dirs(attempt)
+        if error is not None:
+            registry.capture_error(attempt,error)
+        if attempt.required['proxy'] is False:
+            registry.write_json(attempt,'proxy-finalizer',attempt.layout.supervision_root/'PROXY-STOP.json',{
+                'schema':'h25-proxy-finalizer-stop-v1','label':attempt.label,'status':'STOP',
+                'canonical_runner_receipt_created':False,'raw_original_error_held':attempt.error is not None})
+            registry.required_writer_closed(attempt,'proxy')
+        if attempt.required['stop-supplement'] is False:
+            _PROXY.bound.stop_supplement(_PROXY.root,attempt.label,{
+                'type':'OwningProxyFinalizer','message':'Actual source STOP/finally before seal'})
+            registry.required_writer_closed(attempt,'stop-supplement')

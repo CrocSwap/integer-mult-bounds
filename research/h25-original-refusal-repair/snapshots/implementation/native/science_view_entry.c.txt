@@ -1,0 +1,681 @@
+/* Joined complete-caller science entry. SOURCE ONLY; no execution admission.
+ *
+ * The authenticated runner execs this image, before GNU time, with precisely
+ * stdin=/dev/null and two relay pipe writers. This program creates no task.
+ * It keeps the caller's PID namespace, session, process group and wait owner.
+ * See VIEW-ENTRY-CONTRACT-v1.md for the fixed argv, external trust premises,
+ * Linux-v6.12 source basis and the still-unassociated Q_sigma environment.
+ * No metadata broker, supplied descriptor, compatible flag or ACL stripping.
+ */
+#define _GNU_SOURCE
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <linux/audit.h>
+#include <linux/capability.h>
+#include <linux/filter.h>
+#include <linux/openat2.h>
+#include <linux/sched.h>
+#include <linux/seccomp.h>
+#include <linux/securebits.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mount.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/statfs.h>
+#include <sys/syscall.h>
+#include <sys/sysmacros.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#if !defined(__x86_64__) || defined(__ILP32__)
+#error The entry is the reviewed native LP64 x86-64 ABI only
+#endif
+_Static_assert(sizeof(void *) == 8 && sizeof(long) == 8, "LP64 required");
+
+/* Selected v6.12 UAPI shapes, intentionally independent of libc header age. */
+struct sv_mount_attr { uint64_t attr_set, attr_clr, propagation, userns_fd; };
+struct sv_ll_attr { uint64_t fs, net, scope; };
+struct sv_ll_path { uint64_t access; int32_t fd; } __attribute__((packed));
+#define SV_EMPTY_PATH 0x1000U
+#define SV_RECURSIVE 0x8000U
+#define SV_OPEN_TREE_CLONE 1U
+#define SV_MOVE_FROM_EMPTY 4U
+#define SV_MOVE_TO_EMPTY 0x40U
+#define SV_MOUNT_RDONLY UINT64_C(1)
+#define SV_MOUNT_NOSUID UINT64_C(2)
+#define SV_FS_EXEC (UINT64_C(1)<<0)
+#define SV_FS_WRITE (UINT64_C(1)<<1)
+#define SV_FS_READ (UINT64_C(1)<<2)
+#define SV_FS_READDIR (UINT64_C(1)<<3)
+#define SV_FS_RMDIR (UINT64_C(1)<<4)
+#define SV_FS_UNLINK (UINT64_C(1)<<5)
+#define SV_FS_MKDIR (UINT64_C(1)<<7)
+#define SV_FS_MKREG (UINT64_C(1)<<8)
+#define SV_FS_MKFIFO (UINT64_C(1)<<10)
+#define SV_FS_MKSYM (UINT64_C(1)<<12)
+#define SV_FS_REFER (UINT64_C(1)<<13)
+#define SV_FS_TRUNC (UINT64_C(1)<<14)
+#define SV_FS_IOCTL (UINT64_C(1)<<15)
+#define SV_FS_ALL UINT64_C(65535)
+#define SV_READ (SV_FS_EXEC|SV_FS_READ|SV_FS_READDIR)
+#define SV_ARTIFACT (SV_READ|SV_FS_WRITE|SV_FS_RMDIR|SV_FS_UNLINK|SV_FS_MKDIR|SV_FS_MKREG|SV_FS_MKFIFO|SV_FS_MKSYM|SV_FS_REFER|SV_FS_TRUNC)
+#define SV_MAX_FDS 96
+#define SV_MAX_ERRORS 48
+#define SV_MAX_IMAGE UINT64_C(16777216)
+#define SV_PROC_MAGIC 0x9fa0
+#define SV_REPORT_CAP 16384
+/* Native x86-64 Linux-v6.12 syscall table. This metadata operation is safe
+ * under the same final mount-write checks as chmod/fchmod/fchmodat. */
+#define SV_NR_FCHMODAT2 452
+
+extern char **environ;
+enum sv_fd_state { SV_UNUSED, SV_PENDING, SV_OPEN, SV_RETIRED, SV_CLOSED, SV_FAILED, SV_UNCERTAIN };
+struct sv_fd { int fd; enum sv_fd_state state; const char *site; };
+struct sv_error { const char *site; int number; };
+static struct sv_fd fds[SV_MAX_FDS];
+static struct sv_error errors[SV_MAX_ERRORS];
+static size_t fd_count, error_count;
+static bool uncertain, error_overflow, user_entered, mount_entered;
+static bool root_private, root_readonly, artifact_attached, usage_attached;
+static bool landlocked, filtered;
+static uid_t uid;
+static gid_t gid;
+static int stdin_status_flags;
+static const char *artifact_path, *usage_path, *cwd_path;
+static struct stat artifact_before, usage_before, cwd_before, root_before, stdin_before;
+
+static bool failed(const char *site) {
+    int saved = errno ? errno : EPROTO;
+    if (error_count < SV_MAX_ERRORS) errors[error_count++] = (struct sv_error){site,saved};
+    else { error_overflow = true; uncertain = true; }
+    errno = saved;
+    return false;
+}
+static bool require(bool condition, const char *site) {
+    if (condition) return true;
+    errno = EPROTO;
+    return failed(site);
+}
+static int reserve(const char *site) {
+    if (fd_count == SV_MAX_FDS) { errno=EMFILE; failed("fd-registry-capacity"); return -1; }
+    size_t slot=fd_count++;
+    fds[slot]=(struct sv_fd){-1,SV_PENDING,site};
+    return (int)slot;
+}
+static int acquired(int slot, long result) {
+    if (slot < 0) return -1;
+    if (result < 0) { fds[slot].state=SV_FAILED; failed(fds[slot].site); return -1; }
+    fds[slot].fd=(int)result; fds[slot].state=SV_OPEN;
+    return (int)result;
+}
+static bool close_once(int fd) {
+    for (size_t n=0;n<fd_count;n++) if (fds[n].fd==fd && fds[n].state==SV_OPEN) {
+        fds[n].state=SV_RETIRED;
+        if (close(fd)<0) { fds[n].state=SV_UNCERTAIN; uncertain=true; return failed("close-once"); }
+        fds[n].state=SV_CLOSED;
+        return true;
+    }
+    errno=EBADF; uncertain=true; return failed("unowned-or-repeated-close");
+}
+static void close_all(void) {
+    /* Admitted stdio survives successful exec. Inherited FD0 is explicitly
+     * retired/replaced below; all remaining stdio release requires real exit. */
+    for (size_t n=0;n<fd_count;n++) if (fds[n].state==SV_OPEN&&fds[n].fd>2) close_once(fds[n].fd);
+}
+static int opened(const char *path, int flags, const char *site) {
+    int slot=reserve(site); if(slot<0)return -1;
+    return acquired(slot,open(path,flags|O_CLOEXEC,0));
+}
+/* All role paths must be absolute canonical paths, with no symlink component.
+ * The one intentional proc magic-link open is separate below. */
+static bool canonical(const char *path) {
+    if (!path || path[0]!='/' || !path[1] || strlen(path)>=PATH_MAX || path[strlen(path)-1]=='/') return false;
+    const char *p=path+1;
+    while (*p) {
+        const char *end=strchr(p,'/'); size_t n=end?(size_t)(end-p):strlen(p);
+        if (!n || (n==1 && p[0]=='.') || (n==2 && p[0]=='.' && p[1]=='.')) return false;
+        if (!end) break;
+        p=end+1;
+    }
+    return true;
+}
+static bool beneath(const char *path, const char *parent) {
+    size_t n=strlen(parent); return !strncmp(path,parent,n) && (path[n]==0 || path[n]=='/');
+}
+static int role_open(const char *path,int flags,const char *site) {
+    if(!require(canonical(path),"canonical-role-path"))return -1;
+    struct open_how how={.flags=(uint64_t)(flags|O_CLOEXEC|O_NOFOLLOW),
+        .resolve=RESOLVE_NO_SYMLINKS|RESOLVE_NO_MAGICLINKS};
+    int slot=reserve(site);if(slot<0)return -1;
+    return acquired(slot,syscall(SYS_openat2,AT_FDCWD,path,&how,sizeof how));
+}
+static bool same_object(const struct stat *a,const struct stat *b) {
+    return a->st_dev==b->st_dev && a->st_ino==b->st_ino && a->st_mode==b->st_mode &&
+        a->st_uid==b->st_uid && a->st_gid==b->st_gid && a->st_nlink==b->st_nlink &&
+        a->st_size==b->st_size && a->st_mtim.tv_sec==b->st_mtim.tv_sec &&
+        a->st_mtim.tv_nsec==b->st_mtim.tv_nsec && a->st_ctim.tv_sec==b->st_ctim.tv_sec &&
+        a->st_ctim.tv_nsec==b->st_ctim.tv_nsec;
+}
+/* uid/gid fields are namespace representations, not kernel inode ownership.
+ * This comparison is used ONLY across the one-ID namespace transition. Both
+ * image hashes separately retain stable owner fields in their own context;
+ * dev/ino, all other inventory fields and the complete byte pin still agree.
+ * Neither unshare nor mount operations change backing inode ownership. Original
+ * owner/native qualification is retained by the authenticated outer parent. */
+static bool same_backing_across_userns(const struct stat *a,const struct stat *b) {
+    struct stat represented=*a;
+    represented.st_uid=b->st_uid;represented.st_gid=b->st_gid;
+    return same_object(&represented,b);
+}
+static bool stat_fd(int fd,struct stat *out,const char *site) {
+    if(fstat(fd,out)<0)return failed(site);return true;
+}
+static bool decimal(const char *s,uint64_t *value) {
+    uint64_t n=0;
+    if(!s||!*s||(s[0]=='0'&&s[1]))return false;
+    for(;*s;s++){ if(*s<'0'||*s>'9'||n>(UINT64_MAX-(unsigned)(*s-'0'))/10)return false; n=n*10+(unsigned)(*s-'0'); }
+    *value=n;return true;
+}
+
+/* SHA256 mechanics reused, with predecessor credit, from the accepted
+ * retention_guardian.c (PR6736 0f2a86fa9ef0daf760b77c662a5b762e17848598).
+ * The independent native-image/loader association is still an outside premise. */
+struct sha { uint32_t h[8]; uint64_t n; size_t used; unsigned char b[64]; };
+static uint32_t rr(uint32_t x,unsigned n){return (x>>n)|(x<<(32-n));}
+static const uint32_t sk[64]={
+0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2};
+static void sha_block(struct sha*s,const unsigned char*b){uint32_t w[64];
+ for(int i=0;i<16;i++)w[i]=(uint32_t)b[i*4]<<24|(uint32_t)b[i*4+1]<<16|(uint32_t)b[i*4+2]<<8|b[i*4+3];
+ for(int i=16;i<64;i++){uint32_t x=w[i-15],y=w[i-2];w[i]=(rr(x,7)^rr(x,18)^(x>>3))+w[i-16]+w[i-7]+(rr(y,17)^rr(y,19)^(y>>10));}
+ uint32_t a=s->h[0],b0=s->h[1],c=s->h[2],d=s->h[3],e=s->h[4],f=s->h[5],g=s->h[6],h=s->h[7];
+ for(int i=0;i<64;i++){uint32_t t=h+(rr(e,6)^rr(e,11)^rr(e,25))+((e&f)^(~e&g))+sk[i]+w[i];
+ uint32_t t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&b0)^(a&c)^(b0&c));h=g;g=f;f=e;e=d+t;d=c;c=b0;b0=a;a=t+t2;}
+ s->h[0]+=a;s->h[1]+=b0;s->h[2]+=c;s->h[3]+=d;s->h[4]+=e;s->h[5]+=f;s->h[6]+=g;s->h[7]+=h;
+}
+static void sha_init(struct sha*s){*s=(struct sha){{0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19},0,0,{0}};}
+static void sha_add(struct sha*s,const void*ptr,size_t n){const unsigned char*p=ptr;s->n+=n;
+ while(n){size_t a=64-s->used;if(a>n)a=n;memcpy(s->b+s->used,p,a);s->used+=a;p+=a;n-=a;if(s->used==64){sha_block(s,s->b);s->used=0;}}}
+static void sha_done(struct sha*s,char out[65]){uint64_t bits=s->n*8;s->b[s->used++]=128;
+ if(s->used>56){memset(s->b+s->used,0,64-s->used);sha_block(s,s->b);s->used=0;}
+ memset(s->b+s->used,0,56-s->used);for(int i=0;i<8;i++)s->b[63-i]=(unsigned char)(bits>>(8*i));sha_block(s,s->b);
+ static const char x[]="0123456789abcdef";for(int i=0;i<32;i++){unsigned v=(s->h[i/4]>>(24-8*(i%4)))&255;out[i*2]=x[v>>4];out[i*2+1]=x[v&15];}out[64]=0;}
+static bool hex64(const char*s){if(strlen(s)!=64)return false;for(int i=0;i<64;i++)if(!strchr("0123456789abcdef",s[i]))return false;return true;}
+
+static bool hash_image(int fd,const char *expected,uint64_t bytes,struct stat *stable) {
+    if(!require(hex64(expected)&&bytes>0&&bytes<=SV_MAX_IMAGE,"bounded-image-pin"))return false;
+    struct stat before,after;
+    if(!stat_fd(fd,&before,"image-before-fstat"))return false;
+    if(!require(S_ISREG(before.st_mode)&&before.st_size==(off_t)bytes&&
+        !(before.st_mode&(S_IWGRP|S_IWOTH|S_ISUID|S_ISGID))&&(before.st_mode&0111),"image-object-profile"))return false;
+    if(lseek(fd,0,SEEK_SET)<0)return failed("image-seek");
+    struct sha h;sha_init(&h);unsigned char block[65536];uint64_t count=0;
+    while(count<bytes) {
+        size_t ask=bytes-count>sizeof block?sizeof block:(size_t)(bytes-count);
+        ssize_t got=read(fd,block,ask);
+        if(got<0){if(errno==EINTR)continue;return failed("image-read");}
+        if(!require(got>0,"image-short-read"))return false;
+        sha_add(&h,block,(size_t)got);count+=(uint64_t)got;
+    }
+    ssize_t end;
+    do{end=read(fd,block,1);}while(end<0&&errno==EINTR);
+    if(end<0)return failed("image-end-read");
+    if(!stat_fd(fd,&after,"image-after-fstat"))return false;
+    char actual[65];sha_done(&h,actual);
+    if(!require(end==0&&same_object(&before,&after)&&!strcmp(actual,expected),"image-stable-bytes-pin"))return false;
+    *stable=after;return true;
+}
+
+struct sv_dirent { uint64_t ino; int64_t off; unsigned short reclen; unsigned char type; char name[]; };
+/* Bounded source-owned census. No opendir callback or hidden finalizer. */
+static bool enumerate(int fd,int census_kind) {
+    unsigned char block[8192] __attribute__((aligned(8)));
+    unsigned count=0;bool seen[3]={false,false,false},done=false;
+    pid_t self=getpid();
+    for(unsigned reads=0;reads<4;reads++) {
+        long got=syscall(SYS_getdents64,fd,block,sizeof block);
+        if(got<0)return failed("census-getdents64");
+        if(!got){done=true;break;}
+        size_t at=0;
+        while(at<(size_t)got) {
+            if(!require((size_t)got-at>=20,"census-record-header-bound"))return false;
+            struct sv_dirent *d=(struct sv_dirent *)(void *)(block+at);
+            if(!require(d->reclen>=20&&at+d->reclen<=(size_t)got&&
+                memchr(d->name,0,d->reclen-19),"census-record-shape"))return false;
+            if(strcmp(d->name,".")&&strcmp(d->name,"..")) {
+                uint64_t n;
+                if(!require(++count<=SV_MAX_FDS,"census-entry-bound"))return false;
+                if(census_kind==2) return require(false,"artifact-parent-must-be-empty");
+                if(!require(decimal(d->name,&n)&&n<=INT_MAX,"census-native-numeric-name"))return false;
+                if(census_kind==1) {if(!require(n==(uint64_t)self,"entry-exactly-one-task"))return false;}
+                else {
+                    bool owned=n<=2||n==(uint64_t)fd;
+                    for(size_t i=0;i<fd_count;i++)if(fds[i].state==SV_OPEN&&fds[i].fd==(int)n)owned=true;
+                    if(!require(owned,"no-unregistered-entry-descriptor"))return false;
+                    if(n<=2)seen[n]=true;
+                }
+            }
+            at+=d->reclen;
+        }
+    }
+    if(!require(done,"complete-bounded-census"))return false;
+    if(census_kind==1)return require(count==1,"one-native-task");
+    if(census_kind==2)return require(count==0,"empty-native-artifact-parent");
+    return require(seen[0]&&seen[1]&&seen[2],"admitted-stdio-present");
+}
+static bool fd_census(void) {
+    int fd=opened("/proc/self/fd",O_RDONLY|O_DIRECTORY|O_NOFOLLOW,"fd-census");
+    if(fd<0)return false;
+    bool okay=enumerate(fd,0);bool closed=close_once(fd);return okay&&closed;
+}
+static bool native_start(void) {
+    uid=geteuid();gid=getegid();uid_t r,e,s;gid_t gr,ge,gs;
+    if(getresuid(&r,&e,&s)<0||getresgid(&gr,&ge,&gs)<0)return failed("entry-credentials");
+    if(!require(uid!=0&&r==uid&&e==uid&&s==uid&&gr==gid&&ge==gid&&gs==gid,"same-unprivileged-real-effective-saved-IDs"))return false;
+    struct __user_cap_header_struct ch={.version=_LINUX_CAPABILITY_VERSION_3,.pid=0};
+    struct __user_cap_data_struct cap[2]={{0},{0}};
+    if(syscall(SYS_capget,&ch,cap)<0)return failed("initial-capget");
+    if(!require(!(cap[0].effective|cap[0].permitted|cap[0].inheritable|cap[1].effective|cap[1].permitted|cap[1].inheritable),"no-initial-capabilities"))return false;
+    if(!fd_census())return false;
+    struct stat input,a,b;struct statfs procfs;
+    if(fstat(0,&input)<0||fstat(1,&a)<0||fstat(2,&b)<0||statfs("/proc",&procfs)<0)return failed("initial-native-stdio-proc");
+    int fl1=fcntl(1,F_GETFL),fl2=fcntl(2,F_GETFL),fl0=fcntl(0,F_GETFL);
+    if(fl1<0||fl2<0||fl0<0)return failed("initial-stdio-flags");
+    if(!require(S_ISCHR(input.st_mode)&&major(input.st_rdev)==1&&minor(input.st_rdev)==3&&
+        (fl0&O_ACCMODE)==O_RDONLY&&S_ISFIFO(a.st_mode)&&S_ISFIFO(b.st_mode)&&
+        (a.st_dev!=b.st_dev||a.st_ino!=b.st_ino)&&(fl1&O_ACCMODE)==O_WRONLY&&
+        (fl2&O_ACCMODE)==O_WRONLY&&!(fl1&O_NONBLOCK)&&!(fl2&O_NONBLOCK)&&
+        procfs.f_type==SV_PROC_MAGIC,"exact-devnull-and-distinct-blocking-pipe-writers"))return false;
+    stdin_before=input;stdin_status_flags=fl0;
+    int stdin_slot=reserve("inherited-devnull-stdin");if(stdin_slot<0)return false;
+    if(acquired(stdin_slot,0)!=0)return false;
+    for(int n=0;n<=2;n++) {
+        int flags=fcntl(n,F_GETFD);if(flags<0)return failed("stdio-fdflags");
+        if(!require(!(flags&FD_CLOEXEC),"stdio-survives-final-exec"))return false;
+    }
+    int task=opened("/proc/self/task",O_RDONLY|O_DIRECTORY|O_NOFOLLOW,"task-census");
+    if(task<0)return false;
+    bool okay=enumerate(task,1);bool closed=close_once(task);
+    if(!okay||!closed)return false;
+    char children[128];int n=snprintf(children,sizeof children,"/proc/self/task/%ld/children",(long)getpid());
+    if(!require(n>0&&(size_t)n<sizeof children,"children-path-bound"))return false;
+    int childfd=opened(children,O_RDONLY|O_NOFOLLOW,"direct-children");if(childfd<0)return false;
+    char byte;ssize_t got;
+    do{got=read(childfd,&byte,1);}while(got<0&&errno==EINTR);
+    if(got<0)okay=failed("children-read");else okay=require(got==0,"no-prior-native-child");
+    closed=close_once(childfd);if(!okay||!closed)return false;
+    if(stat("/",&root_before)<0)return failed("entry-root-stat");
+    /* Startup environment is parent-authenticated. A native loader control
+     * discovered here is already too late to authenticate this process, so it
+     * remains both an external premise and an explicit conservative refusal. */
+    for(char **p=environ;*p;p++) if(!strncmp(*p,"LD_",3)||!strncmp(*p,"GLIBC_TUNABLES=",15))
+        return require(false,"no-native-loader-environment-injection");
+    return true;
+}
+
+static bool core_profile(void) {
+    struct rlimit inherited,selected={1,1},actual;
+    if(getrlimit(RLIMIT_CORE,&inherited)<0)return failed("inherited-core-limit");
+    if(!require(inherited.rlim_max==RLIM_INFINITY||inherited.rlim_max>=1,"core-one-compatible-inherited-hard-limit"))return false;
+    if(setrlimit(RLIMIT_CORE,&selected)<0)return failed("install-core-one-profile");
+    if(getrlimit(RLIMIT_CORE,&actual)<0)return failed("core-one-readback");
+    return require(actual.rlim_cur==1&&actual.rlim_max==1,"exact-protected-core-one-profile");
+}
+static bool write_mapping(const char *path,const char *bytes,size_t count,const char *site) {
+    int fd=opened(path,O_WRONLY|O_NOFOLLOW,site);if(fd<0)return false;
+    /* A proc ID-map write is one operation, never a partial-write retry. */
+    ssize_t got=write(fd,bytes,count);bool okay;
+    if(got<0)okay=failed(site);else okay=require((size_t)got==count,"complete-single-id-map-write");
+    bool closed=close_once(fd);return okay&&closed;
+}
+static bool enter_namespaces(void) {
+    if(unshare(CLONE_NEWUSER)<0)return failed("enter-same-id-user-namespace");
+    user_entered=true;
+    char map[96];int n=snprintf(map,sizeof map,"%ju %ju 1\n",(uintmax_t)uid,(uintmax_t)uid);
+    if(!require(n>0&&(size_t)n<sizeof map,"uid-map-bound")||
+        !write_mapping("/proc/self/uid_map",map,(size_t)n,"uid-map"))return false;
+    if(!write_mapping("/proc/self/setgroups","deny\n",5,"deny-setgroups-before-gid-map"))return false;
+    n=snprintf(map,sizeof map,"%ju %ju 1\n",(uintmax_t)gid,(uintmax_t)gid);
+    if(!require(n>0&&(size_t)n<sizeof map,"gid-map-bound")||
+        !write_mapping("/proc/self/gid_map",map,(size_t)n,"gid-map"))return false;
+    if(!require(getuid()==uid&&geteuid()==uid&&getgid()==gid&&getegid()==gid,"same-numeric-id-readback"))return false;
+    if(unshare(CLONE_NEWNS)<0)return failed("copy-private-mount-namespace");
+    mount_entered=true;
+    if(mount(NULL,"/",NULL,MS_REC|MS_PRIVATE,NULL)<0)return failed("recursive-private-root");
+    root_private=true;return true;
+}
+static int clone_mount(int fd,const char *site) {
+    int slot=reserve(site);if(slot<0)return -1;
+    return acquired(slot,syscall(SYS_open_tree,fd,"",SV_EMPTY_PATH|SV_OPEN_TREE_CLONE|O_CLOEXEC));
+}
+static bool mount_attributes(int fd,uint64_t set,unsigned flags,const char *site) {
+    struct sv_mount_attr attr={.attr_set=set}; /* Never clear an existing stricter flag. */
+    if(syscall(SYS_mount_setattr,fd,"",SV_EMPTY_PATH|flags,&attr,sizeof attr)<0)return failed(site);
+    return true;
+}
+static bool attach_mount(int clone,int target,const char *site) {
+    if(syscall(SYS_move_mount,clone,"",target,"",SV_MOVE_FROM_EMPTY|SV_MOVE_TO_EMPTY)<0)return failed(site);
+    return true;
+}
+static bool reestablish_stdin(void) {
+    /* The old read-only /dev/null FD still carries its OLD writable mount.
+     * For example a NOW timestamp mutation can use world-write permission,
+     * even with an O_RDONLY FD. Replace that escape reference through the
+     * final readonly view; preserve the actual backing sink and stdin bytes.
+     * Explicit close precedes dup3, so no implicit-close error is discarded. */
+    int fresh=role_open("/dev/null",O_RDONLY|O_NONBLOCK,"final-view-devnull-stdin");if(fresh<0)return false;
+    struct stat actual;
+    if(!stat_fd(fresh,&actual,"final-view-stdin-fstat"))return false;
+    if(!require(same_backing_across_userns(&stdin_before,&actual)&&
+        stdin_before.st_rdev==actual.st_rdev,"same-genuine-devnull-through-final-view"))return false;
+    int flags=fcntl(fresh,F_GETFL);if(flags<0)return failed("final-view-stdin-flags");
+    /* Preserve the admitted sink's original NONBLOCK status, including a
+     * producer that acquired /dev/null nonblocking. No arbitrary stdin OFD. */
+    int selected_flags=(flags&~O_NONBLOCK)|(stdin_status_flags&O_NONBLOCK);
+    if(fcntl(fresh,F_SETFL,selected_flags)<0)return failed("final-view-stdin-status-flags");
+    if(!close_once(0))return false;
+    int slot=reserve("final-view-stdin-dup");if(slot<0)return false;
+    if(acquired(slot,syscall(SYS_dup3,fresh,0,0))!=0)return false;
+    struct stat final;int descriptor_flags=fcntl(0,F_GETFD),status_flags=fcntl(0,F_GETFL);
+    if(descriptor_flags<0||status_flags<0||fstat(0,&final)<0)return failed("final-stdin-actual-readback");
+    if(!require(same_object(&actual,&final)&&final.st_rdev==stdin_before.st_rdev&&
+        (status_flags&O_ACCMODE)==O_RDONLY&&!(descriptor_flags&FD_CLOEXEC)&&
+        (status_flags&O_NONBLOCK)==(stdin_status_flags&O_NONBLOCK),"final-stdin-preserved-sink-and-status"))return false;
+    return close_once(fresh);
+}
+static bool validate_owned_paths(char **argv,int *artifact,int *usage,int *cwd) {
+    uint64_t ad,ai,ud,ui;
+    artifact_path=argv[12];usage_path=argv[18];cwd_path=argv[10];
+    if(!require(decimal(argv[13],&ad)&&decimal(argv[14],&ai)&&decimal(argv[19],&ud)&&
+        decimal(argv[20],&ui)&&ai&&ui,"actual-object-decimal-identities"))return false;
+    if(!require(canonical(artifact_path)&&canonical(usage_path)&&canonical(cwd_path)&&
+        !beneath(usage_path,artifact_path)&&!beneath(artifact_path,usage_path)&&
+        !beneath(cwd_path,artifact_path),"disjoint-exact-native-role-paths"))return false;
+    if(!require(!strcmp(argv[16],"science"),"fixed-absent-science-leaf-name"))return false;
+    char actual_cwd[PATH_MAX];
+    if(!getcwd(actual_cwd,sizeof actual_cwd))return failed("original-cwd-readback");
+    if(!require(!strcmp(actual_cwd,cwd_path),"original-cwd-is-preserved"))return false;
+    *artifact=role_open(artifact_path,O_RDONLY|O_DIRECTORY|O_NONBLOCK,"owned-artifact-parent");if(*artifact<0)return false;
+    *usage=role_open(usage_path,O_PATH,"owned-exact-usage-file");if(*usage<0)return false;
+    *cwd=role_open(cwd_path,O_PATH|O_DIRECTORY,"original-cwd-handle");if(*cwd<0)return false;
+    if(!stat_fd(*artifact,&artifact_before,"artifact-fstat")||!stat_fd(*usage,&usage_before,"usage-fstat")||
+        !stat_fd(*cwd,&cwd_before,"cwd-fstat"))return false;
+    if(!require(S_ISDIR(artifact_before.st_mode)&&artifact_before.st_uid==uid&&
+        (artifact_before.st_mode&07777)==0700&&(uint64_t)artifact_before.st_dev==ad&&
+        (uint64_t)artifact_before.st_ino==ai&&S_ISREG(usage_before.st_mode)&&usage_before.st_uid==uid&&
+        (usage_before.st_mode&07777)==0600&&usage_before.st_nlink==1&&usage_before.st_size==0&&
+        (uint64_t)usage_before.st_dev==ud&&(uint64_t)usage_before.st_ino==ui,"genuine-fresh-artifact-and-exclusive-usage"))return false;
+    if(!enumerate(*artifact,2))return false;
+    struct stat absent;
+    if(fstatat(*artifact,"science",&absent,AT_SYMLINK_NOFOLLOW)==0)return require(false,"science-leaf-already-exists");
+    if(errno!=ENOENT)return failed("science-leaf-absence-query");
+    return true;
+}
+static bool make_view(char **argv) {
+    /* Open all writable-clone sources only AFTER copy_mnt_ns has remapped root
+     * and cwd, so no retained path points into the parent's writable mounts. */
+    int art=-1,use=-1,cwd=-1;
+    if(!validate_owned_paths(argv,&art,&use,&cwd))return false;
+    int artclone=clone_mount(art,"detached-artifact-mount");if(artclone<0)return false;
+    int useclone=clone_mount(use,"detached-usage-mount");if(useclone<0)return false;
+    if(!mount_attributes(artclone,SV_MOUNT_NOSUID,0,"artifact-clone-nosuid")||
+        !mount_attributes(useclone,SV_MOUNT_NOSUID,0,"usage-clone-nosuid"))return false;
+    int root=opened("/",O_PATH|O_DIRECTORY|O_NOFOLLOW,"copied-root-handle");if(root<0)return false;
+    if(!mount_attributes(root,SV_MOUNT_RDONLY|SV_MOUNT_NOSUID,SV_RECURSIVE,"recursive-readonly-nosuid-copied-tree"))return false;
+    root_readonly=true;
+    if(!attach_mount(artclone,art,"attach-exact-writable-artifact"))return false;
+    artifact_attached=true;
+    if(!attach_mount(useclone,use,"attach-exact-writable-usage"))return false;
+    usage_attached=true;
+    /* Re-resolve through final paths. Do not fchdir a pre-attachment handle. */
+    int final_cwd=role_open(cwd_path,O_PATH|O_DIRECTORY,"final-view-cwd");if(final_cwd<0)return false;
+    struct stat a,u,c,r;
+    if(fstatat(AT_FDCWD,artifact_path,&a,AT_SYMLINK_NOFOLLOW)<0||
+        fstatat(AT_FDCWD,usage_path,&u,AT_SYMLINK_NOFOLLOW)<0||
+        fstat(final_cwd,&c)<0||stat("/",&r)<0)return failed("final-view-object-readback");
+    if(!require(same_object(&artifact_before,&a)&&same_object(&usage_before,&u)&&same_object(&cwd_before,&c)&&
+        root_before.st_dev==r.st_dev&&root_before.st_ino==r.st_ino,"same-backing-inodes-root-and-cwd"))return false;
+    if(fchdir(final_cwd)<0)return failed("reestablish-original-cwd-through-final-view");
+    char actual[PATH_MAX];if(!getcwd(actual,sizeof actual))return failed("final-cwd-getcwd");
+    return require(!strcmp(actual,cwd_path),"exact-final-cwd-path")&&reestablish_stdin();
+}
+
+static bool drop_privilege(void) {
+    if(prctl(PR_CAP_AMBIENT,PR_CAP_AMBIENT_CLEAR_ALL,0,0,0)<0)return failed("clear-ambient-capabilities");
+    /* v6.12 has capabilities 0..40. A later incompatible capability vocabulary
+     * must be separately associated; this loop also clears recognized <64. */
+    for(unsigned n=0;n<64;n++) {
+        int present=prctl(PR_CAPBSET_READ,n,0,0,0);
+        if(present<0){if(errno==EINVAL)break;return failed("bounding-set-read");}
+        if(present&&prctl(PR_CAPBSET_DROP,n,0,0,0)<0)return failed("drop-capability-bounding-set");
+    }
+    unsigned bits=SECBIT_NOROOT|SECBIT_NOROOT_LOCKED|SECBIT_NO_SETUID_FIXUP|
+        SECBIT_NO_SETUID_FIXUP_LOCKED|SECBIT_KEEP_CAPS_LOCKED;
+    if(prctl(PR_SET_SECUREBITS,bits,0,0,0)<0)return failed("lock-securebits");
+    struct __user_cap_header_struct h={.version=_LINUX_CAPABILITY_VERSION_3,.pid=0};
+    struct __user_cap_data_struct zero[2]={{0},{0}},actual[2]={{0},{0}};
+    if(syscall(SYS_capset,&h,zero)<0)return failed("drop-all-capability-sets");
+    if(syscall(SYS_capget,&h,actual)<0)return failed("final-capability-readback");
+    if(!require(!(actual[0].effective|actual[0].permitted|actual[0].inheritable|
+        actual[1].effective|actual[1].permitted|actual[1].inheritable),"empty-effective-permitted-inheritable"))return false;
+    if(prctl(PR_SET_NO_NEW_PRIVS,1,0,0,0)<0)return failed("install-no-new-privileges");
+    return require(prctl(PR_GET_NO_NEW_PRIVS,0,0,0,0)==1,"no-new-privileges-readback");
+}
+static bool ll_rule(int rules,int fd,uint64_t access,const char *site) {
+    struct sv_ll_path path={.access=access,.fd=fd};
+    if(syscall(SYS_landlock_add_rule,rules,1,&path,0)<0)return failed(site);return true;
+}
+static bool install_landlock(void) {
+    long abi=syscall(SYS_landlock_create_ruleset,NULL,0,1);
+    if(abi<0)return failed("required-landlock-ABI-query");
+    if(!require(abi>=6,"landlock-ABI-six-or-associated-successor"))return false;
+    struct sv_ll_attr policy={.fs=SV_FS_ALL,.net=3,.scope=3};
+    int slot=reserve("landlock-ruleset");if(slot<0)return false;
+    int rules=acquired(slot,syscall(SYS_landlock_create_ruleset,&policy,sizeof policy,0));if(rules<0)return false;
+    int root=opened("/",O_PATH|O_DIRECTORY|O_NOFOLLOW,"landlock-read-root");if(root<0)return false;
+    int art=role_open(artifact_path,O_PATH|O_DIRECTORY,"landlock-artifact-root");if(art<0)return false;
+    int use=role_open(usage_path,O_PATH,"landlock-exact-usage");if(use<0)return false;
+    int null=opened("/dev/null",O_PATH|O_NOFOLLOW,"landlock-devnull");if(null<0)return false;
+    struct stat sink;if(!stat_fd(null,&sink,"devnull-rule-fstat"))return false;
+    if(!require(S_ISCHR(sink.st_mode)&&major(sink.st_rdev)==1&&minor(sink.st_rdev)==3,"exact-devnull-rule-object"))return false;
+    if(!ll_rule(rules,root,SV_READ,"landlock-broad-read-execute")||
+        !ll_rule(rules,art,SV_ARTIFACT,"landlock-artifact-write-only-tree")||
+        !ll_rule(rules,use,SV_FS_READ|SV_FS_WRITE|SV_FS_TRUNC,"landlock-exact-usage-write")||
+        /* IOCTL_DEV is confined to this exact sink and the final filter's six
+         * harmless requests, preserving isatty/TCGETS's native ENOTTY. */
+        !ll_rule(rules,null,SV_FS_READ|SV_FS_WRITE|SV_FS_IOCTL,"landlock-devnull-sink-exception"))return false;
+    if(syscall(SYS_landlock_restrict_self,rules,0)<0)return failed("landlock-restrict-self");
+    landlocked=true;return true;
+}
+
+/* Fixed LP64 policy. All branches inspect native ABI-normalized scalar words;
+ * no pointer/string inspection, instruction-address authority or bit-union
+ * approximation for clone. Unlisted syscalls return EPERM. */
+static struct sock_filter program[768];static size_t program_count;
+static bool stmt(unsigned short code,uint32_t k) {
+    if(program_count==sizeof program/sizeof program[0])return require(false,"seccomp-program-capacity");
+    program[program_count++]=(struct sock_filter){.code=code,.k=k};return true;
+}
+static bool jump(unsigned short code,uint32_t k,unsigned char yes,unsigned char no) {
+    if(program_count==sizeof program/sizeof program[0])return require(false,"seccomp-program-capacity");
+    program[program_count++]=(struct sock_filter){.code=code,.jt=yes,.jf=no,.k=k};return true;
+}
+#define SV_LOAD_NR() stmt(BPF_LD|BPF_W|BPF_ABS,offsetof(struct seccomp_data,nr))
+#define SV_LOAD_ARG(n) stmt(BPF_LD|BPF_W|BPF_ABS,offsetof(struct seccomp_data,args)+(n)*8)
+#define SV_LOAD_ARG_HI(n) stmt(BPF_LD|BPF_W|BPF_ABS,offsetof(struct seccomp_data,args)+(n)*8+4)
+#define SV_RET(value) stmt(BPF_RET|BPF_K,(value))
+#define SV_EQ(value,yes,no) jump(BPF_JMP|BPF_JEQ|BPF_K,(value),(yes),(no))
+#define SV_ALLOW SECCOMP_RET_ALLOW
+#define SV_DENY (SECCOMP_RET_ERRNO|EPERM)
+static bool allow_number(int nr) { return SV_EQ((uint32_t)nr,0,1)&&SV_RET(SV_ALLOW); }
+static bool install_seccomp(void) {
+    if(!stmt(BPF_LD|BPF_W|BPF_ABS,offsetof(struct seccomp_data,arch))||
+        !SV_EQ(AUDIT_ARCH_X86_64,1,0)||!SV_RET(SECCOMP_RET_KILL_PROCESS)||!SV_LOAD_NR()||
+        !jump(BPF_JMP|BPF_JSET|BPF_K,0x40000000U,0,1)||!SV_RET(SECCOMP_RET_KILL_PROCESS))return false;
+    if(!SV_EQ(SYS_clone3,0,1)||!SV_RET(SECCOMP_RET_ERRNO|ENOSYS))return false;
+    /* False branch skips this complete clone body (load + 3 tests + 4 RETs). */
+    if(!SV_EQ(SYS_clone,0,8)||!SV_LOAD_ARG(0)||
+        !SV_EQ(0x003d0f00U,0,1)||!SV_RET(SV_ALLOW)||
+        !SV_EQ(0x00004111U,0,1)||!SV_RET(SV_ALLOW)||
+        !SV_EQ(0x01200011U,0,1)||!SV_RET(SV_ALLOW)||!SV_RET(SV_DENY)||!SV_LOAD_NR())return false;
+    /* setrlimit affects self only; CORE is sealed even against lowering to 0. */
+    if(!SV_EQ(SYS_setrlimit,0,4)||!SV_LOAD_ARG(0)||!SV_EQ(RLIMIT_CORE,0,1)||
+        !SV_RET(SV_DENY)||!SV_RET(SV_ALLOW)||!SV_LOAD_NR())return false;
+    /* prlimit64 pid_t normalizes to low32. Only pid=0; a CORE query has NULL
+     * new_limit in both pointer words. Other self resources retain arguments. */
+    if(!SV_EQ(SYS_prlimit64,0,12)||!SV_LOAD_ARG(0)||!SV_EQ(0,1,0)||!SV_RET(SV_DENY)||
+        !SV_LOAD_ARG(1)||!SV_EQ(RLIMIT_CORE,0,6)||!SV_LOAD_ARG(2)||!SV_EQ(0,1,0)||
+        !SV_RET(SV_DENY)||!SV_LOAD_ARG_HI(2)||!SV_EQ(0,1,0)||!SV_RET(SV_DENY)||
+        !SV_RET(SV_ALLOW)||!SV_LOAD_NR())return false;
+    /* fcntl retains ordinary descriptor/lock/pipe commands, never ownership,
+     * signal delivery, leases or notification. */
+    static const int fcntl_commands[]={F_DUPFD,F_GETFD,F_SETFD,F_GETFL,F_SETFL,F_GETLK,F_SETLK,F_SETLKW,F_DUPFD_CLOEXEC,F_GETPIPE_SZ,F_SETPIPE_SZ};
+    if(!SV_EQ(SYS_fcntl,0,(unsigned char)(2+2*sizeof fcntl_commands/sizeof fcntl_commands[0]))||!SV_LOAD_ARG(1))return false;
+    for(size_t i=0;i<sizeof fcntl_commands/sizeof fcntl_commands[0];i++)if(!SV_EQ((uint32_t)fcntl_commands[i],0,1)||!SV_RET(SV_ALLOW))return false;
+    if(!SV_RET(SV_DENY)||!SV_LOAD_NR())return false;
+    /* Only observational/FD-local ioctl requests; no driver, block, network,
+     * tty injection, filesystem flag mutation, clone or reflink operation. */
+    static const uint32_t ioctl_commands[]={0x5401U,0x5413U,0x541bU,0x5451U,0x5450U,0x5421U};
+    if(!SV_EQ(SYS_ioctl,0,(unsigned char)(2+2*sizeof ioctl_commands/sizeof ioctl_commands[0]))||!SV_LOAD_ARG(1))return false;
+    for(size_t i=0;i<sizeof ioctl_commands/sizeof ioctl_commands[0];i++)if(!SV_EQ(ioctl_commands[i],0,1)||!SV_RET(SV_ALLOW))return false;
+    if(!SV_RET(SV_DENY)||!SV_LOAD_NR())return false;
+    /* prctl keeps names and readbacks only. No dumpability/core/credential,
+     * namespace, ptracer, seccomp-notification or memory-map authority. */
+    static const int prctls[]={PR_GET_DUMPABLE,PR_GET_NAME,PR_SET_NAME,PR_GET_SECCOMP,PR_GET_NO_NEW_PRIVS,PR_GET_TIMERSLACK};
+    if(!SV_EQ(SYS_prctl,0,(unsigned char)(2+2*sizeof prctls/sizeof prctls[0]))||!SV_LOAD_ARG(0))return false;
+    for(size_t i=0;i<sizeof prctls/sizeof prctls[0];i++)if(!SV_EQ((uint32_t)prctls[i],0,1)||!SV_RET(SV_ALLOW))return false;
+    if(!SV_RET(SV_DENY)||!SV_LOAD_NR())return false;
+    /* Complete source syscall vocabulary; source/kernel/image association and
+     * preservation of each reached original operation remain explicit Q facts.
+     * Metadata syscalls are allowed: final mount write checks confine them. */
+    static const int ordinary[]={
+        SYS_read,SYS_write,SYS_open,SYS_close,SYS_stat,SYS_fstat,SYS_lstat,
+        SYS_poll,SYS_lseek,SYS_mmap,SYS_mprotect,SYS_munmap,SYS_brk,
+        SYS_rt_sigaction,SYS_rt_sigprocmask,SYS_rt_sigreturn,SYS_pread64,SYS_pwrite64,
+        SYS_readv,SYS_writev,SYS_access,SYS_pipe,SYS_select,SYS_sched_yield,
+        SYS_mremap,SYS_msync,SYS_mincore,SYS_madvise,SYS_dup,SYS_dup2,SYS_pause,
+        SYS_nanosleep,SYS_getitimer,SYS_alarm,SYS_setitimer,SYS_getpid,SYS_sendfile,
+        SYS_fork,SYS_vfork,SYS_execve,SYS_exit,SYS_wait4,SYS_kill,SYS_uname,
+        SYS_flock,SYS_fsync,SYS_fdatasync,SYS_truncate,SYS_ftruncate,SYS_getdents,
+        SYS_getcwd,SYS_chdir,SYS_fchdir,SYS_rename,SYS_mkdir,SYS_rmdir,SYS_creat,
+        SYS_link,SYS_unlink,SYS_symlink,SYS_readlink,SYS_chmod,SYS_fchmod,
+        SYS_chown,SYS_fchown,SYS_lchown,SYS_umask,SYS_gettimeofday,SYS_getrlimit,
+        SYS_getrusage,SYS_sysinfo,SYS_times,SYS_getuid,SYS_getgid,SYS_geteuid,
+        SYS_getegid,SYS_getppid,SYS_getpgrp,SYS_getgroups,SYS_getresuid,SYS_getresgid,
+        SYS_getpgid,SYS_getsid,SYS_sigaltstack,SYS_utime,SYS_statfs,SYS_fstatfs,
+        SYS_getpriority,SYS_sched_getparam,SYS_sched_getscheduler,
+        SYS_sched_get_priority_max,SYS_sched_get_priority_min,SYS_sched_rr_get_interval,
+        SYS_arch_prctl,SYS_gettid,SYS_readahead,SYS_setxattr,SYS_lsetxattr,SYS_fsetxattr,
+        SYS_getxattr,SYS_lgetxattr,SYS_fgetxattr,SYS_listxattr,SYS_llistxattr,SYS_flistxattr,
+        SYS_removexattr,SYS_lremovexattr,SYS_fremovexattr,SYS_tkill,SYS_time,SYS_futex,
+        SYS_sched_getaffinity,SYS_getdents64,SYS_set_tid_address,SYS_restart_syscall,
+        SYS_fadvise64,SYS_clock_gettime,SYS_clock_getres,SYS_clock_nanosleep,
+        SYS_exit_group,SYS_epoll_create,SYS_epoll_wait,SYS_epoll_ctl,SYS_tgkill,SYS_utimes,
+        SYS_waitid,SYS_openat,SYS_mkdirat,SYS_fchownat,SYS_futimesat,SYS_newfstatat,
+        SYS_unlinkat,SYS_renameat,SYS_linkat,SYS_symlinkat,SYS_readlinkat,SYS_fchmodat,
+        SYS_faccessat,SYS_pselect6,SYS_ppoll,SYS_set_robust_list,SYS_get_robust_list,
+        SYS_splice,SYS_tee,SYS_sync_file_range,SYS_vmsplice,SYS_utimensat,
+        SYS_epoll_pwait,SYS_eventfd,SYS_fallocate,SYS_eventfd2,SYS_epoll_create1,
+        SYS_dup3,SYS_pipe2,SYS_preadv,SYS_pwritev,SYS_getrandom,
+        SYS_execveat,SYS_copy_file_range,SYS_preadv2,SYS_pwritev2,SYS_statx,SYS_renameat2,SYS_getcpu,
+        SYS_rseq,SYS_pidfd_send_signal,SYS_pidfd_open,SYS_close_range,SYS_openat2,
+        SYS_faccessat2,SYS_epoll_pwait2,SV_NR_FCHMODAT2,
+        /* Session/process-group changes do not migrate cgroups, namespaces or
+         * the inherited policy; required original subprocess setups keep them. */
+        SYS_setsid,SYS_setpgid,SYS_rt_sigpending,SYS_rt_sigtimedwait,SYS_rt_sigsuspend,
+        SYS_rt_sigqueueinfo,SYS_rt_tgsigqueueinfo
+    };
+    for(size_t i=0;i<sizeof ordinary/sizeof ordinary[0];i++)if(!allow_number(ordinary[i]))return false;
+    if(!SV_RET(SV_DENY))return false;
+    struct sock_fprog policy={.len=(unsigned short)program_count,.filter=program};
+    if(prctl(PR_SET_SECCOMP,SECCOMP_MODE_FILTER,&policy)<0)return failed("install-fixed-LP64-seccomp");
+    filtered=true;return true;
+}
+
+/* Bounded stderr failure projection. It is evidence, never a terminal success
+ * or substitute for the runner's real wait, relay EOF and guardian retirement.
+ * Primary errno remains first; all once-close failures follow it in order. */
+static void report_failure(void) {
+    char out[SV_REPORT_CAP];size_t used=0;
+#define APPEND(...) do { int amount=snprintf(out+used,sizeof out-used,__VA_ARGS__); \
+    if(amount<0||(size_t)amount>=sizeof out-used){uncertain=true;goto emit;} used+=(size_t)amount; } while(0)
+    APPEND("{\"schema\":\"h25-native-view-setup-failure-v1\",\"exit\":78,\"science_started\":false,\"uncertain\":%s,\"error_overflow\":%s,\"user_entered\":%s,\"mount_entered\":%s,\"root_private\":%s,\"root_readonly\":%s,\"artifact_attached\":%s,\"usage_attached\":%s,\"landlocked\":%s,\"filtered\":%s,\"errors\":[",
+        uncertain?"true":"false",error_overflow?"true":"false",user_entered?"true":"false",mount_entered?"true":"false",
+        root_private?"true":"false",root_readonly?"true":"false",artifact_attached?"true":"false",usage_attached?"true":"false",landlocked?"true":"false",filtered?"true":"false");
+    for(size_t i=0;i<error_count;i++)APPEND("%s{\"site\":\"%s\",\"errno\":%d}",i?",":"",errors[i].site,errors[i].number);
+    APPEND("],\"resources\":[");
+    for(size_t i=0;i<fd_count;i++)APPEND("%s{\"site\":\"%s\",\"fd\":%d,\"state\":%d}",i?",":"",fds[i].site,fds[i].fd,(int)fds[i].state);
+    APPEND("],\"namespace_release_requires_actual_process_exit\":true,\"native_exit_tail\":\"OPEN_NOT_ZERO\"}\n");
+emit:
+    /* No formatter invokes an external process; positive partial writes
+     * advance exactly once. A failed report cannot manufacture completion. */
+    for(size_t at=0;at<used;) {
+        ssize_t n=write(2,out+at,used-at);
+        if(n<0){if(errno==EINTR)continue;break;}
+        if(n==0)break;at+=(size_t)n;
+    }
+#undef APPEND
+}
+static bool argv_shape(int argc,char **argv) {
+    const char *format="{\"user_seconds\":%U,\"system_seconds\":%S,\"kernel_max_rss_kib\":%M,\"exit\":%x}";
+    if(!require(argc>=29&&argc<=160,"fixed-native-argv-count"))return false;
+    if(!require(!strcmp(argv[1],"--entry-image")&&!strcmp(argv[5],"--time-image")&&
+        !strcmp(argv[9],"--read-root")&&!strcmp(argv[11],"--artifact-parent")&&
+        !strcmp(argv[15],"--science-leaf")&&!strcmp(argv[17],"--usage")&&!strcmp(argv[21],"--"),"fixed-native-argv-switches"))return false;
+    if(!require(!strcmp(argv[6],"/usr/bin/time")&&!strcmp(argv[22],argv[6])&&
+        !strcmp(argv[23],"-f")&&!strcmp(argv[24],format)&&!strcmp(argv[25],"-o")&&
+        !strcmp(argv[26],argv[18])&&!strcmp(argv[27],"--")&&
+        !strcmp(argv[28],"/usr/bin/python3.12"),"unchanged-original-GNU-time-command-prefix"))return false;
+    size_t total=0;
+    for(int i=0;i<argc;i++){size_t n=strlen(argv[i]);if(!require(n<PATH_MAX&&total<=65536-n-1,"bounded-native-argv-bytes"))return false;total+=n+1;}
+    return true;
+}
+int main(int argc,char **argv) {
+    bool okay=native_start()&&argv_shape(argc,argv)&&core_profile();
+    uint64_t entry_bytes=0,time_bytes=0;struct stat self_image,entry_image,time_image;
+    int self=-1,entry=-1,timed=-1;
+    if(okay)okay=require(decimal(argv[4],&entry_bytes)&&decimal(argv[8],&time_bytes),"exact-image-byte-counts");
+    if(okay){entry=role_open(argv[2],O_RDONLY|O_NONBLOCK,"actual-entry-image-path");okay=entry>=0;}
+    if(okay){self=opened("/proc/self/exe",O_RDONLY|O_NONBLOCK,"actual-self-executable");okay=self>=0;}
+    if(okay)okay=hash_image(entry,argv[3],entry_bytes,&entry_image)&&
+        stat_fd(self,&self_image,"actual-self-executable-fstat")&&
+        require(same_object(&entry_image,&self_image),"actual-native-entry-not-supplied-path-authority");
+    if(okay){timed=role_open(argv[6],O_RDONLY|O_NONBLOCK,"actual-time-image-path");okay=timed>=0;}
+    if(okay)okay=hash_image(timed,argv[7],time_bytes,&time_image);
+    /* No old-view image/setup FD survives namespace entry. The admitted old
+     * stdin is explicitly reestablished by make_view; pipes retain only the
+     * selected relay-writer authority. */
+    close_all();if(uncertain||error_count)okay=false;
+    if(okay)okay=enter_namespaces()&&make_view(argv)&&drop_privilege()&&install_landlock();
+    close_all();if(uncertain||error_count)okay=false;
+    if(okay)okay=fd_census();
+    /* Re-open authenticated time in the FINAL view for a second stable hash;
+     * close it before path exec, leaving exactly admitted stdio. The remaining
+     * pathname race is excluded by the named external no-mutation premise,
+     * never by declaring that a compiler is trusted. */
+    if(okay){timed=role_open(argv[6],O_RDONLY|O_NONBLOCK,"final-view-time-image");okay=timed>=0;}
+    if(okay){struct stat final_time;okay=hash_image(timed,argv[7],time_bytes,&final_time)&&
+        require(same_backing_across_userns(&time_image,&final_time),"same-authenticated-time-across-userns");}
+    close_all();if(uncertain||error_count)okay=false;
+    if(okay)okay=install_seccomp();
+    if(okay){execve(argv[6],&argv[22],environ);failed("authenticated-final-GNU-time-exec");}
+    close_all();report_failure();
+    /* Kernel namespace/mount references die with this process, and only an
+     * actual external wait can establish that final release. No blind retry. */
+    _exit(78);
+}
