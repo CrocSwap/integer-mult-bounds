@@ -1,0 +1,63 @@
+"""Parent-owned bounded compile and mocked actual-owner control, one attempt each."""
+from pathlib import Path
+import hashlib,json,os,resource,selectors,signal,subprocess,time,datetime
+from decimal import Decimal
+W=Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R=W/'outputs/native-dispatch-closure-20261106T2206Z'
+D=R/'execution-mock';D.mkdir(exist_ok=False)
+N=R/'implementation/native/science_view_entry.c';C=R/'controls/native-dispatch/dispatch_control.c'
+assert hashlib.sha256(N.read_bytes()).hexdigest()=='60af72915efea62f46ea376e2ba7ed0c616f99b09ca1beec0f4b0d8173609410'
+assert hashlib.sha256(C.read_bytes()).hexdigest()=='c87edf3865eb631c9b7c289fd163572f4a67dbcc286b079d55f92fa5cddc3364'
+compiler=Path('/usr/bin/gcc').resolve(strict=True)
+assert hashlib.sha256(compiler.read_bytes()).hexdigest()=='1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26'
+def put(p,j):
+ with p.open('x')as f:json.dump(j,f,indent=2);f.write('\n')
+ p.chmod(0o444)
+def pin(p):return {'path':str(p),'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+base=Decimal('1432.890533479');debit=Decimal('24');start=time.monotonic()
+put(D/'LEDGER-000.json',{'baseline_policy_seconds':str(base),'reserved_outstanding_seconds':24,'cap_seconds':2400,'new_budget':False,'physical_costs':'OPEN_NOT_ZERO'})
+rows=[]
+def run(name,argv,wall,cpu):
+ out=D/name;out.mkdir();begin=time.monotonic();put(out/'START.json',{'state':'BIRTH_PENDING','argv':argv,'wall_seconds':wall,'CPU_seconds':cpu,'AS_bytes':536870912,'FSIZE_bytes':1048576,'capture_cap_each':65536})
+ def limits():
+  resource.setrlimit(resource.RLIMIT_CPU,(cpu,cpu));resource.setrlimit(resource.RLIMIT_AS,(536870912,536870912));resource.setrlimit(resource.RLIMIT_FSIZE,(1048576,1048576));resource.setrlimit(resource.RLIMIT_CORE,(0,0));resource.setrlimit(resource.RLIMIT_NOFILE,(64,64))
+ p=None;error=None;killed=False;chunks={'stdout':bytearray(),'stderr':bytearray()};sel=selectors.DefaultSelector()
+ try:
+  p=subprocess.Popen(argv,cwd=str(W),env={'PATH':'/usr/bin:/bin','LC_ALL':'C','LANG':'C'},stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True,close_fds=True,preexec_fn=limits)
+  for key,pipe in [('stdout',p.stdout),('stderr',p.stderr)]:os.set_blocking(pipe.fileno(),False);sel.register(pipe,selectors.EVENT_READ,key)
+  end=begin+wall
+  while sel.get_map():
+   remain=end-time.monotonic()
+   if remain<=0:raise TimeoutError('wall deadline')
+   for key,event in sel.select(min(remain,0.1)):
+    block=os.read(key.fileobj.fileno(),min(4096,65537-len(chunks[key.data])))
+    if not block:sel.unregister(key.fileobj);continue
+    chunks[key.data].extend(block)
+    if len(chunks[key.data])>65536:raise RuntimeError('capture overflow')
+  p.wait(timeout=max(0.001,end-time.monotonic()))
+ except BaseException as e:
+  error=type(e).__name__+': '+str(e)
+  if p is not None and p.returncode is None:
+   try:os.killpg(p.pid,signal.SIGKILL);killed=True
+   except ProcessLookupError:pass
+   p.wait(timeout=2)
+ finally:
+  for key in list(sel.get_map().values()):sel.unregister(key.fileobj)
+  sel.close()
+  if p is not None:
+   for pipe in (p.stdout,p.stderr):
+    if pipe is not None:pipe.close()
+  pins={}
+  for key,value in chunks.items():
+   q=out/(key+'.raw');q.write_bytes(value);q.chmod(0o444);pins[key]=pin(q)
+  row={'step':name,'returncode':None if p is None else p.returncode,'error':error,'group_kill':killed,'wall_seconds':time.monotonic()-begin,'captures':pins,'complete':error is None and p is not None and p.returncode==0}
+  put(out/'RESULT.json',row);rows.append(row)
+ return row['complete']
+binary=D/'dispatch_control'
+try:
+ okay=run('compile',[str(compiler),'-std=c11','-O0','-Wall','-Wextra','-Werror=implicit-function-declaration',str(C),'-o',str(binary)],15,10)
+ if okay:
+  binary.chmod(0o500);put(D/'BINARY-PIN.json',pin(binary));okay=run('mock-control',[str(binary)],2,1)
+ put(D/'FINAL-RESULT.json',{'status':'PASS' if okay else 'FAILED_NO_RETRY','steps':rows,'compiler':pin(compiler),'native_source':pin(N),'control_source':pin(C),'case_groups':8,'production_native_entry_executed':False,'actual_namespace_or_handler_probe':False,'complete_caller_execution':False,'original_credit_delta':0})
+finally:
+ put(D/'LEDGER-001.json',{'schema':'guarded-native-mock-policy-ledger-v1','baseline_policy_seconds':str(base),'new_conservative_debit_seconds':str(debit),'combined_policy_seconds':str(base+debit),'remaining_policy_seconds':str(Decimal(2400)-base-debit),'cap_seconds':2400,'reserved_outstanding_seconds':0,'attempt_steps':len(rows),'outer_wall_seconds':time.monotonic()-start,'new_budget':False,'no_refunds':True,'physical_costs':'OPEN_NOT_ZERO','outside_preparation_Pro_agents_review_reporting_publication_final_metadata_historical_costs':'OPEN_NOT_ZERO'})
