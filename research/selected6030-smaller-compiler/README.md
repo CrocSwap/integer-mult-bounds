@@ -20,7 +20,7 @@ caller. It is a new selected-source application, not a new compiler theorem.
 higher-moment/logarithmic predecessor; [#5787](https://github.com/CrocSwap/integer-mult-bounds/pull/5787)
 applies existing full-charge bounds to older #5413; [#6109](https://github.com/CrocSwap/integer-mult-bounds/pull/6109)
 binds the original selected compiler and grid. Their mechanisms and credits
-are retained. No pending sharp-split theorem is a dependency.
+are retained. No pending sharp-split theorem is a dependency of this primary certificate.
 
 ## Complete charge and evidence
 
@@ -86,8 +86,8 @@ actually run, environment, export checks and explicit omissions.
 The base is canonical main `7c49fe32c55de02c2c873655c804b16e4c3fef0a`, priority
 revision 8. [SOURCES.json](SOURCES.json) binds source history and the original
 card; [VENDOR.json](VENDOR.json) binds every self-contained source export by
-commit, Git blob and SHA256. Direct replay needs no Git, network, pending branch
-or predecessor installation. Frozen repository sources and the selected record
+commit, Git blob and SHA256. Direct replay needs no Git, network or predecessor installation. The optional
+example below freezes its separate pending theorem dependency. Frozen repository sources and the selected record
 are untouched. [TASK.json](TASK.json) states the explicit change from assumption
 audit to a selected construction-size application.
 
@@ -115,10 +115,10 @@ bounded; arbitrary historical diffs and unpublished work remain limits.
    full completion distinction, all 38 coefficients and fresh-constant
    prescription against their actual native contracts. Author-side AI checks
    are not independent human or formal acceptance.
-3. **Sharper net coefficient, only if it changes a complete tuple.** After the
-   separate sharp-net proof is reviewed, replace only its coefficient and
-   retain every completion and log-law charge. That parallel theorem is not
-   used in this result. Structured questions and blockers are in TASK.json.
+3. **Further complete log-law improvements.** The optional sharp-net example
+   below retains every completion charge and yields a modest gain. Tighter
+   paid-log bounds need another exact comparison. Structured questions and
+   blockers are in TASK.json.
 
 ## Credit
 
@@ -133,3 +133,32 @@ lineage. Retain Richard Hoekstra's #5787, JosieElliston's #6109, Douglas
 Colkitt's selected review, Matarener and Chris R/Clear1nsight's independent
 source audits, and every source-specific contributor named in the unchanged
 exported review and notices.
+
+## Optional pinned sharp-net example
+
+The primary `v=370,p=37,h=5550` witness, receipt, proof and verifier above are
+unchanged. A separately registered [joint_verify.py](joint_verify.py) applies
+the sharp net-splitting theorem frozen at fork head
+`a0ef8b7ae2592202247b15da453ce42598863a26`, with the
+[exact proof bytes exported here](joint-source/PROOF.md).
+This is an explicit **pending contribution dependency** of the optional example.
+[JOINT-PROOF.md](JOINT-PROOF.md) explains the complete charge and fresh constants;
+[JOINT-RESULT.json](JOINT-RESULT.json) contains exact coefficient arrays.
+
+| Exact certificate | v | p | h | H |
+|---|---:|---:|---:|---:|
+| Retuned merged #4480 Q | 370 | 37 | 6700 | 1,433,600,000,000 |
+| Optional sharp N | 366 | 36 | 6400 | 1,397,200,000,000 |
+
+The additional reduction against this fair comparator is **2.5390625%**.
+Only these certificates are compared; no globally optimal H, shift or u is
+claimed. All selected savings, full raw invoice and outer parameters remain.
+Every completion and log-law debit stays charged. Run
+`python3 -I -B research/selected6030-smaller-compiler/joint_verify.py`
+and repeat with `-O`; both compare the entire joint receipt.
+
+The optional [joint_oracles.py](joint_oracles.py) runs two separate checks:
+exact binomial/Newton reconstruction of every coefficient and a distinct
+rational-series interval engine for the sharp coefficient. Both normal and
+optimized modes are registered. [JOINT-REVIEW.json](JOINT-REVIEW.json) binds
+their author-side AI review to exact scientific hashes.
