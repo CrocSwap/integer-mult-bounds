@@ -53,7 +53,7 @@ and all-dimension quantifiers still depend on the written proof, and none
 of the native caller, global invoice, supplier-admission or retained
 framework obligations are discharged by this review.
 
-## Extended version: cap two at every rank
+## Prior extension: cap two at every rank
 
 The scientific extension is committed at
 `40f45b8d26631c368b33be866f3c4f6eac04ec91`. The prior evidence above is
@@ -98,3 +98,84 @@ These timings document verification duration, not a speedup claim.
 The optional full-history limitation and all mathematical trust boundaries
 stated above remain in force. This extension and its review establish no
 native applicability theorem or selected supplier admission.
+
+## Complete all-rank, all-cap classification
+
+The complete scientific integration is local commit
+`25a96f015b33586a0df84b15696f75ff6e7d8d0f`. The earlier two stages were
+published together at `31177ed748a99428537cb3b4423a88ece07132a8`; the prior
+candidate IDs above identify local review snapshots. Their exact file hashes
+remain the portable scientific bindings. This final stage replaces the two
+sharp slices by the complete formula while retaining their evidence history.
+
+| Reviewed file | SHA256 |
+| --- | --- |
+| PROOF.md | `a36b3197b005c0e1583691b116aec620e77f33c4de845e77c2fda5223ca486de` |
+| verify.py | `30e729a7e85facd79fdf120a891e6663918be61ad52d1f92171094a27069d5e5` |
+| independent_oracle.py | `a90fa95f357ae53aa973e092aad6b86aad7f4c947e3f25c79bf7fdf3a95a3a82` |
+| gf4_oracle.py | `17af018d37d47a79a36088ba14fa9190788f7bb62c29a47177f3b17a9871e0b2` |
+
+Worker B separately derived the injective intersection map for every even
+cap, beyond the lead's initial power-of-two argument. Its scratch derivation
+had SHA256 `03dc4e2be4c655b4a4f50691dfe0051cfa388506b5eab573144b8e40803b5f09`.
+Worker A supplied the rank-s odd-cap argument, greedy bounded odd-core
+attainment and integrated package. Both B and C independently reviewed
+the complete proof hash above. The lead independently reviewed the same
+mathematical argument and the constructor; no unresolved gap was reported.
+
+The reviews explicitly checked the order of the telescoping identity,
+the use of E squared equals E, the even binomial coefficient, invertibility
+only on ker A^m, and the fact that the intersection itself need not be
+invariant. They also checked the trace bound, odd-cap invariant subspace,
+rank/dimension allocation, zero/full-rank and r=1 boundaries, and the
+globally nilpotent existence criterion. These are independent AI reviews,
+not human, external literature-priority or formal proof-kernel acceptance.
+
+Worker C independently enumerated every binary matrix/rank/cap through
+dimension four using a fresh column-action/kernel-growth engine. Its
+maxima agreed with the theorem in all forty cases. C also inspected the
+constructor and independently measured 184 constructed pairs at dimensions
+1,2,3,4,5,8,12,16,33; every endpoint, cap and objective passed. These
+measurements imported only constructed matrices, not author spectral
+calculations. That check bound author hash
+`b90d567388c9c191070469c7d208a0bb987383a4c04d0a3f78e4c4968ba8ee19`;
+the only subsequent author-code change corrected the top docstring from
+corank-one to all-rank scope, yielding the current hash above.
+
+C's independently written packed F4 engine covers every rank and cap
+through dimension three. Its package adaptation changes only the time
+guard and deterministic read-only reporting. C compared every maximum,
+eligible count, witness and arithmetic control with the original complete
+receipt in normal and optimized mode: exact agreement, with byte-identical
+stdout between modes. The lead reviewed both independent engines and the
+complete author verifier, including generalized endpoint masks and all
+declared coverage. No unresolved code issue was found.
+
+All six final warning-strict registered commands passed on the scientific
+bytes above. The author engine checks 329,780 ordered pairs, 1,316,964
+pair/cap cases, 66,066 independent polynomial comparisons and 13,090
+attaining constructions. The packed F4 engine adds 1,049,352 ordered pairs.
+Binary maxima and admissible counts agree with the separate literal-kernel
+oracle. Metadata/source pins, exact committed bytes and official export
+integrity passed for the scientific integration commit.
+
+Worker D separately checked the existing #5507 caller fixture and confirmed
+that its helper extends the required native length-two chain to a length-three
+zero chain. The README therefore requires a separate cap applicability proof;
+no caller or supplier consequence is asserted. That check preserves the
+predecessor's credit and full funding result. The current source manifest
+pins the exact #5507 proof used for this scope boundary.
+
+The committed complete export was replayed with read-only files, no Git
+context and empty PATH. All six commands passed; each engine's normal and
+optimized stdout reports were identical, and every exported file hash
+remained unchanged. Author runs took 7.519/6.592 seconds, the literal-kernel
+oracle 11.270/9.576 seconds, and the packed F4 oracle 1.323/1.604 seconds.
+These are validation durations, not performance-improvement claims. The
+optional full-history check remains unavailable in the shallow checkout.
+
+A final bibliography-only correction uses the publisher's exact title,
+*On the Representation of an Idempotent as a Sum of Nilpotent Elements*.
+The complete proof was reviewed at SHA256 `094ed54fb6f1ede66ec356512cb33fc89402382c43422ae49740f2488d3947e0`;
+removing the extra word from the citation yields the current proof hash in
+the table. No mathematical text, formula, constructor or verifier changed.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exact finite corroboration for the capped corank-one spectral theorem.
+"""Exact finite corroboration for the all-rank, all-cap spectral theorem.
 
 Prepared for @CubeJerry with substantial OpenAI Codex assistance. Apache-2.0.
 Standalone Python 3.12 standard library; no predecessor code or runtime inputs.
@@ -7,6 +7,7 @@ Standalone Python 3.12 standard library; no predecessor code or runtime inputs.
 
 import itertools
 import json
+from functools import lru_cache
 
 
 def require(condition, message):
@@ -117,14 +118,16 @@ def domain(r, cap):
     require(type(cap) is int and 1 <= cap <= r, "cap outside domain")
 
 
-def sharp_bound(r, cap):
+def sharp_bound(r, cap, k=None):
     domain(r, cap)
-    return r + cap - (1 if cap % 2 == 0 else 0)
-
-
-def witness(r, cap):
-    domain(r, cap)
+    k = r-1 if k is None else k
+    require(type(k) is int and 0 <= k <= r, "endpoint rank outside domain")
     ell = cap - (1 if cap % 2 == 0 else 0)
+    return min(2*r-(k % 2), r+(r-k)*ell)
+
+
+@lru_cache(maxsize=17)
+def odd_core(ell):
     upper = tuple(((1 << ell) - 1) ^ ((1 << (j + 1)) - 1)
                   for j in range(ell))
     lower = tuple((1 << j) - 1 for j in range(ell))
@@ -136,30 +139,48 @@ def witness(r, cap):
     inv = inverse(basis)
     core_a = multiply(multiply(inv, upper), basis)
     core_b = multiply(multiply(inv, lower), basis)
-    positions = tuple(range(ell - 1)) + (r - 1,)
-    a, b = [0] * r, [0] * r
-    for i, target in enumerate(positions):
-        a[target] = sum(((core_a[i] >> j) & 1) << positions[j]
-                        for j in range(ell))
-        b[target] = sum(((core_b[i] >> j) & 1) << positions[j]
-                        for j in range(ell))
-    for j in range(ell - 1, r - 1):
+    return core_a, core_b
+
+
+def witness(r, cap, k=None):
+    domain(r, cap)
+    k = r-1 if k is None else k
+    sharp_bound(r, cap, k)
+    s = r-k
+    capacity = (cap-1)//2
+    remaining = min(k//2, s*capacity)
+    rank_cursor = 0
+    a, b = [0]*r, [0]*r
+    for kernel in range(s):
+        units = min(capacity, remaining)
+        remaining -= units
+        ell = 2*units+1
+        core_a, core_b = odd_core(ell)
+        positions = tuple(range(rank_cursor, rank_cursor+2*units))+(k+kernel,)
+        rank_cursor += 2*units
+        for i, target in enumerate(positions):
+            a[target] = sum(((core_a[i] >> j) & 1) << positions[j] for j in range(ell))
+            b[target] = sum(((core_b[i] >> j) & 1) << positions[j] for j in range(ell))
+    require(remaining == 0, "odd-core rank allocation")
+    for j in range(rank_cursor, k):
         b[j] = 1 << j
     return tuple(a), tuple(b)
 
 
-def check_pair(r, cap, a, b, expected=None):
+def check_pair(r, cap, a, b, expected=None, k=None):
     domain(r, cap)
+    k = r-1 if k is None else k
+    bound = sharp_bound(r, cap, k)
     checked_matrix(a, r)
     checked_matrix(b, r)
-    endpoint = identity(r - 1) + (0,)
+    endpoint = identity(k) + (0,)*(r-k)
     require(add(a, b) == endpoint, "wrong coordinate endpoint")
     require(multiply(endpoint, endpoint) == endpoint, "nonidempotent endpoint")
-    require(rank(endpoint) == r - 1, "wrong endpoint corank")
+    require(rank(endpoint) == k, "wrong endpoint rank")
     pa, pb = profile(a), profile(b)
     require(pa[1] <= cap and pb[1] <= cap, "zero-primary chain cap violated")
     value = pa[0] + pb[0]
-    require(value <= sharp_bound(r, cap), "sharp upper bound violated")
+    require(value <= bound, "sharp upper bound violated")
     if expected is not None:
         require(type(expected) is int and value == expected, "wrong claimed value")
     return {"z": [pa[0], pb[0]], "nu0": [pa[1], pb[1]], "value": value}
@@ -184,82 +205,59 @@ def check_cap_two_pair(r, k, a, b, expected=None):
 
 
 def complete_census():
-    records, general_records, matrix_count, cap_pair_count = [], [], 0, 0
-    general_pair_count = 0
+    records, matrix_count, pairs, cap_checks = [], 0, 0, 0
     for r in range(1, 5):
-        mask = (1 << r) - 1
+        mask = (1 << r)-1
         profiles, squares = [], []
-        for encoded in range(1 << (r * r)):
-            rows = tuple((encoded >> (j * r)) & mask for j in range(r))
+        for encoded in range(1 << (r*r)):
+            rows = tuple((encoded >> (j*r)) & mask for j in range(r))
             p = profile(rows)
             polynomial = characteristic_polynomial(rows)
-            zero_order = (polynomial & -polynomial).bit_length() - 1
+            zero_order = (polynomial & -polynomial).bit_length()-1
             require(p[0] == zero_order, "rank/characteristic-polynomial disagreement")
             profiles.append(p[:2])
             squares.append(multiply(rows, rows))
-        diagonal = sum(1 << (j * r + j) for j in range(r - 1))
-        for cap in range(1, r + 1):
-            maximum, maximizers, admissible = -1, 0, 0
-            for encoded, (za, ca) in enumerate(profiles):
-                zb, cb = profiles[encoded ^ diagonal]
-                if ca > cap or cb > cap:
-                    continue
-                admissible += 1
-                value = za + zb
-                if value > maximum:
-                    maximum, maximizers = value, 1
-                elif value == maximum:
-                    maximizers += 1
-            require(maximum == sharp_bound(r, cap), "census does not attain theorem")
-            records.append({"r": r, "cap": cap, "maximum": maximum,
-                            "maximizers": maximizers, "admissible_pairs": admissible})
-            cap_pair_count += len(profiles)
-        for k in range(r + 1):
+        for k in range(r+1):
             delta = sum(1 << (j*r+j) for j in range(k))
-            maximum, maximizers, admissible = -1, 0, 0
+            maxima, counts, admissible = [-1]*(r+1), [0]*(r+1), [0]*(r+1)
             for encoded, (za, ca) in enumerate(profiles):
                 compressed = tuple((x ^ y) & ((1 << k)-1) if j < k else 0
                                    for j, (x, y) in enumerate(zip(
                                        squares[encoded], squares[encoded ^ delta], strict=True)))
-                require(compressed == identity(k)+(0,)*(r-k),
-                        "all-pair square compression identity")
+                require(compressed == identity(k)+(0,)*(r-k), "square compression identity")
                 zb, cb = profiles[encoded ^ delta]
-                if ca > 2 or cb > 2:
-                    continue
-                admissible += 1
-                value = za + zb
-                if value > maximum:
-                    maximum, maximizers = value, 1
-                elif value == maximum:
-                    maximizers += 1
-            require(maximum == 2*r-k, "general-rank cap-two census")
-            general_records.append({"r": r, "k": k, "maximum": maximum,
-                                    "maximizers": maximizers, "admissible_pairs": admissible})
-            general_pair_count += len(profiles)
+                for cap in range(max(1, ca, cb), r+1):
+                    admissible[cap] += 1
+                    value = za+zb
+                    if value > maxima[cap]:
+                        maxima[cap], counts[cap] = value, 1
+                    elif value == maxima[cap]:
+                        counts[cap] += 1
+            for cap in range(1, r+1):
+                require(maxima[cap] == sharp_bound(r, cap, k), "all-rank/all-cap census")
+                records.append({"r": r, "k": k, "cap": cap, "maximum": maxima[cap],
+                                "maximizers": counts[cap], "admissible_pairs": admissible[cap]})
+            pairs += len(profiles)
+            cap_checks += r*len(profiles)
         matrix_count += len(profiles)
-    return {"matrices_and_polynomial_checks": matrix_count,
-            "ordered_pairs": matrix_count, "pair_cap_checks": cap_pair_count,
-            "records": records, "cap_two_all_rank_pairs": general_pair_count,
-            "all_pair_compression_identity_checks": general_pair_count,
-            "cap_two_all_rank_records": general_records}
+    return {"matrices_and_polynomial_checks": matrix_count, "ordered_pairs": pairs,
+            "pair_cap_checks": cap_checks, "all_pair_compression_identity_checks": pairs,
+            "records": records}
 
 
 def constructed_witnesses():
-    count, general_count, sample = 0, 0, []
+    count, sample = 0, []
     require(witness(5, 4) == ((19, 1, 0, 0, 18), (18, 3, 4, 8, 18)),
             "documented cap-four coordinate witness")
     for r in range(1, 34):
-        for cap in range(1, r + 1):
-            a, b = witness(r, cap)
-            result = check_pair(r, cap, a, b, sharp_bound(r, cap))
-            count += 1
-            if r == 5:
-                sample.append({"cap": cap, "A": a, "B": b, **result})
-        for k in range(r + 1):
-            check_cap_two_pair(r, k, (0,)*r, identity(k)+(0,)*(r-k), 2*r-k)
-            general_count += 1
-    return {"count": count, "r_max": 33, "r5": sample,
-            "cap_two_all_rank_count": general_count}
+        for k in range(r+1):
+            for cap in range(1, r+1):
+                a, b = witness(r, cap, k)
+                result = check_pair(r, cap, a, b, sharp_bound(r, cap, k), k)
+                count += 1
+                if (r, k) == (5, 4) or (r, k, cap) in ((12, 10, 6), (16, 14, 8)):
+                    sample.append({"r": r, "k": k, "cap": cap, "A": a, "B": b, **result})
+    return {"count": count, "r_max": 33, "samples": sample}
 
 
 def expect_rejection(label, function, args):
@@ -306,7 +304,7 @@ def rejection_controls():
 
 
 def main():
-    report = {"claim": "sharp corank-one capped spectrum and all-rank cap-two spectrum",
+    report = {"claim": "sharp all-rank all-cap zero-primary spectrum",
               "field_of_finite_checks": "F2", "census": complete_census(),
               "construction": constructed_witnesses(),
               "rejection_controls": rejection_controls()}

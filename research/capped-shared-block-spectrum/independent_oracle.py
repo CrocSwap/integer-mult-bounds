@@ -61,35 +61,29 @@ def invariants(matrix, field):
 
 
 def census(field, n):
-    # Cache only independently computed (z, nu0); rank variations change B.
     profiles = {}
     for data in product(range(field), repeat=n*n):
-        a = tuple(tuple(data[n*i:n*(i+1)]) for i in range(n))
-        profiles[data] = invariants(a, field)
-    best, counts = [-1]*(n+1), [0]*(n+1)
-    general_best, general_counts = [-1]*(n+1), [0]*(n+1)
+        matrix = tuple(tuple(data[n*i:n*(i+1)]) for i in range(n))
+        profiles[data] = invariants(matrix, field)
+    records = []
     for k in range(n+1):
+        best, counts = [-1]*(n+1), [0]*(n+1)
         for data, (za, ca) in profiles.items():
             other = tuple(value ^ int(i//n == i % n and i//n < k)
                           for i, value in enumerate(data))
             zb, cb = profiles[other]
-            if ca <= 2 and cb <= 2:
-                general_best[k] = max(general_best[k], za+zb)
-                general_counts[k] += 1
-            if k == n-1:
-                for cap in range(max(1, ca, cb), n+1):
-                    best[cap] = max(best[cap], za+zb)
-                    counts[cap] += 1
-    expected = [n + cap - (cap % 2 == 0) for cap in range(1, n + 1)]
-    if best[1:] != expected:
-        raise ValueError((field, n, best, expected))
-    if general_best != [2*n-k for k in range(n+1)]:
-        raise ValueError((field, n, general_best))
+            for cap in range(max(1, ca, cb), n+1):
+                best[cap] = max(best[cap], za+zb)
+                counts[cap] += 1
+        for cap in range(1, n+1):
+            ell = cap if cap % 2 else cap-1
+            expected = min(2*n-k % 2, n+(n-k)*ell)
+            if best[cap] != expected:
+                raise ValueError((field, n, k, cap, best[cap], expected))
+            records.append({"k": k, "cap": cap, "maximum": best[cap],
+                            "admissible_pairs": counts[cap]})
     return {"field": field, "dimension": n, "matrices": field**(n*n),
-            "maximum": best[1:], "admissible_counts": counts[1:],
-            "cap_two_all_rank_maximum": general_best,
-            "cap_two_all_rank_admissible_counts": general_counts,
-            "cap_two_all_rank_pairs": (n+1)*field**(n*n)}
+            "ordered_pairs": (n+1)*field**(n*n), "records": records}
 
 
 def main():
