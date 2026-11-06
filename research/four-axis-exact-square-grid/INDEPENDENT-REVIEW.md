@@ -5,13 +5,18 @@ OpenAI assistance. Apache-2.0. This is a separate mathematical derivation
 and exact arithmetic review, not external human or proof-kernel acceptance.
 
 Reviewed compressed certificate: `CERTIFICATE.json`, SHA256
-`9f7fa583cc8955e7f3129ff01db48dff849db6fd026f4205a0475f935ba174c7`.
+`44a950a62abec947b4c094c2c1f290bec2f8d7f41d3a108ab4c58b5bdfc46b56`.
 The author's search was read for definitions but is not imported or executed
 by this review's checker. The lead separately completed all 4096 finite transitions using the direct
 integer implementation retained in `independent_square.py`. This review
 establishes why the precisely listed finite conditions suffice on the entire
 integer lattice. The compressed table is hash-bound here; this checker does
 not expand it or import the author's certificate code.
+
+The period and lifting argument are unchanged in the forced-cycle revision.
+Its new full finite replay and direct tensor-bound attainment are independently
+reviewed in [SHARPNESS-REVIEW.md](SHARPNESS-REVIEW.md); the earlier certificate
+had SHA256 `9f7fa583cc8955e7f3129ff01db48dff849db6fd026f4205a0475f935ba174c7`.
 
 ## 1. Operators and exact phase conventions
 
@@ -250,7 +255,7 @@ all-size multiplication bound, native graph flatness, compiler admission,
 or kappa improvement follows merely from this finite block identity.
 
 The 32 KiB number is the logical payload of 4096*16 signed four-bit entries;
-the compressed certificate is 26,989 bytes. A fast Walsh implementation uses 160
+the compressed certificate is 26,889 bytes. A fast Walsh implementation uses 160
 real additions/subtractions and 32 divisions by four for the two transforms
 and correction additions. Classifier arithmetic, lookup addressing, signs,
 storage, source access and movement are additional work. Those operations

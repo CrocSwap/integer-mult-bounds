@@ -19,7 +19,7 @@ rounders or a physical table-memory lower bound.
 
 For `A=W16/4`, the period is invariant under `B=SA`, the actual linear action
 needed to close the native square. Six explicit parity equations inside the
-Walsh integrality lattice define it. A 26,989-byte certificate supplies 568
+Walsh integrality lattice define it. A 26,889-byte certificate supplies 568
 cycle generators that expand to all 4096 real correction classes. Its real
 correction norm is at most 2, with maximum correction numerator coordinate 5.
 The native complex map uses the same table for both real lanes.
@@ -30,15 +30,18 @@ For every integer `m`, repeated use of this **same fixed block** satisfies
 corresponding ideal power. Thus rounding error does not grow with the length
 of such a word. This resolves the exact-square/fourth-power question retained
 in the **Open next questions** of `research/four-axis-phase-covariant-grid`,
-introduced by #6758 after Nick Petalas's #6574. The additional boundary check demonstrates that this table does not make row
-and column fiber actions commute: the input array with a single 2 at `(0,0)`
-gives outputs 0 and -1 at `(4,8)` in the two orders, with 28 entries differing.
-This directly checks the limitation of this particular table. The separate
-[tensor-obstruction proof](https://github.com/CubeJerry/integer-mult-bounds/blob/408969010e33a5aacdeecc164a554111e09f8f36/research/gaussian-rounding-tensor-obstruction/PROOF.md)
-establishes that row/column commutation is impossible for every state-free
-rounder with the same global unit covariance and exactness on integral ideal
-images. That companion theorem is context for the next interface question;
-the exact-square construction and its verification do not depend on it.
+introduced by #6758 after Nick Petalas's #6574.
+
+The certificate additionally forces `F(e0)=e3`. Consequently it attains the
+sharp squared tensor discrepancy 24 on the explicit array
+`X0=lambda e0^T`, `lambda_j=i^wt(j)`, while retaining the uniform sharp error,
+bijection, exact sum and native square. The first-row defect is `D1+4e3`;
+all other rows are zero. This settles the four-axis bounded-error,
+exact-square attainment case left open by the separate
+[tensor-obstruction proof](https://github.com/CubeJerry/integer-mult-bounds/blob/408969010e33a5aacdeecc164a554111e09f8f36/research/gaussian-rounding-tensor-obstruction/PROOF.md).
+Section 7 of [PROOF.md](PROOF.md) gives the local lower-bound derivation as
+well as the exact composition check. This is sharpness for that fixed witness,
+not a worst-case tensor-discrepancy optimum or commuting row/column actions.
 
 The finite map strengthens one native precision/group interface. The selected
 multiplier, its five inherited assumptions and its κ remain unchanged. The
@@ -57,14 +60,14 @@ The expected status is `PASS_FOUR_AXIS_EXACT_SQUARE_GRID`, with 4096 real
 classes, 568 cycle generators, maximum squared correction norm 64, maximum
 absolute correction coordinate 5 and sharp complex squared error 8.
 
-The registered replay runs all three checks in ordinary and `-O` modes:
+The registered replay runs all four checks in ordinary and `-O` modes:
 
 ```sh
 python3 -B scripts/research_package.py --package research/four-axis-exact-square-grid --check-only
 python3 -B scripts/research_package.py --package research/four-axis-exact-square-grid
 ```
 
-Executed under CPython 3.12.14: metadata/source-pin validation and all six
+Executed under CPython 3.12.14: metadata/source-pin validation and all eight
 registered ordinary/optimization-mode commands passed. The optional discovery
 replay regenerated the certificate byte for byte. These execution results
 certify only the declared finite and algebraic scope.
@@ -86,7 +89,7 @@ control retains integrality, sharp error, weighted sums, oddness and `K`
 covariance, demonstrating that those properties alone do not certify the
 new identity.
 
-Two separately assigned reviewers supplied independent checks:
+Separately assigned reviewers supplied independent checks:
 
 * [independent_square.py](independent_square.py) imports no author module. It
   constructs a different, largest-mask coset section, uses dense Walsh sums
@@ -97,6 +100,12 @@ Two separately assigned reviewers supplied independent checks:
   predecessor lower-bound matrices. Its universal lifting argument and
   exact-on-integral-image observation are preserved in
   [INDEPENDENT-REVIEW.md](INDEPENDENT-REVIEW.md).
+
+[independent_sharpness.py](independent_sharpness.py) additionally reconstructs
+the new table with a descending-column section, imports no author kernel,
+checks the forced cycle and all 256 entries of the tensor witness, and obtains
+exact squared discrepancy 24. Its review is retained in
+[SHARPNESS-REVIEW.md](SHARPNESS-REVIEW.md).
 
 These checks are independent mathematical/algorithmic review by separately
 assigned AI agents. They are not human review, proof-kernel formalization,
@@ -115,8 +124,9 @@ It fixes the published period and enumerates seed-side real correction
 numerators in `[-3,3]^16` with the residue, weighted-sum and energy constraints;
 forced partner corrections can reach magnitude 5. The full compatibility graph
 has 1120 negation/`K` orbits and 63,018 undirected edges including loops. The
-stopping rule allows seeds 0 through 99 and stops at the first perfect greedy
-matching. Seed 0 succeeded; later seeds were not run. In CPython 3.12.14 the
+stopping rule forces the compatible cycle `e0 -> e3 -> e15 -> e12 -> e0`
+and its negations, then allows seeds 0 through 99 and stops at the first
+complete greedy matching. Seed 0 succeeded; later seeds were not run. In CPython 3.12.14 the
 replay regenerated the published certificate byte for byte. Integer-set
 iteration in a different Python implementation may choose another matching;
 any alternative certificate must be verified independently. No exhaustive

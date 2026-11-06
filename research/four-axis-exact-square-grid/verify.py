@@ -255,18 +255,18 @@ def main():
     unpermute = tuple(tuple(part[j^15] for j in range(N)) for part in inv_sharp)
     need(error_energy(sharp, sharp, unpermute) == 128, 'inverse sharp witness missing')
 
-    # Exact boundary witness: row/column native actions commute ideally,
-    # but this particular nonlinear table fails that stronger relation.
+    # Composition with the all-n tensor obstruction: this bounded-error,
+    # conservative exact-square map attains its nonzero-image floor at n=4.
     zero = (0,)*16
     unit = (1,)+(0,)*15
     w = production.forward(unit, zero, table)
-    v = production.forward(sharp, zero, table)
-    sparse_w = [(j, w[0][j], w[1][j]) for j in range(N) if w[0][j] or w[1][j]]
-    sparse_v = [(j, v[0][j], v[1][j]) for j in range(N) if v[0][j] or v[1][j]]
-    need(sparse_w == [(4,0,1),(6,1,0),(11,0,-1),(12,1,0),(15,-1,0)],
-         'boundary first image changed')
-    need(sparse_v == [(4,0,1),(6,1,0),(8,0,1),(11,0,-1),(12,1,0),(13,0,-1)],
-         'boundary second image changed')
+    target = tuple(int(j==3) for j in range(N))
+    need(w == (target,zero), 'forced F(e0)=e3 fails')
+    for source, destination in ((0,3),(3,15),(15,12),(12,0)):
+        z = tuple(int(j==source) for j in range(N))
+        expected = tuple(int(j==destination) for j in range(N))
+        need(production.t_map(z,table) == expected, 'forced T basis cycle fails')
+        need(sum(x*x for x in table[cid(z)]) == 24, 'forced correction energy is not24')
 
     def rows(array):
         return tuple(tuple(zip(*production.forward(*zip(*row), table))) for row in array)
@@ -274,12 +274,19 @@ def main():
     def columns(array):
         return tuple(zip(*rows(tuple(zip(*array)))))
 
-    array = tuple(tuple((2,0) if (i,j)==(0,0) else (0,0) for j in range(N)) for i in range(N))
+    lam = tuple((a,-b) for a,b in zip(RE,IM))
+    array = tuple(tuple(lam[i] if j==0 else (0,0) for j in range(N)) for i in range(N))
     row_column = rows(columns(array))
     column_row = columns(rows(array))
-    differing = sum(row_column[i][j] != column_row[i][j] for i in range(N) for j in range(N))
-    need(differing == 28 and row_column[4][8] == (0,0) and column_row[4][8] == (-1,0),
-         'row-column noncommutation witness changed')
+    delta = tuple(tuple((x[0]-y[0],x[1]-y[1]) for x,y in zip(r,t))
+                  for r,t in zip(row_column,column_row))
+    squared_defect = sum(a*a+b*b for row in delta for a,b in row)
+    expected_first = tuple((RE[j]+4*int(j==3),IM[j]) for j in range(N))
+    need(delta[0] == expected_first and all(v==(0,0) for row in delta[1:] for v in row),
+         'tensor witness has wrong exact defect')
+    need(squared_defect == 24, 'bounded-error exact-square map misses the sharp floor')
+    differing = sum(v!=(0,0) for row in delta for v in row)
+    need(differing == 16, 'universal witness difference support')
 
     controls = []
     controls.append(reject(lambda: need(row_column == column_row, 'rounded fibers do not commute'),
@@ -333,7 +340,7 @@ def main():
         'cycle_generators': len(certificate['cycles']),
         'complex_fixtures': complex_count,
         'large_word_fixtures': 8,
-        'row_column_boundary': {'input': '2 E_(0,0)', 'differing_coordinates': differing, 'coordinate': [4,8], 'row_after_column': [0,0], 'column_after_row': [-1,0]},
+        'row_column_boundary': {'input': 'lambda e0^T; lambda_j=i^wt(j)', 'differing_coordinates': differing, 'squared_defect': squared_defect, 'F_e0': 'e3', 'sharp_bounded_error_native_square_attainment': True},
         'max_correction_energy': energy,
         'max_abs_correction': coordinate,
         'sharp_complex_error_squared': 8,

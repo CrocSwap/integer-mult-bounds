@@ -124,9 +124,21 @@ zeros=[orbits[i] for i,a in enumerate(adj) if not a]
 print('zeros',len(zeros),zeros[:10],flush=True)
 
 
+forced_source=64
+forced_target=849
+forced_c=tuple(4*int(i==3)-SIGN[i] for i in range(16))
+forced_j=next(j for j,(c,ct,tb) in enumerate(CANDS[forced_source//64]) if c==forced_c)
+model.require((CANDS[1][forced_j][2]^BK[0])==forced_target,'wrong forced target')
+forced_a,forced_b=oi[forced_source],oi[forced_target]
+model.require(compatible(forced_source,forced_target,forced_c,neg(b(forced_c))),
+              'incompatible forced edge')
+edges[tuple(sorted((forced_a,forced_b)))]=(forced_source,forced_j,forced_target)
+adj[forced_a].add(forced_b);adj[forced_b].add(forced_a)
+print('FORCED_EDGE',forced_a,forced_b,'source',forced_source,'target',forced_target,flush=True)
+
 def greedy_match(seed):
-    rng=random.Random(seed);match={}
-    pool=set(range(len(orbits)))
+    rng=random.Random(seed);match={forced_a:forced_b,forced_b:forced_a}
+    pool=set(range(len(orbits)))-{forced_a,forced_b}
     while pool:
         a=min(pool,key=lambda a:(len(adj[a]&pool),rng.random()))
         opts=adj[a]&pool

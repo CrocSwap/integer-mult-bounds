@@ -12,7 +12,7 @@ import json
 
 HERE = Path(__file__).resolve().parent
 SOURCE = HERE / "CERTIFICATE.json"
-CERTIFICATE_SHA256 = "9f7fa583cc8955e7f3129ff01db48dff849db6fd026f4205a0475f935ba174c7"
+CERTIFICATE_SHA256 = "44a950a62abec947b4c094c2c1f290bec2f8d7f41d3a108ab4c58b5bdfc46b56"
 
 
 def need(ok, label):

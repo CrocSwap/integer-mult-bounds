@@ -166,7 +166,7 @@ At each step, assign correction `c` to the class of `z`, and correction `-c`
 to the class of `-z`. All quarters are exact integers. Repeated assignments
 agree, the cycles close, and the rows cover every class. There are 4 generated
 class orbits of size 1, 18 of size 2, 78 of size 4 and 468 of size 8; their
-sizes sum to 4096. The certificate is 26,989 bytes.
+sizes sum to 4096. The certificate is 26,889 bytes.
 
 For the expanded correction table, put
 
@@ -196,7 +196,8 @@ energy bound, and paired the induced negation/`K` orbits. A forced partner
 `-Bc` may have coordinates of magnitude 5. The 64 coarse classes have candidate
 count histogram `{1:1, 848:32, 4900:1, 36:28, 70:2}`. The resulting graph has
 1120 vertices and 63,018 compatible undirected edges including loops, with no
-isolated vertex. The first greedy seed, zero, supplies the certificate; the
+isolated vertex. After forcing the displayed basis cycle, the first greedy seed, zero, supplies
+the complete certificate; the
 stopping rule allowed seeds 0 through 99. The optional search is a discovery
 procedure, not a completeness proof over periods, matchings or rounders.
 The mathematical result rests on the complete finite certificate and the lift
@@ -301,37 +302,67 @@ do not accumulate rounding error with word length. Global Gaussian scalars
 can be moved through the word exactly. This closes the fixed-block native
 square/fourth-power interface left open by #6758.
 
-There is an explicit obstruction to extending **this table** to commuting
-row/column actions on a `16 x 16` Gaussian array. Let
+### Bounded-error attainment of the sharp tensor witness bound
+
+The certificate also enforces the exact cycle
 
 \[
- w=F(e_0)=i e_4+e_6-i e_{11}+e_{12}-e_{15},\qquad
- v=F(2e_0)=i e_4+e_6+i e_8-i e_{11}+e_{12}-i e_{13}.
+ T:e_0\longmapsto e_3\longmapsto e_{15}\longmapsto e_{12}
+       \longmapsto e_0.
 \]
 
-Every nonzero entry of `v` is a Gaussian unit. For the array
-`X=2 E_(0,0)`, let `F_row` apply `F` to each row and `F_col` apply it to each
-column. Global unit covariance and `F(0)=0` give
+For each transition `z -> y`, its correction is `c=4y-SWz`. All four
+corrections have squared norm 24, vanish under both weighted sums, and obey
+`c_next=-Bc`. Their positive class labels are `64,849,3920,3136` and their
+negative labels are `201,960,4049,3289`. These eight labels are distinct and
+outside `L/Gamma`. The search fixes their matching edge before assigning the
+remaining orbits. The complete certificate, not merely the local cycle, passes
+all 4096-class obligations. Since `D_33=-1` and `S_33=1`, it follows that
+`F(e0)=e3`.
+
+This composes with the general
+[tensor-obstruction theorem](https://github.com/CubeJerry/integer-mult-bounds/blob/408969010e33a5aacdeecc164a554111e09f8f36/research/gaussian-rounding-tensor-obstruction/PROOF.md).
+Here is the complete specialization, so the new optimality claim is directly
+reviewable in this package. Put `alpha=-4`, `lambda_j=i^wt(j)` and
+`X0=lambda e0^T`. Every lambda entry is a Gaussian unit,
+`U lambda=-4e0`, and `-4U` has Gaussian-unit entries. Applying the same `F`
+independently to every row and column gives
 
 \[
- F_{\rm row}F_{\rm col}(X)=v w^T,\qquad
- F_{\rm col}F_{\rm row}(X)=w v^T.
+ F_{\rm row}F_{\rm col}(X_0)=e_0(-4Ue_0)^T,\qquad
+ F_{\rm col}F_{\rm row}(X_0)=e_0(-4F(e_0))^T.
 \]
 
-At coordinate `(4,8)` the former is zero and the latter is
-`w_4 v_8=i*i=-1`; 28 entries differ in the complete arrays. Their ideal
-counterparts commute, since the row and column transforms act on disjoint
-four-axis sets. Thus fixed-block exact square does **not** imply native
-row/column graph consistency for this certificate. This is a demonstrated
-counterexample for this table, not an obstruction for every possible sharp
-rounder.
+The first order uses exactness on integral ideal images; the other uses global
+unit covariance, followed by the same exactness. Their squared Frobenius
+difference is therefore `16 ||Ue0-F(e0)||_2^2`.
 
-The bounded witness search planned all 256 single-site positions for each
-value `1, i, 1+i, 2, 2+2i, -1`, in that order and lexicographic position order.
-It stopped at candidate 769 of the 1536 planned candidates: the first position
-for value 2. No search beyond that first witness or minimality claim is made.
-The verifier checks the displayed images and both full fiberwise compositions,
-with false commutation retained as a rejection control.
+For any admissible injective map, `w=F(e0)` is nonzero because `F(0)=0`.
+Sum preservation also implies nonzero `w`. Each real or imaginary component
+of `u=Ue0` has absolute value at most `1/4`. If
+`L1(w)=sum_j(|Re w_j|+|Im w_j|)`, Gaussian integrality gives
+
+\[
+ \|u-w\|_2^2
+ \ge 1+L_1(w)-\tfrac12L_1(w)
+ \ge \tfrac32.
+\]
+
+Thus the squared discrepancy on this fixed tensor witness is at least 24.
+The new certificate attains it: `w=e3` and `Re(u_3)=1/4`, so the error
+squared is `2-2(1/4)=3/2`. More explicitly the first-row defect is
+`D 1 + 4e3` and every other row vanishes. The `(0,3)` outputs are `-1` and
+`-4`; all sixteen first-row entries differ, with squared norm `9+15=24`.
+The independent checker evaluates all 256 entries in both orders.
+
+This establishes sharpness at `n=4` while retaining bijectivity, exact sum,
+global unit covariance, exactness on integral ideal images, the uniform
+sharp error `sqrt(8) h`, and the native square `F^2=J`. The companion theorem's
+unbounded-error sharpness example is not needed. The claim concerns the
+specified witness `X0`: it is **not** a worst-case tensor-discrepancy optimum
+and does not make the two row/column actions commute. Their ideal linear
+counterparts commute, but this exact nonlinear difference is unavoidable
+under the stated hypotheses.
 
 No general native word compiler, separately rounded individual-axis
 commutation, or all-size graph flatness follows. These distinctions matter
