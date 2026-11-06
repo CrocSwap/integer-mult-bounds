@@ -1,0 +1,38 @@
+--- a/scripts/research_package.py
++++ b/scripts/research_package.py
+@@ -27,6 +27,15 @@
+ def require(ok, message):
+     if not ok:
+         raise ValueError(message)
++
++
++def unique_verify_keys(pairs):
++    # Existing exporter policy, credited to Ali Romman PR5728; VERIFY only.
++    values = {}
++    for key, value in pairs:
++        require(key not in values, "duplicate VERIFY.json key: " + key)
++        values[key] = value
++    return values
+ 
+ 
+ def canonical_relative_path(name):
+@@ -393,7 +402,9 @@
+             "package must be research/<slug>")
+     data = {}
+     for name in ("TASK.json", "SOURCES.json", "VERIFY.json"):
+-        data[name] = json.loads(relative_file(root, package + "/" + name).read_text(encoding="utf-8"))
++        raw = relative_file(root, package + "/" + name).read_text(encoding="utf-8")
++        hook = unique_verify_keys if name == "VERIFY.json" else dict
++        data[name] = json.loads(raw, object_pairs_hook=hook)
+         version = require_key(data[name], "schema_version", name)
+         require(version == 1, name + ".schema_version must be 1; found " + brief(version))
+     task, sources, manifest = (data[n] for n in ("TASK.json", "SOURCES.json", "VERIFY.json"))
+@@ -934,7 +945,7 @@
+     for path, raw, sparse in planning_manifests(root, head_tracked):
+         sparse_count += sparse
+         package = path.parent.relative_to(root).as_posix()
+-        manifest = json.loads(raw.decode("utf-8"))
++        manifest = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_verify_keys)
+         # Parse only for selection; validate fully in the isolated replay job.
+         inputs = manifest.get("inputs", [])
+         require(isinstance(inputs, list), "declare input paths for CI invalidation")
