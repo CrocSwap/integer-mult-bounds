@@ -1,0 +1,38 @@
+--- outputs/s04-role-payload-assembly-20261105T2116Z/implementation/constructor/fresh_sc.py	2026-11-06 08:32:32.068646712 +1100
++++ outputs/s04-02-completion-20261105T2226Z/implementation/constructor/fresh_sc.py	2026-11-06 09:50:48.659301901 +1100
+@@ -276,8 +276,13 @@
+     Caller reads the files; no file I/O or authority issuance happens here.
+     The constructor checks the held FD's identity before destination acquisition.
+     """
+-    need(type(owner) is PreparationOwner and not owner.used[0]
++    need(type(owner) is PreparationOwner, 'ordinary preparation owner required')
++    if owner.primary[0] is not None:
++        raise owner.primary[0]
++    need(not owner.used[0]
+          and not owner.closed[0] and owner.full_proposal is None, 'fresh full binding owner')
++    exact(request, REQUEST_KEYS)
++    plain(request)
+     need(type(compatibility_raw) is bytes and type(selection_raw) is bytes, 'actual proposal record bytes')
+     need(digest(compatibility_raw) == FULL_PROPOSAL_BINDING['compatibility_sha256']
+          and digest(selection_raw) == FULL_PROPOSAL_BINDING['selection_sha256'], 'actual successor records')
+@@ -305,7 +310,11 @@
+          and not owner.quarantine[0], 'failed/used preparation owner')
+     owner.used[0] = True
+     try:
+-        exact_role = request.get('subject_kind') == 'S04_EXACT_ROLE_PROPOSAL_V1'
++        # Original v26 order: callback-free exact native DATA validation is
++        # inside the consumed owner's protected path, before subject dispatch
++        # or any access to a supplied exact_recipe object.
++        files, directories = validate_request(request, verified_body_pool)
++        exact_role = request['subject_kind'] == 'S04_EXACT_ROLE_PROPOSAL_V1'
+         if exact_role:
+             # Separate frozen recipe route; legacy FULL_PROPOSAL_BINDING and
+             # its original destinations above remain mandatory and unchanged.
+@@ -313,7 +322,6 @@
+             need(owner.ops is os, 'exact role requires actual ordinary OS')
+         else:
+             need(exact_recipe is None, 'recipe on legacy route')
+-        files, directories = validate_request(request, verified_body_pool)
+         need(request['subject_kind'] == 'OWNED_FIXTURE' or owner.ops is os, 'fixture backend on full proposal')
+         # Allocate every retained creation/write/read record before stage I/O.
+         records = [{'path': p, 'raw': b, 'mode': m, 'occurrence_id': ident,

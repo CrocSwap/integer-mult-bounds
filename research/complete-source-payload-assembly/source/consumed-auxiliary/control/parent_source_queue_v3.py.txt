@@ -1,0 +1,414 @@
+#!/usr/bin/env python3
+"""Parent-only bounded source queue, adapted from the retained v26/v2 envelope.
+
+Only frozen own-code authentication, controls, inert preparation and independent
+readback commands are admitted. Original project bodies remain opaque bytes.
+"""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib, json, math, os, resource, selectors, signal, stat, subprocess, sys, time
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW_CAP = 1024 * 1024
+MEMORY_CAP = 1024 ** 3
+FILE_CAP = 64 * 1024 ** 2
+
+class Stop(RuntimeError):
+    pass
+
+class Custody:
+    __slots__ = ('primary', 'secondaries', 'secondary_count', 'overflow', 'pending', 'quarantine')
+    def __init__(self):
+        self.primary = None
+        self.secondaries = [None] * 64
+        self.secondary_count = 0
+        self.overflow = False
+        self.pending = False
+        self.quarantine = False
+    def keep(self, error):
+        if self.primary is None:
+            self.primary = error
+        elif error is not self.primary:
+            for prior in self.secondaries[:self.secondary_count]:
+                if prior is error:
+                    return
+            if self.secondary_count < len(self.secondaries):
+                self.secondaries[self.secondary_count] = error
+                self.secondary_count += 1
+            else:
+                self.overflow = True
+        self.quarantine = True
+
+class State:
+    __slots__ = ('errors', 'process', 'launch_pending', 'started', 'cap', 'soft_stop', 'hard_stop', 'peak_sampled_rss', 'rss_samples', 'runs', 'termination_attempted', 'child_deadline', 'child_stop', 'hard_phase')
+    def __init__(self, cap):
+        self.errors = Custody()
+        self.process = None
+        self.launch_pending = False
+        self.started = time.monotonic()
+        self.cap = cap
+        self.soft_stop = Stop('Outside batch deadline: finalization reserve reached')
+        self.hard_stop = Stop('Outside batch hard deadline')
+        self.peak_sampled_rss = 0
+        self.rss_samples = 0
+        self.runs = []
+        self.termination_attempted = False
+        self.child_deadline = None
+        self.child_stop = Stop('Independent leaf wall deadline')
+        self.hard_phase = False
+
+STATE = None
+
+def need(test, message):
+    if not test:
+        raise Stop(message)
+
+def message(error):
+    try:
+        return str(error)[:4096]
+    except BaseException as error:
+        if STATE is not None:
+            STATE.errors.keep(error)
+        return '<error formatting failed>'
+
+def error_rows(custody):
+    return dict(primary=None if custody.primary is None else dict(type=type(custody.primary).__name__, message=message(custody.primary)),
+                secondaries=[dict(type=type(e).__name__, message=message(e)) for e in custody.secondaries[:custody.secondary_count]],
+                overflow=custody.overflow, pending=custody.pending, quarantine=custody.quarantine)
+
+def retire_fd(holder, key, custody):
+    fd = holder[key]
+    holder[key] = None
+    if fd is not None:
+        try:
+            os.close(fd)
+        except BaseException as error:
+            custody.keep(error)
+
+def read_file(path, cap, expected=None):
+    custody = Custody()
+    owned = {'fd': None}
+    chunks = []
+    first = None
+    try:
+        custody.pending = True
+        owned['fd'] = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        custody.pending = False
+        first = os.fstat(owned['fd'])
+        need(stat.S_ISREG(first.st_mode) and first.st_nlink == 1 and 0 <= first.st_size <= cap, 'Bounded single-link regular source required')
+        count = 0
+        while count < first.st_size:
+            block = os.read(owned['fd'], min(1024 * 1024, first.st_size - count))
+            need(bool(block), 'Source read made no progress')
+            chunks.append(block); count += len(block)
+        need(os.read(owned['fd'], 1) == b'', 'Source grew during read')
+        after = os.fstat(owned['fd'])
+        named = os.stat(str(path), follow_symlinks=False)
+        identity = lambda s: (s.st_dev, s.st_ino, s.st_mode, s.st_nlink, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+        need(identity(first) == identity(after) == identity(named), 'Stable source identity required')
+        raw = b''.join(chunks)
+        if expected is not None:
+            need(len(raw) == expected['bytes'] and stat.S_IMODE(first.st_mode) == expected['mode'] and hashlib.sha256(raw).hexdigest() == expected['sha256'], 'Source byte/mode pin mismatch')
+    except BaseException as error:
+        custody.keep(error)
+    finally:
+        retire_fd(owned, 'fd', custody)
+    if custody.primary is not None:
+        STATE.errors.keep(custody.primary)
+        for e in custody.secondaries[:custody.secondary_count]: STATE.errors.keep(e)
+        STATE.errors.pending |= custody.pending
+        raise custody.primary
+    return raw, dict(dev=first.st_dev, ino=first.st_ino, mode=stat.S_IMODE(first.st_mode), nlink=first.st_nlink, bytes=first.st_size, mtime_ns=first.st_mtime_ns, ctime_ns=first.st_ctime_ns)
+
+def check_pin(row):
+    raw, identity = read_file(Path(row['path']), FILE_CAP, row)
+    return dict(row, **{k:v for k,v in identity.items() if k not in row})
+
+def write_all(fd, raw):
+    offset = 0
+    calls = 0
+    while offset < len(raw):
+        calls += 1
+        need(calls <= 65536, 'Write call bound')
+        count = os.write(fd, raw[offset:offset+65536])
+        need(type(count) is int and 0 < count <= min(65536, len(raw)-offset), 'Invalid write progress')
+        offset += count
+
+def save(path, value):
+    raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False)+'\n').encode()
+    need(len(raw) <= FILE_CAP, 'Record cap')
+    owned = {'fd': None}; custody = Custody()
+    try:
+        custody.pending = True
+        owned['fd'] = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        custody.pending = False
+        write_all(owned['fd'], raw)
+        os.fsync(owned['fd']); os.fchmod(owned['fd'], 0o444)
+    except BaseException as error:
+        custody.keep(error)
+    finally:
+        retire_fd(owned, 'fd', custody)
+    if custody.primary is not None:
+        STATE.errors.keep(custody.primary)
+        for e in custody.secondaries[:custody.secondary_count]: STATE.errors.keep(e)
+        STATE.errors.pending |= custody.pending
+        raise custody.primary
+    observed, _ = read_file(path, FILE_CAP)
+    need(observed == raw, 'Record readback mismatch')
+
+def try_secondary(operation):
+    try:
+        operation()
+    except BaseException as error:
+        STATE.errors.keep(error)
+
+def terminate_owned():
+    p = STATE.process
+    if p is None or STATE.termination_attempted:
+        return
+    STATE.termination_attempted = True
+    try:
+        os.killpg(p.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    remaining = STATE.cap - (time.monotonic() - STATE.started)
+    need(remaining > 0, 'No remaining reap time')
+    p.wait(timeout=min(2.0, remaining))
+
+def hard_timeout(signum, frame):
+    p = STATE.process
+    if p is not None:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except BaseException:
+            pass
+    os._exit(124)
+
+def soft_timeout(signum, frame):
+    STATE.hard_phase = True
+    STATE.errors.keep(STATE.soft_stop)
+    signal.signal(signal.SIGALRM, hard_timeout)
+    signal.setitimer(signal.ITIMER_REAL, max(.001, STATE.cap-(time.monotonic()-STATE.started)))
+    raise STATE.soft_stop
+
+def arm_deadline():
+    if STATE.hard_phase:
+        return
+    now = time.monotonic()
+    due = STATE.started + STATE.cap - 5
+    if STATE.child_deadline is not None:
+        due = min(due, STATE.child_deadline)
+    signal.signal(signal.SIGALRM, deadline_event)
+    signal.setitimer(signal.ITIMER_REAL, max(.001, due-now))
+
+def deadline_event(signum, frame):
+    now = time.monotonic()
+    if now >= STATE.started + STATE.cap - 5:
+        soft_timeout(signum, frame)
+    if STATE.child_deadline is not None and now >= STATE.child_deadline:
+        STATE.errors.keep(STATE.child_stop)
+        p = STATE.process
+        if p is not None:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            except BaseException as error:
+                STATE.errors.keep(error)
+        STATE.child_deadline = None
+        arm_deadline()
+        raise STATE.child_stop
+    arm_deadline()
+
+def rss(pid):
+    owned = {'fd': None}; custody = Custody(); result = None
+    try:
+        custody.pending = True
+        owned['fd'] = os.open('/proc/'+str(pid)+'/statm', os.O_RDONLY | os.O_CLOEXEC)
+        custody.pending = False
+        raw = os.read(owned['fd'], 256)
+        fields = raw.split(); need(len(fields) >= 2, 'Owned-process RSS record')
+        result = int(fields[1]) * os.sysconf('SC_PAGE_SIZE')
+    except BaseException as error:
+        custody.keep(error)
+    finally:
+        retire_fd(owned, 'fd', custody)
+    if custody.primary is not None:
+        STATE.errors.keep(custody.primary)
+        for error in custody.secondaries[:custody.secondary_count]: STATE.errors.keep(error)
+        STATE.errors.pending |= custody.pending
+        raise custody.primary
+    return result
+
+def sample_memory():
+    total = rss(os.getpid())
+    p = STATE.process
+    if p is not None:
+        try:
+            total += rss(p.pid)
+        except FileNotFoundError as error:
+            # The delivered open failure remains custody evidence even when
+            # the child concurrently exited; do not silently erase it.
+            STATE.errors.keep(error)
+            raise
+    STATE.rss_samples += 1
+    STATE.peak_sampled_rss = max(STATE.peak_sampled_rss, total)
+    need(total <= MEMORY_CAP, 'Sampled parent plus owned child exceeds 1 GiB')
+
+def child_limits(seconds):
+    resource.setrlimit(resource.RLIMIT_AS, (MEMORY_CAP, MEMORY_CAP))
+    cpu = int(math.ceil(seconds))
+    resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu))
+    resource.setrlimit(resource.RLIMIT_FSIZE, (FILE_CAP, FILE_CAP))
+    resource.setrlimit(resource.RLIMIT_NOFILE, (512, 512))
+
+def run_command_body(command, out, tail):
+    start = time.monotonic(); cap = command['wall_cap_seconds']
+    need(STATE.cap-(start-STATE.started) >= cap+tail, 'No room for complete child allowance and finalization tail')
+    path = out/command['id']; path.mkdir(mode=0o700, exist_ok=False)
+    attempt = dict(id=command['id'], argv=command['argv'], status='REQUESTED', start_utc=datetime.now(timezone.utc).isoformat())
+    STATE.runs.append(attempt)
+    save(path/'DISPATCH.json', attempt)
+    sizes = {'stdout':0, 'stderr':0}; fds={'stdout':None, 'stderr':None}
+    pipes={'stdout':None, 'stderr':None}; selection = selectors.DefaultSelector()
+    before = resource.getrusage(resource.RUSAGE_CHILDREN)
+    try:
+        for name in fds:
+            STATE.errors.pending = True
+            fds[name] = os.open(str(path/(name+'.txt')), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+            STATE.errors.pending = False
+        env=dict(PATH='/usr/bin:/bin', LANG='C.UTF-8', LC_ALL='C.UTF-8', TZ='UTC', PYTHONHASHSEED='0', PYTHONDONTWRITEBYTECODE='1')
+        STATE.launch_pending = True
+        STATE.termination_attempted = False
+        STATE.process = subprocess.Popen(command['argv'], cwd=str(ROOT.parent.parent), env=env,
+                                         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                         start_new_session=True, preexec_fn=lambda:child_limits(cap))
+        STATE.launch_pending = False
+        pipes.update(stdout=STATE.process.stdout, stderr=STATE.process.stderr)
+        for name, stream in pipes.items():selection.register(stream, selectors.EVENT_READ, name)
+        while selection.get_map():
+            need(time.monotonic()-start < cap, 'Child wall deadline')
+            sample_memory()
+            for key,_ in selection.select(.05):
+                name=key.data; block=os.read(key.fileobj.fileno(), min(65536, RAW_CAP-sizes[name]+1))
+                if not block:
+                    selection.unregister(key.fileobj)
+                    stream=pipes[name];pipes[name]=None
+                    stream.close();continue
+                keep=block[:RAW_CAP-sizes[name]]
+                write_all(fds[name],keep);sizes[name]+=len(keep)
+                need(len(keep)==len(block), 'Raw capture cap')
+        remaining=min(cap-(time.monotonic()-start), STATE.cap-(time.monotonic()-STATE.started)-tail)
+        need(remaining > 0, 'Child completion must fit before deadline')
+        attempt['returncode']=STATE.process.wait(timeout=remaining)
+        need(attempt['returncode']==command['expected_exit'], 'Unexpected child exit')
+    except BaseException as error:
+        STATE.errors.keep(error)
+    finally:
+        if STATE.process is not None:try_secondary(terminate_owned)
+        try_secondary(selection.close)
+        for name,stream in pipes.items():
+            if stream is not None:
+                pipes[name]=None;try_secondary(stream.close)
+        for name in fds:
+            if fds[name] is not None:
+                try_secondary(lambda name=name:os.fsync(fds[name]))
+                retire_fd(fds,name,STATE.errors)
+        after=resource.getrusage(resource.RUSAGE_CHILDREN)
+        attempt.update(wall_seconds=time.monotonic()-start,
+                       cpu_seconds=after.ru_utime+after.ru_stime-before.ru_utime-before.ru_stime,
+                       cumulative_child_max_rss_kib=after.ru_maxrss,raw_sizes=sizes,
+                       confirmed_terminal=STATE.process is not None and STATE.process.poll() is not None,
+                       launch_pending=STATE.launch_pending)
+        if attempt['confirmed_terminal']:
+            STATE.process=None
+        else:
+            STATE.errors.keep(Stop('Owned child terminal state unconfirmed'))
+    if STATE.errors.primary is None:
+        try:
+            raw,_=read_file(path/'stdout.txt',RAW_CAP)
+            result=json.loads(raw);attempt['result']=result
+            for key,expected in command['expected_result'].items():
+                need(type(result.get(key)) is type(expected) and result.get(key)==expected, 'Terminal result mismatch: '+key)
+            if command.get('empty_stderr',True):need(sizes['stderr']==0,'Unexpected stderr')
+        except BaseException as error:
+            STATE.errors.keep(error)
+    if STATE.errors.primary is None:
+        attempt.update(status='PASS')
+    else:
+        attempt.update(status='FAIL',errors=error_rows(STATE.errors))
+    save(path/'RECEIPT.json',attempt)
+    if STATE.errors.primary is not None:raise STATE.errors.primary
+    return attempt
+
+def run_command(command, out, tail):
+    # Kernel-delivered deadline remains armed while capture writes, fsync,
+    # source/result reads and receipt finalization run; not just a loop check.
+    STATE.child_deadline = time.monotonic() + command['wall_cap_seconds']
+    arm_deadline()
+    try:
+        return run_command_body(command, out, tail)
+    finally:
+        STATE.child_deadline = None
+        arm_deadline()
+
+def main():
+    global STATE
+    need(len(sys.argv)==6,'Exact plan/hash/review/hash/batch arguments required')
+    batch_id=sys.argv[5]; cap=90 if batch_id=='preflight' else 180
+    STATE=State(cap)
+    signal.signal(signal.SIGTERM,soft_timeout)
+    arm_deadline()
+    out=ROOT/'execution'/batch_id
+    record=dict(schema='bounded-source-payload-batch-v1',status='INCOMPLETE',batch=batch_id,
+                started_utc=datetime.now(timezone.utc).isoformat(),runs=[],errors=[],
+                policy_reservation_seconds=cap,physical_costs='OPEN_NOT_ZERO',original_activity_credit_delta=0)
+    record['runs']=STATE.runs
+    rows=None; before=None
+    try:
+        raw,_=read_file(Path(sys.argv[1]),8*1024*1024)
+        need(hashlib.sha256(raw).hexdigest()==sys.argv[2],'Exact command-plan pin')
+        plan=json.loads(raw);reviewraw,_=read_file(Path(sys.argv[3]),8*1024*1024)
+        need(hashlib.sha256(reviewraw).hexdigest()==sys.argv[4],'Exact independent-review pin')
+        review=json.loads(reviewraw)
+        need(review.get('decision')=='GO' and review.get('execution_plan_sha256')==sys.argv[2], 'Exact command GO required')
+        need(plan['workdir']==str(ROOT.parent.parent) and plan['new_budget'] is False,'Fixed workspace and budget')
+        selected=[b for b in plan['batches'] if b['id']==batch_id];need(len(selected)==1,'One declared batch')
+        batch=selected[0];need(batch['wall_cap_seconds']==cap,'Fixed batch cap')
+        need(datetime.now(timezone.utc)<datetime.fromisoformat(plan['latest_execution_start_utc'].replace('Z','+00:00')),'Fixed latest execution start')
+        invpin=plan['inventory'];invraw,_=read_file(Path(invpin['path']),8*1024*1024,invpin);rows=json.loads(invraw)['files']
+        before=[check_pin(r) for r in rows];record['source_before']=before
+        for predecessor in batch['requires']:
+            ackraw,_=read_file(ROOT/'execution'/predecessor/'ACCEPTED.json',8*1024*1024)
+            ack=json.loads(ackraw);need(ack['status']=='PASS' and ack['execution_plan_sha256']==sys.argv[2], 'Previous declared batch acceptance required')
+        for name in batch['must_be_absent']:need(not os.path.lexists(name),'Declared fresh destination already exists')
+        out.mkdir(mode=0o700,exist_ok=False)
+        save(out/'REQUEST.json',dict(batch=batch_id,plan_sha256=sys.argv[2],review_sha256=sys.argv[4],reservation_seconds=cap,source_pins=len(rows)))
+        for command in batch['commands']:
+            need(STATE.errors.primary is None,'No launch after earlier error')
+            run_command(command,out,batch['tail_reserve_seconds'])
+        record['status']='COMPLETE_SOURCE_BATCH_ONLY'
+    except BaseException as error:
+        STATE.errors.keep(error)
+    finally:
+        if STATE.process is not None:try_secondary(terminate_owned)
+        if before is not None:
+            try:
+                after=[check_pin(r) for r in rows];record['source_after']=after
+                need(after==before,'Source identities changed across batch')
+            except BaseException as error:STATE.errors.keep(error)
+        record.update(wall_seconds=time.monotonic()-STATE.started,
+                      parent_cpu_seconds=resource.getrusage(resource.RUSAGE_SELF).ru_utime+resource.getrusage(resource.RUSAGE_SELF).ru_stime,
+                      peak_sampled_aggregate_rss_bytes=STATE.peak_sampled_rss,rss_samples=STATE.rss_samples,
+                      launch_pending=STATE.launch_pending,errors=error_rows(STATE.errors),finished_utc=datetime.now(timezone.utc).isoformat())
+        if STATE.errors.primary is not None or STATE.launch_pending:record['status']='STOPPED_PRESERVED_NO_RETRY'
+        if out.is_dir():
+            try:save(out/'PARENT-FINAL.json',record)
+            except BaseException as error:
+                STATE.errors.keep(error);record['status']='STOPPED_PRESERVED_NO_RETRY'
+    result=dict(status=record['status'],batch=batch_id,completed_commands=len(record['runs']),wall_seconds=time.monotonic()-STATE.started,
+                peak_sampled_aggregate_rss_bytes=STATE.peak_sampled_rss,errors=error_rows(STATE.errors))
+    sys.stdout.write(json.dumps(result,allow_nan=False)+'\n');sys.stdout.flush()
+    return 0 if record['status']=='COMPLETE_SOURCE_BATCH_ONLY' and STATE.errors.primary is None else 1
+
+if __name__=='__main__':raise SystemExit(main())

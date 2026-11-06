@@ -1,0 +1,415 @@
+#!/usr/bin/env python3
+"""Independent ordinary-byte reader. Authored only; no constructor imports.
+
+Expected payload is always the original pinned role map and detached manifests.
+The CLI-pinned guard inventory supplies source custody, not payload expectations.
+The later outcome reviewer must join guard postchecks written after this exits.
+"""
+import hashlib
+import json
+import os
+import stat
+import sys
+from datetime import datetime, timezone
+
+W = '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453'
+E = W + '/outputs/s04-02-completion-20261105T2226Z'
+OUTPUT = E + '/validation/final-readback'
+STAGES = W + '/outputs/h25-data-handling-20261028/stages/'
+FROZEN = W + '/outputs/s03-frozen-source-selection-20261104T1210Z/implementation/'
+RECORDS = {
+    'maps': {'path': FROZEN + 'ROLE-STAGE-SOURCE-MAPS-v1.json', 'bytes': 5778616, 'mode': 0o444,
+             'sha256': 'f0e4a99c358624fcc8ecd112dfc3e24a02f906134d283e0814ee97aa1610d394'},
+    'manifest': {'path': FROZEN + 'SELECTED-SOURCE-MANIFEST-v1.json', 'bytes': 32701, 'mode': 0o444,
+                 'sha256': 'e4e4f461794b4a8e09291a421ae4765446ff4c25431728df7609999e2ef4fed3'},
+    'adoption': {'path': W + '/outputs/s03-adoption-proof-review-20261104T1255Z/review/FINAL-ACTUAL-SOURCE-ADOPTION-ACCEPTANCE-v1.json',
+                 'bytes': 12187, 'mode': 0o444,
+                 'sha256': '99b856e02dd05a0fe576a052c976f8ee98de5db71b4dcddf44ab32532c4d62b2'},
+    'gate': {'path': W + '/outputs/s04-complete-payload-20261105T2019Z/review/payload/ADOPTED-RECIPE-GATE-v1.json',
+             'bytes': 98535, 'mode': 0o444,
+             'sha256': '4d39e2b76562a9a78627fbab23135ea23a806fa4f2c87d7bc2709ef6c3313a96'}
+}
+DIR = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+READ = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+FILE_CAP, JSON_CAP, EVIDENCE_CAP = 64 * 1024**2, 8 * 1024**2, 64 * 1024**2
+
+
+def need(ok, message):
+    if ok is not True:
+        raise ValueError(message)
+
+
+def identity(s):
+    return (s.st_dev, s.st_ino, s.st_mode, s.st_nlink, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+
+
+def absolute(path):
+    need(type(path) is str and (path == W or path.startswith(W + '/')) and os.path.normpath(path) == path
+         and '//' not in path and all(32 <= ord(c) < 127 for c in path), 'fixed ordinary absolute path')
+    return path
+
+
+def relative(path):
+    need(type(path) is str and 0 < len(path) <= 8192, 'relative path')
+    parts = path.split('/')
+    need(all(p not in ('', '.', '..') and len(p) <= 255 for p in parts), 'relative components')
+    return parts
+
+
+def pin_tuple(pin):
+    need(type(pin) is dict and {'path', 'bytes', 'mode', 'sha256'} <= set(pin), 'ordinary source pin fields')
+    absolute(pin['path'])
+    need(type(pin['bytes']) is int and 0 <= pin['bytes'] <= FILE_CAP
+         and type(pin['mode']) is int and 0 <= pin['mode'] <= 0o777, 'ordinary source pin bounds')
+    need(type(pin['sha256']) is str and len(pin['sha256']) == 64
+         and all(c in '0123456789abcdef' for c in pin['sha256']), 'ordinary source pin SHA256')
+    return tuple(pin[k] for k in ('path', 'bytes', 'mode', 'sha256'))
+
+
+class State:
+    def __init__(self):
+        self.primary = None
+        self.secondaries = []
+        self.overflow = False
+        self.known_fds = 0
+        self.peak_fds = 0
+        self.uncertain = False
+    def error(self, error, stage):
+        if self.primary is None:
+            self.primary = error
+        elif error is not self.primary:
+            if len(self.secondaries) < 8192:
+                self.secondaries.append((stage, error))
+            else:
+                self.overflow = True
+
+
+class Owner:
+    """Known descriptors retired before close; first/secondary errors kept raw."""
+    def __init__(self, state, label):
+        self.state, self.label = state, label
+        self.slots, self.chain = [], []
+        self.pending = False
+    def __enter__(self):
+        return self
+    def open(self, name, flags, mode=0, parent=None):
+        need(self.state.known_fds < 192, 'reader known descriptor bound')
+        slot = {'fd': None, 'close_attempted': False}
+        self.slots.append(slot)
+        self.pending = True
+        fd = os.open(name, flags, mode, dir_fd=parent)
+        slot['fd'] = fd
+        self.pending = False
+        self.state.known_fds += 1
+        self.state.peak_fds = max(self.state.peak_fds, self.state.known_fds)
+        return fd
+    def directory(self, path):
+        absolute(path)
+        fd = self.open('/', DIR)
+        for name in path[1:].split('/'):
+            parent = fd
+            fd = self.open(name, DIR, parent=parent)
+            s = os.fstat(fd)
+            need(stat.S_ISDIR(s.st_mode), 'ordinary ancestor directory')
+            self.chain.append((parent, name, fd, (s.st_dev, s.st_ino)))
+        return fd
+    def stable(self):
+        for parent, name, fd, key in self.chain:
+            held, named = os.fstat(fd), os.stat(name, dir_fd=parent, follow_symlinks=False)
+            need(stat.S_ISDIR(named.st_mode) and (held.st_dev, held.st_ino) == key
+                 and (named.st_dev, named.st_ino) == key, 'reader ancestor replaced')
+    def retire(self, fd):
+        slot = next(s for s in self.slots if s['fd'] == fd)
+        slot['fd'] = None
+        slot['close_attempted'] = True
+        self.state.known_fds -= 1
+        try:
+            os.close(fd)
+        except BaseException as error:
+            self.state.error(error, self.label + ':close')
+            raise
+    def __exit__(self, kind, error, traceback):
+        first = error
+        if error is not None:
+            self.state.error(error, self.label)
+        if self.pending:
+            self.state.uncertain = True
+        for slot in reversed(self.slots):
+            fd = slot['fd']
+            slot['fd'] = None
+            if fd is None:
+                continue
+            slot['close_attempted'] = True
+            self.state.known_fds -= 1
+            try:
+                os.close(fd)
+            except BaseException as close_error:
+                self.state.error(close_error, self.label + ':close')
+                if first is None:
+                    first = close_error
+        if error is None and first is not None:
+            raise first
+        return False
+
+
+def json_data(raw):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            need(key not in result, 'duplicate JSON field')
+            result[key] = value
+        return result
+    return json.loads(raw, object_pairs_hook=unique,
+        parse_constant=lambda value: (_ for _ in ()).throw(ValueError('nonfinite JSON')))
+
+
+def read_fd(fd, parent, name, pin, retain=False):
+    first = os.fstat(fd)
+    need(stat.S_ISREG(first.st_mode) and first.st_nlink == 1, 'ordinary single-link file')
+    need(0 <= first.st_size <= FILE_CAP and stat.S_IMODE(first.st_mode) == pin['mode'], 'file size/mode')
+    if 'bytes' in pin:
+        need(first.st_size == pin['bytes'], 'exact file bytes')
+    need(not retain or first.st_size <= JSON_CAP, 'retained JSON cap')
+    before = identity(first)
+    need(identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == before, 'initial named identity')
+    digest, count, chunks = hashlib.sha256(), 0, []
+    while count < first.st_size:
+        block = os.read(fd, min(1024**2, first.st_size - count))
+        need(type(block) is bytes and 0 < len(block) <= first.st_size - count, 'read progress')
+        count += len(block)
+        digest.update(block)
+        if retain:
+            chunks.append(block)
+    need(os.read(fd, 1) == b'', 'file grew during read')
+    need(identity(os.fstat(fd)) == before
+         and identity(os.stat(name, dir_fd=parent, follow_symlinks=False)) == before, 'stable full named/FD identity')
+    need(digest.hexdigest() == pin['sha256'], 'exact file SHA256')
+    return before, b''.join(chunks) if retain else None
+
+
+def source(state, pin, retain=False):
+    path = absolute(pin['path'])
+    with Owner(state, 'source:' + path) as owner:
+        parent = owner.directory(os.path.dirname(path))
+        fd = owner.open(os.path.basename(path), READ, parent=parent)
+        result = read_fd(fd, parent, os.path.basename(path), pin, retain)
+        owner.stable()
+    return {'path': path, 'identity': result[0], 'sha256': pin['sha256']}, result[1]
+
+
+def expected_role(state, role):
+    files = dict(role['source_locator'])
+    need('STAGE.json' not in files, 'detached manifest separate')
+    _, raw = source(state, role['manifest'], True)
+    stage = json_data(raw)
+    need(stage['files'] == {name: {'mode': p['mode'], 'sha256': p['sha256']} for name, p in files.items()},
+         'original detached manifest matches original source map')
+    files['STAGE.json'] = role['manifest']
+    need(all(pin['mode'] == 0o444 for pin in files.values()), 'all expected payload files mode0444')
+    dirs = {''}
+    for path in files:
+        parts = relative(path)
+        dirs.update('/'.join(parts[:i]) for i in range(1, len(parts)))
+    need(not (set(files) & dirs) and len(dirs) <= 128 and len(files) <= 8192, 'reader expected tree bounds')
+    return files, dirs
+
+
+def scan_names(state, fd):
+    names, scan, primary = [], os.scandir(fd), None
+    try:
+        for entry in scan:
+            names.append(entry.name)
+            need(len(names) <= 8192, 'directory entry bound')
+    except BaseException as error:
+        primary = error
+        state.error(error, 'directory_scan')
+    try:
+        scan.close()
+    except BaseException as error:
+        if primary is None:
+            primary = error
+        state.error(error, 'directory_scan_close')
+    if primary is not None:
+        raise primary
+    return names
+
+
+def inspect_role(state, role, files, dirs, inodes, previous=None):
+    root = absolute(role['runtime_stage_root'])
+    need(root == STAGES + role['runtime_stage_name'], 'original exact stage root')
+    observed, directory_ids = {}, {}
+    with Owner(state, 'payload:' + role['role']) as owner:
+        root_fd = owner.directory(root)
+        held = {'': root_fd}
+        for path in sorted(dirs, key=lambda p: (p.count('/'), p)):
+            if path:
+                parent, _, name = path.rpartition('/')
+                held[path] = owner.open(name, DIR, parent=held[parent])
+            fd = held[path]
+            info = os.fstat(fd)
+            need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o555, 'exact directory mode')
+            directory_ids[path] = identity(info)
+            if previous is not None:
+                need(directory_ids[path] == tuple(previous['directories'][path]), 'directory changed after full read')
+            expected_names = {p[len(path) + 1:] if path else p for p in set(files) | dirs
+                              if p and p.rpartition('/')[0] == path}
+            need(set(scan_names(state, fd)) == expected_names, 'exact directory entries')
+        for path, pin in sorted(files.items()):
+            parent, _, name = path.rpartition('/')
+            fd = owner.open(name, READ, parent=held[parent])
+            if previous is None:
+                info, _ = read_fd(fd, held[parent], name, pin)
+                key = (info[0], info[1])
+                need(key not in inodes, 'distinct inode across every installed occurrence')
+                inodes.add(key)
+            else:
+                info = identity(os.fstat(fd))
+                need(stat.S_ISREG(info[2]) and info[3] == 1
+                     and info == tuple(previous['files'][path]['identity'])
+                     and identity(os.stat(name, dir_fd=held[parent], follow_symlinks=False)) == info,
+                     'global final named/FD identity unchanged')
+            observed[path] = {'bytes': pin['bytes'], 'sha256': pin['sha256'], 'identity': info}
+            owner.retire(fd)
+        for path, fd in held.items():
+            need(identity(os.fstat(fd)) == directory_ids[path], 'directory changed during role read')
+            if path:
+                parent, _, name = path.rpartition('/')
+                need(identity(os.stat(name, dir_fd=held[parent], follow_symlinks=False)) == directory_ids[path],
+                     'named directory identity changed')
+        owner.stable()
+    return {'role': role['role'], 'root': root, 'directories': directory_ids, 'files': observed,
+            'file_count': len(files), 'logical_bytes': sum(pin['bytes'] for pin in files.values())}
+
+
+def save(state, output, report):
+    raw = (json.dumps(report, sort_keys=True, indent=2, allow_nan=False) + '\n').encode()
+    need(len(raw) < EVIDENCE_CAP, 'READBACK evidence cap')
+    with Owner(state, 'evidence') as owner:
+        parent = owner.directory(os.path.dirname(output))
+        name = os.path.basename(output)
+        os.mkdir(name, 0o700, dir_fd=parent)
+        directory = owner.open(name, DIR, parent=parent)
+        fd = owner.open('READBACK.json', os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                        0o600, directory)
+        count, calls = 0, 0
+        while count < len(raw):
+            calls += 1
+            need(calls <= 8192, 'evidence write call bound')
+            n = os.write(fd, raw[count:])
+            need(type(n) is int and 0 < n <= len(raw) - count, 'evidence write progress')
+            count += n
+        os.fchmod(fd, 0o444)
+        os.fsync(fd)
+        os.lseek(fd, 0, os.SEEK_SET)
+        read_fd(fd, directory, 'READBACK.json', {'bytes': len(raw), 'mode': 0o444,
+                'sha256': hashlib.sha256(raw).hexdigest()})
+        os.fchmod(directory, 0o555)
+        os.fsync(directory)
+        os.fsync(parent)
+        owner.stable()
+    return {'path': output + '/READBACK.json', 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def error_data(error):
+    return None if error is None else {'type': type(error).__name__, 'message': str(error)[:4096]}
+
+
+def main():
+    state = State()
+    report = {'schema': 's04-independent-complete-payload-readback-v1', 'status': 'INCOMPLETE',
+              'start_utc': datetime.now(timezone.utc).isoformat(), 'roles': [],
+              'original_activity_credit_delta': 0, 'physical_costs': 'OPEN_NOT_ZERO',
+              'guard_postchecks_after_reader_exit_require_later_outcome_join': True}
+    pins, before, output, evidence = [], None, None, None
+    try:
+        need(len(sys.argv) == 7 and sys.argv[1::2] == ['--inventory', '--inventory-sha256', '--output'], 'exact reader CLI')
+        inventory_path, inventory_sha, output = sys.argv[2], sys.argv[4], sys.argv[6]
+        need(output == OUTPUT and absolute(inventory_path) == E + '/control/SOURCE-INVENTORY-v1.json', 'fixed inventory/output paths')
+        need(len(inventory_sha) == 64 and all(c in '0123456789abcdef' for c in inventory_sha), 'inventory SHA256')
+        _, inventory_raw = source(state, {'path': inventory_path, 'mode': 0o444, 'sha256': inventory_sha}, True)
+        inventory = json_data(inventory_raw)
+        pins = inventory['files']
+        need(type(pins) is list and 0 < len(pins) <= 1024, 'source inventory row bound')
+        for pin in pins:
+            pin_tuple(pin)
+        need(len({p['path'] for p in pins}) == len(pins) and sum(p['bytes'] for p in pins) <= 256 * 1024**2,
+             'source inventory unique/bounded bytes')
+        before = [source(state, pin)[0] for pin in pins]
+        report.update(source_inventory={'path': inventory_path, 'sha256': inventory_sha}, source_before=before)
+        records = {name: json_data(source(state, pin, True)[1]) for name, pin in RECORDS.items()}
+        inventory_pins = {pin['path']: pin_tuple(pin) for pin in pins}
+        required_pins = list(RECORDS.values())
+        adoption = records['adoption']
+        need(adoption['source_adopted'] is True and adoption['source_complete'] is True
+             and adoption['S03_08_completed'] is True, 'actual original source adoption')
+        declared = records['manifest']['role_stage_source_maps']
+        need(all(declared[k] == RECORDS['maps'][k] for k in ('path', 'bytes', 'sha256')), 'original manifest/map join')
+        roles = records['maps']['roles']
+        need(len(roles) == 71 and len({r['role'] for r in roles}) == 71
+             and len({r['runtime_stage_root'] for r in roles}) == 71, 'complete unique 71 original roles')
+        required_pins.extend(pin for role in roles for pin in role['source_locator'].values())
+        required_pins.extend(role['manifest'] for role in roles)
+        preparation_pins = records['gate']['producer_reference_preparations']['transitive_input_source_pins']
+        need(len(preparation_pins) == 36, 'all36 original preparation source pins')
+        required_pins.extend(preparation_pins)
+        need(all(inventory_pins.get(pin['path']) == pin_tuple(pin) for pin in required_pins),
+             'guard source inventory covers complete original payload/preparation authority')
+        need(sum(role['source_file_count'] for role in roles) == 13992
+             and sum(role['source_bytes'] for role in roles) == 1386572714
+             and len({pin['path'] for role in roles for pin in role['source_locator'].values()}) == 332,
+             'original complete source denominators')
+        report.update(original_authority_pins=RECORDS, source_inventory_rows=len(pins),
+                      all_original_source_manifest_preparation_pins_covered=True)
+        by_role = {r['role']: r for r in roles}
+        baseline, candidate = by_role['full:baseline'], by_role['full:candidate']
+        differences = [p for p in baseline['source_locator'] if p in candidate['source_locator']
+                       and baseline['source_locator'][p]['sha256'] != candidate['source_locator'][p]['sha256']]
+        need(baseline['runtime_stage_root'] != candidate['runtime_stage_root']
+             and 'integration/scientific_driver.py' in differences, 'distinct baseline/candidate same-path source bytes')
+        expected, inodes = {}, set()
+        for role in roles:
+            files, dirs = expected_role(state, role)
+            expected[role['role']] = (files, dirs)
+            report['roles'].append(inspect_role(state, role, files, dirs, inodes))
+        need(sum(r['file_count'] for r in report['roles']) == 14063 and len(inodes) == 14063
+             and sum(r['logical_bytes'] for r in report['roles']) == 1388508016, 'complete installed payload denominator')
+        for role, previous in zip(roles, report['roles']):
+            files, dirs = expected[role['role']]
+            inspect_role(state, role, files, dirs, inodes, previous)
+        report.update(status='COMPLETE_INDEPENDENT_PAYLOAD_READBACK_ONLY', roles_verified=71,
+                      source_file_occurrences=13992, detached_manifests=71, installed_file_occurrences=14063,
+                      installed_logical_bytes=1388508016, distinct_installed_inodes=14063,
+                      baseline_candidate_different_relative_paths=sorted(differences), global_final_identity_pass=True)
+    except BaseException as error:
+        state.error(error, 'reader_body')
+    finally:
+        if pins:
+            try:
+                after = [source(state, pin)[0] for pin in pins]
+                report['source_after'] = after
+                need(before == after, 'source inventory pre/post identity mismatch')
+            except BaseException as error:
+                state.error(error, 'source_after')
+        report.update(primary_error=error_data(state.primary),
+            secondary_errors=[{'stage': stage, **error_data(error)} for stage, error in state.secondaries],
+            secondary_overflow=state.overflow, uncertain_acquisition=state.uncertain,
+            peak_known_descriptors=state.peak_fds, known_descriptors_after_body=state.known_fds,
+            finish_utc=datetime.now(timezone.utc).isoformat())
+        if state.primary is not None or state.uncertain or state.known_fds:
+            report['status'] = 'FAILED_PRESERVED_NO_REPAIR'
+        if output == OUTPUT:
+            try:
+                evidence = save(state, output, report)
+            except BaseException as error:
+                state.error(error, 'evidence_finalization')
+        ok = report['status'] == 'COMPLETE_INDEPENDENT_PAYLOAD_READBACK_ONLY' and state.primary is None and evidence is not None
+        print(json.dumps({'status': report['status'] if ok else 'FAILED_PRESERVED_NO_REPAIR',
+            'roles_verified': report.get('roles_verified', 0), 'installed_file_occurrences': report.get('installed_file_occurrences', 0),
+            'installed_logical_bytes': report.get('installed_logical_bytes', 0), 'evidence': evidence,
+            'primary_error': error_data(state.primary), 'secondary_error_count': len(state.secondaries),
+            'original_activity_credit_delta': 0, 'physical_costs': 'OPEN_NOT_ZERO'}, sort_keys=True))
+    return 0 if ok else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

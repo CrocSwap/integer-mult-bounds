@@ -1,0 +1,87 @@
+--- outputs/s04-role-payload-assembly-20261105T2116Z/implementation/constructor/exact_role_payload_v1.py	2026-11-06 08:32:15.854874517 +1100
++++ outputs/s04-02-completion-20261105T2226Z/implementation/constructor/exact_role_payload_v1.py	2026-11-06 09:57:30.051723289 +1100
+@@ -23,6 +23,7 @@
+ RECORD_SIZES = {'gate': 98535, 'caller': 20011, 'catalog': 649966,
+                 'manifest': 32701, 'maps': 5778616, 'commands': 245246,
+                 'fixed': 10620, 'adoption': 12187}
++COMMAND_EXPECTATIONS = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/reference/COMMANDS-v1.json'
+ 
+ 
+ def _record_primary(owner, error):
+@@ -151,7 +152,7 @@
+          and records['adoption']['source_complete'] is True
+          and records['adoption']['S03_08_completed'] is True, 'actual S03 source adoption')
+     ids, destinations, source_pins, manifest_pins = set(), set(), {}, {}
+-    file_count, logical_bytes = 0, 0
++    file_count, logical_bytes, manifest_bytes = 0, 0, 0
+     gate_roles = {r['role']: r for r in gate['roles']}
+     need(len(gate_roles) == 71, 'duplicate accepted role')
+     for role in roles:
+@@ -186,10 +187,12 @@
+         need(stage['files'] == {name: {'mode': p['mode'], 'sha256': p['sha256']} for name, p in locators.items()},
+              'detached STAGE exact file map')
+         manifest_pins[ident] = role['manifest']
++        manifest_bytes += len(raw)
+         file_count += len(locators)
+         logical_bytes += role_bytes
+     need(file_count == 13992 and logical_bytes == 1386572714 and len(source_pins) == 332,
+          'fixed complete payload denominator')
++    need(logical_bytes + manifest_bytes == 1388508016, 'complete installed byte denominator including 71 manifests')
+     # Read and authenticate all332 paths NOW. No all-role body pool is retained.
+     source_identities = {}
+     for path, key in sorted(source_pins.items()):
+@@ -202,26 +205,19 @@
+         _pin_key(value)
+         _read_source(value['path'], constructor.FILE_CAP, value)
+     commands = records['commands']['commands']
+-    need(type(commands) is list and len(commands) == 100, 'fixed command denominator')
+-    by_role = {r['role']: r for r in roles}
+-    for command in commands:
+-        role = by_role[command['role']]
+-        argv, root, locators = command['argv'], role['runtime_stage_root'], role['source_locator']
+-        boundary = argv.index('--')
+-        need(command['execution_authorized'] is False, 'inert command DATA only')
+-        need(argv[5 if '-O' not in argv[:6] else 6] == root + '/integration/full_driver.py', 'command root identity')
+-        i = argv.index('--root-sha256', 0, boundary)
+-        need(argv[i + 1] == locators['integration/full_driver.py']['sha256'], 'root command source pin')
+-        for flag in ('--provider', '--driver'):
+-            i = argv.index(flag, 0, boundary)
+-            path, sha = argv[i + 1:i + 3]
+-            need(path.startswith(root + '/') and path[len(root) + 1:] in locators
+-                 and sha == locators[path[len(root) + 1:]]['sha256'], 'command source binding')
++    # Separate frozen expectation bytes provide a stable semantic-control
++    # oracle. This is the untouched adopted catalogue, not validator output.
++    expected_raw, unused = _read_source(COMMAND_EXPECTATIONS, OUTER_RECORD_CAP,
++        {'path': COMMAND_EXPECTATIONS, 'sha256': plans.EXACT_RECORDS['commands'][1],
++         'bytes': RECORD_SIZES['commands'], 'mode': 0o444})
++    command_summary = plans.validate_command_catalogue(commands, records['fixed'], roles,
++                                                       _json(expected_raw)['commands'])
+     return {'schema': 's04-authenticated-role-recipe-v1', 'raw_records': raw_records,
+             'roles': roles, 'source_identities': source_identities,
+             'all_source_preauthenticated': True, 'authenticated_source_paths': 332,
+             'authenticated_manifests': 71, 'authenticated_preparation_pins': 36,
+-            'authenticated_commands': 100}
++            'authenticated_commands': 100, 'command_summary': command_summary,
++            'installed_file_occurrences': 14063, 'installed_logical_bytes': 1388508016}
+ 
+ 
+ def _held_target_parent():
+@@ -299,13 +295,16 @@
+ 
+ def main():
+     need((len(sys.argv) == 3 and sys.argv[1] == '--role')
+-         or sys.argv[1:] == ['--list-roles'], 'usage: --role EXACT_ROLE or --list-roles')
++         or sys.argv[1:] in (['--list-roles'], ['--authenticate-only']),
++         'usage: --role EXACT_ROLE, --list-roles or --authenticate-only')
+     recipe = authenticate_recipe()
+-    if sys.argv[1:] == ['--list-roles']:
++    if sys.argv[1:] in (['--list-roles'], ['--authenticate-only']):
+         sys.stdout.buffer.write(constructor.canonical({'schema': 's04-exact-role-list-v1',
+             'roles': [{'role': r['role'], 'stage_root': r['runtime_stage_root']} for r in recipe['roles']],
+             'source_paths': 332, 'source_occurrences': 13992, 'logical_bytes': 1386572714,
+             'manifests': 71, 'preparation_pins': 36, 'commands': 100,
++            **recipe['command_summary'],
++            'installed_file_occurrences': 14063, 'installed_logical_bytes': 1388508016,
+             'target_acquisitions': 0, 'scientific_execution': False}))
+         return
+     result = prepare_role(recipe, sys.argv[2])
