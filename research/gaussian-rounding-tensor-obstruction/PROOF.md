@@ -289,8 +289,14 @@ For example, `z_t=e0+alpha t e0` remains outside `L_U` for integer `t`:
 is outside the swapped finite orbits, so `F_sharp(z_t)=z_t`. The error
 contains the nonzero linear term `alpha t(e0-Ue0)` and is unbounded. It also
 fails the exact native square on `e0`: the complement swap squares to the
-identity, whereas `J e0 != e0` for `n>=1`. Attainment under an additional
-uniform approximation bound or exact native square is not established.
+identity, whereas `J e0 != e0` for `n>=1`. This piecewise construction does
+not establish attainment under an additional uniform approximation bound or exact native square. The separate
+[four-axis certificate](https://github.com/CubeJerry/integer-mult-bounds/blob/6ea7d0886e62d6c0f53aa90ae8691dbcc61ea04a/research/four-axis-exact-square-grid/PROOF.md) now establishes both at `n=4`: it has `F(e0)=e3`, sharp uniform
+error `sqrt(8) h`, native square `F²=J`, and fixed-witness squared discrepancy
+24. Its source and certificate are pinned in `SOURCES.json`; that companion
+result is context for the remaining question, not a premise of this all-`n`
+theorem. Other dimensions and additional caller contracts are not settled
+here, and fixed-witness sharpness is not a worst-case discrepancy optimum.
 
 ## 7. Hypothesis and scope boundaries
 

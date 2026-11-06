@@ -29,8 +29,11 @@ attainment example is nonbijective. If `F(e0)` is nonzero, as injectivity or
 sum preservation requires, the sharp squared discrepancy rises to
 `2N - 2^(floor(n/2)+1)`. An explicit conservative bijection attains that
 stronger bound, but its approximation error is unbounded and it fails the
-exact native square. At grid spacing `h`, all stated discrepancy norms
-are multiplied by `h`.
+exact native square. A separate [four-axis construction](https://github.com/CubeJerry/integer-mult-bounds/blob/6ea7d0886e62d6c0f53aa90ae8691dbcc61ea04a/research/four-axis-exact-square-grid/PROOF.md)
+now attains the stronger fixed-witness bound at `n=4` while preserving the
+sharp uniform error `sqrt(8) h`, exact native square, bijection and sum.
+This does not establish a worst-case tensor-discrepancy optimum. At grid
+spacing `h`, all stated discrepancy norms are multiplied by `h`.
 
 ## Why this result matters
 
@@ -167,10 +170,14 @@ No human proof audit or proof-kernel formalization is claimed.
    integral-image contract, and prove its replacement composition law before
    pricing every new state, restoration and routing operation. Existence,
    error quality and a favorable complete recurrence are all still open.
-3. **Can the stronger bound be attained with uniform approximation error?**
-   The conservative bijection attaining it here has unbounded error and fails
-   the native square. Start with a specified bounded-error reversible or
-   conservative class at `n=2` or `n=4`, and keep any exact-square requirement
-   explicit. The present witness sharpness does not settle that extra contract.
+3. **Which other dimensions admit bounded-error, exact-square attainment?**
+   The companion four-axis construction now settles `n=4`: its certified
+   `F(e0)=e3` gives squared discrepancy 24 while preserving sharp uniform
+   error and the exact native square. The precise source is pinned in
+   [SOURCES.json](SOURCES.json). Other dimensions and additional caller
+   contracts remain open here. Start with a specified dimension and error,
+   reversal and square requirements; the all-dimension piecewise attainer
+   in this package still has unbounded error. Fixed-witness attainment does
+   not optimize worst-case tensor discrepancy.
 
 The structured relevance and blockers are in [TASK.json](TASK.json).
