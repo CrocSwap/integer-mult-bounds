@@ -38,3 +38,34 @@ assumption, precision invoice or new kappa.
 
 This follow-up adds only the review record; the four scientific files above
 remain unchanged from the reviewed commit.
+
+## Additional all-height upper-proof audit
+
+On 2026-11-06, the fresh reviewer `/root/final_interval_audit` independently
+audited the all-height upper argument. This review binds the same four
+scientific SHA256 hashes in the table above, including PROOF.md
+`eeb46c387e9a3965c9e15a8d75f750796fa1d8d8f1b32a6808bd4feaa799a53a`.
+No scientific file changed for this documentation update.
+
+The fresh derivation checked inverse-positive-prefix source nonadjacency,
+especially the phase-2 pattern `(1-f,f,v)`, unequal-height zero padding,
+and the scratch-row bound `H(k)=floor((k+1)^2/2)`. It verified that the
+argument assumes no correlation between source occupancy and scratch
+support. The reviewer also checked the rightmost-factor cross-child
+estimates, all six phase pairs, reverse and complementary cuts, the
+phase-0-to-3 source cancellation or filling `AB-efAB`, and the height-one
+and leaf bases. No gap was found in the scoped upper proof.
+
+The reviewer verified the imported source pins. A separate delegated audit
+rederived #1085's eight signed prefix cases and corroborated them with 32
+abstract free-ring cases and 16 outer inverse identities. These checks do
+not assume `e=f`. They support the stated prefix argument; they are not a
+comprehensive reproof of every imported predecessor theorem.
+
+This was an author-side AI written-proof audit. It did not rerun the
+author's interval census or independently reprove #1374's all-height lower
+family, and it supplies neither formal verification nor human acceptance.
+The historical #628 proposal is closed and unmerged; that provenance does
+not invalidate a theorem about its precisely specified ideal word and does
+not provide caller admission. No rounded execution, precision invoice,
+selected-framework assumption or new kappa follows from this audit.
