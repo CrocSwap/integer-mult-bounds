@@ -1,0 +1,322 @@
+"""Independent exact adjoint and chronological audit of the helper368 split.
+
+No constructor, primary interpreter or primary arithmetic code is imported.
+Jerry Chen / @CubeJerry, substantial OpenAI assistance. Apache-2.0.
+"""
+import argparse
+from collections import Counter
+from copy import deepcopy
+from fractions import Fraction
+import gzip
+from hashlib import sha256
+import json
+from pathlib import Path
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def word(path):
+    return json.loads(gzip.decompress(path.read_bytes()))
+
+
+def combination_add(target, source, factor):
+    for index, coefficient in source.items():
+        value = target.get(index, 0) + factor * coefficient
+        if value:
+            target[index] = value
+        else:
+            target.pop(index, None)
+
+
+def subspace(basis):
+    values = {0}
+    for vector in basis:
+        require(type(vector) is int and 0 < vector < 512,
+                'binary vector in nine axes')
+        require(vector not in values, 'independent frame basis')
+        values.update([value ^ vector for value in values.copy()])
+    return values
+
+
+def chronology(data):
+    public, owned = data['public'], data['owned_fields']
+    total = public + owned
+    require(len(data['initial']) == len(data['final']) == public, 'boundaries')
+    frames = [subspace(vectors) for vectors in data['frames']]
+    current = data['initial'].copy() + [None] * owned
+    alive, maximum, lifetimes, scalar = set(), 0, 0, 0
+    paid, monitors, opcodes = Counter(), [], Counter()
+    for index, event in enumerate(data['program']):
+        operation, target = event[:2]
+        opcodes[operation] += 1
+        require(type(target) is int and 0 <= target < total, 'target index')
+        if operation == 'MOVE':
+            require(len(event) == 5, 'MOVE format')
+            before, after, private = event[2:]
+            require(current[target] == before, 'MOVE incoming chart')
+            require(private == (target in alive), 'MOVE owner type')
+            require(frames[after] < frames[before] if private
+                    else frames[before] < frames[after], 'strict nested MOVE')
+            paid[abs(len(data['frames'][after])-len(data['frames'][before]))] += 1
+            current[target] = after
+        elif operation == 'INIT':
+            require(len(event) == 3 and target >= public and target not in alive,
+                    'fresh owned INIT')
+            alive.add(target)
+            current[target] = event[2]
+            lifetimes += 1
+            maximum = max(maximum, len(alive))
+            scalar += 2
+        elif operation == 'CLEAR':
+            require(len(event) == 3 and target in alive and
+                    current[target] == event[2], 'owned CLEAR')
+            monitors.append((index, operation, target, event[2]))
+            current[target] = None
+            alive.remove(target)
+            scalar += 2
+        elif operation in ('ADD', 'COPY', 'SCALE'):
+            coefficient = Fraction(event[-2])
+            chart = event[-1]
+            require(coefficient != 0 and current[target] == chart,
+                    'scalar coefficient/chart')
+            numerator, denominator = abs(coefficient.numerator), coefficient.denominator
+            require(denominator & (denominator-1) == 0, 'dyadic denominator')
+            require(abs(coefficient)+1 < 2**16, 'fixed coefficient bound')
+            if operation == 'SCALE':
+                require(len(event) == 4 and numerator & (numerator-1) == 0,
+                        'dyadic-unit SCALE')
+                scalar += 2*(abs(numerator.bit_length()-denominator.bit_length()) +
+                             int(coefficient < 0))
+            else:
+                require(len(event) == 5, 'ADD/COPY format')
+                source = event[2]
+                require(source != target and 0 <= source < total and
+                        current[source] == chart, 'scalar common chart')
+                if operation == 'COPY':
+                    require(target in alive, 'COPY into owned field')
+                    monitors.append((index, operation, target, chart))
+                scalar += 2*(3+numerator.bit_length()-1+numerator.bit_count()+
+                             denominator.bit_length()-1)
+        else:
+            raise ValueError('Unknown opcode ' + operation)
+    require(not alive and current[:public] == data['final'], 'complete exits')
+    require(all(chart is None for chart in current[public:]), 'owned exits')
+    main = set(data['live']) | {r+112 for r in data['live']}
+    require(len(main) == 208 and len(data['live']) == len(data['ports']) == 104,
+            'main interface count')
+    helpers = Counter()
+    for role in range(public):
+        if role not in main:
+            before, after = data['initial'][role], data['final'][role]
+            require(frames[before] < frames[after], 'productive helper endpoint')
+            helpers[len(data['frames'][after])-len(data['frames'][before])] += 1
+    return dict(public=public, owned=owned, total=total, events=len(data['program']),
+                paid=dict(sorted(paid.items())), helpers=dict(sorted(helpers.items())),
+                scalar=scalar, peak=maximum, lifetimes=lifetimes,
+                opcodes=dict(opcodes), monitors=monitors)
+
+
+def adjoint(data, metadata):
+    """Reverse all endpoint coefficients and all pre-COPY/CLEAR functionals."""
+    n, public = metadata['total'], metadata['public']
+    columns = [{r: Fraction(1)} for r in range(n)]
+    monitor_at = {entry[0]: (n+j, entry) for j, entry in enumerate(metadata['monitors'])}
+    for index in range(len(data['program'])-1, -1, -1):
+        event = data['program'][index]
+        operation, target = event[:2]
+        if operation in ('INIT', 'CLEAR'):
+            columns[target] = {}
+        elif operation == 'SCALE':
+            factor = Fraction(event[2])
+            columns[target] = {row: factor*value for row, value in columns[target].items()}
+        elif operation in ('ADD', 'COPY'):
+            source, factor = event[2], Fraction(event[3])
+            combination_add(columns[source], columns[target], factor)
+            if operation == 'COPY':
+                columns[target] = {}
+        if index in monitor_at:
+            row, _ = monitor_at[index]
+            columns[target][row] = Fraction(1)
+    for source, column in enumerate(columns):
+        actual = {r: c for r, c in column.items() if r < n}
+        expected = {source: Fraction(1)} if source < public else {}
+        if source in data['live']:
+            expected[source+112] = Fraction(1)
+        require(actual == expected, 'complete endpoint column ' + str(source))
+    monitor_rows = []
+    for j, entry in enumerate(metadata['monitors']):
+        row = {source: column[n+j] for source, column in enumerate(columns)
+               if n+j in column}
+        require(all(source < public for source in row), 'owned initial values disappear')
+        if entry[1] == 'COPY':
+            require(not row, 'COPY destination exactly zero at ' + str(entry[0]))
+        monitor_rows.append((entry, row))
+    return monitor_rows
+
+
+def audit(data):
+    metadata = chronology(data)
+    monitors = adjoint(data, metadata)
+    metadata.pop('monitors')
+    metadata['all_coefficients'] = metadata['total'] ** 2
+    metadata['copy_zero_checks'] = sum(entry[1] == 'COPY' for entry, row in monitors)
+    metadata['clear_nonzero'] = sum(entry[1] == 'CLEAR' and bool(row) for entry, row in monitors)
+    return metadata, monitors
+
+
+def delta(after, before):
+    return {r: after.get(r, 0)-before.get(r, 0)
+            for r in sorted(set(after)|set(before)) if after.get(r, 0) != before.get(r, 0)}
+
+
+def decode_witness(value):
+    return {int(k): Fraction(v) for k, v in value.items()}
+
+
+def scalar_response(data, vector, events):
+    """One forward vector, used only to bind the independently stated cut."""
+    values = [Fraction(0)] * (data['public']+data['owned_fields'])
+    for index, coefficient in vector.items():
+        values[index] = coefficient
+    for event in events:
+        operation, target = event[:2]
+        if operation in ('INIT', 'CLEAR'):
+            values[target] = Fraction(0)
+        elif operation == 'SCALE':
+            values[target] *= Fraction(event[2])
+        elif operation == 'ADD':
+            values[target] += Fraction(event[3])*values[event[2]]
+        elif operation == 'COPY':
+            require(values[target] == 0, 'witness suffix preserves COPY-zero')
+            values[target] = Fraction(event[3])*values[event[2]]
+    return {i: value for i, value in enumerate(values) if value}
+
+
+def pullback(functional, events):
+    """One reverse functional; independent of the parent search's prefix rows."""
+    values = dict(functional)
+    for event in reversed(events):
+        operation, target = event[:2]
+        coefficient = values.get(target, Fraction(0))
+        if operation in ('INIT', 'CLEAR'):
+            values.pop(target, None)
+        elif operation == 'SCALE':
+            if coefficient:
+                values[target] = coefficient*Fraction(event[2])
+        elif operation in ('ADD', 'COPY'):
+            if coefficient:
+                source = event[2]
+                value = values.get(source, 0)+coefficient*Fraction(event[3])
+                if value:
+                    values[source] = value
+                else:
+                    values.pop(source, None)
+            if operation == 'COPY':
+                values.pop(target, None)
+    return values
+
+
+def run(base_path, candidate_path, witness_path, controls):
+    baseline, candidate = word(base_path), word(candidate_path)
+    require(sha256(base_path.read_bytes()).hexdigest() ==
+            'e8c7a9d54d98a4cfa27e15593016b3908afed303e0f480076ed3f596192e5a4d',
+            'pinned #6702 source word')
+    base, old_monitors = audit(baseline)
+    new, new_monitors = audit(candidate)
+    require(candidate['frames'] == baseline['frames'] and
+            candidate['live'] == baseline['live'] and candidate['ports'] == baseline['ports'],
+            'unchanged frames and main ports')
+    require(candidate['public'] == baseline['public']+1 and
+            candidate['owned_fields'] == baseline['owned_fields'], 'one fresh public field')
+    require(candidate['initial'] == baseline['initial']+[243], 'initial boundary')
+    final = baseline['final'].copy()
+    final[368] = 243
+    require(candidate['final'] == final+[127], 'only declared final boundaries')
+    paid_delta = delta(new['paid'], base['paid'])
+    target_delta = delta(new['helpers'], base['helpers'])
+    require(paid_delta == {1: 1, 5: 1, 6: -1}, 'exact paid delta')
+    require(target_delta == {4: 1, 5: 1, 9: -1}, 'exact target delta')
+    require(new['lifetimes'] == base['lifetimes'] == 47 and
+            new['peak'] == base['peak'] == 14, 'owned lifetime and peak unchanged')
+    old_clears = [(entry, row) for entry, row in old_monitors if entry[1] == 'CLEAR']
+    new_clears = [(entry, row) for entry, row in new_monitors if entry[1] == 'CLEAR']
+    require(len(old_clears) == len(new_clears) == 47, 'same CLEAR count')
+    for (old_event, old_row), (new_event, new_row) in zip(old_clears, new_clears):
+        require(old_event[2]+1 == new_event[2] and old_event[3] == new_event[3],
+                'unchanged owned CLEAR labels and charts')
+        require(bool(old_row) == bool(new_row), 'no newly nonzero owned erasure')
+    # Prepare the paid path directly from the supplied old event/cut, not from
+    # the parent constructor, then audit its old endpoint and bind the witness.
+    require(baseline['program'][14088] == ['MOVE',80,749,127,False], 'old MOVE')
+    for event in baseline['program'][12372:14088]:
+        require(event[1] != 80 and not(event[0] in ('ADD','COPY') and event[2] == 80),
+                'role80 inactive throughout advanced-MOVE interval')
+    prepared = deepcopy(baseline)
+    prepared['program'] = (baseline['program'][:12372]+[['MOVE',80,749,243,False]]+
+                           [['MOVE',80,243,127,False]]+
+                           baseline['program'][12372:14088]+baseline['program'][14089:])
+    prepared_metadata, _ = audit(prepared)
+    require(delta(prepared_metadata['paid'], base['paid']) == paid_delta,
+            'prepared MOVE invoice')
+    h = json.loads(witness_path.read_text())['split']
+    a,b,c,d = (decode_witness(h[key]) for key in ('a','b','c','d'))
+    prefix = prepared['program'][:12373]
+    suffix = prepared['program'][12373:]
+    require(pullback(a, prefix) == c, 'complete prefix functional')
+    require(scalar_response(prepared,b,suffix) == d, 'complete suffix direction')
+    require(sum(value*b.get(i,0) for i,value in a.items()) ==
+            sum(value*d.get(i,0) for i,value in c.items()) == 1, 'unit pairings')
+    main = set(baseline['live'])|{r+112 for r in baseline['live']}
+    require(all(i not in main and baseline['initial'][i] == 3 and
+                baseline['final'][i] == 127 for i in set(c)|set(d)), 'one helper group')
+    changed_pairs = set((e[2],e[3]) for e in candidate['program'] if e[0] == 'MOVE') - set(
+        (e[2],e[3]) for e in baseline['program'] if e[0] == 'MOVE')
+    failures = []
+    if controls:
+        # Each mutation reaches this independent full-word interpreter.
+        mutation_indices = [0,12,12385,12386,12394,12395,12404,18609,18621]
+        for index in mutation_indices:
+            mutant = deepcopy(candidate)
+            del mutant['program'][index]
+            try:
+                audit(mutant)
+            except ValueError as error:
+                failures.append(dict(kind='omission',index=index,rejected=str(error)))
+            else:
+                raise ValueError('omission accepted at '+str(index))
+        mutant = deepcopy(candidate)
+        mutant['final'][368] = 127
+        try:
+            audit(mutant)
+        except ValueError as error:
+            failures.append(dict(kind='unearned old target',rejected=str(error)))
+        else:
+            raise ValueError('wrong target accepted')
+    return dict(status='PASS_INDEPENDENT_PAID_HELPER368_SPLIT',
+                source_sha256=sha256(base_path.read_bytes()).hexdigest(),
+                candidate_sha256=sha256(candidate_path.read_bytes()).hexdigest(),
+                base=base,candidate=new,paid_delta=paid_delta,target_delta=target_delta,
+                new_native_chart_pairs=sorted(changed_pairs),
+                exact_pairings=True,copy_zero_guard_checked=True,
+                zero_clear_pattern_preserved=True,controls=failures,
+                limitations=['Native phase/all-column replay not performed here.',
+                             'Complete caller/outer invoice and uniform admission not performed here.',
+                             'Exact rational normalized word and chronological interface audited.'])
+
+
+if __name__ == '__main__':
+    here = Path(__file__).resolve().parent.parent
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--base',type=Path,default=here/'retained/native/PR6702-WORD.json.gz')
+    parser.add_argument('--candidate',type=Path,required=True)
+    parser.add_argument('--witness',type=Path,default=here/'WITNESS.json')
+    parser.add_argument('--output',type=Path,default=Path(__file__).with_name('RESULT.json'))
+    parser.add_argument('--controls',action='store_true')
+    args = parser.parse_args()
+    result = run(args.base,args.candidate,args.witness,args.controls)
+    args.output.write_text(json.dumps(result,indent=2)+'\n')
+    print(result['status'])
+    print(json.dumps({key:result[key] for key in ('paid_delta','target_delta','new_native_chart_pairs')},sort_keys=True))
