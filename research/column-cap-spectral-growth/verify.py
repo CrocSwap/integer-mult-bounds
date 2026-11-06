@@ -60,7 +60,7 @@ def upper(n, m, rho):
     return min(split, 1/(1-a)) if a < 1 else split
 
 
-def positive_definite(a):
+def positive_semidefinite(a):
     # Symmetric Schur elimination is an exact Sylvester/LDL test.
     w = [row[:] for row in a]
     for k in range(len(w)):
@@ -82,7 +82,7 @@ def certify(e, m, rho):
     need(mm(h, r) == eye(n) == mm(r, h), 'two inverse identities')
     gram = mm(list(map(list, zip(*r))), r)
     u = upper(n, m, rho)
-    positive_definite([[u*u*Q(i == j)-gram[i][j]
+    positive_semidefinite([[u*u*Q(i == j)-gram[i][j]
                        for j in range(n)] for i in range(n)])
     return r
 
