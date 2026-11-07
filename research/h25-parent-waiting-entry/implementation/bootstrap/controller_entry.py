@@ -1,0 +1,218 @@
+# Modified 2026-11-07: Clear1nsight, with OpenAI Codex and ChatGPT Pro assistance. See NOTICE.md.
+"""Fixed immutable CONTROLLER entry; actual execution requires separate admission."""
+import hashlib
+import os
+from pathlib import Path
+import resource
+import stat
+import sys
+from types import ModuleType
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/caller-proof-completion-20261107T0155Z'
+LOADER = R / 'implementation/bindings/private_loader.py'
+C2_AS_BYTES = 268435456
+RETAINED = []
+FIRST, SECONDARY, UNKNOWN = [None], [None] * 16, [False]
+FIRST_TRACE, SECONDARY_TRACE = [None], [None] * 16
+
+
+def keep(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+        FIRST_TRACE[0] = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+    elif error is not FIRST[0]:
+        for i, old in enumerate(SECONDARY):
+            if old is error:
+                break
+            if old is None:
+                SECONDARY[i] = error
+                SECONDARY_TRACE[i] = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+                break
+        else:
+            UNKNOWN[0] = True
+    return FIRST[0]
+
+
+def install_c2_as_limit(port=resource):
+    """Lower and read back C2's selected bound before any source/owner work.
+
+    The selected module port is fixed by main. A lower inherited soft or hard
+    limit remains lower; an inability to install or read back stops this entry.
+    This source operation establishes no claim that the complete work will fit.
+    """
+    inherited = port.getrlimit(port.RLIMIT_AS)
+    if not (type(inherited) is tuple and len(inherited) == 2 and
+            all(type(value) is int and (value >= 0 or value == port.RLIM_INFINITY)
+                for value in inherited)):
+        raise RuntimeError('exact inherited C2 AS limits')
+    soft, hard = inherited
+    if hard != port.RLIM_INFINITY and (soft == port.RLIM_INFINITY or soft > hard):
+        raise RuntimeError('ordered inherited C2 AS limits')
+    hard = C2_AS_BYTES if hard == port.RLIM_INFINITY else min(hard, C2_AS_BYTES)
+    soft = hard if soft == port.RLIM_INFINITY else min(soft, hard)
+    wanted = (soft, hard)
+    port.setrlimit(port.RLIMIT_AS, wanted)
+    actual = port.getrlimit(port.RLIMIT_AS)
+    if not (type(actual) is tuple and len(actual) == 2 and
+            all(type(value) is int for value in actual) and actual == wanted and
+            0 <= actual[0] <= actual[1] <= C2_AS_BYTES):
+        raise RuntimeError('actual C2 AS soft/hard bound readback differs')
+    return actual
+
+
+def authenticate_c2_pins(loader, cfg, args, controller):
+    """Authenticate full immutable pins, then adapt to the original C2 API."""
+    published = controller.ROOT / 'control'
+    loader.need(args['--plan'] == str(published / (controller.NAME+'-PLAN.json')) and
+                args['--admission'] == str(published / (controller.NAME+'-ADMISSION.json')),
+                'exact original P-published plan/admission destination')
+    plan_pin = dict(cfg['plan_pin'], path=args['--plan'])
+    admission_pin = dict(cfg['admission_pin'], path=args['--admission'])
+    for template_pin, actual_pin in ((cfg['plan_pin'],plan_pin),(cfg['admission_pin'],admission_pin)):
+        loader.need(loader.read_fixed(Path(template_pin['path']),template_pin['bytes'],template_pin) ==
+                    loader.read_fixed(Path(actual_pin['path']),actual_pin['bytes'],actual_pin),
+                    'full source template and actual P-published metadata agree under C2 EX')
+    # read_fixed above still requires every original mode=0444 four-field pin.
+    # The original unchanged C2 API independently requires exactly these three.
+    return tuple({key:pin[key] for key in ('path','bytes','sha256')}
+                 for pin in (plan_pin, admission_pin))
+
+
+def transport():
+    # Fixed loader pin comes from the separately admitted exact launcher argv.
+    # No script path, arbitrary callable, context or descriptor number is input.
+    args = {}
+    if len(sys.argv) % 2 != 1:
+        raise RuntimeError('fixed key/value entry argv')
+    for i in range(1, len(sys.argv), 2):
+        if sys.argv[i] in args:
+            raise RuntimeError('duplicate entry argument')
+        args[sys.argv[i]] = sys.argv[i+1]
+    expected_sha, expected_bytes = args['--loader-sha256'], int(args['--loader-bytes'])
+    if not 0 < expected_bytes <= 1048576 or len(expected_sha) != 64:
+        raise RuntimeError('bounded exact immutable loader pin')
+    before = LOADER.lstat()
+    if not (LOADER.resolve(strict=True) == LOADER and stat.S_ISREG(before.st_mode) and
+            stat.S_IMODE(before.st_mode) == 0o444 and before.st_nlink == 1 and
+            before.st_uid in (0, os.getuid()) and before.st_size == expected_bytes):
+        raise RuntimeError('fixed pristine loader owner/path/mode/link/size')
+    fd, phase, raw = None, 'OPEN_PENDING', None
+    RETAINED.append(('LOADER_OPEN_PENDING', str(LOADER)))
+    try:
+        fd = os.open(LOADER, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        phase = 'OWNED'
+        RETAINED.append(('LOADER_OWNED', fd))
+        opened = os.fstat(fd)
+        if opened != before:
+            raise RuntimeError('loader descriptor/path differs')
+        parts, count = [], 0
+        while True:
+            part = os.read(fd, min(65536, expected_bytes + 1 - count))
+            if not part:
+                break
+            parts.append(part)
+            count += len(part)
+            if count > expected_bytes:
+                raise RuntimeError('loader source cap')
+        raw = b''.join(parts)
+        if not (len(raw) == expected_bytes and hashlib.sha256(raw).hexdigest() == expected_sha and
+                os.fstat(fd) == opened == LOADER.lstat()):
+            raise RuntimeError('complete stable exact selected loader source')
+    except BaseException as error:
+        keep(error)
+        if phase == 'OPEN_PENDING':
+            UNKNOWN[0] = True
+    finally:
+        if phase == 'OWNED':
+            phase = 'CLOSE_ENTERED'
+            RETAINED.append(('LOADER_CLOSE_ENTERED', fd))
+            try:
+                os.close(fd)
+                phase = 'CLOSED'
+            except BaseException as error:
+                phase, UNKNOWN[0] = 'CLOSE_UNKNOWN', True
+                keep(error)
+    if FIRST[0] is not None:
+        raise BaseException.with_traceback(FIRST[0],FIRST_TRACE[0])
+    if UNKNOWN[0] or phase != 'CLOSED':
+        raise RuntimeError('unknown loader descriptor forbids source execution')
+    name = '_s03_fixed_entry_private_loader'
+    if name in sys.modules:
+        raise RuntimeError('fresh fixed loader namespace required')
+    module = ModuleType(name)
+    module.__dict__.update(__name__=name, __file__=str(LOADER), __package__=None, __spec__=None)
+    sys.modules[name] = module
+    RETAINED.append((module,raw))
+    exec(compile(raw, str(LOADER), 'exec', dont_inherit=True), module.__dict__)
+    return module
+
+
+def main():
+    RETAINED.append(('C2_AS_BOUND', install_c2_as_limit(resource)))
+    loader = transport()
+    bundle = loader.load_fixed('CONTROLLER')
+    RETAINED.append(bundle)
+    args, cfg = loader.arguments(), bundle.contract
+    loader.need(args['--handoff-path'] == cfg['handoff_path'], 'fixed original P-to-C2 intent path')
+    raw, handoff_pin = loader.actual_pin(Path(cfg['handoff_path']))
+    handoff = bundle.F.decode(raw)
+    loader.need(handoff['source_role'] == 'PUBLISHER' and handoff['destination_role'] == 'CONTROLLER' and
+                handoff['request'] == cfg['request'] and handoff['native_capability_transferred'] is False,
+                'metadata correlates same original operation; no financial owner survives exec')
+    factory = bundle.A.bind_api(bundle.C,bundle.F,role='CONTROLLER',
+        expected_head_pin=handoff['head_pin'], approved_handoff_pin=handoff_pin,
+        approved_opening=cfg['approved_opening'], approved_manual_entry=bundle.manual,
+        guardian=bundle.guardian_pair)
+    RETAINED.append(factory)
+    ctx = factory()  # NEW original actual native EX in C2; no copied P ctx/OFD.
+    RETAINED.append(ctx)
+    entered = False
+    try:
+        ctx.adopt_handoff()
+        bundle.guardian.continuation(cfg['request'], bundle.manual['provenance']['original_start_pin'], 'ACTIVE')
+        joined = bundle.C.configure_joined(bundle.load('layout'),bundle.load('attempt_registry'),
+            bundle.load('production_issuer'),bundle.guardian,bundle.retention)
+        plan_pin, admission_pin = authenticate_c2_pins(loader,cfg,args,bundle.C)
+        supervisor, wrapper = bundle.load('supervisor'), bundle.load('wrapper')
+        queue, envelope = bundle.load('queue'), bundle.load('envelope')
+        association = bundle.associate_environment()  # Cold factory; no pre-owner Q claim.
+        bundle.C.bind_environment_association(association)
+        full = bundle.load('full_receiver')
+        bundle.C.bind_full_receiver(full)
+        supervisor.configure_joined_runtime(bundle.load('bounded_relay'),
+            bundle.manifest['source_pins']['bounded_relay'],
+            bundle.joined_native_profile_template(),association=association,
+            full_receiver=full,full_receiver_pin=bundle.manifest['source_pins']['full_receiver'],
+            query_receiver=bundle.load('query_receiver'),
+            query_receiver_pin=bundle.manifest['source_pins']['query_receiver'],
+            query_profile=bundle.joined_property_query_profile(),
+            common_runner_pin=bundle.manifest['source_pins']['common_runner'],
+            waiting_entry_pin=bundle.manifest['source_pins']['waiting_entry'])
+        entered = True  # All fallible dependency loads completed; C2 now owns actual release.
+        return bundle.C.run_composed(bundle.C,bundle.A,supervisor,wrapper,
+            queue,envelope,ctx,bundle.runtime['start_monotonic_ns'],
+            plan_pin,admission_pin,joined=joined)
+    except BaseException as error:
+        keep(error)
+        if not entered:
+            if bundle.C._ENVIRONMENT_ASSOCIATION is not None:
+                try:
+                    bundle.C.close_environment_association()
+                except BaseException as secondary:
+                    keep(secondary)
+            try:
+                ctx.release()
+            except BaseException as secondary:
+                keep(secondary)
+        raise BaseException.with_traceback(FIRST[0],FIRST_TRACE[0])
+
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(main())
+    except BaseException as error:
+        if type(error) is SystemExit:
+            raise
+        keep(error)
+        raise

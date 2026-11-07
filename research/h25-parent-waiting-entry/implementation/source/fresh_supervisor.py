@@ -1,0 +1,2141 @@
+# Modified 2026-11-07: Clear1nsight, with OpenAI Codex and ChatGPT Pro assistance. See NOTICE.md.
+"""Parent-only bounded process supervision; imports no candidate implementation.
+
+The runtime caller must establish the trusted clean launcher before calling us.
+This source was prepared without loading ctypes or running any control.  The
+closed single-threaded child domain is an explicit premise, not a hostile-fork
+sandbox.  Numeric process IDs are never used as signal destinations.
+"""
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+from types import ModuleType, FunctionType, MethodType, GetSetDescriptorType
+
+ROOT = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028')
+
+STAGE_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z/implementation/bindings/stages')
+CONFIG_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z/implementation/bindings/control')
+NESTED_BASE = ROOT / 'runtime/fresh-metered-round-v1/nested-runs'
+RUNNER_PATH = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z/implementation/source/fresh_runner.py')
+_BOUND_CONTEXTS = {}
+
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+RUNNER_SHA = '682f530cd83a3a8c01c14d21f6321177a6472e795c1ca423aad238dffad458f9'
+QUEUE_SHA = '3dc44e957b2aaa4807ec0735ae6ac77b58563bf9db00db4f5495077544e8305c'
+TCB_SHA = '610492b3fc06baa0560175edc3ba27057de00d00b8fd3d58dbe55e5a371c042a'
+LIBC = '/usr/lib/x86_64-linux-gnu/libc.so.6'
+NATIVE_PINS = {
+    LIBC: '3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf',
+    '/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so': 'aad3e24f186e6c0a1c7efa8f16004f951f527db86f6451d30118657384a456c1',
+    '/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4': '00f593fe192f2851b8ce23b25cec2488d769beb5a8f63e8c9e563071e1075153',
+    '/usr/lib/python3.12/ctypes/__init__.py': '0782592567ad71097198a3afe985ac3e2ea0b9b5e75452402c9460c89a86318a',
+    '/usr/lib/python3.12/ctypes/_endian.py': 'c5d692bdce10dfee242752620061bab684633bc72445a3def484961ef1bdbf3a',
+}
+CHUNK = 65536
+LOG_CAP = 2 * 1024 * 1024
+META_CAP = 256 * 1024
+CLEANUP_SECONDS = 2.0
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def root_address_space_limits(inherited, requested_bytes, infinity=-1):
+    """Preserve the enclosing hard cap and every lower inherited Root bound.
+
+    requested_bytes remains the original admitted upper bound. C2's selected
+    lower hard limit cannot legally be raised by its unprivileged child.
+    """
+    need(type(requested_bytes) is int and 0 < requested_bytes <= 1024 ** 3,
+         'original admitted Root AS upper bound')
+    need(type(inherited) is tuple and len(inherited) == 2 and
+         all(type(value) is int and (value >= 0 or value == infinity) for value in inherited),
+         'exact inherited Root AS limits')
+    soft, hard = inherited
+    need(hard == infinity or (soft != infinity and soft <= hard), 'ordered inherited Root AS limits')
+    hard = requested_bytes if hard == infinity else min(hard, requested_bytes)
+    soft = hard if soft == infinity else min(soft, hard)
+    return soft, hard
+
+
+
+_COMPLETED = None
+
+_JOINED = None
+_JOINED_STATE = 'UNENTERED'
+_QUERY_JOINED = None
+_SUPERVISOR_IO = {'rows':[],'unknown':False}
+SOURCE_BASE = Path(__file__).absolute().parent
+
+
+def configure_joined_runtime(relay_module, relay_pin, native_entry_profile_template, *, association, full_receiver, full_receiver_pin, query_receiver=None, query_receiver_pin=None, query_profile=None, common_runner_pin=None, waiting_entry_pin=None):
+    """Actual authenticated private modules/profile, before any producer exists.
+
+    These checks corroborate the parent's selection. Runtime image/kernel/object
+    compatibility is supplied by that genuine boundary, never a DATA boolean.
+    """
+    global _JOINED,_JOINED_STATE,_QUERY_JOINED,_COMMON,RUNNER_PATH,RUNNER_SHA
+    need(_JOINED_STATE=='UNENTERED' and not _SUPERVISOR_IO['unknown'],'one monotone joined source binding entry')
+    _JOINED_STATE='ENTERED'
+    need(_JOINED is None and type(relay_module) is ModuleType and type(full_receiver) is ModuleType,
+         'one genuine joined module/profile binding')
+    for module,pin,leaf in ((relay_module,relay_pin,'bounded_relay.py'),
+                            (full_receiver,full_receiver_pin,'full_result_receiver.py')):
+        need(type(pin) is dict and set(pin)=={'path','bytes','sha256','mode'} and
+             pin['path']==str(SOURCE_BASE/leaf) and pin['mode']==0o444 and
+             type(pin['bytes']) is int and 0<pin['bytes']<=262144 and
+             module.__dict__.get('__file__')==pin['path'], 'source-owned genuine joined module path/pin')
+        observed=stable_file(Path(pin['path']),262144)
+        need(observed['sha256']==pin['sha256'] and observed['bytes']==pin['bytes'],
+             'actual selected joined module source bytes')
+    profile=native_entry_profile_template
+    need(type(profile) is dict and set(profile)=={'schema','entry_path','entry_sha256','entry_bytes',
+         'time_path','time_sha256','time_bytes','source_sha256'} and
+         profile['schema']=='joined-native-entry-profile-v1' and profile['time_path']=='/usr/bin/time',
+         'exact genuine parent-associated entry profile')
+    for key in ('entry','time'):
+        need(type(profile[key+'_path']) is str and Path(profile[key+'_path']).is_absolute() and
+             type(profile[key+'_bytes']) is int and 0<profile[key+'_bytes']<=16777216,
+             'exact parent-associated image path/size')
+        observed=stable_file(Path(profile[key+'_path']),16777216)
+        need(observed['sha256']==profile[key+'_sha256'] and observed['bytes']==profile[key+'_bytes'],
+             'actual selected native/time current bytes')
+    for key in ('entry_sha256','time_sha256','source_sha256'):
+        need(type(profile[key]) is str and len(profile[key])==64 and
+             all(c in '0123456789abcdef' for c in profile[key]), 'exact genuine association digest')
+    association_path=str(SOURCE_BASE.parent/'bindings/environment_association.py')
+    cls=type(association)
+    need(type(cls) is type and type.__getattribute__(cls,'__name__')=='ParentAssociation' and
+         type.__getattribute__(cls,'__mro__')==(cls,object),'actual ordinary source-owned parent association')
+    ports={}
+    for name in ('observe','bind_launch','launch_record','close','bind_property_query_runner'):
+        method=getattr(association,name)
+        need(type(method) is MethodType and method.__self__ is association and
+             type(method.__func__) is FunctionType and method.__func__.__code__.co_filename==association_path and
+             method.__func__.__globals__.get('__file__')==association_path and
+             method.__func__.__globals__.get('ParentAssociation') is cls,
+             'actual parent association source/code/bound-method owner')
+        ports[name]=(method,method.__func__,method.__func__.__code__)
+    need(type(query_receiver) is ModuleType and type(query_receiver_pin) is dict and
+         set(query_receiver_pin) == {'path', 'bytes', 'sha256', 'mode'} and
+         query_receiver_pin['path'] == str(SOURCE_BASE / 'property_query_receiver.py') and
+         query_receiver_pin['mode'] == 0o444 and
+         query_receiver.__dict__.get('__file__') == query_receiver_pin['path'],
+         'actual selected property receiver source module')
+    observed = stable_file(Path(query_receiver_pin['path']), META_CAP)
+    need(observed['bytes'] == query_receiver_pin['bytes'] and observed['sha256'] == query_receiver_pin['sha256'],
+         'actual selected property receiver bytes')
+    need(type(query_profile) is dict and set(query_profile) == {'schema', 'observer_pin', 'observer_source_pin',
+         'program_pins', 'source_tuple_sha256', 'profile_sha256'} and
+         query_profile['schema'] == 'joined-property-query-profile-v1', 'exact joined property profile')
+    for key in ('source_tuple_sha256', 'profile_sha256'):
+        need(type(query_profile[key]) is str and len(query_profile[key]) == 64 and
+             all(c in '0123456789abcdef' for c in query_profile[key]), 'source-derived property subject digest')
+    need(type(query_profile['program_pins']) is list and 1 <= len(query_profile['program_pins']) <= 16,
+         'finite actual configured query image closure')
+    for pin in [query_profile['observer_pin'], query_profile['observer_source_pin']] + query_profile['program_pins']:
+        need(type(pin) is dict and set(pin) == {'path', 'bytes', 'sha256', 'mode'} and
+             type(pin['path']) is str and Path(pin['path']).is_absolute() and
+             type(pin['bytes']) is int and 0 < pin['bytes'] <= 16777216 and type(pin['mode']) is int,
+             'exact actual property source/image pin')
+        info = Path(pin['path']).lstat()
+        need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == pin['mode'],
+             'actual property source/image mode')
+        if pin is query_profile['observer_source_pin']:
+            need(pin['mode'] == 0o444, 'immutable selected observer source mode')
+        else:
+            need(pin['mode'] & 0o111 != 0 and pin['mode'] & 0o022 == 0, 'actual executable image mode')
+        observed = stable_file(Path(pin['path']), 16777216)
+        need(observed['bytes'] == pin['bytes'] and observed['sha256'] == pin['sha256'], 'actual property image/source bytes')
+    receiver_ports = {}
+    for name in ('validate_request', 'encode_request', 'validate_terminal'):
+        fn = query_receiver.__dict__.get(name)
+        need(type(fn) is FunctionType and fn.__globals__ is query_receiver.__dict__ and
+             fn.__code__.co_filename == query_receiver_pin['path'], 'actual strict query receiver function')
+        receiver_ports[name] = (fn, fn.__code__)
+    # Source-authenticated bootstrap supplies these exact immutable code pins.
+    # No caller DATA reconstructs the association, lease, registry or guardian.
+    for pin, leaf in ((common_runner_pin, 'run_guarded_v3.py'),
+                      (waiting_entry_pin, 'candidate_entry.py')):
+        need(type(pin) is dict and set(pin) == {'path','bytes','sha256','mode'} and
+             type(pin['path']) is str and Path(pin['path']).is_absolute() and
+             Path(pin['path']).name == leaf and pin['mode'] == 0o444 and
+             type(pin['bytes']) is int and 0 < pin['bytes'] <= META_CAP and
+             type(pin['sha256']) is str and len(pin['sha256']) == 64 and
+             all(c in '0123456789abcdef' for c in pin['sha256']),
+             'exact frozen common runner and waiting-entry source pins')
+        observed = stable_file(Path(pin['path']), META_CAP)
+        need(observed['bytes'] == pin['bytes'] and observed['sha256'] == pin['sha256'] and
+             stat.S_IMODE(Path(pin['path']).lstat().st_mode) == 0o444,
+             'actual selected common runner/waiting entry source bytes and mode')
+    _COMMON = (dict(common_runner_pin), dict(waiting_entry_pin))
+    RUNNER_PATH, RUNNER_SHA = Path(common_runner_pin['path']), common_runner_pin['sha256']
+    _QUERY_JOINED = (query_receiver, dict(query_receiver_pin), json.loads(json.dumps(query_profile)), receiver_ports)
+    _JOINED=(relay_module,dict(relay_pin),dict(profile),full_receiver,dict(full_receiver_pin),
+             association,cls,ports,os.getpid())
+    _JOINED_STATE='BOUND'
+    return True
+
+
+
+def configure_completed_source(layout, registry, guardian):
+    global _COMPLETED
+    need(not _SUPERVISOR_IO['unknown'] and all(r['state']=='CLOSED' for r in _SUPERVISOR_IO['rows']),
+         'known closure of all prior source/profile read descriptors')
+    need(_COMPLETED is None and registry.layout is layout and guardian is not None,
+         'one actual complete-source binding before producers')
+    _COMPLETED = (layout, registry, guardian)
+    return True
+
+def completed_source():
+    need(_COMPLETED is not None, 'actual complete-source binding required')
+    return _COMPLETED
+
+def launch_contract():
+    need(sys.executable == '/usr/bin/python3.12', 'Pinned interpreter required')
+    need(sys.flags.no_site == sys.flags.no_user_site == sys.flags.dont_write_bytecode == 1 and
+         sys.flags.safe_path and sys.flags.ignore_environment == sys.flags.isolated ==
+         sys.flags.hash_randomization == 0, 'Trusted no-site safe-path fixed-seed flags required')
+    need(dict(os.environ) == ENV, 'Exact clean environment required')
+    need(tuple(sys.path) == ('/usr/lib/python312.zip', '/usr/lib/python3.12',
+                            '/usr/lib/python3.12/lib-dynload'), 'Initial system stdlib path changed')
+    need(list(Path('/proc/self/task').iterdir()) == [Path('/proc/self/task') / str(os.getpid())],
+         'Exactly one parent task required')
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def stable_file(path, limit, keep=False):
+    """Complete bounded snapshot; primary survives known descriptor close failure."""
+    path = Path(path)
+    before = path.stat(follow_symlinks=False)
+    need(stat.S_ISREG(before.st_mode) and before.st_size <= limit, 'File type/size bound: '+str(path))
+    need(not _SUPERVISOR_IO['unknown'] and len(_SUPERVISOR_IO['rows'])<128,'bounded known supervisor read custody')
+    ticket={'path':path,'object':None,'state':'PENDING','primary':None,'secondary':None}
+    _SUPERVISOR_IO['rows'].append(ticket)  # Register before native acquisition.
+    h,count,blocks,fd = hashlib.sha256(),0,[],None
+    primary,secondary,traceback,after_fd = None,None,None,None
+    try:
+        fd = os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        ticket['object'],ticket['state']=fd,'OWNED'
+        opened = os.fstat(fd)
+        need(identity(before) == identity(opened), 'File changed while opening')
+        while count < opened.st_size:
+            block = os.read(fd,min(CHUNK,opened.st_size-count))
+            need(bool(block),'Short retained-file read')
+            count += len(block);h.update(block)
+            if keep:
+                blocks.append(block)
+        after_fd = os.fstat(fd)
+    except BaseException as error:
+        primary = error
+        ticket['primary']=error
+        if fd is None:
+            ticket['state'],_SUPERVISOR_IO['unknown']='UNKNOWN',True
+        traceback = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+        if _COMPLETED is not None:
+            _COMPLETED[1].remember(error)
+    finally:
+        if fd is not None:
+            closing_fd,fd = fd,None
+            ticket['object'],ticket['state']=None,'CLOSING'
+            try:
+                os.close(closing_fd)
+            except BaseException as error:
+                secondary = error
+                ticket['secondary'],ticket['state'],_SUPERVISOR_IO['unknown']=error,'UNKNOWN',True
+                if _COMPLETED is not None:
+                    registry = _COMPLETED[1]
+                    registry.quarantine(error)
+                    # Uncertain read FD blocks all later source/retention acquisition.
+            else:
+                ticket['state']='CLOSED'
+    if primary is not None:
+        raise BaseException.with_traceback(primary,traceback)
+    if secondary is not None:
+        raise secondary
+    after = path.stat(follow_symlinks=False)
+    need(identity(before) == identity(after_fd) == identity(after), 'File drift during retained snapshot')
+    row = {'path':str(path),'sha256':h.hexdigest(),'bytes':count,'identity':list(identity(after)),
+           'stable':True,'read_chunk_bytes':CHUNK}
+    return (row,b''.join(blocks)) if keep else row
+
+
+def read_json(path, limit=META_CAP):
+    row, raw = stable_file(path, limit, True)
+    return json.loads(raw), row
+
+
+def read_runner_closure(path):
+    pin,raw=stable_file(path,META_CAP,True)
+    def pairs(rows):
+        value={}
+        for key,item in rows:
+            need(key not in value,'duplicate native closure key')
+            value[key]=item
+        return value
+    def forbidden(unused):
+        raise ValueError('native closure numeric constants forbidden')
+    value=json.loads(raw.decode('ascii'),object_pairs_hook=pairs,parse_float=forbidden,parse_constant=forbidden)
+    keys={'schema','launch_entered','launch_returned','wait_known','stdio_aliases_closed',
+          'process_group_empty','usage_inode_retired','local_holders_closed',
+          'domain_reconciliation_required','relay','error_type'}
+    need(type(value) is dict and set(value)==keys and
+         value['schema']=='h25-runner-native-writer-closure-v2','exact runner local holder schema')
+    for key in keys-{'schema','error_type','relay'}:
+        need(type(value[key]) is bool,'exact local holder booleans')
+    need(value['error_type'] in (None,'opaque-caught-exception') and
+         value['domain_reconciliation_required'] is True,'local closure never proves native domain death')
+    relay=value['relay']
+    if relay is not None:
+        need(type(relay) is dict and relay.get('schema')=='joined-bounded-relay-v1' and
+             relay.get('cap_bytes_each')==LOG_CAP and type(relay.get('streams')) is list and
+             len(relay['streams'])==2,'exact runner relay observation')
+        for key in ('setup_complete','retired','all_descriptors_known_closed','eof_complete','overflow','raw_error_present'):
+            need(type(relay.get(key)) is bool,'exact runner relay terminal booleans')
+    if value['local_holders_closed']:
+        need(value['stdio_aliases_closed'] and ((not value['launch_entered']) or
+             (value['launch_returned'] and value['wait_known'] and
+              value['usage_inode_retired'] and relay is not None and relay['all_descriptors_known_closed'])),'local holder conjunction; independent parent domain still required')
+    return value,pin
+
+
+def write_new(path, row):
+    if _COMPLETED is not None and path.is_relative_to(_COMPLETED[0].source):
+        registry = _COMPLETED[1]
+        attempt = registry.attempt(path.relative_to(_COMPLETED[0].source).parts[0])
+        return registry.write_json(attempt, 'supervision-metadata', path, row)
+    raw = json.dumps(row, sort_keys=True, indent=2).encode('ascii') + b'\n'
+    need(len(raw) <= META_CAP, 'Bounded metadata record exceeded')
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+    try:
+        view = memoryview(raw)
+        while view:
+            written = os.write(fd, view)
+            need(written > 0, 'Metadata write made no progress')
+            view = view[written:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def proc(pid):
+    try:
+        with open('/proc/' + str(pid) + '/stat', 'rb') as stream:
+            raw = stream.read(8193)
+        need(len(raw) <= 8192, 'Unexpected process-stat size')
+        end = raw.rfind(b') ')
+        need(end >= 0, 'Malformed process stat')
+        fields = raw[end + 2:].split()
+        return {'pid': int(pid), 'ppid': int(fields[1]), 'pgid': int(fields[2]),
+                'sid': int(fields[3]), 'start_ticks': int(fields[19]),
+                'state': fields[0].decode('ascii'),
+                'rss_bytes': int(fields[21]) * os.sysconf('SC_PAGE_SIZE')}
+    except (FileNotFoundError, ProcessLookupError, PermissionError):
+        return None
+
+
+def census():
+    found = {}
+    with os.scandir('/proc') as entries:
+        for entry in entries:
+            if entry.name.isdecimal():
+                row = proc(int(entry.name))
+                if row is not None:
+                    found[row['pid']] = row
+    return found
+
+
+def generation(row):
+    return row['pid'], row['start_ticks']
+
+
+def children_now():
+    return [row for row in census().values() if row['ppid'] == os.getpid()]
+
+
+def install_subreaper(root):
+    """Called only by the future parent, before any controlled root exists."""
+    launch_contract()
+    need(not children_now(), 'Parent must own no preexisting child processes')
+    tcb, tcb_row = read_json(root / 'control/NATIVE-INITIAL-TCB-v1.json')
+    need(tcb_row['sha256'] == TCB_SHA, 'Accepted initial TCB changed')
+    need(any(row['path'] == LIBC and row['sha256'] == NATIVE_PINS[LIBC]
+             for row in tcb['files']), 'Pinned libc absent from accepted TCB')
+    evidence = {path: stable_file(path, 16 * 1024 * 1024) for path in NATIVE_PINS}
+    need(all(evidence[path]['sha256'] == expected for path, expected in NATIVE_PINS.items()),
+         'Subreaper native/stdlib source supplement changed')
+    # This import and native call have NOT been performed during source authoring.
+    need(Path('/usr/lib/x86_64-linux-gnu/libffi.so.8').resolve() ==
+         Path('/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4'), 'Foreign libffi SONAME resolution')
+    import ctypes
+    need(sys.modules['_ctypes'].__file__ ==
+         '/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so', 'Foreign _ctypes owner')
+    need(ctypes.__file__ == '/usr/lib/python3.12/ctypes/__init__.py', 'Foreign ctypes owner')
+    library = ctypes.CDLL(LIBC, use_errno=True)
+    call = library.prctl
+    call.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+    call.restype = ctypes.c_int
+    prior, actual = ctypes.c_int(), ctypes.c_int()
+    need(call(37, ctypes.addressof(prior), 0, 0, 0) == 0, 'PR_GET_CHILD_SUBREAPER failed')
+    need(call(36, 1, 0, 0, 0) == 0, 'PR_SET_CHILD_SUBREAPER failed')
+    need(call(37, ctypes.addressof(actual), 0, 0, 0) == 0 and actual.value == 1,
+         'Same-process subreaper readback failed')
+    for path, expected in NATIVE_PINS.items():
+        need(stable_file(path, 16 * 1024 * 1024)['sha256'] == expected, 'TCB bytes changed across load')
+    # Retain the CDLL and typed function in the owning parent for its whole queue.
+    return {'pid': os.getpid(), 'prior': prior.value, 'actual': actual.value,
+            'tcb_sha256': TCB_SHA, 'native_source_evidence': evidence,
+            'trust': 'Trusted OS/loader/initial system stdlib; file pins do not authenticate native memory'}, (library, call)
+
+
+
+
+
+def parent_lock(root):
+    lock = (root / 'runtime/parent-queue.lock').open('a')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BaseException:
+        lock.close()
+        raise
+    return lock
+
+
+class ExecutionDeadline(RuntimeError):
+    pass
+
+
+def deadline_handler(signum, frame):
+    raise ExecutionDeadline('Outer execution deadline reached, including Popen/preexec')
+
+
+class DeadlineOwner:
+    """One absolute SIGALRM owner, retained through caller validation.
+
+    A nested query may only shorten an existing deadline. Pop restores its
+    remaining absolute interval; neither a query nor cleanup starts a new case.
+    """
+    def __init__(self, absolute_end_ns):
+        need(type(absolute_end_ns) is int and absolute_end_ns > time.monotonic_ns(),
+             'future fixed whole-case deadline')
+        self.end_ns, self.stack, self.started, self.finished = absolute_end_ns, [], False, False
+        self.old_handler = None
+        self.poisoned = False
+    def _expired(self, signum, frame):
+        self.poisoned = True
+        left = self.end_ns-time.monotonic_ns()
+        signal.setitimer(signal.ITIMER_REAL,max(.000001,left/1e9))
+        raise ExecutionDeadline('Working deadline expired; only reserved retirement remains')
+    def _arm(self):
+        end = min([self.end_ns] + [row[1] for row in self.stack])
+        left = end - time.monotonic_ns()
+        if left <= 0:
+            self._expired(signal.SIGALRM,None)
+        signal.setitimer(signal.ITIMER_REAL, max(.000001, left / 1e9))
+    def start(self):
+        need(not self.started and not self.finished and signal.getitimer(signal.ITIMER_REAL) == (0.0,0.0),
+             'sole monotone timer owner')
+        self.old_handler = signal.getsignal(signal.SIGALRM)
+        self.started = True
+        signal.signal(signal.SIGALRM, self._expired)
+        self._arm()
+    def push(self, end_ns):
+        need(self.started and not self.finished and not self.poisoned and type(end_ns) is int and
+             time.monotonic_ns() < end_ns <= self.end_ns, 'bounded nested absolute deadline')
+        token = object()
+        self.stack.append((token, end_ns))
+        self._arm()
+        return token
+    def pop(self, token):
+        need(self.started and not self.finished and self.stack and self.stack[-1][0] is token,
+             'same LIFO deadline token')
+        self.stack.pop()
+        self._arm()
+    def checkpoint(self):
+        need(self.started and not self.finished and not self.poisoned and time.monotonic_ns() <
+             min([self.end_ns] + [row[1] for row in self.stack]), 'absolute active deadline')
+    def finish(self):
+        need(self.started and not self.finished, 'one timer retirement')
+        self.finished = True  # Never retry an uncertain timer/handler operation.
+        first, tb = None, None
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+        except BaseException as error:
+            first, tb = error, BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+        try:
+            signal.signal(signal.SIGALRM, self.old_handler)
+        except BaseException as error:
+            if first is None:
+                first, tb = error, BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+        if first is not None:
+            raise BaseException.with_traceback(first,tb)
+
+
+def direct_children_exact(all_rows):
+    # The kernel child list prevents an unreadable direct child from vanishing
+    # merely because a /proc census could not decode its stat file.
+    path = Path('/proc/self/task') / str(os.getpid()) / 'children'
+    with path.open('rb') as stream:
+        raw = stream.read(16385)
+    need(len(raw) <= 16384, 'bounded direct-child identity census')
+    pids = [int(word) for word in raw.split()]
+    need(len(pids) <= 128 and len(set(pids)) == len(pids), 'finite distinct direct children')
+    rows = []
+    for pid in pids:
+        current = proc(pid)
+        need(current is not None and current['ppid'] == os.getpid(),
+             'direct child generation remains observable')
+        all_rows[pid] = current
+        rows.append(current)
+    return rows
+
+
+class ProtectedRoot:
+    """Actual waiting R/time/entry generations held by the enclosing domain.
+
+    The caller constructs this only after genuine Popen/registry/guardian birth.
+    Query owners borrow the exclusion set, never these pidfds or the EX owner.
+    """
+    def __init__(self, registry, attempt, domain, process, entry, arrival_pin, waiting_pin):
+        need(domain.registry is registry and domain.attempt is attempt and
+             domain.root == (process.pid, proc(process.pid)['start_ticks']),
+             'same actual registered R generation')
+        self.registry, self.attempt, self.domain, self.process = registry, attempt, domain, process
+        rows = census()
+        root = rows.get(process.pid)
+        timer = rows.get(entry['ppid'])
+        need(root is not None and timer is not None and timer['ppid'] == root['pid'] and
+             entry['ppid'] == timer['pid'] and generation(rows.get(entry['pid'], {})) == generation(entry),
+             'actual common R -> GNU time -> waiting entry chain')
+        self.keys = tuple(generation(row) for row in (root,timer,entry))
+        need(len(set(self.keys)) == 3, 'three distinct held generations')
+        self.entry_key, self.runner_key = self.keys[-1], self.keys[0]
+        self.arrival_pin, self.waiting_pin = dict(arrival_pin), dict(waiting_pin)
+        self.release_entered, self.released = False, False
+        for row in (root,timer,entry):
+            domain.add(row)
+            need(generation(row) in domain.fds, 'known pidfd for each protected generation')
+        self.verify()
+    def verify(self, query=None):
+        need(not self.release_entered, 'protected exclusion exists only before one release')
+        rows = census()
+        for index,key in enumerate(self.keys):
+            row = proc(key[0])
+            need(row is not None and generation(row) == key and row['state'] != 'Z' and
+                 key in self.domain.fds and self.domain.fd_tokens[key]['state'] == 'OWNED',
+                 'live protected generation and actual known pidfd')
+            rows[key[0]] = row
+            need(row['ppid'] == (os.getpid() if index == 0 else self.keys[index-1][0]),
+                 'unchanged protected parent chain')
+        entry = rows[self.entry_key[0]]
+        need(entry['state'] in ('T','t') and
+             sorted(p.name for p in (Path('/proc')/str(entry['pid'])/'task').iterdir()) == [str(entry['pid'])],
+             'genuine stopped single-task waiting entry')
+        pids = {key[0] for key in self.keys}
+        need(all(generation(row) in self.keys for row in rows.values() if row['ppid'] in pids),
+             'no unregistered protected descendant or pre-release scientific birth')
+        allowed = set(self.keys)
+        if query is not None:
+            need(query.protected is self, 'actual query-domain exclusion owner')
+            allowed.update(query.rows)
+        need(all(generation(row) in allowed for row in direct_children_exact(rows)),
+             'unknown direct child/orphan is uncertainty, never an excluded query')
+        return [rows[key[0]] for key in self.keys]
+    def release(self, intent_pin, writer, seal_pin, seal_writer):
+        # Check an actual registry resource, not a supplied True or JSON token.
+        need(any(item is writer for item in self.attempt.resources) and
+             writer['attempt'] is self.attempt and writer['kind'] == 'writer-permit' and
+             writer['role'] == 'intent' and writer['path'] == self.attempt.layout.intent_path and
+             writer['state'] == 'CLOSED' and writer['primary'] is None and
+             self.attempt.required['intent'] is True and not self.attempt.uncertain,
+             'actual completed immutable intent writer and known registry closure')
+        need(type(intent_pin) is dict and intent_pin.get('path') == str(self.attempt.layout.intent_path) and
+             type(intent_pin.get('bytes')) is int and 0 < intent_pin['bytes'] <= 16384,
+             'actual independently read-back intent pin')
+        need(any(r is seal_writer for r in self.attempt.resources) and seal_writer['state']=='CLOSED'
+             and seal_writer['primary'] is None and seal_writer['path']==self.attempt.layout.supervision_root/'RELEASE.json',
+             'actual known-closed release-seal writer')
+        for path,pin in ((self.attempt.layout.intent_path,intent_pin),
+                         (self.attempt.layout.supervision_root/'RELEASE.json',seal_pin)):
+            observed=stable_file(path,16384)
+            need(observed['bytes']==pin['bytes'] and observed['sha256']==pin['sha256'],
+                 'final exact immutable intent and release readback')
+        self.verify()
+        self.release_entered = True  # No second signal after an uncertain native return.
+        try:
+            signal.pidfd_send_signal(self.domain.fds[self.entry_key], signal.SIGCONT, None, 0)
+        except BaseException as error:
+            self.registry.capture_error(self.attempt,error)
+            self.registry.mark_uncertain(self.attempt,'waiting-entry release result uncertain')
+            raise
+        self.released = True
+
+
+class OwnedDomain:
+    """Only our new children and their observed descendants enter this domain."""
+    def __init__(self, registry, attempt, protected=None):
+        self.protected = protected
+        self.registry,self.attempt,self.fd_tokens = registry,attempt,{}
+        self.raw_first,self.raw_secondary = None,[None]*16
+        if protected is None:
+            need(not direct_children_exact(census()), 'Owned child domain was not initially empty')
+        else:
+            protected.verify()
+        self.rows, self.fds, self.groups, self.reaped = {}, {}, set(), []
+        self.root = None
+        self.parent_group = os.getpgrp()
+        self.parent_session = os.getsid(0)
+
+    def add(self, row):
+        key = generation(row)
+        if key in self.rows:
+            if row['pgid'] != self.parent_group:
+                self.groups.add((row['pgid'], row['sid']))
+            return
+        need(len(self.rows) < 128, 'Owned process observation limit exceeded')
+        need(row['pid'] != os.getpid(), 'Parent cannot enter its own child domain')
+        ticket = self.registry.fd_pending(self.attempt,'owned-generation-pidfd')
+        try:
+            fd = os.pidfd_open(row['pid'], 0)
+        except ProcessLookupError:
+            self.registry.fd_not_entered(ticket)
+            return
+        except BaseException as error:
+            self.raw_first = error if self.raw_first is None else self.raw_first
+            self.registry.fd_unknown(ticket,error)
+            raise
+        self.registry.fd_acquired(ticket,fd)
+        ticket['native_generation'] = list(key)
+        self.fd_tokens[key] = ticket  # Actual returned holder before fallible observation.
+        current = proc(row['pid'])
+        if current is None or generation(current) != key:
+            self.fd_tokens.pop(key)
+            self.registry.fd_close(ticket)
+            return
+        self.rows[key], self.fds[key] = dict(current), fd
+        # During interrupted Popen a child can briefly precede setsid. Its
+        # individual pidfd is owned; the queue parent group never is.
+        if current['pgid'] != self.parent_group:
+            self.groups.add((current['pgid'], current['sid']))
+
+    def observe(self):
+        all_rows = census()
+        known = {pid for pid, start in self.rows if pid in all_rows and
+                 all_rows[pid]['start_ticks'] == start}
+        for pid in known:
+            self.add(all_rows[pid])
+        changed = True
+        while changed:
+            changed = False
+            for pid, row in all_rows.items():
+                if pid not in known and (row['ppid'] in known or
+                    (self.protected is None and row['ppid'] == os.getpid())):
+                    self.add(row)
+                    if generation(row) in self.rows:
+                        known.add(pid)
+                        changed = True
+        if self.protected is not None:
+            self.protected.verify(self)
+        return all_rows, [all_rows[pid] for pid in known]
+
+    def kill_owned(self):
+        self.observe()
+        for key, fd in self.fds.items():
+            current = proc(key[0])
+            if current is not None and generation(current) == key and current['state'] != 'Z':
+                try:
+                    signal.pidfd_send_signal(fd, signal.SIGKILL, None, 0)
+                except ProcessLookupError:
+                    pass
+
+    def _cleanup_body(self, process, absolute_deadline=None):
+        start = time.monotonic()
+        seen_after_root = []
+        completed = False
+        while True:
+            _, current = self.observe()
+            if process is not None and process.returncode is not None:
+                seen_after_root.extend(generation(row) for row in current if row['pid'] != process.pid)
+            self.kill_owned()
+            if process is not None:
+                self.registry.poll_root(process)
+            for key in list(self.rows):
+                row = proc(key[0])
+                if row is None or generation(row) != key or row['ppid'] != os.getpid():
+                    continue
+                if process is not None and row['pid'] == process.pid:
+                    continue
+                try:
+                    pid, status = os.waitpid(row['pid'], os.WNOHANG)
+                except ChildProcessError:
+                    continue
+                if pid:
+                    self.reaped.append({'pid': pid, 'start_ticks': key[1], 'wait_status': status})
+            all_rows, current = self.observe()
+            occupied = [row for row in all_rows.values() if (row['pgid'], row['sid']) in self.groups]
+            direct = direct_children_exact(all_rows)
+            extras = [row for row in direct if self.protected is None or generation(row) not in self.protected.keys]
+            if not current and not occupied and not extras:
+                completed = True
+                break
+            if time.monotonic() - start >= CLEANUP_SECONDS or (absolute_deadline is not None and time.monotonic()>=absolute_deadline):
+                break
+            time.sleep(0.01)
+        final_rows = census()
+        remaining = [row for row in final_rows.values() if
+                     generation(row) in self.rows or (row['pgid'], row['sid']) in self.groups or
+                     (row['ppid'] == os.getpid() and
+                      (self.protected is None or generation(row) not in self.protected.keys))]
+        return {'complete': completed and not remaining,
+                'owned_generations': list(self.rows.values()),
+                'groups': [{'pgid': g, 'sid': s} for g, s in sorted(self.groups)],
+                'reaped_adopted': self.reaped,
+                'observed_after_root_exit': [list(key) for key in sorted(set(seen_after_root))],
+                'remaining': remaining, 'cleanup_seconds': time.monotonic() - start,
+                'cleanup_tail_limit_seconds': CLEANUP_SECONDS,
+                'group_empty_proved': completed and not remaining,
+                'signal_method': 'SIGKILL via generation-checked pidfd only; never killpg'}
+
+    def close_known_fds(self):
+        first = None
+        for index,key in enumerate(tuple(self.fd_tokens)):
+            ticket = self.fd_tokens.pop(key)  # Retire owner before close, never replay a number.
+            self.fds.pop(key,None)
+            if ticket['state'] != 'OWNED':
+                continue
+            try:
+                self.registry.fd_close(ticket)
+            except BaseException as error:
+                if first is None:
+                    first = error
+                if index < len(self.raw_secondary):
+                    self.raw_secondary[index] = error
+        if first is not None:
+            raise first
+    def cleanup(self, process, absolute_deadline=None):
+        result,primary,traceback = None,None,None
+        try:
+            result = self._cleanup_body(process,absolute_deadline)
+        except BaseException as error:
+            primary = error
+            traceback = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            self.raw_first = error if self.raw_first is None else self.raw_first
+            self.registry.capture_error(self.attempt,error)
+        finally:
+            try:
+                self.close_known_fds()
+            except BaseException as error:
+                if primary is None:
+                    primary = error
+                    traceback = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+                self.registry.capture_error(self.attempt,error)
+        if primary is not None:
+            raise BaseException.with_traceback(primary,traceback)
+        return result
+
+
+
+
+
+
+
+
+
+
+
+def nested_plain(value, depth=0):
+    if depth > 16:
+        raise ValueError('nested intent depth')
+    kind = type(value)
+    if kind is dict:
+        if len(value) > 64:
+            raise ValueError('nested intent object cap')
+        for key,item in value.items():
+            if type(key) is not str or len(key) > 128:
+                raise ValueError('nested intent exact string key')
+            nested_plain(item,depth+1)
+    elif kind is list:
+        if len(value) > 128:
+            raise ValueError('nested intent list cap')
+        for item in value:
+            nested_plain(item,depth+1)
+    elif kind is str:
+        if len(value) > 2048:
+            raise ValueError('nested intent string cap')
+    elif kind is int:
+        if not 0 <= value <= 9223372036854775807:
+            raise ValueError('nested intent integer bound')
+    elif value is not None and kind is not bool:
+        raise ValueError('nested intent exact builtin DATA')
+
+
+def nested_label(value):
+    if (type(value) is not str or not 1 <= len(value) <= 64 or
+            any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value)):
+        raise ValueError('nested simple label')
+    return value
+
+
+
+def validate_completed_layout(value):
+    fields = {'source_root','case_container','runner_root','artifact_parent','science_root','external_root','intent_path','attempt_identity'}
+    if type(value) is not dict or set(value) != fields or any(type(value[k]) is not str for k in fields):
+        raise ValueError('exact complete prospective layout DATA')
+    source = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z/runtime/completed-source/IndependentPrefixDATAComposedV1')
+    case = source / value['case_container'].split('/')[-1]
+    if case.name not in ('IndependentPrefixDATAComposedV1N','IndependentPrefixDATAComposedV1O'):
+        raise ValueError('fixed completed source label')
+    expected = {'source_root':str(source),'case_container':str(case),'runner_root':str(case/'runner'),
+                'artifact_parent':str(case/'runner/artifact'),'science_root':str(case/'runner/artifact/science'),'external_root':str(case/'serialized-DATA'),
+                'intent_path':str(case/'intent/INTENT.json'),'attempt_identity':value['attempt_identity']}
+    if value != expected or not 0 < len(value['attempt_identity']) <= 256:
+        raise ValueError('complete prospective path inverse')
+    return value
+
+def validate_nested_intent(value):
+    nested_plain(value)
+    keys = {'schema','round_id','outer_label','stage','job','label','stage_sha256','runner_sha256',
+            'parent_pid','parent_start_ticks','whole_body_begin_ns','whole_body_deadline_ns',
+            'body_reservation_ns','nested_allowance_ns','validation_allowance_ns','cleanup_allowance_ns',
+            'active_binding','native_capability','execution_permission','completed_layout',
+            'relay_pin','full_receiver_pin','native_entry_profile','association_record','common_rendezvous'}
+    if type(value) is not dict or set(value) != keys:
+        raise ValueError('exact nested intent schema')
+    if (value['schema'] != 'fresh-active-nested-runner-intent-v3' or
+            value['round_id'] != 'fresh-metered-round-v1' or
+            value['native_capability'] is not False or value['execution_permission'] is not False):
+        raise ValueError('nested intent is DATA only')
+    for key in ('outer_label','stage','job','label'):
+        nested_label(value[key])
+    for key in ('stage_sha256','runner_sha256'):
+        sha = value[key]
+        if type(sha) is not str or len(sha) != 64 or any(c not in '0123456789abcdef' for c in sha):
+            raise ValueError('nested source digest')
+    for key in ('parent_pid','parent_start_ticks','whole_body_begin_ns','whole_body_deadline_ns',
+                'body_reservation_ns','nested_allowance_ns','validation_allowance_ns','cleanup_allowance_ns'):
+        if type(value[key]) is not int or value[key] < 0:
+            raise ValueError('nested exact nonnegative integer')
+    if (value['parent_pid'] == 0 or not 0 < value['body_reservation_ns'] <= 180000000000 or
+            not 0 < value['nested_allowance_ns'] <= 180000000000 or
+            value['validation_allowance_ns'] <= 0 or value['cleanup_allowance_ns'] < 2000000000 or
+            value['whole_body_deadline_ns']-value['whole_body_begin_ns'] != value['body_reservation_ns'] or
+            value['nested_allowance_ns']+value['validation_allowance_ns']+value['cleanup_allowance_ns'] > value['body_reservation_ns']):
+        raise ValueError('nested whole-body necessary allowance')
+    binding = value['active_binding']
+    if (type(binding) is not dict or binding.get('schema') != 'fresh-active-current-binding-v1' or
+            set(binding) != {'schema','request','start','start_pin','head_pin','baseline_registry_pin',
+                            'native_capability','execution_permission'} or
+            binding['native_capability'] is not False or binding['execution_permission'] is not False):
+        raise ValueError('exact source-private current binding observation')
+    request, start = binding['request'], binding['start']
+    if (type(request) is not dict or type(start) is not dict or
+            request.get('label') != value['outer_label'] or start.get('label') != value['outer_label'] or
+            type(request.get('body_reservation_ns')) is not int or
+            request['body_reservation_ns'] != value['body_reservation_ns'] or
+            start.get('command_sha256') != request.get('command_sha256') or
+            start.get('body_reservation_ns') != request['body_reservation_ns']):
+        raise ValueError('nested current reservation DATA correlation')
+    rendezvous = value['common_rendezvous']
+    need(type(rendezvous) is dict and set(rendezvous) == {'entry','runner','arrival_sha256','waiting_sha256'} and
+         all(type(rendezvous[k]) is list and len(rendezvous[k]) == 2 and
+             all(type(v) is int and v > 0 for v in rendezvous[k]) for k in ('entry','runner')) and
+         all(type(rendezvous[k]) is str and len(rendezvous[k]) == 64 and
+             all(c in '0123456789abcdef' for c in rendezvous[k]) for k in ('arrival_sha256','waiting_sha256')),
+         'exact generation-bound waiting rendezvous correlation DATA')
+    validate_completed_layout(value['completed_layout'])
+    if Path(value['completed_layout']['case_container']).name != value['label']:
+        raise ValueError('intent case identity inverse')
+    return value
+
+
+def seconds_ceiling_ns(value):
+    need(type(value) in (int,float) and value > 0, 'positive native timing value')
+    numerator,denominator = value.as_integer_ratio() if type(value) is float else (value,1)
+    return (numerator*1000000000+denominator-1)//denominator
+
+
+def same_data(actual, expected):
+    need(type(actual) is type(expected), 'exact source declaration type')
+    if type(expected) is dict:
+        need(all(type(k) is str for k in actual) and set(actual) == set(expected), 'exact source declaration keys')
+        for key in expected:
+            same_data(actual[key],expected[key])
+    elif type(expected) is list:
+        need(len(actual) == len(expected), 'exact source declaration list')
+        for first,second in zip(actual,expected):
+            same_data(first,second)
+    else:
+        need(type(expected) in (str,int,bool,type(None)) and actual == expected, 'exact source declaration value')
+
+
+def bounded_stop_reason(value):
+    # Reject foreign containers/keys before iteration, hashing or JSON callbacks.
+    pending, nodes, text = [(value,0)],0,0
+    while pending:
+        item,depth = pending.pop(); nodes += 1
+        need(nodes <= 512 and depth <= 16, 'bounded STOP reason tree')
+        kind = type(item)
+        if kind is dict:
+            need(len(item) <= 64 and all(type(k) is str and len(k) <= 128 for k in item),
+                 'exact bounded STOP reason keys')
+            text += sum(len(k) for k in item)
+            pending.extend((v,depth+1) for v in item.values())
+        elif kind is list:
+            need(len(item) <= 128, 'bounded STOP reason list')
+            pending.extend((v,depth+1) for v in item)
+        elif kind is str:
+            need(len(item) <= 2048, 'bounded STOP reason string'); text += len(item)
+        elif kind is int:
+            need(0 <= item <= 9223372036854775807, 'bounded STOP reason integer')
+        else:
+            need(item is None or kind is bool, 'exact builtin STOP reason DATA')
+        need(text <= 16384 and len(pending) <= 512, 'bounded STOP reason bytes/nodes')
+    return value
+
+
+class PropertyQueryCustody:
+    """One registry container retaining the existing relay's linear FD owners.
+
+    Grouping does not erase FD lifetimes: every native return, once-only close,
+    raw primary and secondary remains in this actual container until the seal.
+    """
+    def __init__(self, registry, attempt, relay_module):
+        self.registry, self.attempt = registry, attempt
+        self.state = {'fds': [], 'overflow': None, 'relay': None}
+        self.first, self.secondary = None, [None] * 32
+        self.ticket = registry._resource(attempt, 'property-query-custody', 'property-query-custody')
+        self.ticket['object'], self.ticket['state'] = self, 'OWNED'
+        self.owner = relay_module.LocalOwner(self.state, self.remember)
+        self.identities = {}
+
+    def remember(self, error):
+        if self.first is None:
+            self.first = error
+        elif error is not self.first:
+            for index, previous in enumerate(self.secondary):
+                if previous is error:
+                    break
+                if previous is None:
+                    self.secondary[index] = error
+                    break
+            else:
+                if self.state['overflow'] is None:
+                    self.state['overflow'] = error
+        self.registry.capture_error(self.attempt, error)
+
+    def open(self, role, path, flags, *, mode=0o600, expected=None, directory=False, null=False):
+        ticket = self.owner.pending(role, path)
+        try:
+            fd = os.open(path, flags | os.O_CLOEXEC | os.O_NOFOLLOW, mode)
+        except BaseException as error:
+            ticket['primary'] = error
+            self.owner.failed(ticket, error)
+            raise
+        self.owner.acquired(ticket, fd)
+        try:
+            info = os.fstat(fd)
+            if directory:
+                need(stat.S_ISDIR(info.st_mode), 'held actual query cwd directory')
+            elif null:
+                need(stat.S_ISCHR(info.st_mode) and info.st_rdev == os.makedev(1, 3), 'genuine query /dev/null')
+            else:
+                need(stat.S_ISREG(info.st_mode), 'regular query evidence/program descriptor')
+            if expected is not None:
+                need(info.st_size == expected['bytes'] and stat.S_IMODE(info.st_mode) == expected['mode'],
+                     'selected actual query image size/mode')
+                h, count = hashlib.sha256(), 0
+                while count < info.st_size:
+                    block = os.read(fd, min(CHUNK, info.st_size - count))
+                    need(bool(block), 'complete selected query image read')
+                    count += len(block); h.update(block)
+                need(h.hexdigest() == expected['sha256'] and identity(info) == identity(os.fstat(fd)),
+                     'selected actual query image byte identity')
+                os.lseek(fd, 0, os.SEEK_SET)
+            elif flags & os.O_CREAT:
+                need(info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o600 and
+                     info.st_nlink == 1 and info.st_size == 0, 'exclusive empty owned query evidence')
+            self.identities[str(path)] = identity(info)
+            return ticket
+        except BaseException as error:
+            ticket['primary'] = error
+            self.remember(error)
+            raise
+
+    def write(self, ticket, raw):
+        need(type(raw) is bytes and ticket['state'] == 'OWNED', 'known query write owner')
+        try:
+            offset = 0
+            while offset < len(raw):
+                count = os.write(ticket['object'], memoryview(raw)[offset:offset + CHUNK])
+                need(type(count) is int and 0 < count <= min(CHUNK, len(raw) - offset), 'query write progress')
+                offset += count
+            os.fsync(ticket['object'])
+            os.lseek(ticket['object'], 0, os.SEEK_SET)
+        except BaseException as error:
+            ticket['primary'] = error
+            self.remember(error)
+            raise
+
+    def close(self, ticket):
+        try:
+            self.owner.close(ticket)
+        except BaseException as error:
+            self.remember(error)
+            raise
+
+    def close_all(self):
+        first = None
+        for ticket in self.state['fds']:
+            if ticket['state'] == 'OWNED':
+                try:
+                    self.close(ticket)
+                except BaseException as error:
+                    first = error if first is None else first
+        if first is not None:
+            raise first
+
+    def readback(self, path, cap, expected_identity=None):
+        ticket = self.open('query-independent-readback', path, os.O_RDONLY)
+        first, raw, pin = None, None, None
+        try:
+            fd = ticket['object']; info = os.fstat(fd)
+            need(info.st_size <= cap and stat.S_IMODE(info.st_mode) == 0o600 and info.st_nlink == 1 and
+                 info.st_uid == os.getuid(), 'bounded retained query readback object')
+            if expected_identity is not None:
+                need(identity(info)[:3] == tuple(expected_identity[:3]), 'same exclusive query evidence inode/mode')
+            blocks, count, h = [], 0, hashlib.sha256()
+            while count <= cap:
+                block = os.read(fd, min(CHUNK, cap + 1 - count))
+                if not block:
+                    break
+                count += len(block); need(count <= cap, 'query readback cap+1 refusal')
+                blocks.append(block); h.update(block)
+            need(count == info.st_size and identity(info) == identity(os.fstat(fd)) == identity(path.lstat()),
+                 'complete stable actual query readback')
+            raw = b''.join(blocks)
+            pin = {'path': str(path), 'bytes': count, 'sha256': h.hexdigest(), 'identity': list(identity(info))}
+        except BaseException as error:
+            first = error
+            ticket['primary'] = error
+            self.remember(error)
+        finally:
+            try:
+                self.close(ticket)
+            except BaseException as error:
+                first = error if first is None else first
+        if first is not None:
+            raise first
+        return pin, raw
+
+    def snapshot(self):
+        rows = self.state['fds']
+        return {'all_closed': all(r['state'] in ('CLOSED', 'NOT_ENTERED') for r in rows),
+                'raw_error_present': self.first is not None or self.state['overflow'] is not None,
+                'descriptors': [{'role': r['role'], 'path': None if r['path'] is None else str(r['path']),
+                    'state': r['state'], 'close_attempted': r['close_attempted'],
+                    'primary_present': r['primary'] is not None, 'secondary_present': r['secondary'] is not None}
+                    for r in rows]}
+
+
+def owns_property_query_runner(bound, association):
+    """Actual private instance lineage; no callable or DATA compatibility adapter."""
+    for state in _BOUND_CONTEXTS.values():
+        if state.get('bound_consumer') is not bound or state.get('association') is not association:
+            continue
+        method = getattr(bound, 'run_property_query')
+        fn, code = state['property_query_method']
+        need(type(method) is MethodType and method.__self__ is bound and method.__func__ is fn and
+             fn.__code__ is code and fn.__globals__ is globals() and
+             type.__getattribute__(type(bound), '__dict__').get('run_property_query') is fn and
+             state['owner_pid'] == os.getpid() and state['context'] is not None and
+             state['failed'] is False, 'actual unchanged query runner/context lineage')
+        return True
+    return False
+
+
+def bind_active_run_root(active_module, kernel_module, active_context, *, whole_body_begin_ns, case_contracts, layout=None, registry=None, guardian=None):
+    """Trusted fixed bootstrap supplies ACTUAL selected modules/context, never JSON.
+
+    Module/MethodType consistency does not authenticate a fabricated module.
+    The enclosing real meter must supply its genuine pre-preparation START ns.
+    This component neither creates another GlobalLease nor calls its acquire.
+    """
+    need(type(active_module) is ModuleType and type(kernel_module) is ModuleType, 'actual authenticated A/C kernel modules')
+    if _COMPLETED is None:
+        configure_completed_source(layout,registry,guardian)
+    else:
+        need((layout is None or layout is _COMPLETED[0]) and (registry is None or registry is _COMPLETED[1]), 'same completed source binding')
+    layout,registry,guardian = completed_source()
+    A,C,ctx = active_module,kernel_module,active_context
+    ag = ModuleType.__getattribute__(A,'__dict__')
+    cg = ModuleType.__getattribute__(C,'__dict__')
+
+    def class_image(cls, methods, *, slotted=False):
+        # Fixed type operations bypass foreign metaclass/instance attribute hooks.
+        need(type(cls) is type, 'ordinary exact kernel/context class')
+        mro = type.__getattribute__(cls,'__mro__')
+        need(len(mro) == 2 and mro[0] is cls and mro[1] is object, 'direct object class only')
+        namespace = type.__getattribute__(cls,'__dict__')
+        keys = tuple(namespace)
+        need(all(type(k) is str for k in keys), 'exact class attribute keys')
+        image = {k:namespace[k] for k in keys}
+        if slotted:
+            need(type(image.get('__slots__')) is tuple and image.get('__slots__') == (),
+                 'source-private empty-slotted context')
+            allowed = {'__module__','__doc__','__slots__','__new__'} | set(methods)
+            need(set(image) == allowed and type(image['__new__']) is staticmethod and
+                 type(image['__new__'].__func__) is FunctionType and
+                 image['__new__'].__func__.__globals__ is ag, 'fixed context class layout')
+        else:
+            need(set(image) == {'__module__','__doc__','__dict__','__weakref__'} | set(methods),
+                 'fixed kernel class layout without special hooks')
+            for name in ('__dict__','__weakref__'):
+                descriptor = image[name]
+                need(type(descriptor) is GetSetDescriptorType and descriptor.__objclass__ is cls and
+                     descriptor.__name__ == name, 'original native instance dictionary descriptor')
+        globals_expected = ag if slotted else cg
+        need(all(type(image[name]) is FunctionType and image[name].__globals__ is globals_expected
+                 for name in methods), 'actual source-bound class functions')
+        return image
+
+    ContextType = type(ctx)
+    context_methods = ('initialize','refresh_opening','current_binding','begin','native_lease_for_controller',
+                       'check','release_for_exec','adopt_handoff','publish_reviewed_close','release')
+    context_image = class_image(ContextType,context_methods,slotted=True)
+    check = MethodType(context_image['check'],ctx)
+    current_binding = MethodType(context_image['current_binding'],ctx)
+    get_lease = MethodType(context_image['native_lease_for_controller'],ctx)
+    key = id(ctx)
+    need(key not in _BOUND_CONTEXTS, 'one consumer binding per actual ACTIVE context; no retry binding')
+    state = {'context':ctx,'phase':'BINDING_ENTERED','failed':False,'first':None,'outer_identity':None,'members':set(),'used':set(),'finished':set(),'supplemented':set()}
+    state.update(queries={}, query_counts={}, owner_pid=os.getpid(), pending_intents={},
+                 waiting={}, protected=None, run_context=None, deadlines={}, primary={})
+    _BOUND_CONTEXTS[key] = state  # Private state precedes fallible native verification.
+    io,IOType,LeaseType = cg['IO'],cg['OwnedIO'],cg['GlobalLease']
+    io_image = class_image(IOType,('__init__','acquire','close','read','names','write'))
+    lease_image = class_image(LeaseType,('__init__','acquire','verify','close'))
+    need(type(io) is IOType, 'same actual original IO singleton')
+
+    def unchanged_class(cls,image):
+        need(type(cls) is type, 'unchanged ordinary metaclass')
+        namespace = type.__getattribute__(cls,'__dict__')
+        keys = tuple(namespace)
+        need(all(type(k) is str for k in keys) and set(keys) == set(image) and
+             all(namespace[k] is image[k] for k in keys), 'no class method/descriptor/special-hook substitution')
+        mro = type.__getattribute__(cls,'__mro__')
+        need(len(mro) == 2 and mro[0] is cls and mro[1] is object, 'unchanged direct class ancestry')
+
+    def plain_instance(value,cls,image,fields):
+        need(type(value) is cls, 'same exact native instance type')
+        unchanged_class(cls,image)
+        values = image['__dict__'].__get__(value,cls)
+        need(type(values) is dict and all(type(k) is str for k in values) and set(values) == fields,
+             'no instance method/special-hook shadows')
+
+    def dispatch_integrity(held=None):
+        need(cg.get('IO') is io and cg.get('OwnedIO') is IOType and cg.get('GlobalLease') is LeaseType,
+             'unchanged actual kernel singleton/classes')
+        unchanged_class(ContextType,context_image)
+        plain_instance(io,IOType,io_image,{'slots'})
+        unchanged_class(LeaseType,lease_image)
+        if held is not None:
+            plain_instance(held,LeaseType,lease_image,{'fd','phase','birth','lock_info'})
+
+    dispatch_integrity()
+    # The authenticated bootstrap must supply the pristine private ACTIVE lease
+    # at FIRST getter entry: A verifies it before returning it. This is not a
+    # pre-getter instance-shadow test or a consumer-created/restored capability.
+    lease = get_lease(C)
+    dispatch_integrity(lease)
+
+    def io_call(name,*args,**kwargs):
+        dispatch_integrity(lease)
+        return io_image[name](io,*args,**kwargs)  # Original unbound dispatch.
+    initial = current_binding()
+    nested_plain(initial); initial = json.loads(json.dumps(initial))
+    need(type(initial) is dict and initial.get('schema') == 'fresh-active-current-binding-v1' and
+         initial.get('native_capability') is False and initial.get('execution_permission') is False,
+         'current binding observation, not owner restoration')
+    outer = nested_label(initial['request']['label'])
+    reservation = initial['request']['body_reservation_ns']
+    need(type(reservation) is int and 0 < reservation <= 180000000000 and
+         type(whole_body_begin_ns) is int and 0 <= whole_body_begin_ns <= time.monotonic_ns(),
+         'actual enclosing meter START/reservation; provenance is caller source obligation')
+    whole_deadline_ns = whole_body_begin_ns + reservation
+    nested_plain(case_contracts)
+    need(type(case_contracts) is list and 0 < len(case_contracts) <= 128, 'fixed finite nested case declarations')
+    declared = {}
+    for item in case_contracts:
+        need(type(item) is dict and set(item) == {'case','validation_allowance_ns','body_closing_allowance_ns'},
+             'exact nested case/validation/closing declaration')
+        row = item['case']
+        need(type(row) is dict and set(row) == {'stage','job','label','stage_sha256'}, 'exact frozen nested case keys')
+        for field in ('stage','job','label'):
+            nested_label(row[field])
+        sha = row['stage_sha256']
+        need(type(sha) is str and len(sha) == 64 and all(c in '0123456789abcdef' for c in sha), 'exact immutable stage digest')
+        need(type(item['validation_allowance_ns']) is int and item['validation_allowance_ns'] > 0 and
+             type(item['body_closing_allowance_ns']) is int and item['body_closing_allowance_ns'] >= 0 and
+             row['label'] not in declared, 'explicit nonzero validation and unique nested identity')
+        declared[row['label']] = json.loads(json.dumps(item))
+    outer_dir = layout.source
+
+    def verify_native(cleanup=False):
+        dispatch_integrity(lease)  # BEFORE A's nested instance self-dispatch.
+        need(C.IO_UNKNOWN[0] is False, 'no uncertain native acquisition')
+        held = get_lease(C,registry,'CLEANUP') if cleanup is True else get_lease(C)
+        need(lease is held, 'same actual source-private native lease')
+        dispatch_integrity(lease)
+        return lease_image['verify'](lease)
+
+    def refresh(nested_ns,cleanup_ns):
+        need(not state['failed'] and _BOUND_CONTEXTS[key] is state and state['context'] is ctx, 'live sole bound consumer')
+        dispatch_integrity(lease)
+        verify_native()
+        observation = check(nested_ns,cleanup_ns)
+        same_data(current_binding(),initial)
+        now = time.monotonic_ns()
+        need(now >= whole_body_begin_ns and now-whole_body_begin_ns+nested_ns+cleanup_ns <= reservation,
+             'complete enclosing body necessary allowance, not local-anchor substitution')
+        return observation
+
+    def sync_dir(path):
+        slot,primary = io_call('acquire',path,os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC),None
+        try:
+            os.fsync(slot[0])
+        except BaseException as error:
+            primary=error
+            C.remember(error)
+        finally:
+            if slot[1] == 'OWNED':
+                try:
+                    io_call('close',slot)
+                except BaseException as error:
+                    secondary=error
+                    C.remember(error)
+                    if primary is None:
+                        primary=error
+        if primary is not None:
+            raise primary
+
+    def private_directory(path):
+        info = path.lstat()
+        need(path.resolve(strict=True) == path and stat.S_ISDIR(info.st_mode) and
+             info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700, 'canonical owned nested directory0700')
+        return info.st_dev,info.st_ino,info.st_mode,info.st_uid
+
+    def write_intent(path,value):
+        pin = io_call('write',path,value,cap=16384)
+        slot,primary = io_call('acquire',path,os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC),None
+        try:
+            need(tuple(pin['identity']) == C.identity(os.fstat(slot[0])) == C.identity(path.lstat()), 'same owned intent beforefreeze')
+            os.fchmod(slot[0],0o444); os.fsync(slot[0])
+        except BaseException as error:
+            primary=error
+            C.remember(error)
+        finally:
+            if slot[1] == 'OWNED':
+                try:
+                    io_call('close',slot)
+                except BaseException as error:
+                    secondary=error
+                    C.remember(error)
+                    if primary is None:
+                        primary=error
+        if primary is not None:
+            raise primary
+        row,raw = io_call('read',path,16384,0o444,{'bytes':pin['bytes'],'sha256':pin['sha256']},True)
+        sync_dir(path.parent)
+        return row
+
+    def prepare(root,case,evidence,seconds,shared_deadline):
+        need(type(root) is type(ROOT) and type(evidence) is type(ROOT), 'exact concrete root/evidence Path')
+        need(root == ROOT, 'fixed successor root; no ROOT overwrite')
+        need(type(case) is dict and all(type(k) is str for k in case), 'builtin source case keys')
+        selected = {k:case[k] for k in ('stage','job','label','stage_sha256')}
+        label = nested_label(selected['label']); need(label in declared, 'case in immutable declaration')
+        same_data(selected,declared[label]['case'])
+        need(label not in state['used'] and label not in state['finished'] and not state['failed'], 'no nested retry or reused label')
+        state['used'].add(label); state['phase'] = 'NESTED_PREPARATION_ENTERED'
+        need(type(seconds) in (int,float) and 0 < seconds <= 190, 'Unadmitted root deadline')
+        root_ns = seconds_ceiling_ns(seconds)
+        validation = declared[label]['validation_allowance_ns']
+        cleanup = 2000000000 + declared[label]['body_closing_allowance_ns']
+        refresh(root_ns+validation,cleanup)
+        need(seconds_ceiling_ns(shared_deadline) <= whole_deadline_ns, 'caller shareddeadline cannot exceed actual enclosing body')
+        attempt = registry.attempt(label)
+        registry.assert_open(attempt,launch=True)
+        row = attempt.layout
+        need(evidence == row.supervision_root, 'exact private prospective supervision destination')
+        if state['outer_identity'] is None:
+            state['outer_identity'] = private_directory(outer_dir)
+        state['members'] = set(registry.snapshot()['attempts'][i]['label'] for i in range(len(registry.snapshot()['attempts'])))
+        need(private_directory(outer_dir) == state['outer_identity'] and
+             set(io_call('names',outer_dir,512)) == state['members'], 'complete actual attempt top-level census')
+        parent = proc(os.getpid())
+        need(parent is not None, 'actual owning parent generation')
+        intent = dict(selected,schema='fresh-active-nested-runner-intent-v2',round_id='fresh-metered-round-v1',
+            outer_label=outer,runner_sha256=RUNNER_SHA,parent_pid=parent['pid'],parent_start_ticks=parent['start_ticks'],
+            whole_body_begin_ns=whole_body_begin_ns,whole_body_deadline_ns=whole_deadline_ns,
+            body_reservation_ns=reservation,nested_allowance_ns=root_ns,validation_allowance_ns=validation,
+            cleanup_allowance_ns=cleanup,active_binding=initial,native_capability=False,execution_permission=False,completed_layout=row.intent_fields(attempt.identity))
+        need(_JOINED is not None and _COMMON is not None,'actual selected common runner and entry')
+        state['pending_intents'][label]=intent
+        wait_path=row.supervision_root/'WAIT.json'
+        config={'schema':'h25-waiting-entry-config-v1','case_id':label,'job':case['job'],
+            'stage_path':str(STAGE_BASE/case['stage']),'stage_sha256':case['stage_sha256'],
+            'runner_path':str(RUNNER_PATH),'runner_sha256':RUNNER_SHA,
+            'entry_sha256':_COMMON[1]['sha256'],'entry_bytes':_COMMON[1]['bytes'],
+            'outer_output':str(row.science_root),'completed_layout':row.intent_fields(attempt.identity),
+            'parent':[parent['pid'],parent['start_ticks']],
+            'working_deadline_ns':min(time.monotonic_ns()+root_ns,seconds_ceiling_ns(shared_deadline)-validation-cleanup),
+            'cleanup_deadline_ns':min(time.monotonic_ns()+root_ns+2000000000,seconds_ceiling_ns(shared_deadline)-validation),
+            'native_source_path':str(SOURCE_BASE.parent/'native/science_view_entry.c')}
+        need(config['working_deadline_ns']>time.monotonic_ns(),'remaining fixed working interval')
+        waiting_writer=registry.synchronous_writer(attempt,'pending-launch',wait_path)
+        try:
+            wait_pin=write_intent(wait_path,config)
+        except BaseException as error:
+            waiting_writer['primary']=error
+            waiting_writer['state']='UNKNOWN'
+            registry.capture_error(attempt,error)
+            raise
+        waiting_writer['state']='CLOSED'
+        state['waiting'][label]=(config,wait_pin,waiting_writer)
+        return wait_path,wait_pin
+
+    def qualify_waiting_candidate(case,domain,process,relay):
+        """Only the genuine bound parent, after actual registered R arrival."""
+        label=case['label'];attempt=registry.attempt(label)
+        row=attempt.layout
+        need(state['run_context'] is not None and state['run_context']['process'] is process
+             and state['run_context']['domain'] is domain and state['owner_pid']==os.getpid(),
+             'actual held run and source-private parent closure')
+        config,wait_pin,waiting_writer=state['waiting'][label]
+        arrival_path=attempt.layout.supervision_root/'ARRIVED.json'
+        while True:
+            state['deadlines'][label].checkpoint()
+            relay.pump(.01)
+            unused,rows=domain.observe()
+            need(not relay.overflowed(),'waiting outer relay cap')
+            waiting_rss=sum(row['rss_bytes'] for row in rows)
+            state['run_context']['peak_rss_bytes']=max(state['run_context'].get('peak_rss_bytes',0),waiting_rss)
+            need(waiting_rss<=state['run_context']['rss_bytes'],
+                 'whole waiting owned-forest RSS bound')
+            need(registry.poll_root(process) is None,'common runner died before arrival')
+            if not arrival_path.exists(): continue
+            arrival,arrival_pin=read_json(arrival_path,16384)
+            need(type(arrival) is dict and type(arrival.get('entry')) is list
+                 and len(arrival['entry'])==2 and all(type(v) is int and v>0 for v in arrival['entry']),
+                 'bounded exact arrival generation')
+            entry=proc(arrival['entry'][0])
+            if entry is not None and generation(entry)==tuple(arrival['entry']) and entry['state'] not in ('T','t'):
+                continue  # Known-closed arrival publication precedes the actual stop.
+            need(entry is not None and generation(entry)==tuple(arrival['entry']),
+                 'same live entry generation')
+            timer=proc(entry['ppid']);root_row=proc(process.pid);parent=proc(os.getpid())
+            need(timer is not None and root_row is not None and parent is not None,'actual arrival chain')
+            expected={'schema':'h25-entry-arrived-v1','case_id':label,'waiting_sha256':wait_pin['sha256'],
+                'entry':list(generation(entry)),'timer':list(generation(timer)),
+                'runner':list(generation(root_row)),'parent':list(generation(parent)),
+                'entry_sha256':_COMMON[1]['sha256']}
+            same_data(arrival,expected)
+            need((json.dumps(arrival,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('ascii')==
+                 stable_file(arrival_path,16384,True)[1],'canonical complete arrival record')
+            expected_command=['/usr/bin/python3.12',*FLAGS,*(['-O'] if case['job']=='optimized' else []),
+                str(STAGE_BASE/case['stage']/'integration/candidate_entry.py'),
+                '--output',str(attempt.layout.science_root),'--lanes','candidate',
+                '--waiting-config',str(attempt.layout.supervision_root/'WAIT.json'),
+                '--waiting-sha256',wait_pin['sha256']]
+            command_path=Path('/proc')/str(entry['pid'])/'cmdline'
+            with command_path.open('rb') as stream: actual_command=stream.read(16385)
+            need(len(actual_command)<=16384 and actual_command==b'\0'.join(v.encode() for v in expected_command)+b'\0',
+                 'actual stopped entry argv, not only its record')
+            protected=ProtectedRoot(registry,attempt,domain,process,entry,arrival_pin,wait_pin)
+            state['protected']=protected;state['phase']='C_WAITING_FOR_ASSOCIATION'
+            break
+        intent=state['pending_intents'][label]
+        intent['schema']='fresh-active-nested-runner-intent-v3'
+        intent['common_rendezvous']={'entry':list(protected.entry_key),'runner':list(protected.runner_key),
+            'arrival_sha256':arrival_pin['sha256'],'waiting_sha256':wait_pin['sha256']}
+        # All current image observations and genuine property work occur after R launch.
+        for kind in ('entry','time'):
+            profile=_JOINED[2]
+            observed=stable_file(Path(profile[kind+'_path']),16777216)
+            need(observed['bytes']==profile[kind+'_bytes'] and observed['sha256']==profile[kind+'_sha256'],
+                 'current selected native image within the primary interval')
+        association,cls,ports,parent_pid=_JOINED[5:]
+        need(os.getpid()==parent_pid and type(association) is cls,'same genuine parent association process')
+        for name,(method,fn,code) in ports.items():
+            current=getattr(association,name)
+            need(type(current) is MethodType and current.__self__ is association and current.__func__ is fn and
+                 fn.__code__ is code and type.__getattribute__(cls,'__dict__').get(name) is fn,
+                 'unchanged actual association method/code owner')
+        ports['observe'][0](label)  # Genuine first observation after actual reserve; bind_launch independently reobserves.
+        token=ports['bind_launch'][0](label)
+        record=ports['launch_record'][0](token)
+        need(type(record) is dict and record.get('case_id')==label and record.get('parent_pid')==parent_pid and
+             type(record.get('association_sha256')) is str,'actual case association handoff correlation')
+        raw_record=(json.dumps(record,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('ascii')
+        need(len(raw_record)<=8192,'bounded actual association launch record')
+        unsigned=dict(record);unsigned.pop('association_sha256')
+        observed_digest=hashlib.sha256((json.dumps(unsigned,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('ascii')).hexdigest()
+        need(observed_digest==record['association_sha256'],'actual parent launch record canonical digest')
+        actual_profile=dict(_JOINED[2],association_sha256=record['association_sha256'])
+        intent.update(relay_pin=dict(_JOINED[1]),native_entry_profile=actual_profile,
+                      full_receiver_pin=dict(_JOINED[4]),association_record=record)
+        validate_nested_intent(intent)
+        intent_path = row.intent_path
+        intent_writer=registry.synchronous_writer(attempt,'intent',intent_path)
+        try:
+            intent_pin=write_intent(intent_path,intent)
+        except BaseException as error:
+            intent_writer['primary']=error  # Actual first before helper.
+            intent_writer['state']='CLOSED' if C.IO_UNKNOWN[0] is False and all(slot[1] in ('FREE','CLOSED') for slot in io.slots) else 'UNKNOWN'
+            registry.capture_error(attempt,error)
+            raise
+        else:
+            intent_writer['state']='CLOSED'
+        registry.required_writer_closed(attempt,'intent')
+        protected.verify()
+        release_path=attempt.layout.supervision_root/'RELEASE.json'
+        release={'schema':'h25-entry-release-v1','waiting_sha256':wait_pin['sha256'],
+                 'arrival_sha256':arrival_pin['sha256'],'entry':list(protected.entry_key),
+                 'runner':list(protected.runner_key),'intent_pin':{'path':str(intent_path),
+                 'bytes':intent_pin['bytes'],'sha256':intent_pin['sha256']}}
+        release_writer=registry.synchronous_writer(attempt,'pending-launch',release_path)
+        try: release_pin=write_intent(release_path,release)
+        except BaseException as error:
+            release_writer['primary']=error;release_writer['state']='UNKNOWN'
+            registry.capture_error(attempt,error);raise
+        release_writer['state']='CLOSED'
+        protected.release(intent_pin,intent_writer,release_pin,release_writer)
+        state['protected']=None;state['phase']='ROOT_RUNNING'
+        state['run_context']['intent_pin']=intent_pin
+        state['run_context']['arrival_pin']=arrival_pin
+        state['run_context']['release_pin']=release_pin
+        return protected
+
+    def reconcile_missing_receipt(root,label,evidence,began,cause,cleanup):
+        verify_native(cleanup=True)
+        # Missing canonical runner receipt remains missing. Only separate DATA is retained.
+        folder = layout.case(nested_label(label)).runner_root
+        if (folder / 'receipt.json').exists():
+            return None
+        observation = {'schema':'fresh-nested-missing-receipt-observation-v1','label':label,
+            'status':'STOP','cause':cause,'cleanup':cleanup,'canonical_runner_receipt_absent':True,
+            'runner_completion_claimed':False,'financial_receipt_created':False,
+            'nested_elapsed_seconds_diagnostic':time.monotonic()-began,
+            'covered_only_by_genuine_enclosing_body':True,'execution_permission':False}
+        write_new(evidence/'NESTED-MISSING-RECEIPT.json',observation)
+        return observation
+
+    def stop_supplement(root,label,reason):
+        need(type(root) is type(ROOT), 'exact concrete supplement root Path')
+        label = nested_label(label)  # Exact str BEFORE hash/membership.
+        need(root == ROOT and registry.attempt(label).status is None, 'same actually entered private attempt')
+        need(label not in state['supplemented'], 'one actual stop supplement')
+        state['supplemented'].add(label)
+        reason = bounded_stop_reason(reason)
+        verify_native(cleanup=True)
+        attempt = registry.attempt(label)
+        registry.assert_open(attempt)
+        evidence = attempt.layout.supervision_root
+        write_new(evidence/'NESTED-SUPERVISION-STOP.json',{
+            'schema':'fresh-nested-supervision-stop-observation-v1','label':label,'reason':reason,
+            'financial_receipt_created':False,'cost_accounted_only_by_actual_enclosing_body':True,
+            'execution_permission':False})
+
+    def query_port(name, *args):
+        need(_QUERY_JOINED is not None, 'actual joined property receiver/profile required')
+        module, pin, profile, ports = _QUERY_JOINED
+        fn, code = ports[name]
+        need(module.__dict__.get(name) is fn and fn.__code__ is code and
+             fn.__globals__ is module.__dict__ and module.__dict__.get('__file__') == pin['path'],
+             'unchanged genuine property receiver source port')
+        return fn(*args)
+
+    def query_scratch(custody, path, created):
+        need(private_directory(path) == created, 'same original administrative query directory')
+        names = sorted(os.listdir(path))
+        need(len(names) <= 32 and all(type(n) is str and n not in ('.', '..') and '/' not in n for n in names),
+             'bounded exact query temporary subtree')
+        files, total = [], 0
+        for name in names:
+            target = path / name
+            info = target.lstat()
+            need(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_nlink == 1 and
+                 info.st_size <= 1048576, 'retained ordinary query temporary file')
+            total += info.st_size
+            need(total <= 1048576, 'aggregate administrative query temporary retention')
+            # Keep the actual files in this same retained source union. No copy,
+            # unlink or alpha-renaming changes the original non-temporary argv.
+            ticket = custody.open('query-temporary-readback', target, os.O_RDONLY)
+            first, h, count = None, hashlib.sha256(), 0
+            try:
+                while count < info.st_size:
+                    block = os.read(ticket['object'], min(CHUNK, info.st_size - count))
+                    need(bool(block), 'whole query temporary file readback')
+                    count += len(block); h.update(block)
+                need(identity(info) == identity(os.fstat(ticket['object'])) == identity(target.lstat()),
+                     'stable actual query temporary file')
+            except BaseException as error:
+                first = error
+                custody.remember(error)
+            finally:
+                try:
+                    custody.close(ticket)
+                except BaseException as error:
+                    first = error if first is None else first
+            if first is not None:
+                raise first
+            files.append({'path': str(target), 'bytes': count, 'sha256': h.hexdigest(),
+                          'identity': list(identity(info))})
+        need(private_directory(path) == created and sorted(os.listdir(path)) == names,
+             'complete stable administrative query file census')
+        return {'path': str(path), 'created_identity': list(created), 'final_identity': list(private_directory(path)),
+                'files': files, 'finalized': True, 'writer_retired': True}
+
+    def run_property_query(case_id, request):
+        """Same genuine owner/lease/registry/guardian as science; distinct receiver."""
+        need(type(case_id) is str and case_id in declared and
+             declared[case_id]['case']['job'] == 'normal' and case_id in state['used'] and
+             state['phase'] == 'C_WAITING_FOR_ASSOCIATION' and state['protected'] is not None and not state['failed'],
+             'only actual reserved case preparation may request properties')
+        attempt = registry.attempt(case_id)
+        registry.assert_open(attempt, launch=True)
+        association, cls, ports, parent_pid = _JOINED[5:]
+        need(owns_property_query_runner(bound, association) and parent_pid == os.getpid(),
+             'same authenticated association, context and parent')
+        profile = _QUERY_JOINED[2]
+        stem, program_pin, request_sha = query_port('validate_request', request, case_id,
+                                                   attempt.layout.supervision_root, profile)
+        query_key = (case_id, request['family_id'], request['query_id'])
+        need(query_key not in state['queries'], 'no property query retry or duplicate')
+        ordinal = state['query_counts'].get(case_id, 0) + 1
+        need(ordinal <= 17, 'source-derived fixed property-query count')
+        state['query_counts'][case_id] = ordinal
+        query_row = {'request': request, 'phase': 'RESERVED', 'first': None,
+                     'ordinal': ordinal, 'result': None}
+        state['queries'][query_key] = query_row  # Before any query native operation.
+        began_ns = time.monotonic_ns()
+        deadline = None
+        relay_module = _JOINED[0]
+        custody = PropertyQueryCustody(registry, attempt, relay_module)
+        ticket = registry.birth(attempt, 'actual-property-query-observer')
+        scratch_ticket = registry._resource(attempt, 'property-query-administrative-writer', 'query-scratch-writer')
+        scratch_ticket['object'], scratch_ticket['state'] = query_row, 'OWNED'
+        process, domain, relay = None, None, None
+        spawn_entered, guardian_registered, guardian_retired = False, False, False
+        guardian_birth_pending = False
+        first, cleanup, captured, scratch = None, None, None, None
+        limits, peak_rss = None, 0
+        scratch_create_entered = False
+        temporary = Path(request['temporary_directory'])
+        payloads, readback_pins, native_fds, diagnostic_pins = {}, {}, {}, {}
+        root = attempt.layout.supervision_root
+        paths = {name: root / (stem + '.' + suffix) for name, suffix in
+                 (('request', 'request.bin'), ('snapshot', 'snapshot.bin'), ('stdout', 'stdout.raw'),
+                  ('stderr', 'stderr.raw'), ('terminal', 'native-terminal.json'), ('journal', 'native-errors.bin'))}
+        old_handler, alarm_owned, query_deadline_token = None, False, None
+        try:
+            refresh(12000000000, 2000000000)
+            verify_native()
+            deadline = min(began_ns / 1e9 + 12, whole_deadline_ns / 1e9 - CLEANUP_SECONDS,
+                           guardian.whole_deadline_ns / 1e9 - CLEANUP_SECONDS)
+            need(deadline > time.monotonic(), 'actual existing query working/cleanup budget')
+            old_handler = signal.getsignal(signal.SIGALRM)
+            need(state['deadlines'][case_id].started, 'actual enclosing deadline remains owned')
+            launch_contract()
+            native_request = query_port('encode_request', request, ordinal)
+            # Original registry directory constructor reserves the known inode;
+            # the scratch-writer container remains OWNED through child death.
+            scratch_create_entered = True
+            registry._create_owned_case_dir(attempt, temporary)
+            created = private_directory(temporary)
+            query_row['scratch_created_identity'] = created
+            write_ticket = custody.open('query-request-write', paths['request'],
+                                        os.O_RDWR | os.O_CREAT | os.O_EXCL)
+            custody.write(write_ticket, native_request)
+            custody.close(write_ticket)
+            native_fds['request'] = custody.open('query-request-read', paths['request'], os.O_RDONLY)
+            for name in ('snapshot', 'stdout', 'stderr', 'terminal', 'journal'):
+                native_fds[name] = custody.open('query-native-' + name, paths[name],
+                                               os.O_RDWR | os.O_CREAT | os.O_EXCL)
+            custody.write(native_fds['journal'], b'\0' * 4096)
+            native_fds['exec'] = custody.open('query-held-program', Path(request['program']), os.O_RDONLY,
+                                            expected=program_pin)
+            native_fds['cwd'] = custody.open('query-held-original-cwd', Path(request['cwd']),
+                                           os.O_RDONLY | os.O_DIRECTORY, directory=True)
+            native_fds['stdin'] = custody.open('query-held-dev-null', Path('/dev/null'), os.O_RDONLY, null=True)
+            argv = [profile['observer_pin']['path']]
+            ordered = ('request', 'snapshot', 'stdout', 'stderr', 'terminal', 'journal', 'exec', 'cwd', 'stdin')
+            for name in ordered:
+                argv.extend(['--' + name + '-fd', str(native_fds[name]['object'])])
+            passed = tuple(native_fds[name]['object'] for name in ordered)
+            need(len(set(passed)) == 9 and all(fd >= 3 for fd in passed) and 198 not in passed,
+                 'nine distinct exact observer FDs; no guardian capability inheritance')
+            observed = stable_file(Path(profile['observer_pin']['path']), 16777216)
+            need(observed['bytes'] == profile['observer_pin']['bytes'] and
+                 observed['sha256'] == profile['observer_pin']['sha256'], 'current selected observer image bytes')
+            registry.write_json(attempt, 'property-query-request', root / (stem + '.request.json'), {
+                'schema': 'actual-property-query-reservation-v1', 'case_id': case_id,
+                'attempt_identity': attempt.identity, 'query_ordinal': ordinal,
+                'request': request, 'request_sha256': request_sha,
+                'native_request_sha256': hashlib.sha256(native_request).hexdigest(),
+                'observer_pin': profile['observer_pin'], 'observer_source_pin': profile['observer_source_pin'],
+                'program_pin': program_pin, 'observer_argv': argv,
+                'existing_whole_body_begin_ns': whole_body_begin_ns,
+                'existing_whole_deadline_ns': whole_deadline_ns,
+                'query_working_deadline_ns': int(deadline * 1e9), 'new_allowance_ns': 0})
+            query_row['request_retained'] = True
+            relay = relay_module.BoundedRelay((root / (stem + '.observer.stdout'),
+                       root / (stem + '.observer.stderr')), custody.owner, 'property-query-observer')
+            relay.open(); out, err = relay.writers()
+            domain = OwnedDomain(registry, attempt, protected=state['protected'])
+            limits = root_address_space_limits(resource.getrlimit(resource.RLIMIT_AS), 268435456, resource.RLIM_INFINITY)
+            fsize = relay_module.compiler_file_limits(resource.getrlimit(resource.RLIMIT_FSIZE), resource.RLIM_INFINITY)
+            setter, as_kind, file_kind = resource.setrlimit, resource.RLIMIT_AS, resource.RLIMIT_FSIZE
+            def child_limits():
+                setter(as_kind, limits)
+                setter(file_kind, fsize)
+            query_deadline_token=state['deadlines'][case_id].push(int(deadline*1e9))
+            alarm_owned=True
+            try:
+                guardian_birth_pending = True  # Actual request may enter before a failed ACK.
+                guardian.spawn_pending('PropertyQuery', profile['observer_source_pin']['sha256'])
+                registry.birth_entered(ticket); spawn_entered = True
+                launch_error, launch_traceback = None, None
+                try:
+                    process = registry.spawn_root(argv, cwd=request['cwd'], env=dict(ENV),
+                        stdin=native_fds['stdin']['object'], stdout=out, stderr=err, pass_fds=passed,
+                        close_fds=True, start_new_session=True, preexec_fn=child_limits)
+                    registry.born(ticket, process)
+                except BaseException as error:
+                    launch_error = error
+                    launch_traceback = BaseException.__dict__['__traceback__'].__get__(error, BaseException)
+                    custody.remember(error)
+                finally:
+                    try:
+                        relay.close_writers()
+                    except BaseException as error:
+                        custody.remember(error)
+                        if launch_error is None:
+                            launch_error = error
+                            launch_traceback = BaseException.__dict__['__traceback__'].__get__(error, BaseException)
+                if launch_error is not None:
+                    raise BaseException.with_traceback(launch_error, launch_traceback)
+                captured = proc(process.pid)
+                need(captured is not None and captured['pgid'] == captured['sid'] == process.pid,
+                     'actual property observer new-session generation')
+                domain.root = generation(captured); domain.add(captured)
+                registry.started_root(process, captured)
+                guardian.child_known('PropertyQuery', process.pid, profile['observer_source_pin']['sha256'],
+                                     pidfd=domain.fds[generation(captured)])
+                guardian_registered = True; guardian_birth_pending = False
+                query_row['phase'] = 'OBSERVER_BORN'
+                while True:
+                    relay.pump(.01)
+                    outer=state['run_context'];outer['relay'].pump(0)
+                    protected_rows=state['protected'].verify(domain)
+                    need(not outer['relay'].overflowed(), 'waiting root relay remains bounded during query')
+                    unused, current = domain.observe()
+                    concurrent_rss=sum(r['rss_bytes'] for r in protected_rows+current)
+                    outer['peak_rss_bytes']=max(outer.get('peak_rss_bytes',0),concurrent_rss)
+                    need(concurrent_rss<=outer['rss_bytes'],
+                         'concurrent protected root and query forest RSS bound')
+                    peak_rss = max(peak_rss, sum(row['rss_bytes'] for row in current))
+                    need(peak_rss <= 1073741824, 'existing actual owned-domain sampled RSS upper bound')
+                    need(not relay.overflowed(), 'observer diagnostic first extra byte observed')
+                    if registry.poll_root(process) is not None:
+                        break
+            finally:
+                state['deadlines'][case_id].pop(query_deadline_token)
+        except BaseException as error:
+            first = error; query_row['first'] = error
+            custody.remember(error)
+            if ticket['state'] == 'PENDING':
+                registry.birth_failed(ticket, error, known_not_entered=not spawn_entered)
+        finally:
+            # Every secondary cleanup failure is immediately a query failure.
+            # A readable prefix never permits another query/scientific launch.
+            if alarm_owned:
+                try:
+                    owner=state['deadlines'][case_id]
+                    if query_deadline_token is not None and owner.stack and owner.stack[-1][0] is query_deadline_token:
+                        owner.pop(query_deadline_token)
+                except BaseException as error:
+                    first=error if first is None else first;custody.remember(error)
+            try:
+                cleanup = domain.cleanup(process,min(deadline+CLEANUP_SECONDS,whole_deadline_ns/1e9)) if domain is not None else {
+                    'complete': not spawn_entered, 'group_empty_proved': not spawn_entered,
+                    'remaining': [] if not spawn_entered else 'UNKNOWN',
+                    'observed_after_root_exit': [], 'reaped_adopted': []}
+                need(cleanup['complete'] and cleanup['group_empty_proved'] and cleanup['remaining'] == [],
+                     'actual complete query domain retirement')
+                if process is not None:
+                    registry.waited(ticket, process.returncode)
+                    registry.holder_closed(ticket)
+                    need(guardian_registered, 'known guardian query birth before retirement')
+                    guardian.child_closed('PropertyQuery', process.pid)
+                    guardian_retired = True
+            except BaseException as error:
+                first = error if first is None else first
+                custody.remember(error)
+                registry.mark_uncertain(attempt, 'property query process/guardian retirement uncertain')
+            if guardian_birth_pending:
+                registry.mark_uncertain(attempt, 'property query guardian birth pending or acknowledgement uncertain')
+            if relay is not None:
+                try:
+                    relay.close_writers()
+                    if relay.setup_complete and relay.primary is None:
+                        relay.drain_until(min(time.monotonic() + CLEANUP_SECONDS, whole_deadline_ns / 1e9))
+                except BaseException as error:
+                    first = error if first is None else first
+                    custody.remember(error)
+                finally:
+                    try:
+                        if not relay.retired: relay.retire()
+                    except BaseException as error:
+                        first = error if first is None else first
+                        custody.remember(error)
+            try:
+                custody.close_all()
+            except BaseException as error:
+                first = error if first is None else first
+            known_retirement = (cleanup is not None and cleanup['complete'] and
+                                cleanup['group_empty_proved'] and cleanup['remaining'] == [])
+            if known_retirement and 'scratch_created_identity' in query_row and custody.snapshot()['all_closed']:
+                try:
+                    scratch = query_scratch(custody, temporary, query_row['scratch_created_identity'])
+                    scratch_ticket['state'] = 'CLOSED'
+                except BaseException as error:
+                    first = error if first is None else first
+                    custody.remember(error)
+            elif not scratch_create_entered:
+                scratch_ticket['state'] = 'NOT_ENTERED'
+            if first is None:
+                try:
+                    need(process is not None and process.returncode == 0, 'actual observer success wait')
+                    caps = {'snapshot': 2752520, 'stdout': 1048576, 'stderr': 1048576,
+                            'terminal': 16384, 'journal': 4096}
+                    for name, cap in caps.items():
+                        pin, raw = custody.readback(paths[name], cap, custody.identities[str(paths[name])])
+                        readback_pins[name], payloads[name] = pin, raw
+                    for name in ('stdout', 'stderr'):
+                        diagnostic = root / (stem + '.observer.' + name)
+                        pin, raw = custody.readback(diagnostic, LOG_CAP)
+                        diagnostic_pins[name] = pin
+                        need(raw == b'', 'selected native observer has no success diagnostic output')
+                    context = {'case_id': case_id, 'attempt_identity': attempt.identity,
+                        'request_sha256': request_sha, 'native_request_sha256': hashlib.sha256(native_request).hexdigest(),
+                        'source_tuple_sha256': profile['source_tuple_sha256'], 'profile_sha256': profile['profile_sha256'],
+                        'observer_pin': profile['observer_pin'], 'observer_source_pin': profile['observer_source_pin'],
+                        'program_pin': program_pin, 'observer_process': captured,
+                        'observer_wait': process.returncode, 'guardian_registered': guardian_registered,
+                        'guardian_retired': guardian_retired, 'domain': cleanup, 'relay': relay.snapshot(),
+                        'custody': custody.snapshot(), 'scratch': scratch, 'readback_pins': readback_pins,
+                        'diagnostic_pins': diagnostic_pins,
+                        'elapsed_ns': time.monotonic_ns() - began_ns}
+                    result = query_port('validate_terminal', request, ordinal, context, payloads)
+                    query_row['result'] = result; query_row['phase'] = 'QUALIFIED'
+                except BaseException as error:
+                    first = error; query_row['first'] = error
+                    custody.remember(error)
+            if first is not None:
+                query_row['phase'] = 'FAILED_OR_UNCERTAIN_RETIRED'
+                if scratch_ticket['state'] == 'OWNED':
+                    scratch_ticket['state'] = 'UNKNOWN'
+                if not custody.snapshot()['all_closed']:
+                    registry.mark_uncertain(attempt, 'property query descriptors unavailable or unknown after one close')
+            custody.ticket['state'] = 'CLOSED' if custody.snapshot()['all_closed'] else 'UNKNOWN'
+            registry.write_json(attempt, 'property-query-terminal', root / (stem + '.parent-terminal.json'), {
+                'schema': 'actual-property-query-parent-terminal-v1', 'case_id': case_id,
+                'attempt_identity': attempt.identity, 'query_ordinal': ordinal, 'request_sha256': request_sha,
+                'prelaunch_request': None if query_row.get('request_retained') else request,
+                'status': 'QUERY_BYTES_QUALIFIED' if first is None else 'SETUP_QUERY_FAILED',
+                'spawn_entered': spawn_entered, 'observer_wait': None if process is None else process.returncode,
+                'guardian_registered': guardian_registered, 'guardian_retired': guardian_retired,
+                'guardian_birth_pending': guardian_birth_pending,
+                'domain': cleanup, 'custody': custody.snapshot(), 'readback_pins': readback_pins,
+                'diagnostic_pins': diagnostic_pins,
+                'installed_observer_as_limits': None if limits is None else list(limits),
+                'sampled_owned_domain_peak_rss': peak_rss, 'native_working_seconds': 10,
+                'native_cleanup_tail_seconds': 2, 'parent_cleanup_tail_seconds': 2,
+                'scratch': scratch, 'actual_elapsed_ns': time.monotonic_ns() - began_ns,
+                'raw_primary_retained': first is not None, 'scientific_negative_issued': False,
+                'new_allowance_ns': 0})
+        if first is not None:
+            raise BaseException.with_traceback(attempt.error, attempt.traceback)
+        refresh(0, 2000000000)
+        return query_row['result']
+
+    def run_root(root, case, evidence, seconds, shared_deadline, as_bytes=201326592,
+                 rss_bytes=201326592):
+        """Actual joined Root, followed by bounded relay and genuine domain retirement."""
+        wait_path,wait_pin = prepare(root,case,evidence,seconds,shared_deadline)
+        launch_contract()
+        need(_JOINED is not None,'actual joined runtime source association')
+        relay_module,relay_pin,native_profile,full_receiver,full_receiver_pin = _JOINED[:5]
+        need(stable_file(RUNNER_PATH,META_CAP)['sha256']==RUNNER_SHA,'Actual root runner changed')
+        need(time.monotonic()+CLEANUP_SECONDS<shared_deadline,'No reserved cleanup tail remains')
+        command=['/usr/bin/python3.12',*FLAGS,str(RUNNER_PATH),case['stage'],case['job'],case['label'],
+                 '--waiting-config',str(wait_path),'--waiting-sha256',wait_pin['sha256']]
+        for value in (case['stage'],case['job'],case['label']):
+            nested_label(value)
+        attempt=registry.attempt(case['label'])
+        registry.assert_open(attempt,launch=True)
+        need(evidence==attempt.layout.supervision_root and evidence.is_dir(),'actual reserved supervision root')
+        need(type(seconds) in (int,float) and 0<seconds<=190,'Unadmitted root deadline')
+        need(type(as_bytes) is int and 0<as_bytes<=1024**3,'Unadmitted root address-space bound')
+        need(type(rss_bytes) is int and 0<rss_bytes<=1024**3,'Unadmitted aggregate RSS bound')
+        began=time.monotonic()
+        deadline=min(began+seconds,shared_deadline-CLEANUP_SECONDS)
+        domain=OwnedDomain(registry,attempt)
+        process,failure,cleanup=None,None,None
+        first_error,secondary_errors=None,[None]*16
+        ticket=registry.birth(attempt,'actual-root-runner')
+        holders=[registry.native_holder(attempt,role) for role in
+            ('GNU-time-native-usage-output-OFD-and-aliases','runner-child-science-stdio-aliases',
+             'native-entry-private-mount-view-and-final-exec','native-entry-failed-setup-resources')]
+        relay=relay_module.BoundedRelay((evidence/'root.stdout.raw',evidence/'root.stderr.raw'),
+                                       relay_module.RegistryOwner(registry,attempt),'root')
+        peak,spawn_entered,captured=0,False,None
+        setter,limit_kind=resource.setrlimit,resource.RLIMIT_AS
+        limits=root_address_space_limits(resource.getrlimit(limit_kind),as_bytes,resource.RLIM_INFINITY)
+        hard_file_limits=relay_module.compiler_file_limits(resource.getrlimit(resource.RLIMIT_FSIZE),resource.RLIM_INFINITY)
+        fsize_limits=(LOG_CAP,hard_file_limits[1])
+        need(list(Path('/proc/self/task').iterdir())==[Path('/proc/self/task')/str(os.getpid())],
+             'Root preexec requires exactly one task')
+        def child_limit():
+            setter(limit_kind,limits)
+            setter(resource.RLIMIT_FSIZE,fsize_limits)
+        deadline_owner=DeadlineOwner(seconds_ceiling_ns(shared_deadline))
+        state['deadlines'][case['label']]=deadline_owner
+        root_deadline_token=None
+        write_new(evidence/'LAUNCH.json',{'command':command,'parent_pid':os.getpid(),
+            'parent_pgid':os.getpgrp(),'parent_sid':os.getsid(0),'root_execution_seconds':seconds,
+            'address_space_bytes':as_bytes,'installed_root_address_space_limits':list(limits),
+            'lower_inherited_AS_preserved':True,'installed_fsize_limits':list(fsize_limits),
+            'outer_capture_cap_bytes_each':LOG_CAP,'complete_artifact_fit_proved':False,
+            'rss_sum_bytes':rss_bytes,'new_session':True,'cleanup_reserved_seconds':CLEANUP_SECONDS})
+        try:
+            relay.open()
+            out,err=relay.writers()
+            deadline_owner.start()
+            root_deadline_token=deadline_owner.push(int(deadline*1e9))
+            try:
+                guardian.spawn_pending('Root',RUNNER_SHA)
+                registry.birth_entered(ticket)
+                spawn_entered=True
+                launch_error,launch_traceback=None,None
+                try:
+                    before_self=resource.getrusage(resource.RUSAGE_SELF)
+                    before_children=resource.getrusage(resource.RUSAGE_CHILDREN)
+                    primary_begin=time.monotonic_ns()
+                    state['primary'][case['label']]=(primary_begin,before_self,before_children)
+                    process=registry.spawn_root(command,cwd=root,env=dict(ENV),stdin=subprocess.DEVNULL,stdout=out,stderr=err,
+                        start_new_session=True,preexec_fn=child_limit,close_fds=True)
+                    registry.born(ticket,process)
+                    for holder in holders:
+                        registry.native_holder_born(holder,process)
+                except BaseException as error:
+                    launch_error=error
+                    launch_traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+                    registry.capture_error(attempt,error)
+                finally:
+                    try:
+                        relay.close_writers()
+                    except BaseException as error:
+                        registry.capture_error(attempt,error)
+                        if launch_error is None:
+                            launch_error=error
+                            launch_traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+                if launch_error is not None:
+                    raise BaseException.with_traceback(launch_error,launch_traceback)
+                captured=proc(process.pid)
+                need(captured is not None and captured['pgid']==captured['sid']==process.pid,
+                     'New root process/session identity missing')
+                domain.root=generation(captured)
+                domain.add(captured)
+                registry.started_root(process,captured)
+                guardian.child_known('Root',process.pid,RUNNER_SHA,pidfd=domain.fds[generation(captured)])
+                write_new(evidence/'ROOT-PROCESS.json',captured)
+                state['run_context']={'process':process,'domain':domain,'relay':relay,'rss_bytes':rss_bytes,
+                                      'peak_rss_bytes':0}
+                qualify_waiting_candidate(case,domain,process,relay)
+                while True:
+                    relay.pump(0.01)
+                    _,current=domain.observe()
+                    peak=max(peak,sum(row['rss_bytes'] for row in current))
+                    state['run_context']['peak_rss_bytes']=max(state['run_context']['peak_rss_bytes'],peak)
+                    need(peak<=rss_bytes,'Owned process RSS sum exceeded')
+                    need(not relay.overflowed(),'Outer raw log first extra byte observed')
+                    if registry.poll_root(process) is not None:
+                        break
+            finally:
+                if root_deadline_token is not None and deadline_owner.stack and deadline_owner.stack[-1][0] is root_deadline_token:
+                    deadline_owner.pop(root_deadline_token)
+
+        except BaseException as error:
+            first_error=error if first_error is None else first_error
+            attempt.error=error if attempt.error is None else attempt.error
+            registry.capture_error(attempt,error)
+            if ticket['state']=='PENDING':
+                registry.birth_failed(ticket,error,known_not_entered=not spawn_entered)
+            for holder in holders:
+                if holder['state']=='PENDING':
+                    holder['state']='NOT_ENTERED' if not spawn_entered else 'UNKNOWN'
+            failure={'type':'opaque-caught-exception','message':'projection_unavailable'}
+        finally:
+            cleanup_deadline=min(time.monotonic()+CLEANUP_SECONDS,shared_deadline)
+            try:
+                # Actual pidfd/generation/descendant/group/wait owner is unchanged.
+                cleanup=domain.cleanup(process,cleanup_deadline)
+            except BaseException as error:
+                secondary_errors[0]=error
+                registry.capture_error(attempt,error)
+                cleanup={'complete':False,'group_empty_proved':False,'owned_generations':list(domain.rows.values()),
+                    'groups':[{'pgid':g,'sid':sid} for g,sid in sorted(domain.groups)],
+                    'reaped_adopted':domain.reaped,'observed_after_root_exit':[],
+                    'remaining':'UNKNOWN_AFTER_CLEANUP_ERROR'}
+                registry.mark_uncertain(attempt,'native domain cleanup failed after known fd retirement')
+            try:
+                relay.close_writers()
+                if relay.setup_complete and relay.primary is None:
+                    relay.drain_until(cleanup_deadline)
+            except BaseException as error:
+                secondary_errors[1]=error
+                registry.capture_error(attempt,error)
+                first_error=error if first_error is None else first_error
+            finally:
+                try:
+                    relay.retire()
+                except BaseException as error:
+                    secondary_errors[2]=error
+                    registry.capture_error(attempt,error)
+                    first_error=error if first_error is None else first_error
+        outer_relay=relay.snapshot()
+        if first_error is not None:
+            failure=failure or {'type':'actual-retained-exception','message':'projection_unavailable'}
+        native_domain_closed=(cleanup['complete'] and cleanup['group_empty_proved'] and cleanup['remaining']==[])
+        if process is not None and native_domain_closed and type(process.returncode) is int:
+            registry.waited(ticket,process.returncode)
+            registry.holder_closed(ticket)
+            guardian.child_closed('Root',process.pid)
+        if not native_domain_closed:
+            registry.mark_uncertain(attempt,'native writer cleanup incomplete')
+            failure=failure or {'type':'CleanupIncomplete','message':'Owned descendants/group remain'}
+        if not outer_relay['all_descriptors_known_closed']:
+            registry.mark_uncertain(attempt,'outer relay endpoint retirement unknown')
+            failure=failure or {'type':'RelayIncomplete','message':'Known endpoint retirement unavailable'}
+        if not outer_relay['eof_complete']:
+            failure=failure or {'type':'RelayIncomplete','message':'Incomplete EOF; raw bounded prefix retained'}
+        if outer_relay['overflow']:
+            failure=failure or {'type':'OutputCap','message':'First extra byte observed; bounded prefix retained'}
+        if time.monotonic()>shared_deadline:
+            failure=failure or {'type':'SharedDeadline','message':'Shared cap crossed; cleanup charged'}
+        closure_path=attempt.layout.runner_root/'WRITER-CLOSURE.json'
+        local_closed=False
+        closure=None
+        if process is None and not spawn_entered:
+            local_closed=outer_relay['all_descriptors_known_closed']
+        elif closure_path.exists() and native_domain_closed:
+            closure,closure_pin=read_runner_closure(closure_path)
+            local_closed=closure['local_holders_closed']
+        if local_closed and native_domain_closed and outer_relay['all_descriptors_known_closed']:
+            for holder in holders:
+                if holder['state']=='OWNED':
+                    registry.native_holder_closed(holder)
+            for role in ('runner','native-usage','native-child','native-entry','native-setup',
+                         'relay-capture','relay-read','relay-writer','pending-launch'):
+                registry.required_writer_closed(attempt,role)
+        else:
+            registry.mark_uncertain(attempt,'joined local closure absent; no EOF/direct-exit substitution')
+        reconciled=reconcile_missing_receipt(root,case['label'],evidence,began,
+            failure or {'type':'MissingRootReceipt','message':'Root exited without receipt'},cleanup)
+        if reconciled is not None:
+            failure=failure or {'type':'MissingRootReceipt','message':'Missing canonical receipt retained; no retry'}
+        logs={}
+        for name in ('root.stdout.raw','root.stderr.raw'):
+            try:
+                logs[name]=stable_file(evidence/name,LOG_CAP)
+            except BaseException as error:
+                registry.capture_error(attempt,error)
+                failure=failure or {'type':'opaque-log-exception','message':'projection_unavailable'}
+                logs[name]={'path':str(evidence/name),'complete_hash':None,'stable':False}
+        result={'schema':'h25-parent-root-supervision-v1','label':case['label'],
+            'status':'STOP' if failure else 'ROOT_COMPLETED_AND_OWNED_DOMAIN_EMPTY','failure':failure,
+            'spawn_entered':spawn_entered,'spawn_returned':process is not None,'captured_root':captured,
+            'returncode':None if process is None else process.returncode,'cleanup':cleanup,'outer_logs':logs,
+            'outer_relay':outer_relay,'runner_local_closure':closure,
+            'sampled_owned_rss_bytes':max(peak,(state['run_context'] or {}).get('peak_rss_bytes',0)),
+            'execution_and_cleanup_seconds':time.monotonic()-began,'root_receipt_reconciled':reconciled is not None,
+            'G_cgroup_writer_lifetime_proof_still_required':True,'no_hostile_fork_or_concurrent_children_claim':True}
+        write_new(evidence/'SUPERVISION.json',result)
+        registry.required_writer_closed(attempt,'reconcile')
+        registry.required_writer_closed(attempt,'supervision')
+        return result
+
+    sentinel = object()
+    class BoundConsumers:
+        __slots__ = ()
+        def __new__(cls,key_value):
+            need(key_value is sentinel, 'private bound native consumer only')
+            return object.__new__(cls)
+        def run_property_query(self, case_id, request):
+            need(self is bound, 'actual source-private property-query consumer')
+            try:
+                frame = sys._getframe(1)
+                try:
+                    association = _JOINED[5]
+                    need(frame.f_globals is _JOINED[7]['observe'][1].__globals__ and
+                         frame.f_locals.get('self') is association,
+                         'property request originates in the actual source-owned association')
+                finally:
+                    del frame
+                return run_property_query(case_id, request)
+            except BaseException as error:
+                if state['first'] is None:
+                    state['first'] = error
+                state['failed'], state['phase'] = True, 'PROPERTY_QUERY_FAILED_NO_RETRY'
+                attempt = registry.attempt(case_id)
+                registry.capture_error(attempt, error)
+                raise BaseException.with_traceback(attempt.error, attempt.traceback)
+        def run_root(self,root,case,evidence,seconds,shared_deadline,as_bytes=201326592,rss_bytes=201326592):
+            need(self is bound, 'actual bound source consumer')
+            try:
+                result = run_root(root,case,evidence,seconds,shared_deadline,as_bytes,rss_bytes)
+                if result['status'] == 'STOP':
+                    state['failed'] = True; state['phase'] = 'NESTED_STOP_NO_RETRY'
+                else:
+                    need(private_directory(outer_dir) == state['outer_identity'] and
+                         set(io_call('names',outer_dir,512)) == state['members'], 'complete nested top-level census')
+                    state['phase'] = 'NESTED_RETURNED'
+                result['fresh_round_outer_label'] = outer
+                result['nested_is_not_registry_charge'] = True
+                return result
+            except BaseException as error:
+                if state['first'] is None:
+                    state['first'] = error  # Direct raw reference before any helper/state projection.
+                attempt = registry.attempt(case['label'])
+                registry.capture_error(attempt,error)
+                state['failed'] = True; state['phase'] = 'FAILED_NO_RETRY'
+                raise BaseException.with_traceback(attempt.error,attempt.traceback)
+        def finish_primary(self,label):
+            need(self is bound and label in state['primary'] and state['phase']=='NESTED_RETURNED',
+                 'actual returned case before its retained validation endpoint')
+            begin,before_self,before_children=state['primary'].pop(label)
+            after_self=resource.getrusage(resource.RUSAGE_SELF)
+            after_children=resource.getrusage(resource.RUSAGE_CHILDREN)
+            end=time.monotonic_ns()
+            owner=state['deadlines'][label];owner.checkpoint();owner.finish()
+            return {'parent_command_wall_seconds_through_validation':(end-begin)/1e9,
+                'parent_command_cpu_seconds_with_runner_children_validation':
+                (after_self.ru_utime+after_self.ru_stime-before_self.ru_utime-before_self.ru_stime)+
+                (after_children.ru_utime+after_children.ru_stime-before_children.ru_utime-before_children.ru_stime),
+                'primary_begin_monotonic_ns':begin,'primary_end_monotonic_ns':end}
+        def finish_case(self,label,error=None):
+            need(self is bound,'same actual bound source finalizer')
+            owner=state['deadlines'].get(label)
+            if owner is not None and owner.started and not owner.finished:
+                try: owner.finish()
+                except BaseException as failure:
+                    registry.capture_error(registry.attempt(label),failure)
+                    if error is None: error=failure
+            attempt = registry.attempt(nested_label(label))
+            registry.assert_open(attempt)
+            registry.retire_unentered(attempt)
+            verify_native(cleanup=True)
+            registry.prepare_finalizer_dirs(attempt)
+            if error is not None:
+                registry.capture_error(attempt,error)
+            if label in state['finished']:
+                return
+            state['finished'].add(label)  # Irreversible: prepare refuses this case thereafter.
+            if label not in state['used']:
+                write_new(attempt.layout.supervision_root/'SUPERVISOR-NOT-ENTERED.json',{
+                    'schema':'h25-supervisor-not-entered-observation-v1','label':label,
+                    'status':'STOP','native_launch_entered':False,'canonical_runner_receipt_created':False})
+                for role in ('intent','runner','native-usage','native-child','native-entry','native-setup',
+                             'relay-capture','relay-read','relay-writer','pending-launch','supervision','reconcile'):
+                    if attempt.required[role] is False:
+                        registry.required_writer_closed(attempt,role)
+                return
+            # Required originals are invoked only if their owning path has not completed.
+            if attempt.required['reconcile'] is False:
+                process_rows = [r for r in attempt.resources if r['kind']=='process' and r['role']=='actual-root-runner']
+                known = all(r['state'] in ('CLOSED','NOT_ENTERED') for r in process_rows)
+                cleanup = {'complete':known,'remaining':[] if known else 'UNKNOWN_NATIVE_ENTRY'}
+                observation = reconcile_missing_receipt(ROOT,label,attempt.layout.supervision_root,time.monotonic(),
+                    {'type':'OwningCaseFinalizer','message':'Actual failed preparation/producer finally'},cleanup)
+                registry.required_writer_closed(attempt,'reconcile')
+            if attempt.required['supervision'] is False:
+                write_new(attempt.layout.supervision_root/'SUPERVISOR-FINALIZER.json',{
+                    'schema':'h25-supervisor-finalizer-observation-v1','label':label,'status':'STOP',
+                    'canonical_runner_receipt_created':False,'original_run_root_result_present':(attempt.layout.supervision_root/'SUPERVISION.json').exists()})
+                registry.required_writer_closed(attempt,'supervision')
+            process_rows = [r for r in attempt.resources if r['kind']=='process' and r['role']=='actual-root-runner']
+            for resource in attempt.resources:
+                if resource['kind'] in ('process','native-holder') and resource['state']=='PENDING' and not resource['entry_entered'] and not any(r['entry_entered'] for r in process_rows):
+                    resource['state']='NOT_ENTERED'
+                    resource['wait_known']=resource['aliases_closed']=True
+            no_launch = not process_rows or all(r['state']=='NOT_ENTERED' for r in process_rows)
+            if no_launch:
+                # Retire a genuinely unentered relay owner too; known returned FDs
+                # are closed once, and unknown endpoints remain unknown.
+                for resource in attempt.resources:
+                    if resource['kind']=='relay-owner' and resource['state']=='OWNED':
+                        actual_relay=resource['object']
+                        if not actual_relay.retired:
+                            actual_relay.retire()
+                for role in ('intent','runner','native-usage','native-child','native-entry','native-setup',
+                             'relay-capture','relay-read','relay-writer','pending-launch'):
+                    if attempt.required[role] is False:
+                        registry.required_writer_closed(attempt,role)
+            else:
+                if attempt.required['intent'] is False:
+                    registry.mark_uncertain(attempt,'intent writer incomplete after native entry')
+        def stop_supplement(self,root,label,reason):
+            need(self is bound, 'actual bound source consumer')
+            state['failed'] = True; state['phase'] = 'STOP_SUPPLEMENT_ENTERED_NO_RETRY'
+            try:
+                result = stop_supplement(root,label,reason)
+            except BaseException as error:
+                if state['first'] is None:
+                    state['first'] = error
+                state['phase'] = 'STOP_SUPPLEMENT_FAILED_NO_RETRY'
+                raise  # Preserve this actual exception and the privately retained first.
+            state['phase'] = 'STOP_SUPPLEMENT_RETAINED_NO_RETRY'
+            return result
+    bound = BoundConsumers(sentinel)
+    state['bound_consumer'], state['association'] = bound, _JOINED[5]
+    state['property_query_method'] = (BoundConsumers.__dict__['run_property_query'],
+                                      BoundConsumers.__dict__['run_property_query'].__code__)
+    _JOINED[7]['bind_property_query_runner'][0](bound)
+    state['phase'] = 'BOUND_TO_ACTUAL_ACTIVE_OWNER'
+    return bound
+
+
+def packet_unchanged(directory, manifest):
+    for name, expected in manifest['files'].items():
+        row = stable_file(directory / name, META_CAP)
+        need(row['sha256'] == expected['sha256'] and row['bytes'] == expected['bytes'],
+             'Parent source packet changed: ' + name)
+        need(not (directory / name).stat().st_mode & 0o222, 'Parent source packet became writable')
+    return True
