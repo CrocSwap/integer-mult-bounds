@@ -1,0 +1,1291 @@
+"""Concrete original-observation association at the authenticated C2 boundary.
+
+This source performs no work on import.  The fixed private loader is the only
+factory caller.  Later, an actual C2 invocation may observe its selected objects
+using genuinely acquired descriptors.  A failed Q proof withholds *this view*;
+it is neither an input refusal nor an invented result of the original caller.
+
+The finite sufficient branch covers empty copied/inherited attributes, ordinary
+same-ID owner/group/other permissions, and attribute-free executable images.  It also
+admits an original outer-retention attribute refusal on an existing, uncopied
+backing object.  Nonempty copied/inherited/native attributes remain explicit
+consequence obligations; they are never silently removed or treated as PASS.
+Native mount restrictions, installed-image/ABI association, original controls,
+writer retirement, seal, native TCB, and the original retention oracle remain
+independent owning checks.  The source review states the conditional implication;
+authoring it issues no current-environment observation or execution permission.
+"""
+from collections import namedtuple
+import errno
+import hashlib
+import json
+import os
+import stat
+import sys
+import sysconfig
+from types import ModuleType, FunctionType, MethodType
+import native_io_custody as native_io
+
+W = '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453'
+R = W + '/outputs/connected-caller-assembly-20261107T2053Z'
+ORIGINAL_CWD = W + '/outputs/h25-data-handling-20261028'
+LOADER_PATH = R + '/implementation/bindings/private_loader.py'
+LOADER_NAME = '_s03_fixed_entry_private_loader'
+MAX_OBJECTS, MAX_CASES, MAX_ENTRIES, MAX_DEPTH = 64, 512, 4096, 32
+MAX_PATH, MAX_NAME, MAX_ATTRIBUTES = 4096, 255, 64
+MAX_ATTRIBUTE_BYTES, MAX_ATTRIBUTE_TOTAL = 65536, 1048576
+MAX_FILE_BYTES, MAX_TOTAL_BYTES = 536870912, 2147483648
+MAX_RECORD_BYTES, CHUNK = 8388608, 65536
+MAX_LAUNCH_BYTES = 8192
+_GETPID, _GETUID, _GETEUID = os.getpid, os.getuid, os.geteuid
+_GETGID, _GETEGID, _GETGROUPS = os.getgid, os.getegid, os.getgroups
+_GETRESUID, _GETRESGID = os.getresuid, os.getresgid
+_FSTAT, _STAT = os.fstat, os.stat
+_LISTXATTR, _GETXATTR = os.listxattr, os.getxattr
+_LIVE = []
+
+AttributeObservation = namedtuple('AttributeObservation', 'name value sha256')
+ObjectObservation = namedtuple('ObjectObservation',
+    'object_id path relative kind identity attributes sha256 bytes mode')
+CredentialObservation = namedtuple('CredentialObservation',
+    'pid uid euid gid egid resuid resgid groups status security')
+CaseObservation = namedtuple('CaseObservation',
+    'case_id source_tuple_sha256 profile_sha256 credentials objects ancestors effect counters')
+ViewDecision = namedtuple('ViewDecision',
+    'case_id disposition evidence_sha256 premises unresolved original_result')
+
+EFFECTS = frozenset(('EMPTY_ATTRIBUTE_POSITIVE', 'OUTER_EXISTING_ATTRIBUTE_REFUSAL',
+    'BYTE_CONTROL', 'MODE_CONTROL', 'OPTIMIZED_ENTRY_REFUSAL',
+    'LIVE_THREAD_REFUSAL', 'CUSTODY_CONTROL'))
+CONSUMERS = frozenset(('copytree', 'copystat', 'create', 'exec', 'load',
+    'retention', 'fixture', 'custody'))
+CASE_KEYS = frozenset(('id', 'kind', 'objects', 'effect', 'fixture',
+    'original_consumer', 'original_refusal'))
+SELECTION_KEYS = frozenset(('schema', 'source_tuple_sha256', 'profile_sha256',
+    'source_origins', 'creation_parents', 'executables', 'negative_fixtures',
+    'retained_root', 'cases', 'compiler_subject', 'query_profile'))
+OBJECT_KEYS = frozenset(('id', 'path', 'kind', 'pin', 'consumers'))
+STATUS_FIELDS = ('Uid', 'Gid', 'Groups', 'CapInh', 'CapPrm', 'CapEff',
+    'CapBnd', 'CapAmb', 'NoNewPrivs', 'Seccomp', 'Umask')
+
+
+class AssociationError(RuntimeError):
+    """A source/owner/observation transport error, never a scientific refusal."""
+
+
+class LaunchAssociation:
+    __slots__ = ()
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError('a launch association is issued by the actual C2 observer')
+
+
+def need(value, message):
+    if value is not True:
+        raise AssociationError(message)
+
+
+def canonical(value):
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                      ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+    need(len(raw) <= MAX_RECORD_BYTES, 'bounded association record')
+    return raw
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def digest(value):
+    return sha(canonical(value))
+
+
+def text(value, cap=256):
+    need(type(value) is str and 0 < len(value) <= cap and '\x00' not in value,
+         'exact bounded observation text')
+    return value
+
+
+def absolute(value):
+    text(value, MAX_PATH)
+    need(value.startswith('/') and os.path.normpath(value) == value and
+         all(part not in ('.', '..') for part in value.split('/')), 'normalized absolute object path')
+    return value
+
+
+def hex_digest(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact SHA256')
+    return value
+
+
+def signature(info):
+    # These are current within-invocation facts, never historical golden inodes.
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid,
+            info.st_gid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _validate_pin(pin, path, kind):
+    if pin is None:
+        need(kind in ('tree', 'directory'), 'every selected regular image has an exact pin')
+        return
+    need(type(pin) is dict and set(pin) == {'path', 'bytes', 'sha256', 'mode'},
+         'original four-field source pin')
+    need(pin['path'] == path and type(pin['bytes']) is int and
+         0 <= pin['bytes'] <= MAX_TOTAL_BYTES and type(pin['mode']) is int and
+         0 <= pin['mode'] <= 0o7777, 'bounded source pin values')
+    hex_digest(pin['sha256'])
+
+
+def _validate_object(row):
+    need(type(row) is dict and set(row) == OBJECT_KEYS, 'exact selected object record')
+    text(row['id']); absolute(row['path'])
+    need(row['kind'] in ('file', 'tree', 'directory'), 'finite observed object kind')
+    _validate_pin(row['pin'], row['path'], row['kind'])
+    need(type(row['consumers']) is list and 0 < len(row['consumers']) <= len(CONSUMERS)
+         and all(type(v) is str and v in CONSUMERS for v in row['consumers']) and
+         len(set(row['consumers'])) == len(row['consumers']), 'source-derived finite consumers')
+
+
+def _validate_selection(selection, bundle):
+    need(type(selection) is dict and set(selection) == SELECTION_KEYS and
+         selection['schema'] == 'environment-selection-v2', 'exact source-owned environment selection')
+    need(hex_digest(selection['source_tuple_sha256']) == digest(bundle.manifest['source_pins'])
+         and hex_digest(selection['profile_sha256']) == digest(bundle.manifest['profiles']),
+         'same detached selected source tuple and operating profiles')
+    rows = []
+    for group in ('source_origins', 'creation_parents', 'executables', 'negative_fixtures'):
+        values = selection[group]
+        need(type(values) is list and len(values) <= MAX_OBJECTS,
+             'bounded selected object category')
+        if group != 'negative_fixtures':
+            need(len(values) > 0, 'original source/create/loader origins are required')
+        for row in values:
+            _validate_object(row)
+            if group == 'creation_parents':
+                need(row['kind'] == 'directory' and 'create' in row['consumers'],
+                     'genuine creation-parent role')
+            if group == 'executables':
+                need(row['kind'] == 'file' and any(v in row['consumers'] for v in ('exec', 'load')),
+                     'exact executable/library image role')
+            rows.append(row)
+    retained = selection['retained_root']
+    _validate_object(retained)
+    need(retained['kind'] == 'tree' and 'retention' in retained['consumers'],
+         'the complete original outer retained tree remains selected')
+    rows.append(retained)
+    need(len(rows) <= MAX_OBJECTS and len({row['id'] for row in rows}) == len(rows),
+         'bounded unique complete selected object union')
+    # A genuine existing retained root may also be the nearest creation
+    # ancestor for a prospective artifact leaf.  Distinct source-owned roles
+    # may name that same object; each actually acquired FD is still closed once.
+    ids = {row['id'] for row in rows}
+    cases = selection['cases']
+    need(type(cases) is list and 0 < len(cases) <= MAX_CASES, 'finite original case map')
+    seen = set()
+    for case in cases:
+        need(type(case) is dict and set(case) == CASE_KEYS, 'exact original case descriptor')
+        text(case['id']); text(case['original_consumer'], 1024)
+        need(case['id'] not in seen and case['kind'] in ('positive', 'negative') and
+             case['effect'] in EFFECTS, 'unique source-derived original case/effect')
+        seen.add(case['id'])
+        need(type(case['objects']) is list and 0 < len(case['objects']) <= MAX_OBJECTS and
+             all(type(key) is str and key in ids for key in case['objects']) and
+             len(set(case['objects'])) == len(case['objects']), 'exact case object subset')
+        need(case['fixture'] is None or (type(case['fixture']) is str and case['fixture'] in ids),
+             'actual original negative fixture identity')
+        need(case['original_refusal'] is None or
+             (type(case['original_refusal']) is str and 0 < len(case['original_refusal']) <= 1024),
+             'original refusal is descriptive data only')
+        if case['kind'] == 'positive':
+            need(case['effect'] == 'EMPTY_ATTRIBUTE_POSITIVE' and
+                 case['fixture'] is None and case['original_refusal'] is None,
+                 'positive branch does not invent a refusal')
+        else:
+            need(case['original_refusal'] is not None, 'negative keeps original first-consumer description')
+        if case['effect'] == 'OUTER_EXISTING_ATTRIBUTE_REFUSAL':
+            need(case['kind'] == 'negative' and case['fixture'] is not None and
+                 case['original_consumer'] in ('retention.oracle.collect', 'retention.archive.scan'),
+                 'original outer attribute-refusal case only')
+    policy = bundle.load('compiler_policy')
+    policy.validate_subject(selection['compiler_subject'])
+    need(selection['compiler_subject']['native_subject_reference'] == bundle.contract['operating_TCB_pin'] and
+         selection['compiler_subject']['currentness_interval_reference'] == bundle.contract['current_profile_pin'],
+         'same genuine original native T1/current-profile provenance references')
+    need(selection['query_profile'] == bundle.contract['property_query_profile'], 'same authenticated fixed property observer profile')
+    # Defensive source-owned copy: later mutation of detached DATA cannot alter Q.
+    return json.loads(canonical(selection).decode('ascii')), rows
+
+
+def _authenticate(bundle):
+    loader = sys.modules.get(LOADER_NAME)
+    need(type(loader) is ModuleType and loader.__dict__.get('__file__') == LOADER_PATH,
+         'actual fixed private loader module')
+    cls = loader.__dict__.get('PrivateBundle')
+    need(type(cls) is type and type(bundle) is cls and bundle.role == 'CONTROLLER'
+         and bundle._pid == _GETPID() and any(bundle is value for value in loader.RETAINED),
+         'actual enrolled same-process CONTROLLER bundle')
+    module = sys.modules.get(__name__)
+    need(type(module) is ModuleType and module.__dict__ is globals() and
+         bundle.modules.get('environment_association') is module and
+         bundle.check('environment_association') is module,
+         'selected private source module and exact functions/globals')
+    # read_fixed and load are the original source-currentness mechanism.  Calling
+    # this factory does not accept any external numeric descriptor as authority.
+    bundle.check('native_io_custody')
+    need(bundle.modules.get('native_io_custody') is native_io,
+         'same source-authenticated native/error custody image')
+    return loader
+
+
+def open_parent(bundle):
+    """The loader's exact method is the authenticated source-owning callsite."""
+    loader = _authenticate(bundle)
+    frame = sys._getframe(1)
+    try:
+        method = type.__getattribute__(type(bundle), '__dict__').get('associate_environment')
+        need(type(method) is FunctionType and method.__globals__ is loader.__dict__ and
+             frame.f_globals is loader.__dict__ and frame.f_code is method.__code__ and
+             frame.f_locals.get('self') is bundle, 'actual fixed loader association callsite')
+    finally:
+        del frame
+    need(not any(value._bundle is bundle for value in _LIVE), 'one association including failed observations')
+    selection, unused = _validate_selection(bundle.contract['environment_association'], bundle)
+    value = object.__new__(ParentAssociation)
+    value._bundle, value._selection = bundle, selection
+    value._pid, value._closed = _GETPID(), False
+    value._io = native_io.process_context()
+    value._anchors, value._observations, value._decisions, value._tokens = {}, {}, {}, []
+    value._tickets = []
+    value._query_runner = None
+    value._compiler_records = {}
+    value._lookup_anchors = []
+    value._compiler_searches = []
+    value._link_cache = {}
+    value._dispatch_cache = {}
+    value._compiler_ios = [native_io.new_context('compiler-initial-lookups'),native_io.new_context('compiler-reobserve-lookups')]
+    value._compiler_pass = 0
+    value._budget = {'entries': 0, 'file_bytes': 0, 'xattr_bytes': 0}
+    value._counts = {'opens': 0, 'open_attempts': 0, 'read_bytes': 0, 'read_calls': 0, 'xattr_bytes': 0,
+                     'objects': 0, 'scans': 0, 'launch_records': 0, 'property_queries':0}
+    _LIVE.append(value)
+    return value
+
+
+class ParentAssociation:
+    __slots__ = ('_bundle', '_selection', '_pid', '_closed', '_io', '_anchors',
+                 '_observations', '_decisions', '_tokens', '_counts', '_budget', '_tickets',
+                 '_query_runner', '_compiler_records', '_lookup_anchors', '_compiler_searches', '_link_cache', '_dispatch_cache', '_compiler_ios', '_compiler_pass')
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError('parent associations are issued only at the actual loader boundary')
+
+    def _owner(self):
+        need(any(self is row for row in _LIVE) and self._pid == _GETPID() and
+             self._closed is False, 'live same-process source-owned association')
+        _authenticate(self._bundle)
+        native_io.stop_if_failed(self._io)
+
+    def _call(self, site, function, *args, **kwargs):
+        return native_io.call_native(self._io, 'ENV:' + site, function, *args, **kwargs)
+
+    def _capture(self, error, site):
+        if self._io.primary is not error:
+            native_io.capture(self._io, error, 'ENVIRONMENT-ASSOCIATION', site)
+        return self._io.primary
+
+    def _actual_owner(self, case_id=None, sealed=False):
+        authority = self._bundle.load('parent_authority')
+        owner = authority.owner_verified()
+        registry = owner['registry']
+        need(owner['controller'] is self._bundle.C and
+             str(registry.layout.source) == self._selection['retained_root']['path'],
+             'actual original C2 EX owner and complete retained-source layout')
+        if sealed:
+            need(registry.phase == 'SEALED', 'original irreversible source seal')
+        elif case_id is not None:
+            attempt = registry.attempt(case_id)
+            registry.assert_open(attempt, launch=True)
+            if not any(ticket['attempt'] is attempt for unused, ticket in self._tickets):
+                ticket = registry._resource(attempt, 'original-environment-observation', 'environment-association')
+                # The attempt owns this actual source-private container before
+                # any acquisition.  Every nested descriptor has native_io's own
+                # reserve/return/error/one-close custody in addition to this edge.
+                ticket['object'], ticket['state'] = self, 'OWNED'
+                self._tickets.append((registry, ticket))
+        return owner
+
+    def _acquire(self, path, flags, parent=None):
+        need(sum(slot.status == 'OWNED' for context in [self._io]+self._compiler_ios
+                 for slot in context.slots) < 256, 'complete parent observation simultaneous descriptor bound')
+        self._counts['open_attempts'] += 1
+        index = native_io._acquire_native(self._io, path, flags, 0o600, parent,
+                                         'ENV:observation-descriptor')
+        self._counts['opens'] += 1
+        return native_io.descriptor(self._io, index)
+
+    def _close(self, fd):
+        for context in self._compiler_ios:
+            for index, slot in enumerate(context.slots):
+                if slot.status == 'OWNED' and slot.fd == fd:
+                    known = native_io.close_slot(context,index,'compiler-known-close')
+                    if known is not True:
+                        native_io.stop_if_failed(context)
+                        need(False,'compiler known descriptor did not close')
+                    return
+        known = native_io.close_fd(fd)
+        if known is not True:
+            native_io.stop_if_failed(self._io)
+            need(False, 'environment descriptor did not reach a known one-close result')
+
+    def _open(self, path, kind):
+        absolute(path)
+        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+        parent = self._acquire('/', flags)
+        if path == '/':
+            need(kind != 'file', 'root is a directory')
+            return parent
+        try:
+            for part in os.path.dirname(path).split('/')[1:]:
+                if part:
+                    child = self._acquire(part, flags, parent)
+                    self._close(parent)
+                    parent = child
+            fd = self._acquire(os.path.basename(path), os.O_RDONLY | os.O_NOFOLLOW |
+                os.O_CLOEXEC | os.O_NONBLOCK | (os.O_DIRECTORY if kind != 'file' else 0),
+                parent)
+            return fd
+        finally:
+            self._close(parent)
+
+    def bind_property_query_runner(self, bound_consumers):
+        """Enroll only the actual source-private supervisor closure, never DATA."""
+        self._owner()
+        supervisor = self._bundle.load('supervisor')
+        caller = sys._getframe(1)
+        need(caller.f_code is supervisor.bind_active_run_root.__code__ and
+             caller.f_globals is supervisor.__dict__ and caller.f_locals.get('bound') is bound_consumers,
+             'only genuine supervisor binding continuation enrolls query runner')
+        method = getattr(bound_consumers, 'run_property_query')
+        function = getattr(type(bound_consumers), 'run_property_query')
+        need(type(method) is MethodType and method.__self__ is bound_consumers and
+             method.__func__ is function and type(function) is FunctionType and
+             function.__globals__ is supervisor.__dict__ and
+             function.__code__.co_filename == supervisor.__file__ and self._query_runner is None,
+             'actual once-bound supervisor query method source identity')
+        need(supervisor.owns_property_query_runner(bound_consumers,self) is True,
+             'private actual BoundConsumers closure lineage')
+        self._query_runner = (bound_consumers, function, function.__code__)
+
+    def _policy(self):
+        module = self._bundle.load('compiler_policy')
+        need(type(module) is ModuleType and module is self._bundle.modules['compiler_policy'],
+             'authenticated fixed compiler interpreter source')
+        self._bundle.check('compiler_policy')
+        return module
+
+    def _lookup_open(self, expression, flags, parent=None, expected_missing=False):
+        need(sum(slot.status == 'OWNED' for context in [self._io]+self._compiler_ios
+                 for slot in context.slots) < 256, 'complete compiler/parent simultaneous descriptor bound')
+        self._counts['open_attempts'] += 1
+        for context in self._compiler_ios:
+            native_io.stop_if_failed(context)
+        context = self._compiler_ios[self._compiler_pass]
+        index = native_io._acquire_native(context, expression, flags, 0o600, parent,
+                                         'ENV:compiler-lookup', expected_missing=expected_missing)
+        self._counts['opens'] += 1
+        return native_io.descriptor(context, index)
+
+    def _literal_lookup(self, expression, *, missing, hold=False, read=False):
+        """Literal kernel traversal. No normpath, realpath, or lexical '..'.
+
+        Every acquired FD is already registered by native_io. Ordinary symlink
+        inodes and literal targets are retained; the final whole-expression open
+        is authoritative. Expected ENOENT occupies its genuine reserved raw slot.
+        """
+        need(type(expression) is str and expression.startswith('/') and
+             0 < len(expression) <= MAX_PATH and '\x00' not in expression,
+             'bounded literal lookup expression')
+        local, evidence, queue = [], [], expression.split('/')[1:]
+        absent = False
+        current = None
+        primary = None
+        result = None
+        try:
+            root = self._lookup_open('/', os.O_PATH | os.O_DIRECTORY | os.O_CLOEXEC)
+            local.append(root)
+            current = root
+            traversed, symlinks = [], 0
+            while queue:
+                component = queue.pop(0)
+                need(component and len(component.encode()) <= MAX_NAME, 'literal component bound')
+                need(len(evidence) < 96, 'finite literal component/symlink frontier')
+                try:
+                    fd = self._lookup_open(component, os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC,
+                                           current, expected_missing=True)
+                except FileNotFoundError as error:
+                    need(type(error) is FileNotFoundError and error.errno == errno.ENOENT,
+                         'genuine expected missing component')
+                    evidence.append({'component':component,'parent':signature(self._call('lookup-parent',_FSTAT,current)),
+                                     'result':'ENOENT','errno':error.errno})
+                    absent = True
+                    break
+                local.append(fd)
+                info = self._call('literal-component-fstat', _FSTAT, fd)
+                row = {'component':component,'identity':signature(info),'symlink_target':None}
+                evidence.append(row)
+                if stat.S_ISLNK(info.st_mode):
+                    symlinks += 1
+                    need(symlinks <= 40, 'ordinary Linux symlink traversal ceiling')
+                    target = self._call('literal-readlink', os.readlink, '', dir_fd=fd)
+                    need(type(target) is str and 0 < len(target) <= MAX_PATH and '\x00' not in target,
+                         'bounded actual symlink target')
+                    row['symlink_target'] = target
+                    need(signature(self._call('literal-symlink-after',_FSTAT,fd)) == row['identity'],
+                         'held symlink stable through target observation')
+                    if target.startswith('/'):
+                        current = root
+                        queue = target.split('/')[1:] + queue
+                    else:
+                        queue = target.split('/') + queue
+                    # Empty components in actual targets retain ordinary slash
+                    # semantics; neither dots nor '..' are cancelled.
+                    queue = [part for part in queue if part != '']
+                    continue
+                traversed.append(component)
+                if queue:
+                    if not stat.S_ISDIR(info.st_mode):
+                        # Whole kernel lookup below owns genuine ENOTDIR.
+                        break
+                    current = fd
+            try:
+                whole = self._lookup_open(expression, os.O_RDONLY | os.O_CLOEXEC | os.O_NONBLOCK,
+                                          expected_missing=True)
+            except FileNotFoundError as error:
+                need(type(error) is FileNotFoundError and error.errno == errno.ENOENT and absent,
+                     'authoritative whole literal ENOENT agrees with held component traversal')
+                need(missing is not False, 'required compiler object is missing')
+                result = {'expression':expression,'result':'ENOENT','errno':errno.ENOENT,
+                          'components':evidence,'file':None}
+            else:
+                local.append(whole)
+                need(not absent and missing is not True, 'external specs exist or lookup changed during observation')
+                before = self._call('literal-whole-fstat',_FSTAT,whole)
+                need(evidence and 'identity' in evidence[-1] and signature(before) == evidence[-1]['identity'],
+                     'whole literal lookup joins the actual final held component')
+                need(stat.S_ISREG(before.st_mode), 'whole compiler lookup is a genuine regular file')
+                raw = None
+                if read:
+                    need(not self._attributes(whole), 'selected compiler closure uses actual empty relevant file attributes')
+                    need(0 <= before.st_size <= MAX_FILE_BYTES, 'compiler owning read file cap')
+                    chunks, amount = [], 0
+                    while True:
+                        block = native_io.read_fd(whole,min(CHUNK,before.st_size+1-amount))
+                        self._counts['read_calls'] += 1
+                        self._counts['read_bytes'] += len(block)
+                        if not block:
+                            break
+                        amount += len(block)
+                        self._budget['file_bytes'] += len(block)
+                        need(amount <= before.st_size and self._budget['file_bytes'] <= MAX_TOTAL_BYTES,
+                             'bounded complete compiler closure read')
+                        chunks.append(block)
+                    need(amount == before.st_size, 'complete compiler owning read')
+                    raw = b''.join(chunks)
+                need(signature(before) == signature(self._call('literal-whole-after',_FSTAT,whole)),
+                     'compiler whole object stable through observation')
+                result = {'expression':expression,'result':'PRESENT','errno':0,'components':evidence,
+                          'file':{'identity':signature(before),'bytes':before.st_size,
+                                  'mode':stat.S_IMODE(before.st_mode),
+                                  'sha256':None if raw is None else sha(raw)}}
+                if hold:
+                    need(len(self._lookup_anchors)+len(local) <= 192, 'bounded actual compiler held owners')
+                    self._lookup_anchors.extend((fd,signature(self._call('lookup-held',_FSTAT,fd))) for fd in local)
+                    local.clear()
+                if read:
+                    return result, raw
+            if hold:
+                need(len(self._lookup_anchors)+len(local) <= 128, 'finite held specs component owners')
+                self._lookup_anchors.extend((fd,signature(self._call('lookup-held',_FSTAT,fd))) for fd in local)
+                local.clear()
+            return (result,None) if read else result
+        except BaseException as error:
+            primary = error
+            self._capture(error,'literal-lookup')
+        finally:
+            for fd in reversed(local):
+                try:
+                    self._close(fd)
+                except BaseException as error:
+                    self._capture(error,'literal-lookup-close')
+                    if primary is None:
+                        primary = error
+            if primary is not None or self._io.primary is not None:
+                raise BaseException.with_traceback(self._io.primary,self._io.primary_tb)
+
+    def _compiler_lookup(self, expression_id):
+        policy = self._policy()
+        need(type(expression_id) is int and 0 <= expression_id < 4, 'source-derived four specs expression IDs')
+        return self._literal_lookup(policy.LOOKUPS[expression_id],missing=True,hold=True)
+
+    def _compiler_file(self, pin, *, kind=False):
+        policy = self._policy()
+        policy.pin(pin)
+        observed, raw = self._literal_lookup(pin['path'],missing=False,read=True)
+        need(observed['file']['bytes'] == pin['bytes'] and observed['file']['sha256'] == pin['sha256'] and
+             observed['file']['mode'] == pin['mode'], 'same actual compiler source/image/input pin')
+        return observed, raw, policy.input_kind(raw) if kind else None
+
+    def _property_query(self, case_id, family_id, query_id, program, argv, cwd, context):
+        policy = self._policy()
+        need(self._query_runner is not None, 'actual source-private property observer enrolled')
+        bound, function, code = self._query_runner
+        need(getattr(type(bound),'run_property_query') is function and function.__code__ is code,
+             'unchanged actual query method/caller join')
+        attempt = context['registry'].attempt(case_id)
+        temporary = str(attempt.layout.supervision_root / ('query-'+family_id+'-'+query_id+'-tmp'))
+        environment = dict(policy.ENVIRONMENT,LANG='C',LC_ALL='C',TMPDIR=temporary)
+        request = {'schema':'compiler-property-query-v1','family_id':family_id,'query_id':query_id,
+            'program':program,'argv':list(argv),'environment':environment,'cwd':cwd,
+            'temporary_directory':temporary,'limits':{'hard_as_bytes':policy.HARD_AS,
+            'stdout_bytes':1048576,'stderr_bytes':1048576,'events':65536,'seconds':10},
+            'source_tuple_sha256':self._selection['source_tuple_sha256'],
+            'profile_sha256':self._selection['profile_sha256']}
+        self._counts['property_queries'] += 1
+        need(self._counts['property_queries'] <= 17,'source-derived finite query count, no rerolls')
+        result = function(bound,case_id,request)
+        stdout, stderr = policy.report_bytes(result,request)
+        evidence = {'query_id':query_id,'request':request,'request_sha256':policy.digest(request),
+            'stdout':{'bytes':len(stdout),'sha256':sha(stdout)},
+            'stderr':{'bytes':len(stderr),'sha256':sha(stderr)},'observer':result['observer']}
+        return stdout,stderr,evidence
+
+    def _resolved_compiler_input(self, literal, subject, searched, *, library=None, static=False, depth=0):
+        """Kernel-search actual candidate order; no assumed absence from a pin list."""
+        policy = self._policy()
+        need(depth <= 4, 'finite configured library-script recursion')
+        if literal is not None:
+            candidates = [literal]
+        else:
+            need(type(library) is str and type(static) is bool, 'source-derived finite library operand')
+            suffixes = ('.a',) if static else ('.so','.a')
+            candidates = [directory+'/lib'+library+suffix for directory in searched for suffix in suffixes]
+        observations = []
+        selected = None
+        raw = None
+        for candidate in candidates:
+            need(len(self._compiler_searches) < 384, 'finite original linker lookup bill')
+            self._compiler_searches.append(candidate)
+            observed, value = self._literal_lookup(candidate,missing=None,read=True)
+            observations.append(observed)
+            if observed['result'] == 'PRESENT':
+                selected,raw = observed,value
+                break
+        need(selected is not None, 'actual configured library/input resolution succeeded')
+        permitted = subject['input_files']+subject['images']
+        matches = [v for v in permitted if v['sha256'] == sha(raw) and v['bytes'] == len(raw) and
+                   v['mode'] == selected['file']['mode']]
+        need(len(matches) > 0, 'resolved actual input belongs to the complete native T1 closure')
+        kind = policy.input_kind(raw)
+        children = []
+        if kind == 'library-script':
+            for word in policy.library_script_inputs(raw):
+                if word.startswith('-l'):
+                    children.append(self._resolved_compiler_input(None,subject,searched,library=word[2:],static=static,depth=depth+1))
+                elif word.startswith('/'):
+                    children.append(self._resolved_compiler_input(word,subject,searched,depth=depth+1))
+                else:
+                    # ldlang search_file uses the selected script's spelling,
+                    # not the resolved symlink target, as extra_search_path.
+                    # ldfile tries that directory, then original CWD, then -L.
+                    # Keep dot/dot-dot components literal for the kernel owner.
+                    script_directory = selected['expression'].rpartition('/')[0] or '/'
+                    found = None
+                    for directory in [script_directory, ORIGINAL_CWD] + list(searched):
+                        candidate = directory+'/'+word
+                        need(len(self._compiler_searches) < 384, 'finite original linker lookup bill')
+                        self._compiler_searches.append(candidate)
+                        observed,value = self._literal_lookup(candidate,missing=None,read=True)
+                        observations.append(observed)
+                        if observed['result'] == 'PRESENT':
+                            found = candidate
+                            break
+                    need(found is not None, 'library-script ordinary filename resolved')
+                    children.append(self._resolved_compiler_input(found,subject,searched,depth=depth+1))
+        return {'selected':selected,'native_pin':matches[0],'kind':kind,'search_observations':observations,
+                'script_filename':selected['expression'] if kind == 'library-script' else None,
+                'original_cwd':ORIGINAL_CWD,'script_inputs':children}
+
+    def _resolve_link_inputs(self, plan, script, subject):
+        policy = self._policy()
+        directories, requirements = policy.link_inputs(plan,script)
+        key = policy.digest([ORIGINAL_CWD,directories,requirements])
+        if key in self._link_cache:
+            return self._link_cache[key]
+        records = []
+        for row in requirements:
+            if 'literal' in row:
+                records.append(self._resolved_compiler_input(row['literal'],subject,directories))
+            else:
+                records.append(self._resolved_compiler_input(None,subject,directories,
+                    library=row['library'],static=row['static']))
+        need(len(records) > 0, 'nonempty actual original CRT/library input closure')
+        self._link_cache[key] = records
+        return records
+
+    def _compiler_executable(self, literal):
+        # collect2 find_a_file uses access(..., X_OK), not readability.
+        # Initial real/effective identity equality is separately qualified.
+        need(self._call('collect2-linker-X_OK',os.access,literal,os.X_OK) is True,
+             'actual selected collect2 linker must pass original X_OK predicate')
+        return True
+
+    def _compiler_frontier(self, case_id, *, reports=True):
+        policy = self._policy()
+        subject = policy.validate_subject(self._selection['compiler_subject'])
+        self._compiler_pass = 0 if reports else 1
+        case = self._case(case_id)
+        if case['effect'] == 'OPTIMIZED_ENTRY_REFUSAL':
+            return {'schema':'compiler-observation-v1','case_id':case_id,'partition':'ORIGINAL_PRECLI_REFUSAL',
+                    'owning_source':'scientific_driver._epoch_sc4_full_entry','families':[],
+                    'native_entry_lsm_check':'UNISSUED'}
+        owner = self._actual_owner(case_id)
+        attempt = owner['registry'].attempt(case_id)
+        source_root = self._selection['source_origins'][0]['path']
+        output_root = str(attempt.layout.science_root)
+        fallback = []
+        for literal in (ORIGINAL_CWD,'/tmp','/var/tmp'):
+            fd = self._open(literal,'directory')
+            try:
+                info = self._call('original-fallback-fstat',_FSTAT,fd)
+                mount = self._call('original-fallback-statvfs',os.fstatvfs,fd)
+                need(mount.f_flag & os.ST_RDONLY == os.ST_RDONLY,
+                     'fallback directory was genuinely read-only in original view')
+                fallback.append({'path':literal,'identity':signature(info),'flags':mount.f_flag})
+            finally:
+                self._close(fd)
+        literals = [self._compiler_lookup(index) for index in range(4)]
+        objects = []
+        plans = []
+        pins = subject['images']+subject['input_files']+subject['configured_files']
+        need(len({v['path'] for v in pins}) == len(pins), 'unique whole compiler object union')
+        for pin in pins:
+            observed,raw,kind = self._compiler_file(pin,kind=pin in subject['input_files'] and
+                not pin['path'].endswith(('.c','.h')))
+            objects.append({'pin':pin,'lookup':observed,'kind':kind})
+        # References and proof records remain original T1 source inputs, not
+        # JSON capabilities; read and bind each actual selected record as well.
+        for pin in [subject['native_subject_reference'],subject['currentness_interval_reference']]+list(subject['source_proofs'].values()):
+            self._compiler_file(pin)
+        _,frame_raw,_ = self._compiler_file(subject['source_proofs']['configured_build'])
+        configured = policy.configured_frame(frame_raw,subject)
+        pch = [self._literal_lookup(literal,missing=True) for literal in
+               dict.fromkeys(pin['path']+'.gch' for pin in configured['header_files']+configured['preinclude_files'])]
+        families = []
+        cwd = ORIGINAL_CWD
+        for family in subject['families']:
+            need(family['source_root'] == source_root and family['output_root'] == output_root,
+                 'actual source-derived stage and private prospective science path')
+            _,source_raw,_ = self._compiler_file(family['original_command_source_pin'])
+            # Separate evaluations preserve the backend and encoder origins.
+            cc = sysconfig.get_config_var('CC') or 'cc'
+            include = sysconfig.get_paths()['include']
+            suffix = sysconfig.get_config_var('EXT_SUFFIX')
+            commands = policy.derive_commands(family,source_raw,cc,include,suffix)
+            # The raw CC alias is kernel-resolved and joined to the pinned image;
+            # query exec uses that exact image with the original absolute argv0.
+            name = commands[0]['argv'][0]
+            alias = name if name.startswith('/') else '/usr/bin/'+name
+            alias_observation,alias_raw = self._literal_lookup(alias,missing=False,read=True)
+            driver = next(v for v in subject['images'] if v['path']=='/usr/bin/x86_64-linux-gnu-gcc-13')
+            driver_object = next(v for v in objects if v['pin']['path'] == driver['path'])
+            need(alias_observation['file']['identity'] == driver_object['lookup']['file']['identity'] and
+                 sha(alias_raw) == driver['sha256'] and len(alias_raw) == driver['bytes'], 'independent CC origin resolves to same genuine driver image')
+            record = {'family_id':family['family_id'],'original_command_source_pin':family['original_command_source_pin'],
+                'original_argv':[v['argv'] for v in commands], 'original_phase_environment':dict(policy.ENVIRONMENT,TMPDIR=output_root+'/compiler-tmp'),
+                'native_subject_reference':subject['native_subject_reference'],
+                'configured_driver_subject':subject['configured_driver'],'literal_lookup_observations':literals,
+                'configured_frame':configured,'pch_frontier':pch,
+                'cc_alias_lookup':alias_observation,'property_query_attempts':[],'dispatch_observations':[],
+                'derived_helper_argv':[],'linker_emulation_and_script':None,'explicit_plugin_arguments':[],
+                'read_input_closure':objects,'temporary_field_derivation':[],
+                'currentness_interval_reference':subject['currentness_interval_reference'],
+                'custody_references':{'same_process':self._pid,'case_id':case_id}}
+            if reports:
+                for query,option,parser in (('specs','-dumpspecs',policy.parse_specs),
+                       ('search','-print-search-dirs',policy.parse_search),('multilib','-print-multi-lib',policy.parse_multilib)):
+                    out,err,evidence = self._property_query(case_id,family['family_id'],query,driver['path'],
+                        commands[0]['argv'][:len(commands[0]['argv'])-11]+[option],cwd,owner)
+                    need(not err, 'selected stdout-only GCC report has no diagnostic error')
+                    record[query] = parser(out)
+                    record['property_query_attempts'].append(evidence)
+                for command in commands:
+                    query_id = 'plan-'+command['role']
+                    argv = list(command['argv'])
+                    out,err,evidence = self._property_query(case_id,family['family_id'],query_id,driver['path'],
+                        argv+['-###'],cwd,owner)
+                    need(not out, 'GCC planned-command report stdout empty')
+                    plan = policy.parse_plan(err,subject['images'],command,evidence['request']['temporary_directory'])
+                    for role,helper_argv in zip(('cc1','as','collect2'),plan['helper_argv']):
+                        observed_helper,helper_raw = self._literal_lookup(helper_argv[0],missing=False,read=True)
+                        expected = next(v for v in subject['images'] if v['path'] == {'cc1':'/usr/libexec/gcc/x86_64-linux-gnu/13/cc1','as':'/usr/bin/x86_64-linux-gnu-as','collect2':'/usr/libexec/gcc/x86_64-linux-gnu/13/collect2'}[role])
+                        image_object = next(v for v in objects if v['pin']['path'] == expected['path'])
+                        need(observed_helper['file']['identity'] == image_object['lookup']['file']['identity'] and
+                             (sha(helper_raw),len(helper_raw)) == (expected['sha256'],expected['bytes']),
+                             'actual helper literal dispatch joins pinned image')
+                        record['dispatch_observations'].append(observed_helper)
+                    plugin_lookup,plugin_raw = self._literal_lookup(plan['explicit_plugins'][0],missing=False,read=True)
+                    expected_plugin = next(v for v in subject['images'] if v['path'].endswith('/liblto_plugin.so'))
+                    plugin_object = next(v for v in objects if v['pin']['path'] == expected_plugin['path'])
+                    need(plugin_lookup['file']['identity'] == plugin_object['lookup']['file']['identity'] and
+                         (sha(plugin_raw),len(plugin_raw)) == (expected_plugin['sha256'],expected_plugin['bytes']),
+                         'actual explicit plugin literal joins pinned loaded plugin')
+                    record['dispatch_observations'].append(plugin_lookup)
+                    dispatch_key = policy.digest(plan['compiler_path'])
+                    if dispatch_key in self._dispatch_cache:
+                        linker_frontier = self._dispatch_cache[dispatch_key]
+                    else:
+                        linker_frontier = []
+                        selected_linker = None
+                        for literal in [directory.rstrip('/')+'/'+name for name in ('real-ld','collect-ld','ld') for directory in plan['compiler_path']]+['/usr/bin/ld','/bin/ld']:
+                            observed_ld,raw_ld = self._literal_lookup(literal,missing=None,read=True)
+                            linker_frontier.append(observed_ld)
+                            if observed_ld['result'] == 'PRESENT':
+                                self._compiler_executable(literal)
+                                observed_ld['collect2_x_ok'] = True
+                                selected_linker = (observed_ld,raw_ld)
+                                break
+                        need(selected_linker is not None, 'actual collect2 configured linker search resolves')
+                        expected_ld = next(v for v in subject['images'] if v['path']=='/usr/bin/x86_64-linux-gnu-ld.bfd')
+                        ld_object = next(v for v in objects if v['pin']['path'] == expected_ld['path'])
+                        need(selected_linker[0]['file']['identity'] == ld_object['lookup']['file']['identity'] and
+                             (sha(selected_linker[1]),len(selected_linker[1])) == (expected_ld['sha256'],expected_ld['bytes']),
+                             'actual collect2 linker frontier joins pinned Ubuntu BFD image')
+                        self._dispatch_cache[dispatch_key] = linker_frontier
+                    plan['linker_frontier'] = linker_frontier
+                    record['dispatch_observations'].extend(linker_frontier)
+                    plans.append(plan)
+                    record['derived_helper_argv'].append(plan['helper_argv'])
+                    record['explicit_plugin_arguments'].append(plan['explicit_plugins'])
+                    record['temporary_field_derivation'].append(plan['temporary_fields'])
+                    record['property_query_attempts'].append(evidence)
+                linker = next(v for v in subject['images'] if v['path']=='/usr/bin/x86_64-linux-gnu-ld.bfd')
+                out,err,evidence = self._property_query(case_id,family['family_id'],'script',linker['path'],
+                    [linker['path'],'-m',family['ld_emulation'],'--verbose','-shared'],cwd,owner)
+                need(not err, 'selected internal shared-script report has no stderr error')
+                record['linker_emulation_and_script'] = policy.parse_script(out,family['ld_emulation'])
+                record['property_query_attempts'].append(evidence)
+                record['resolved_link_inputs'] = [self._resolve_link_inputs(plan,record['linker_emulation_and_script'],subject)
+                    for plan in plans]
+                plans.clear()
+            families.append(record)
+        if not reports:
+            previous = self._compiler_records[case_id]
+            observations = [row for family in previous['families'] for row in family['dispatch_observations']]
+            pending = [row for family in previous['families'] for closure in family.get('resolved_link_inputs',[]) for row in closure]
+            while pending:
+                row = pending.pop()
+                pending.extend(row['script_inputs'])
+                observations.extend(row['search_observations'])
+            unique = {}
+            for before in observations:
+                expression = before['expression']
+                need(expression not in unique or unique[expression] == before,
+                     'same source-interval literal input has one actual identity/result')
+                unique[expression] = before
+            for original in unique.values():
+                before = dict(original)
+                selected_linker = before.pop('collect2_x_ok',None)
+                if selected_linker is not None:
+                    need(selected_linker is True and self._compiler_executable(before['expression']) is True,
+                         'actual collect2 X_OK predicate remains current before launch')
+                if before['result'] == 'ENOENT':
+                    current = self._literal_lookup(before['expression'],missing=True)
+                else:
+                    current,raw = self._literal_lookup(before['expression'],missing=False,read=True)
+                need(current == before,'actual helper/plugin/linker/library/input literal frontier current')
+        return {'schema':'compiler-observation-v1','case_id':case_id,'partition':'FIVE_ORIGINAL_BUILDS',
+                'families':families,'literal_lookup_observations':literals,
+                'configured_objects':objects,'original_fallback':fallback,
+                'native_entry_lsm_check':'UNISSUED'}
+
+    def _attributes(self, fd):
+        names = self._call('listxattr', _LISTXATTR, fd)
+        need(type(names) is list and len(names) <= MAX_ATTRIBUTES and
+             all(type(name) is str and 0 < len(name.encode('utf8')) <= MAX_NAME for name in names)
+             and len(set(names)) == len(names), 'bounded actual native attribute-name list')
+        result, amount = [], 0
+        for name in sorted(names):
+            value = self._call('getxattr', _GETXATTR, fd, name)
+            need(type(value) is bytes and len(value) <= MAX_ATTRIBUTE_BYTES,
+                 'bounded actual native attribute value')
+            amount += len(value)
+            need(amount <= MAX_ATTRIBUTE_TOTAL, 'per-object attribute byte bound')
+            self._budget['xattr_bytes'] += len(value)
+            need(self._budget['xattr_bytes'] <= MAX_ATTRIBUTE_TOTAL,
+                 'complete association attribute byte bound')
+            result.append(AttributeObservation(name, value, sha(value)))
+        self._counts['xattr_bytes'] += amount
+        need(sorted(names) == sorted(self._call('listxattr-after', _LISTXATTR, fd)),
+             'native attribute-name list stable during value read')
+        # Values are reread, so a stable inode/ctime alone never authenticates them.
+        for row in result:
+            again = self._call('getxattr-after', _GETXATTR, fd, row.name)
+            self._counts['xattr_bytes'] += len(again)
+            need(again == row.value,
+                 'native attribute value stable during read')
+        return tuple(result)
+
+    def _file_bytes(self, fd, before):
+        need(0 <= before.st_size <= MAX_FILE_BYTES, 'source-derived file byte bound')
+        state, count = hashlib.sha256(), 0
+        while True:
+            self._counts['read_calls'] += 1
+            block = native_io.read_fd(fd, min(CHUNK, before.st_size + 1 - count))
+            if not block:
+                break
+            need(type(block) is bytes, 'actual native file bytes')
+            count += len(block)
+            self._counts['read_bytes'] += len(block)
+            self._budget['file_bytes'] += len(block)
+            need(self._budget['file_bytes'] <= MAX_TOTAL_BYTES,
+                 'complete association source byte bound')
+            need(count <= before.st_size, 'observed file grew during read')
+            state.update(block)
+        need(count == before.st_size, 'observed file shortened during read')
+        return state.hexdigest(), count
+
+    def _node(self, object_id, path, relative, fd, before, file_hash=True):
+        kind = 'directory' if stat.S_ISDIR(before.st_mode) else 'file'
+        need(kind == 'directory' or stat.S_ISREG(before.st_mode),
+             'observation supports only original regular/directory objects')
+        self._budget['entries'] += 1
+        need(self._budget['entries'] <= MAX_ENTRIES, 'complete association object count bound')
+        attrs = self._attributes(fd)
+        content, amount = (None, 0)
+        if kind == 'file' and file_hash:
+            content, amount = self._file_bytes(fd, before)
+        need(signature(before) == signature(self._call('fstat-after', _FSTAT, fd)),
+             'actual descriptor stable through complete observation')
+        self._counts['objects'] += 1
+        return ObjectObservation(object_id, path, relative, kind, signature(before),
+                                 attrs, content, amount, stat.S_IMODE(before.st_mode))
+
+    def _tree(self, row, fd):
+        result, total, identities = [], [0], set()
+
+        def visit(parent_fd, relative, depth):
+            need(depth <= MAX_DEPTH, 'finite original tree depth')
+            before = self._call('tree-fstat', _FSTAT, parent_fd)
+            result.append(self._node(row['id'], row['path'], relative, parent_fd, before))
+            need(len(result) <= MAX_ENTRIES, 'bounded complete object tree')
+            if not stat.S_ISDIR(before.st_mode):
+                total[0] += before.st_size
+                need(total[0] <= MAX_TOTAL_BYTES, 'bounded complete origin bytes')
+                return
+            names = []
+            with native_io.scandir_fd(parent_fd) as listing:
+                for entry in listing:
+                    name = entry.name
+                    need(type(name) is str and name not in ('', '.', '..') and
+                         '/' not in name and '\x00' not in name and
+                         len(name.encode('utf8')) <= MAX_NAME, 'bounded original tree component')
+                    names.append(name)
+                    need(len(names) <= MAX_ENTRIES, 'bounded original directory')
+            need(len(set(names)) == len(names), 'unique native directory components')
+            for name in sorted(names):
+                child_relative = name if not relative else relative + '/' + name
+                need(len(child_relative.encode('utf8')) <= MAX_PATH, 'bounded relative observation path')
+                info = self._call('tree-lstat', _STAT, name, dir_fd=parent_fd, follow_symlinks=False)
+                need(stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode),
+                     'original retained/source tree has no symlink or special object')
+                flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK
+                if stat.S_ISDIR(info.st_mode):
+                    flags |= os.O_DIRECTORY
+                child = self._acquire(name, flags, parent_fd)
+                try:
+                    opened = self._call('tree-opened-fstat', _FSTAT, child)
+                    need(signature(info) == signature(opened), 'actual tree descriptor/path association')
+                    key = (opened.st_dev, opened.st_ino)
+                    need(key not in identities, 'no hidden selected-tree alias')
+                    identities.add(key)
+                    visit(child, child_relative, depth + 1)
+                    need(signature(opened) == signature(self._call('tree-final-path', _STAT,
+                         name, dir_fd=parent_fd, follow_symlinks=False)), 'selected tree path remained current')
+                finally:
+                    self._close(child)
+            need(signature(before) == signature(self._call('tree-final-directory', _FSTAT, parent_fd)),
+                 'directory stable throughout bounded observation')
+
+        visit(fd, '', 0)
+        self._counts['scans'] += 1
+        return tuple(result)
+
+    def _object(self, row, mutable_retained=False):
+        fd = self._open(row['path'], row['kind'])
+        keep = False
+        try:
+            before = self._call('object-fstat', _FSTAT, fd)
+            need((row['kind'] == 'file' and stat.S_ISREG(before.st_mode)) or
+                 (row['kind'] != 'file' and stat.S_ISDIR(before.st_mode)), 'actual selected object type')
+            existing = self._anchors.get(row['id'])
+            if existing is not None:
+                held = signature(self._call('held-anchor', _FSTAT, existing[0]))
+                observed = signature(before)
+                if mutable_retained:
+                    # Science intentionally adds children to this same retained
+                    # backing directory.  Original before/after custody starts
+                    # only at the later original seal, not at this prelaunch read.
+                    need(row['id'] == self._selection['retained_root']['id'],
+                         'only the original retained root has a prospective writable interval')
+                    held = (held[0], held[1], held[2], held[4], held[5])
+                    observed = (observed[0], observed[1], observed[2], observed[4], observed[5])
+                need(held == observed,
+                     'actual source-owned anchor still names selected current object')
+            values = self._tree(row, fd) if row['kind'] == 'tree' else (
+                self._node(row['id'], row['path'], '', fd, before),)
+            if row['pin'] is not None:
+                pin = row['pin']
+                if row['kind'] == 'file':
+                    need(values[0].sha256 == pin['sha256'] and values[0].bytes == pin['bytes'] and
+                         values[0].mode == pin['mode'], 'actual original selected bytes/mode pin')
+                else:
+                    projection = [{'path': value.relative, 'kind': value.kind, 'mode': value.mode,
+                        'bytes': value.bytes, 'sha256': value.sha256} for value in values]
+                    need(digest(projection) == pin['sha256'] and sum(v.bytes for v in values) == pin['bytes']
+                         and values[0].mode == pin['mode'], 'actual selected complete tree projection')
+            if existing is None:
+                self._anchors[row['id']] = (fd, signature(before), row['path'], row['kind'])
+                keep = True
+            else:
+                self._anchors[row['id']] = (existing[0], signature(before), row['path'], row['kind'])
+            return values
+        finally:
+            if not keep:
+                self._close(fd)
+
+    def _status(self):
+        # Genuine numeric PID path, never /proc/self symlink traversal.  Proc
+        # regular files conventionally have st_size=0, so the read has its own cap.
+        path = '/proc/' + str(self._pid) + '/status'
+        fd = self._open(path, 'file')
+        try:
+            info = self._call('status-fstat', _FSTAT, fd)
+            need(stat.S_ISREG(info.st_mode), 'actual native proc status regular file')
+            raw = bytearray()
+            while len(raw) <= CHUNK:
+                self._counts['read_calls'] += 1
+                block = native_io.read_fd(fd, min(4096, CHUNK + 1 - len(raw)))
+                if not block:
+                    break
+                raw.extend(block)
+                self._counts['read_bytes'] += len(block)
+            need(len(raw) <= CHUNK, 'bounded actual native proc status')
+            observed = {}
+            for line in bytes(raw).decode('ascii', 'strict').splitlines():
+                key, sep, value = line.partition(':')
+                if sep and key in STATUS_FIELDS:
+                    need(key not in observed, 'unique actual credential-status field')
+                    observed[key] = ' '.join(value.split())
+            need(set(observed) == set(STATUS_FIELDS), 'complete actual credential/status facts')
+            return tuple((key, observed[key]) for key in STATUS_FIELDS)
+        finally:
+            self._close(fd)
+
+    def _credentials(self):
+        value = CredentialObservation(self._pid, self._call('uid', _GETUID),
+            self._call('euid', _GETEUID), self._call('gid', _GETGID),
+            self._call('egid', _GETEGID), self._call('resuid', _GETRESUID),
+            self._call('resgid', _GETRESGID), tuple(self._call('groups', _GETGROUPS)),
+            self._status(), self._security_subject())
+        need(all(type(v) is int and 0 <= v <= 4294967295 for v in
+             (value.uid, value.euid, value.gid, value.egid, *value.resuid, *value.resgid, *value.groups))
+             and len(value.resuid) == len(value.resgid) == 3 and len(value.groups) <= 65536,
+             'exact bounded genuine credential values')
+        need(tuple(int(x) for x in dict(value.status)['Uid'].split())[:3] ==
+             (value.uid, value.euid, value.resuid[2]) and
+             tuple(int(x) for x in dict(value.status)['Gid'].split())[:3] ==
+             (value.gid, value.egid, value.resgid[2]) and
+             tuple(int(x) for x in dict(value.status)['Groups'].split()) == value.groups,
+             'native syscalls and genuine proc credential fields agree')
+        return value
+
+    def _security_subject(self):
+        # Capability/Landlock-only is the explicit selected source model. No
+        # opaque label read is invented or an actual error converted to empty.
+        # Native entry read_lsm_stack owns the still-unissued current check.
+        return b'CAPABILITY_LANDLOCK_SOURCE_MODEL;NATIVE_STACK_CHECK_UNISSUED'
+
+    def _case(self, case_id):
+        text(case_id)
+        values = [row for row in self._selection['cases'] if row['id'] == case_id]
+        need(len(values) == 1, 'exact original selected case identity')
+        return values[0]
+
+    def _rows(self):
+        return tuple(row for key in ('source_origins', 'creation_parents', 'executables',
+            'negative_fixtures') for row in self._selection[key]) + (self._selection['retained_root'],)
+
+    def _ancestors(self):
+        paths = {'/'}
+        for row in self._rows():
+            path = os.path.dirname(row['path'])
+            while path != '/':
+                paths.add(path)
+                need(len(paths) <= 256, 'finite complete origin/creation/image ancestor union')
+                path = os.path.dirname(path)
+        values = []
+        for path in sorted(paths):
+            fd = self._open(path, 'directory')
+            try:
+                before = self._call('ancestor-fstat', _FSTAT, fd)
+                values.append(self._node('@ancestor', path, '', fd, before))
+            finally:
+                self._close(fd)
+        return tuple(values)
+
+    def observe(self, case_id):
+        self._owner()
+        case = self._case(case_id)
+        need(not any(row[1] == case_id for row in self._tokens),
+             'no new observation acquisition after this original case launch token')
+        try:
+            self._actual_owner(case_id)
+            self._budget = {'entries': 0, 'file_bytes': 0, 'xattr_bytes': 0}
+            first_credentials = self._credentials()
+            ancestors = self._ancestors()
+            objects = tuple(value for row in self._rows() for value in self._object(row,
+                mutable_retained=row['id'] == self._selection['retained_root']['id']))
+            need(len(objects) <= MAX_ENTRIES, 'bounded complete original object union')
+            compiler = self._compiler_frontier(case_id, reports=case_id not in self._compiler_records)
+            if case_id in self._compiler_records:
+                previous = self._compiler_records[case_id]
+                need(self._policy().current_frame(compiler) == self._policy().current_frame(previous),
+                     'configured compiler/current literal frontier unchanged before launch')
+            else:
+                self._compiler_records[case_id] = compiler
+            last_credentials = self._credentials()
+            need(first_credentials == last_credentials, 'credentials stable across object association')
+            record = CaseObservation(case_id, self._selection['source_tuple_sha256'],
+                self._selection['profile_sha256'], first_credentials, objects, ancestors, case['effect'],
+                tuple(sorted(self._counts.items())))
+            # No rewriting of a raw original receipt or external oracle occurs.
+            self._observations[case_id] = record
+            self._decisions.pop(case_id, None)
+            return record
+        except BaseException as error:
+            self._capture(error, 'observe')
+            raise BaseException.with_traceback(self._io.primary, self._io.primary_tb)
+
+    def _data(self, record):
+        credentials = dict(record.credentials._asdict())
+        credentials['security'] = {'bytes': len(record.credentials.security),
+                                   'sha256': sha(record.credentials.security)}
+        return {'schema': 'joined-current-environment-observation-v1',
+            'case_id': record.case_id, 'source_tuple_sha256': record.source_tuple_sha256,
+            'profile_sha256': record.profile_sha256,
+            'credentials': credentials, 'effect': record.effect,
+            'objects': [{'object_id': v.object_id, 'path': v.path, 'relative': v.relative,
+                'kind': v.kind, 'identity': v.identity, 'mode': v.mode, 'bytes': v.bytes,
+                'sha256': v.sha256, 'attributes': [{'name': a.name, 'bytes': len(a.value),
+                'sha256': a.sha256} for a in v.attributes]} for v in record.objects],
+            'ancestors': [{'path': v.path, 'identity': v.identity, 'mode': v.mode,
+                'attributes': [{'name': a.name, 'bytes': len(a.value), 'sha256': a.sha256}
+                for a in v.attributes]} for v in record.ancestors],
+            'compiler':self._compiler_records.get(record.case_id),
+            'compiler_custody':[native_io.state_data(value) for value in self._compiler_ios],
+            'counters': dict(record.counters)}
+
+    def qualify(self, case_id):
+        """A finite Q result for this view, never an original caller disposition."""
+        self._owner()
+        case = self._case(case_id)
+        need(case_id in self._observations, 'genuine observations precede view qualification')
+        record = self._observations[case_id]
+        unresolved, premises = [], []
+        cred, status = record.credentials, dict(record.credentials.status)
+        if not (cred.uid == cred.euid and cred.gid == cred.egid and
+                cred.resuid == (cred.uid,) * 3 and cred.resgid == (cred.gid,) * 3 and
+                tuple(int(x) for x in status['Uid'].split()) == (cred.uid,) * 4 and
+                tuple(int(x) for x in status['Gid'].split()) == (cred.gid,) * 4):
+            unresolved.append('credential transitions require original loader/permission consequence analysis')
+        if any(int(status[key], 16) != 0 for key in ('CapInh', 'CapPrm', 'CapEff', 'CapAmb')):
+            unresolved.append('original nonzero process capabilities require exec/credential consequence analysis')
+        need(case_id in self._compiler_records, 'actual compiler case partition and consequence acquired')
+        rows = {row['id']: row for row in self._rows()}
+        creation = {row['id'] for row in self._selection['creation_parents']}
+        origins = {row['id'] for row in self._selection['source_origins']}
+        executables = {row['id'] for row in self._selection['executables']}
+        fixture = rows.get(case['fixture'])
+        retained_path = self._selection['retained_root']['path']
+        attribute_refusal = case['effect'] == 'OUTER_EXISTING_ATTRIBUTE_REFUSAL'
+        nonempty_fixture = False
+        for value in record.objects + record.ancestors:
+            row = rows.get(value.object_id, {'consumers': ['custody']})
+            # Path traversal requires search; a reached tree scan additionally
+            # requires read access.  Every ancestor is actually opened nofollow.
+            needed = (0o100 if value.object_id == '@ancestor' else 0o500) if value.kind == 'directory' else 0o400
+            if value.object_id in creation:
+                if not (value.identity[4] == cred.euid and value.mode & 0o700 == 0o700):
+                    unresolved.append('creation parent lacks same-ID owner rwx: ' + value.path)
+            elif value.identity[4] == cred.euid:
+                if value.mode & needed != needed:
+                    unresolved.append('original owner access requires consequence analysis: ' + value.path)
+            else:
+                group_route = value.identity[5] == cred.egid or value.identity[5] in cred.groups
+                mask = needed >> (3 if group_route else 6)
+                if value.mode & mask != mask:
+                    unresolved.append('actual underlying group/other DAC route lacks required access: '+value.path)
+            if value.object_id in executables:
+                if value.mode & 0o6000:
+                    unresolved.append('set-ID executable mode requires original loader consequence analysis: ' + value.path)
+                if 'exec' in row['consumers']:
+                    bit = 0o100 if value.identity[4] == cred.euid else (0o010 if value.identity[5] == cred.egid or value.identity[5] in cred.groups else 0o001)
+                    if not value.mode & bit:
+                        unresolved.append('original executable access is group-sensitive: ' + value.path)
+            if value.attributes:
+                actual_path = value.path + ('/' + value.relative if value.relative else '')
+                fixture_path = None if fixture is None else fixture['path']
+                on_fixture = fixture_path is not None and (actual_path == fixture_path or
+                    actual_path.startswith(fixture_path + '/'))
+                # This branch never copies metadata: the very same backing inode
+                # remains in the complete retained tree for the OUTER original
+                # oracle.  It does not cover an ACL silently omitted by copy2.
+                is_fixture_record = value.object_id == case['fixture']
+                allowed = (attribute_refusal and on_fixture and
+                    actual_path.startswith(retained_path + '/') and
+                    value.object_id not in origins | creation | executables and
+                    (is_fixture_record or value.object_id == self._selection['retained_root']['id']) and
+                    set(row['consumers']) <= {'retention', 'fixture', 'custody'})
+                if allowed:
+                    nonempty_fixture = True
+                else:
+                    unresolved.append('nonempty attribute consequence unresolved at original consumers: ' +
+                        actual_path + ':' + ','.join(a.name for a in value.attributes))
+        if attribute_refusal:
+            if not nonempty_fixture:
+                unresolved.append('the original outer attribute-refusal condition is absent or copied')
+            premises.append('existing uncopied retained fixture remains the original outer oracle object')
+        else:
+            premises.append('actually observed copied origins, creation parents, images and retained objects have empty attributes')
+        premises.extend(('same underlying kernel UID/GID/supplementary-group DAC route on selected non-idmapped mounts',
+            'unchanged original scientific/control consumers retain bytes, modes, order and raw errors',
+            'original native TCB/currentness and interval writer/seal custody remain owning checks',
+            'installed stdlib/kernel/loader and native view mechanism association remain separate profile obligations'))
+        # ADMITTED is scoped to this finite metadata/permission association.  It
+        # grants neither original scientific success nor global execution GO.
+        decision = ViewDecision(case_id, 'UNPROVED' if unresolved else 'ADMITTED',
+            digest(self._data(record)), tuple(premises), tuple(dict.fromkeys(unresolved)), 'UNISSUED')
+        self._decisions[case_id] = decision
+        return decision
+
+    def bind_launch(self, case_id):
+        self._owner()
+        need(not any(row[1] == case_id for row in self._tokens), 'one native launch association per original case')
+        before = self._observations.get(case_id)
+        need(before is not None, 'actual original observations required')
+        after = self.observe(case_id)
+        need(before.credentials == after.credentials and before.objects == after.objects and
+             before.ancestors == after.ancestors,
+             'all original metadata/bytes/identity facts remain current at launch')
+        decision = self.qualify(case_id)
+        need(decision.disposition == 'ADMITTED', 'private view has no proved association for this environment')
+        token = object.__new__(LaunchAssociation)
+        self._tokens.append([token, case_id, after, decision, False])
+        return token
+
+    def launch_record(self, token):
+        self._owner()
+        found = [row for row in self._tokens if row[0] is token]
+        need(type(token) is LaunchAssociation and len(found) == 1 and found[0][4] is False,
+             'genuine same-process unconsumed association token')
+        row = found[0]
+        row[4] = True  # Retire before fallible encoding; no retry after uncertainty.
+        observed, decision = row[2], row[3]
+        for fd, identity, path, kind in self._anchors.values():
+            need(signature(self._call('launch-held-anchor', _FSTAT, fd)) == identity,
+                 'genuine owned anchor current at native handoff')
+            current = self._open(path, kind)
+            try:
+                need(signature(self._call('launch-current-path', _FSTAT, current)) == identity,
+                     'original nofollow selected path still names the genuine held anchor')
+            finally:
+                self._close(current)
+        for fd, identity in self._lookup_anchors:
+            need(signature(self._call('launch-lookup-anchor',_FSTAT,fd)) == identity,
+                 'held compiler lookup component current at private handoff')
+        result = {'schema': 'joined-native-view-association-v1', 'case_id': row[1],
+            'source_tuple_sha256': observed.source_tuple_sha256,
+            'profile_sha256': observed.profile_sha256,
+            'parent_pid': self._pid, 'uid': observed.credentials.uid, 'gid': observed.credentials.gid,
+            'evidence_sha256': decision.evidence_sha256}
+        result['association_sha256'] = digest(result)
+        need(len(canonical(result)) <= MAX_LAUNCH_BYTES, 'bounded exact native association handoff')
+        self._retire_observation_owners(row[1])
+        self._counts['launch_records'] += 1
+        return result
+
+    def observe_retained(self):
+        """Actual outer observations only; never replaces the original oracle."""
+        self._owner()
+        try:
+            self._actual_owner(sealed=True)
+            self._budget = {'entries': 0, 'file_bytes': 0, 'xattr_bytes': 0}
+            return self._object(self._selection['retained_root'], mutable_retained=True)
+        except BaseException as error:
+            self._capture(error, 'outer-retained')
+            raise BaseException.with_traceback(self._io.primary, self._io.primary_tb)
+
+    def state_data(self):
+        # Raw exception objects and attribute values stay in their original owners.
+        return {'schema': 'joined-association-state-v1', 'pid': self._pid,
+            'closed': self._closed, 'cases_observed': tuple(self._observations),
+            'view_decisions': [value._asdict() for value in self._decisions.values()],
+            'launches': len(self._tokens), 'counters': dict(self._counts),
+            'native_custody': native_io.state_data(self._io), 'execution_permission': False}
+
+    def close(self):
+        need(any(self is row for row in _LIVE) and self._pid == _GETPID() and not self._closed,
+             'one actual parent observation-owner close')
+        self._closed = True
+        self._retire_observation_owners()
+
+    def _retire_observation_owners(self, case_id=None):
+        """Known closure before an original PASS terminal, including all failures."""
+        for context in self._compiler_ios:
+            for index in range(len(context.slots)-1,-1,-1):
+                if context.slots[index].status == 'OWNED':
+                    try:
+                        native_io.close_slot(context,index,'compiler-environment-finalizer')
+                    except BaseException as error:
+                        self._capture(error,'compiler-anchor-close')
+            if context.primary is not None and context.primary is not self._io.primary:
+                self._capture(context.primary,'compiler-native-primary')
+            if context.quarantine or context.errors.incomplete:
+                self._io.quarantine = True
+        # Continue each distinct known close after an earlier close failure; the
+        # accepted native owner never retries an uncertain numeric descriptor.
+        for index in range(len(self._io.slots) - 1, -1, -1):
+            slot = self._io.slots[index]
+            if slot.site in ('ENV:observation-descriptor','ENV:compiler-lookup') and slot.status == 'OWNED':
+                try:
+                    native_io.close_slot(self._io, index, 'environment-finalizer')
+                except BaseException as error:
+                    self._capture(error, 'anchor-close')
+        unknown = any(slot.site in ('ENV:observation-descriptor','ENV:compiler-lookup') and
+            slot.status not in ('FREE', 'CLOSED', 'UNACQUIRED') for slot in self._io.slots)
+        for registry, ticket in self._tickets:
+            if case_id is not None and ticket['attempt'].label != case_id:
+                continue
+            if ticket['state'] == 'CLOSED':
+                continue
+            ticket['object'] = None
+            ticket['state'] = 'UNKNOWN' if unknown or self._io.quarantine else 'CLOSED'
+            ticket['aliases_closed'] = not unknown and not self._io.quarantine
+            if ticket['state'] == 'UNKNOWN':
+                registry.quarantine(self._io.primary)
+        if not unknown and not self._io.quarantine:
+            self._anchors.clear()
+            self._lookup_anchors.clear()
+        if self._io.primary is not None:
+            raise BaseException.with_traceback(self._io.primary, self._io.primary_tb)

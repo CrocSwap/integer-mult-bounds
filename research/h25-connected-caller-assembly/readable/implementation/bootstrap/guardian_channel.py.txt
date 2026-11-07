@@ -1,0 +1,322 @@
+"""Fixed G control transport, selected source only; no financial authority.
+
+Only M/K/P/C2 possess FD198. Roots and the one fork borrower never inherit it.
+SCM credentials plus the sender's actual pidfd register a live native lifetime;
+neither role DATA nor a JSON record creates that lifetime. A G acknowledgement
+does not prove installed code identity, numerical fit, settlement or permission.
+"""
+import array
+import hashlib
+import fcntl
+import os
+import select
+import socket
+import struct
+import stat
+import time
+
+FD = 198
+WIRE = struct.Struct('!8s6I3Q32s32s136s')
+MAGIC = b'S03Gv1\0\0'
+ROLES = {'M': 1, 'K': 2, 'P': 3, 'C2': 4}
+REGISTER, SPAWN_PENDING, CHILD_KNOWN, WRITERS_CLOSED = 1, 2, 3, 4
+SEAL, QUEUE_BEGIN, QUEUE_END, RETENTION_BEGIN = 5, 6, 7, 8
+ROLE_CLOSED, RETIRE, EXEC_EXPECT, CONTINUE = 9, 10, 11, 12
+_OPENED = [False]
+_LIVE = {}
+_RETAINED = []
+
+
+class GuardianStop(RuntimeError):
+    pass
+
+
+def need(ok, message):
+    if ok is not True:
+        raise GuardianStop(message)
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact SHA256 text')
+    return bytes.fromhex(value)
+
+
+class GuardianChannel:
+    __slots__ = ('_sock', '_pid', '_uid', '_role', '_source', '_attempt',
+                 '_start_pin', '_start_ns', '_gpid', '_deadline', '_seq', '_phase',
+                 '_first', '_first_tb', '_secondary', '_unknown', '_closed', '_registered')
+
+    def __init__(self, key, role, source_sha256, runtime):
+        need(key is _LIVE, 'fixed source-private channel constructor')
+        need(role in ROLES and type(runtime) is dict, 'selected control role')
+        self._pid, self._uid, self._role = os.getpid(), os.getuid(), ROLES[role]
+        self._source, self._attempt = digest(source_sha256), runtime['attempt_id']
+        self._start_pin = runtime['original_start_pin']
+        self._start_ns = runtime['start_monotonic_ns']
+        self._gpid, self._deadline = runtime['guardian_pid'], runtime['whole_deadline_ns']
+        self._seq, self._phase = 0, 'REGISTER_PENDING'
+        self._first, self._first_tb = None, None
+        self._secondary, self._unknown = [[None,None] for _ in range(16)], False
+        self._closed, self._registered = False, False
+        self._sock = None
+        _LIVE[self] = (self._pid, self._attempt, self._start_pin)
+        try:
+            need(type(self._gpid) is int and self._gpid > 0 and
+                 type(self._deadline) is int and self._deadline > time.monotonic_ns(),
+                 'actual own G identity/deadline required')
+            self._sock = socket.socket(fileno=FD)
+            need(self._sock.family == socket.AF_UNIX and
+                 self._sock.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) == socket.SOCK_SEQPACKET,
+                 'fixed inherited native SOCK_SEQPACKET')
+            self._sock.setblocking(False)
+            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
+            peer = struct.unpack('3i', self._sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+            need(peer[0] == self._gpid and peer[1] == self._uid, 'actual fixed G socket peer')
+            os.set_inheritable(FD, False)
+            self._exchange(REGISTER, self_pidfd=True)
+            self._registered, self._phase = True, 'LIVE'
+        except BaseException as error:
+            self._remember(error)
+            raise self._first
+
+    def _remember(self, error):
+        if self._first is None:
+            self._first = error
+            self._first_tb = BaseException.__dict__['__traceback__'].__get__(error, BaseException)
+        elif error is not self._first:
+            for item in self._secondary:
+                if item[0] is error:
+                    break
+                if item[0] is None:
+                    item[0] = error  # actual object held before traceback/projection
+                    item[1] = BaseException.__dict__['__traceback__'].__get__(error, BaseException)
+                    break
+            else:
+                self._unknown = True
+        return self._first
+
+    def _check(self):
+        if self._first is not None:
+            raise self._first
+        need(type(self) is GuardianChannel and self in _LIVE and
+             self._pid == os.getpid() and not self._closed and not self._unknown and
+             self._first is None, 'actual live source-private same-PID G association')
+        need(_LIVE[self] == (self._pid, self._attempt, self._start_pin), 'immutable G association')
+        need(time.monotonic_ns() < self._deadline, 'same enclosing G deadline exhausted')
+
+    def _exchange(self, op, *, target_pid=0, target_role=0, evidence=None,
+                  source=None, deadline_ns=0, self_pidfd=False, child_pidfd=None,
+                  start_ns=0, end_ns=0):
+        self._check()
+        need(type(op) is int and op in range(1, 13), 'fixed protocol opcode')
+        self._seq += 1
+        start = time.monotonic_ns()
+        limit = min(self._deadline, start + 2_000_000_000)
+        packet = WIRE.pack(MAGIC, 1, op, self._role, self._seq,
+                           os.getppid(), target_role, start_ns, end_ns, deadline_ns,
+                           digest(evidence) if evidence else digest(self._start_pin['sha256']),
+                           digest(source) if source else self._source, bytes(136))
+        credentials = struct.pack('3i', self._pid, self._uid, os.getgid())
+        ancillary = [(socket.SOL_SOCKET, socket.SCM_CREDENTIALS, credentials)]
+        owned_pidfd, close_entered = None, False
+        try:
+            if self_pidfd:
+                owned_pidfd = os.pidfd_open(self._pid, 0)
+                ancillary.append((socket.SOL_SOCKET, socket.SCM_RIGHTS,
+                                  array.array('i', [owned_pidfd])))
+            elif child_pidfd is not None:
+                need(type(child_pidfd) is int and child_pidfd >= 0, 'known parent-owned child pidfd')
+                ancillary.append((socket.SOL_SOCKET, socket.SCM_RIGHTS,
+                                  array.array('i', [child_pidfd])))
+            poller = select.poll()
+            poller.register(FD, select.POLLOUT)
+            while True:
+                remaining = limit - time.monotonic_ns()
+                need(remaining > 0, 'bounded G send deadline')
+                ready = poller.poll(max(1, (remaining + 999999) // 1000000))
+                need(ready and ready[0][1] & select.POLLOUT, 'native G send unavailable')
+                try:
+                    sent = self._sock.sendmsg([packet], ancillary)
+                    break
+                except BlockingIOError:
+                    continue
+            need(sent == WIRE.size, 'one complete native control packet')
+            poller.modify(FD, select.POLLIN)
+            while True:
+                remaining = limit - time.monotonic_ns()
+                need(remaining > 0, 'bounded G response deadline')
+                ready = poller.poll(max(1, (remaining + 999999) // 1000000))
+                need(ready and ready[0][1] & select.POLLIN, 'native G response unavailable')
+                try:
+                    raw, anc, flags, unused = self._sock.recvmsg(WIRE.size + 1,
+                        socket.CMSG_SPACE(12) + socket.CMSG_SPACE(16), socket.MSG_CMSG_CLOEXEC)
+                    break
+                except BlockingIOError:
+                    continue
+            need(not flags and len(raw) == WIRE.size, 'one bounded untruncated G response')
+            creds, received = [], []
+            for level, kind, value in anc:
+                need(level == socket.SOL_SOCKET, 'fixed G socket ancillary level')
+                if kind == socket.SCM_CREDENTIALS:
+                    need(len(value) == 12, 'exact G credentials')
+                    creds.append(struct.unpack('3i', value))
+                elif kind == socket.SCM_RIGHTS:
+                    fds = array.array('i')
+                    need(len(value) % fds.itemsize == 0, 'exact received descriptor array')
+                    fds.frombytes(value)
+                    received.extend(fds)
+                    _RETAINED.append(('RECEIVED_G_PEERS', tuple(fds)))
+                else:
+                    raise GuardianStop('unexpected G ancillary message')
+            need(len(creds) == 1 and creds[0][0] == self._gpid and
+                 creds[0][1] == self._uid, 'kernel-authenticated actual G response')
+            need((op == REGISTER and len(received) == 1) or
+                 (op != REGISTER and not received), 'dedicated per-role REGISTER peer only')
+            row = WIRE.unpack(raw)
+            need(row[0] == MAGIC and row[1] == 1 and row[2] == (op | 0x80000000) and
+                 row[3] == self._role and row[4] == self._seq and row[6] == 0 and
+                 row[-1] == bytes(136), 'matching accepted exact G response')
+            need(row[7] == self._start_ns and row[9] > row[7] and row[9] <= self._deadline,
+                 'genuine enclosing GSTART/deadline response')
+            if op == REGISTER:
+                new_fd = received[0]
+                need(new_fd != FD, 'distinct known received per-role peer')
+                new_sock = socket.socket(fileno=new_fd)
+                _RETAINED.append(new_sock)
+                need(new_sock.family == socket.AF_UNIX and
+                     new_sock.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) == socket.SOCK_SEQPACKET,
+                     'actual dedicated per-role SOCK_SEQPACKET')
+                peer = struct.unpack('3i', new_sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+                need(peer[0] == self._gpid and peer[1] == self._uid, 'dedicated role actual G peer')
+                # Known ownership records precede each fallible close/dup. No retry on uncertainty.
+                old_fd = self._sock.detach()
+                _RETAINED.append(('OLD_PEER_CLOSE_ENTERED', old_fd))
+                os.close(old_fd)
+                _RETAINED.append(('OLD_PEER_CLOSED', old_fd))
+                os.dup2(new_fd, FD, inheritable=False)
+                _RETAINED.append(('NEW_FIXED_PEER_OWNED', FD))
+                new_sock.close()
+                _RETAINED.append(('RECEIVED_PEER_CLOSED', new_fd))
+                self._sock = socket.socket(fileno=FD)
+                self._sock.setblocking(False)
+                self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
+            return {'start_monotonic_ns': row[7], 'end_monotonic_ns': row[8],
+                    'deadline_ns': row[9], 'operation': op, 'sequence': self._seq}
+        except BaseException as error:
+            self._unknown = True
+            self._remember(error)
+            raise self._first
+        finally:
+            if owned_pidfd is not None and not close_entered:
+                close_entered = True
+                try:
+                    os.close(owned_pidfd)
+                except BaseException as error:
+                    self._unknown = True
+                    self._remember(error)
+                    raise self._first
+
+    @property
+    def whole_deadline_ns(self):
+        need(self._pid == os.getpid() and self in _LIVE, 'same actual process held deadline')
+        return self._deadline
+
+    def remaining_deadline(self):
+        return self.whole_deadline_ns
+
+    def continuation(self, request, start_pin, phase):
+        self._check()
+        need(type(request) is dict and request['label'] == self._attempt and
+             start_pin == self._start_pin and type(phase) is str and
+             phase in ('BOOTSTRAP', 'HELD', 'MANUAL', 'ACTIVE', 'PREPARE', 'UNDER_EX',
+                       'POST_RELEASE', 'ADOPT', 'RETENTION', 'INITIALIZE', 'REFRESH'),
+             'exact own operation/START and selected continuation phase')
+        return self._exchange(CONTINUE)
+
+    def spawn_pending(self, role, source_digest):
+        need(role in ('Root', 'B', 'M', 'K', 'P', 'C2', 'Fee', 'PropertyQuery'), 'fixed child role')
+        return self._exchange(SPAWN_PENDING, target_role={'M':1,'K':2,'P':3,'C2':4,'Root':5,'B':6,'Fee':7,'PropertyQuery':8}[role], evidence=source_digest)
+
+    def child_known(self, role, pid, source_sha, *, pidfd=None):
+        need(type(pid) is int and pid > 0 and pidfd is not None, 'actual parent child pidfd required')
+        return self._exchange(CHILD_KNOWN, start_ns=pid,
+            target_role={'Root':5,'B':6,'Fee':7,'K':2,'P':3,'PropertyQuery':8}[role], evidence=source_sha, child_pidfd=pidfd)
+
+    def writers_closed(self, sealsha):
+        return self._exchange(WRITERS_CLOSED, evidence=sealsha)
+
+    def seal(self, sealsha):
+        return self._exchange(SEAL, evidence=sealsha)
+
+    def queue_begin(self):
+        return self._exchange(QUEUE_BEGIN)
+
+    def queue_end(self):
+        return self._exchange(QUEUE_END)
+
+    def retention_begin(self):
+        return self._exchange(RETENTION_BEGIN)['deadline_ns']
+
+    def child_closed(self, role, pid):
+        return self._exchange(ROLE_CLOSED, start_ns=pid,
+            target_role={'Root':5,'B':6,'Fee':7,'K':2,'P':3,'C2':4,'M':1,'PropertyQuery':8}[role])
+
+    def role_closed(self, pid):
+        need(pid == self._pid, 'own close only; child_close names actual role')
+        return self._exchange(ROLE_CLOSED, start_ns=pid, target_role=self._role)
+
+    def phase(self, op, *, flags=0, start_ns=0, end_ns=0, digest=None, deadline_ns=0):
+        return self._exchange(op, target_role=flags, start_ns=start_ns, end_ns=end_ns,
+                              evidence=digest, deadline_ns=deadline_ns)
+
+    def retire(self, reason):
+        need(type(reason) is str and len(reason) <= 256, 'bounded retirement reason')
+        return self._exchange(RETIRE, evidence=hashlib.sha256(reason.encode('utf8')).hexdigest())
+
+    def exec_expect(self):
+        need(self._role == ROLES['P'], 'only P-to-C2 fixed exec transition')
+        return self._exchange(EXEC_EXPECT, target_role=ROLES['C2'])
+
+    def close(self):
+        need(self._pid == os.getpid() and not self._closed, 'one same-process channel close')
+        self._closed = True
+        try:
+            self._sock.close()
+        except BaseException as error:
+            self._unknown = True
+            self._remember(error)
+            raise self._first
+
+
+def open_fixed(role, source_sha256, runtime):
+    need(_OPENED[0] is False, 'one fixed G channel construction including failed startup')
+    _OPENED[0] = True
+    channel = GuardianChannel(_LIVE, role, source_sha256, runtime)
+    _RETAINED.append(channel)
+    if role in ('K', 'P'):
+        # Fixed parent-owned ready pipe: parent cannot query the inherited old
+        # endpoint until this child has installed its dedicated G channel.
+        info = os.fstat(199)
+        need(stat.S_ISFIFO(info.st_mode) and
+             (fcntl.fcntl(199, fcntl.F_GETFL) & os.O_ACCMODE) == os.O_WRONLY,
+             'fixed source-owned registration-ready pipe')
+        _RETAINED.append(('READY_WRITE_ENTERED', 199))
+        try:
+            need(os.write(199, b'R') == 1, 'one exact child private-registration-ready byte')
+            _RETAINED.append(('READY_CLOSE_ENTERED', 199))
+            os.close(199)
+            _RETAINED.append(('READY_CLOSED', 199))
+        except BaseException as error:
+            channel._unknown = True
+            channel._remember(error)
+            raise channel._first
+    return channel
+
+
+def verify_association(channel, role, request, start_pin, phase):
+    need(type(channel) is GuardianChannel and channel in _LIVE and
+         role in ('PUBLISHER', 'CONTROLLER') and
+         channel._role == {'PUBLISHER':3,'CONTROLLER':4}[role],
+         'actual selected financial role channel')
+    return GuardianChannel.continuation(channel, request, start_pin, phase)

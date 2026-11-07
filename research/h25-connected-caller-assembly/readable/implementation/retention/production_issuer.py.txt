@@ -1,0 +1,615 @@
+"""PARTIAL SOURCE integration: genuine owning-parent launch/reap retention.
+No ParentCapability/ParentBinding is issued. The real completed boundary stops
+before a consumer/hook launch because cross-exec authority and complete source
+selection interfaces are absent. This module is wired to the actual derivatives.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+import types
+import native_io_custody as native_io
+import parent_authority
+import actual_consumer
+import postrun_hook
+import fork_borrower
+
+_SUBPROCESS_SHA = 'baa9f9138d8d20df6284f67e7d2e790f847f65e2c5370de322d54cccd737f2d9'
+_SUBPROCESS_PATH = '/usr/lib/python3.12/subprocess.py'
+_POPEN = subprocess.Popen
+_CLASS_DICT = type.__getattribute__(_POPEN, '__dict__')
+_INIT = _CLASS_DICT['__init__']
+_POLL = _CLASS_DICT['poll']
+_INIT_CODE, _POLL_CODE = _INIT.__code__, _POLL.__code__
+_DICT = _CLASS_DICT['__dict__']
+_WAITPID, _WAITSTATUS = os.waitpid, os.waitstatus_to_exitcode
+_CONTEXT = None
+_ERRORS = [None] * 256
+_ERROR_COUNT = 0
+_ERROR_OVERFLOW = None
+_RETENTION_FAILURE = None
+_PROJECTION_FAILURE = None
+_RAW = None
+_IO_CONTEXTS = []
+_IO_POISON = False
+_UNPROJECTED_FAILURE = {'type': 'ACTUAL_RETAINED_UNPROJECTED',
+                        'message': 'Projection failed; actual objects remain in source custody'}
+
+
+class IntegrationObstruction(RuntimeError):
+    pass
+
+
+def need(value, reason):
+    if value is not True:
+        raise IntegrationObstruction(reason)
+
+
+def retain(actual):
+    global _ERROR_COUNT, _ERROR_OVERFLOW, _IO_POISON
+    if _ERROR_COUNT < len(_ERRORS):
+        _ERRORS[_ERROR_COUNT] = actual
+        _ERROR_COUNT += 1
+    else:
+        _IO_POISON = True
+        if _ERROR_OVERFLOW is None:
+            _ERROR_OVERFLOW = actual  # first overflow actual is never overwritten
+        raise actual  # saturated prefix is unclosed; no false complete custody
+    return actual
+
+
+def error_data(actual):
+    retain(actual)  # actual object precedes projection; never str/repr/foreign attributes
+    return {'type': 'ACTUAL_RETAINED_ERROR', 'actual_id': id(actual),
+            'actual_type_id': id(type(actual)), 'message': 'See source-owned actual error custody'}
+
+
+def record_failure(current, actual):
+    global _IO_POISON, _ERROR_OVERFLOW, _RETENTION_FAILURE, _PROJECTION_FAILURE
+    try:
+        retain(actual)  # UNCONDITIONAL actual hold before selection/data helper
+    except BaseException as retention_error:
+        _IO_POISON = True
+        if _ERROR_OVERFLOW is None:
+            _ERROR_OVERFLOW = actual
+        if _RETENTION_FAILURE is None:
+            _RETENTION_FAILURE = retention_error
+        return current if current is not None else _UNPROJECTED_FAILURE
+    try:
+        projected = error_data(actual)
+        return current if current is not None else projected
+    except BaseException as projection_error:
+        _IO_POISON = True
+        if _PROJECTION_FAILURE is None:
+            _PROJECTION_FAILURE = projection_error
+        try:
+            retain(projection_error)
+        except BaseException as retention_error:
+            if _RETENTION_FAILURE is None:
+                _RETENTION_FAILURE = retention_error
+        return current if current is not None else _UNPROJECTED_FAILURE  # no identity evidence
+
+
+def metadata_guard():
+    need(_ERROR_OVERFLOW is None and _IO_POISON is False,
+         'no new metadata acquisition after retention/projection failure')
+
+
+def primitives():
+    need(_CONTEXT is not None, 'pre-capture original primitive context absent')
+    module = types.ModuleType.__getattribute__(subprocess, '__dict__')
+    classes = type.__getattribute__(_POPEN, '__dict__')
+    need(module.get('Popen') is _POPEN and module.get('__file__') == _SUBPROCESS_PATH
+         and classes['__init__'] is _INIT and classes['poll'] is _POLL and classes['__dict__'] is _DICT
+         and type(_INIT) is types.FunctionType and type(_POLL) is types.FunctionType
+         and _INIT.__code__ is _INIT_CODE and _POLL.__code__ is _POLL_CODE
+         and os.waitpid is _WAITPID and os.waitstatus_to_exitcode is _WAITSTATUS,
+         'original source-owned process primitives changed')
+
+
+def source_identity():
+    info = os.stat(_SUBPROCESS_PATH, follow_symlinks=False)
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns,
+            info.st_ctime_ns, info.st_nlink, info.st_uid, info.st_gid)
+
+
+def prepare(supervisor, source_manifest):
+    global _CONTEXT
+    need(_CONTEXT is None and type(supervisor) is types.ModuleType and type(source_manifest) is dict,
+         'one-shot trusted actual caller initialization')
+    # This fixed caller compiled the full authenticated blobs before this call;
+    # source/native/frozen-code equivalence is still an external context gate.
+    metadata_guard()
+    before = source_identity()
+    raw = native_io.source_bytes(_SUBPROCESS_PATH, 1048576, site='issuer-original-subprocess-source')
+    need(before == source_identity() and hashlib.sha256(raw).hexdigest() == _SUBPROCESS_SHA,
+         'independent subprocess source pin/current named custody')
+    _CONTEXT = dict(supervisor=supervisor, source_manifest=source_manifest,
+                    entries=[None] * 128, reserved=0, started_ns=time.monotonic_ns(),
+                    original_source_sha256=_SUBPROCESS_SHA, original_source_bytes=len(raw),
+                    original_source_identity=before,
+                    capability_issued=False, lease_bound=False, finished=False)
+    primitives()
+
+
+def entry(process):
+    primitives()
+    need(type(process) is _POPEN, 'exact original Popen required before process attributes')
+    matches = [row for row in _CONTEXT['entries'][:_CONTEXT['reserved']]
+               if row is not None and row['actual_process'] is process]
+    need(len(matches) == 1, 'process object was not returned by actual owning-parent spawn')
+    return matches[0]
+
+
+def state(process):
+    row = entry(process)
+    data = _DICT.__get__(process, _POPEN)
+    need(type(data) is dict, 'original native Popen dictionary descriptor')
+    need('poll' not in data and '_internal_poll' not in data, 'instance process primitive replaced')
+    return row, data
+
+
+def spawn(command, **kwargs):
+    primitives()
+    need(_IO_POISON is False and _ERROR_OVERFLOW is None and _CONTEXT['reserved'] < 128 and _CONTEXT['finished'] is False, 'bounded live parent launch registry')
+    # Reserve source-owned strong state before Popen enters; a raised Popen can
+    # still have created a child, which the original OwnedDomain must observe.
+    index = _CONTEXT['reserved']
+    row = dict(actual_process=None, raw_spawn_error=None, raw_wait_return=None,
+               raw_wait_error=None, wait_uncertain=False, wait_calls=0,
+               wait_state='READY', raw_wait_sequence=0, wait_failure_phase=None,
+               pid=None, native_start_identity=None, returncode=None,
+               source_registry_generation=object(), spawn_entered=True, spawn_returned=False)
+    _CONTEXT['entries'][index] = row
+    _CONTEXT['reserved'] += 1
+    try:
+        actual = _POPEN(command, **kwargs)
+    except BaseException as error:
+        row['raw_spawn_error'] = error
+        retain(error)
+        raise
+    row['actual_process'] = actual  # strong actual return before any comparison
+    row['spawn_returned'] = True
+    need(type(actual) is _POPEN, 'actual spawn did not return exact original Popen')
+    unused, data = state(actual)
+    value = dict.get(data, 'pid')
+    need(type(value) is int and 0 < value <= 2147483647, 'native returned process pid')
+    row['pid'] = value
+    return actual
+
+
+def pid(process):
+    row, data = state(process)
+    value = dict.get(data, 'pid')
+    need(type(value) is int and value == row['pid'], 'source registry PID identity changed')
+    return value
+
+
+def started(process, observed):
+    row = entry(process)
+    need(type(observed) is dict, 'source-owned native start observation')
+    values = tuple(observed.get(name) for name in ('pid', 'start_ticks', 'pgid', 'sid'))
+    need(all(type(v) is int and v > 0 for v in values) and values[0] == pid(process)
+         and values[2] == values[3] == values[0], 'actual original new-session start identity')
+    need(row['native_start_identity'] is None, 'start observation already consumed')
+    row['native_start_identity'] = values
+
+
+def returncode(process):
+    row, data = state(process)
+    value = dict.get(data, 'returncode')
+    need(value is None or type(value) is int, 'exact native process returncode')
+    if row['wait_state'] in ('UNRESOLVED', 'CONSUMED'):
+        return None  # quarantined/unknown, NEVER evidence of an unconsumed child
+    need(value == row['returncode'], 'process wait state changed outside source-owned observer')
+    return value
+
+
+def wait_blocked(process):
+    row = entry(process)
+    return row['wait_state'] in ('UNRESOLVED', 'CONSUMED') or row['wait_uncertain'] is True
+
+
+def wait_state(process):
+    return entry(process)['wait_state']
+
+
+def poll(process):
+    global _IO_POISON, _RETENTION_FAILURE
+    row, data = state(process)
+    need(wait_blocked(process) is False, 'unresolved or consumed wait is never retried')
+    value = returncode(process)
+    if value is not None:
+        need(row['wait_state'] == 'COMMITTED', 'terminal wait commit required')
+        return value  # retained genuine terminal result, no new native wait
+    need(row['wait_state'] in ('READY', 'SAFE_NONTERMINAL') and row['wait_calls'] < 65536,
+         'proved nonconsuming state and wait observation bound')
+    # Consume permission BEFORE pid lookup, native entry or any fallible result
+    # check. A fault at any later point leaves this root wait quarantined.
+    row['wait_uncertain'] = True
+    row['wait_state'] = 'UNRESOLVED'
+    row['wait_calls'] += 1
+    row['wait_failure_phase'] = 'WAIT_CALL'
+    try:
+        actual = _WAITPID(pid(process), os.WNOHANG)
+        row['raw_wait_return'] = actual  # strong actual BEFORE schema/decode
+        row['raw_wait_sequence'] = row['wait_calls']
+        row['wait_failure_phase'] = 'WAIT_SCHEMA'
+        need(type(actual) is tuple and len(actual) == 2 and all(type(v) is int for v in actual),
+             'genuine native wait tuple')
+        if actual[0] == 0:
+            need(actual[1] == 0, 'native nonterminal wait fields')
+            row['wait_failure_phase'] = None
+            row['wait_state'] = 'SAFE_NONTERMINAL'
+            row['wait_uncertain'] = False  # ONLY proved native(0,0) permits repoll
+            return None
+        need(actual[0] == row['pid'], 'waited child exact source registry PID')
+        row['wait_state'] = 'CONSUMED'  # before decoder or returncode commit
+        row['wait_failure_phase'] = 'WAIT_DECODE_COMMIT'
+        code = _WAITSTATUS(actual[1])
+        need(type(code) is int, 'native wait status decoder type')
+        dict.__setitem__(data, 'returncode', code)
+        row['returncode'] = code
+        row['wait_failure_phase'] = None
+        row['wait_state'] = 'COMMITTED'
+        row['wait_uncertain'] = False  # terminal reads never call wait again
+        return code
+    except BaseException as error:
+        row['raw_wait_error'] = error  # actual first failure BEFORE retention helper
+        row['wait_uncertain'] = True
+        try:
+            retain(error)
+        except BaseException as retention_error:
+            _IO_POISON = True
+            if _RETENTION_FAILURE is None:
+                _RETENTION_FAILURE = retention_error
+            if retention_error is not error:
+                raise error from retention_error
+            raise error
+        raise
+
+
+def raw_snapshot():
+    entries = []
+    for row in _CONTEXT['entries'][:_CONTEXT['reserved']]:
+        entries.append(dict(pid=row['pid'], actual_process_id=id(row['actual_process']),
+            spawn_entered=row['spawn_entered'], spawn_returned=row['spawn_returned'],
+            actual_spawn_error_id=None if row['raw_spawn_error'] is None else id(row['raw_spawn_error']),
+            wait_calls=row['wait_calls'],
+            actual_wait_return=row['raw_wait_return'] if type(row['raw_wait_return']) is tuple
+                and len(row['raw_wait_return']) == 2 and all(type(v) is int for v in row['raw_wait_return'])
+                else None,
+            actual_wait_return_id=None if row['raw_wait_return'] is None else id(row['raw_wait_return']),
+            actual_wait_error_id=None if row['raw_wait_error'] is None else id(row['raw_wait_error']),
+            wait_uncertain=row['wait_uncertain'], wait_state=row['wait_state'],
+            raw_wait_sequence=row['raw_wait_sequence'], wait_failure_phase=row['wait_failure_phase'],
+            returncode=row['returncode'],
+            native_start_identity=row['native_start_identity'],
+            source_registry_generation_id=id(row['source_registry_generation'])))
+    return dict(schema='h25-owning-parent-spawn-reap-raw-v4-partial', entries=entries,
+        actual_error_ids=[id(value) for value in _ERRORS[:_ERROR_COUNT]],
+        retention_failure_id=None if _RETENTION_FAILURE is None else id(_RETENTION_FAILURE),
+        projection_failure_id=None if _PROJECTION_FAILURE is None else id(_PROJECTION_FAILURE),
+        error_overflow_id=None if _ERROR_OVERFLOW is None else id(_ERROR_OVERFLOW),
+        source_context_started_ns=_CONTEXT['started_ns'], captured_before_boundary_oracle=True,
+        production_parent_capability_issued=False, child_delegation_implemented=False,
+        complete_source_selection_implemented=False)
+
+
+def export_io_failure(ctx):
+    # Existing parent stderr only; no open, retry, new FD or fallback after poison.
+    value = dict(schema='h25-issuer-raw-io-failure-v4', fd_state=native_io.state_data(ctx),
+                 actual_error_ids=[id(value) for value in _ERRORS[:_ERROR_COUNT]],
+                 primary_and_secondary_objects_retained=True, RAW_may_be_unclosed=True)
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode('ascii')
+    need(len(raw) <= 262144, 'bounded existing-stream IO failure prefix')
+    offset = 0
+    for unused in range(len(raw) + 1):
+        if offset == len(raw):
+            break
+        done = os.write(2, memoryview(raw)[offset:offset + 65536])
+        need(type(done) is int and 0 < done <= min(65536, len(raw) - offset), 'failure RAW write progress')
+        offset += done
+    else:
+        raise IntegrationObstruction('failure RAW iteration bound')
+
+
+def retain_raw(path, value):
+    """New RAW writer uses the exact shared helper; no ad hoc FD reader.
+    Native write/mkdir/fsync remain fixed source-owned bodies under its slots.
+    """
+    global _IO_POISON
+    need(_ERROR_OVERFLOW is None and _IO_POISON is False, 'no metadata acquisition after error saturation/IO uncertainty')
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode('ascii')
+    need(len(raw) <= 1048576, 'bounded parent provenance RAW')
+    ctx = native_io.new_context('issuer-provenance-raw')
+    _IO_CONTEXTS.append(ctx)
+    first = None
+    try:
+        parent = native_io.directory(ctx, str(Path(path).parent))
+        leaf = native_io.acquire(ctx, Path(path).name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                 'issuer-raw-leaf', parent=parent, mode=0o600)
+        fd = native_io.descriptor(ctx, leaf)
+        offset = 0
+        for unused in range(len(raw) + 1):
+            if offset == len(raw):
+                break
+            done = os.write(fd, memoryview(raw)[offset:offset + 65536])
+            need(type(done) is int and 0 < done <= min(65536, len(raw) - offset), 'RAW write progress')
+            offset += done
+        else:
+            raise IntegrationObstruction('RAW write iteration bound')
+        os.fsync(fd)
+    except BaseException as actual:
+        first = actual  # Owning raw local precedes helper/capacity/projection.
+        retain(actual)
+        _IO_POISON = True
+        if ctx.primary is not actual:
+            try:
+                native_io.capture(ctx, actual, 'BODY', 'issuer-raw')
+            except BaseException as capture_error:
+                retain(capture_error)  # first actual remains designated
+    finally:
+        cleanup_error, finish_error = None, None
+        try:
+            native_io.cleanup_known(ctx)
+        except BaseException as actual:
+            cleanup_error = retain(actual)
+            _IO_POISON = True
+        try:
+            native_io.finish(ctx)
+        except BaseException as actual:
+            finish_error = retain(actual)
+            _IO_POISON = True
+        if first is None:
+            first = ctx.primary if ctx.primary is not None else cleanup_error
+        if first is None:
+            first = finish_error
+        if first is not None:
+            _IO_POISON = True
+            retain(first)
+            try:
+                later = []
+                for event in ctx.events[:ctx.used]:
+                    actual = event['actual']
+                    if actual is not first and not any(actual is prior for prior in later):
+                        later.append(actual)
+                for actual in (cleanup_error, finish_error):
+                    if actual is not None and actual is not first and not any(actual is prior for prior in later):
+                        later.append(actual)
+                try:
+                    export_io_failure(ctx)
+                except BaseException as export_error:
+                    retain(export_error)
+                    if export_error is not first and not any(export_error is prior for prior in later):
+                        later.append(export_error)
+                group = BaseExceptionGroup('Actual later RAW IO errors', later) if later else None
+            except BaseException as export_error:
+                retain(export_error)
+                raise first
+            if group is not None:
+                raise first from group
+            raise first
+
+
+def _legacy_completed_boundary(evidence):
+    global _RAW
+    need(_CONTEXT is not None and _CONTEXT['finished'] is False, 'one completed boundary per actual queue')
+    _CONTEXT['finished'] = True
+    primitives()
+    metadata_guard()
+    current = native_io.source_bytes(_SUBPROCESS_PATH, 1048576, site='issuer-subprocess-source-after')
+    need(source_identity() == _CONTEXT['original_source_identity']
+         and hashlib.sha256(current).hexdigest() == _SUBPROCESS_SHA, 'original subprocess source after-custody')
+    _RAW = raw_snapshot()  # strong original objects remain in entries/errors before any judge
+    retain_raw(str(evidence / 'RETENTION-PROVENANCE-RAW.json'), _RAW)
+    # No Boolean cleanup document, proc PID, source-port registry or copied
+    # object is promoted to ParentCapability here. See OBSTRUCTIONS.json.
+    raise IntegrationObstruction('Cross-exec authority delegation, original EX-OFD bootstrap and complete completed-run source selection are absent; no retention child or hook is launched')
+
+
+_CONNECTED = None
+_RETENTION_ENTERED = False
+_CONNECTED_RAW = [None] * 16
+
+
+def bind_connected(controller, active, ctx, lease, layout, registry, guardian, selection):
+    """Source-authenticated fixed bootstrap input; DATA alone is no authority."""
+    global _CONNECTED
+    need(_CONNECTED is None and _CONTEXT is not None and _RETENTION_ENTERED is False,
+         'one actual connected C2 integration')
+    need(registry.owner_context is ctx and lease.phase == 'EX_HELD', 'actual owner/source registry')
+    need(selection['schema'] == 's03-connected-retention-binding-v1'
+         and str(layout.source) == selection['source_root']
+         and str(layout.admin) == selection['admin_root']
+         and list(layout.labels) == selection['labels'], 'fixed source/admin selection')
+    _CONNECTED = dict(controller=controller, active=active, ctx=ctx, lease=lease,
+        layout=layout, registry=registry, guardian=guardian, selection=selection,
+        phase='OPEN', capability=None, borrower=None, result=None,
+        primary=None, trace=None, secondaries=[None] * 32, secondary_used=0)
+
+
+def guardian_writer_closure(registry, guardian):
+    """Held by registry once at setup; not a dispatch-time arbitrary callback."""
+    need(_CONNECTED is not None and registry is _CONNECTED['registry']
+         and guardian is _CONNECTED['guardian'], 'same fixed actual closure pair')
+    parent_authority.owner_verified()
+    snapshot = registry.snapshot()
+    need(snapshot['phase'] == 'SEALING', 'complete required finally before native seal')
+    raw = actual_consumer.canonical(snapshot)
+    seal = hashlib.sha256(raw).hexdigest()
+    closed = guardian.writers_closed(seal)
+    _CONNECTED_RAW[0] = closed
+    need(type(closed) is dict and closed['operation'] == 4, 'authenticated native writers-closed ACK')
+    acknowledged = guardian.seal(seal)
+    _CONNECTED_RAW[1] = acknowledged
+    need(type(acknowledged) is dict and acknowledged['operation'] == 5,
+         'authenticated G frozen membership/survivor seal ACK')
+    _CONNECTED['native_seal_sha256'] = seal
+    return True
+
+
+def _connected_error(error):
+    state = _CONNECTED
+    if state['primary'] is None:
+        state['primary'] = error
+        state['trace'] = BaseException.__traceback__.__get__(error, type(error))
+    elif error is not state['primary']:
+        index = state['secondary_used']
+        if index < len(state['secondaries']):
+            state['secondaries'][index] = (error, BaseException.__traceback__.__get__(error, type(error)))
+            state['secondary_used'] += 1
+        else:
+            state['phase'] = 'UNCERTAIN'
+    return state['primary']
+
+
+def _put_json(path, value):
+    # Original v5 known-FD writer, full raw objects held before this projection.
+    retain_raw(str(path), value)
+    raw = native_io.source_bytes(str(path), 2097152, site='connected-metadata-readback')
+    need(raw == (json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('ascii'),
+         'full own metadata readback differs')
+    return {'path': str(path), 'sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def completed_boundary(evidence):
+    """Actual C2 hook: complete closure, full retention and independent readback.
+
+    Known closed STOP enters the same once-only route. Unknown resource/source
+    states do not read S and cannot be converted into cleanup evidence.
+    """
+    global _RETENTION_ENTERED, _RAW
+    need(_CONNECTED is not None and _RETENTION_ENTERED is False,
+         'connected source-private retention boundary unavailable/already entered')
+    # No import/metadata preparation/native fork may precede this irreversible
+    # per-attempt latch. Failed preparation is not retried under a cheaper name.
+    _RETENTION_ENTERED = True
+    state = _CONNECTED
+    state['phase'] = 'RETENTION_ENTERED_BIRTH_PENDING'
+    try:
+        parent_authority.owner_verified()
+        primitives()
+        metadata_guard()
+        registry, layout = state['registry'], state['layout']
+        registry.begin_drain()
+        closure_state = registry.seal(state['ctx'])
+        _CONNECTED_RAW[2] = closure_state
+        state['phase'] = 'SOURCE_SEALED'
+        lease = state['lease']
+        lease.verify()
+        selected = state['selection']
+        cfg = actual_consumer.plain_copy(selected['config_template'], max_nodes=8192,
+                                         max_depth=24, max_text=8388608)
+        cfg['source_root'] = str(layout.source)
+        cfg['purpose'] = 'postrun'
+        admin = layout.admin_role('retention')
+        need(not admin.exists(), 'one fresh retention administrative attempt')
+        admin.mkdir(mode=0o700,parents=True)
+        need(evidence == layout.admin_role('C2'), 'actual controller evidence in prospective admin')
+        # Every byte in this independent oracle pass is read by the original
+        # parent under its genuine EX after the actual source writer seal.
+        before = actual_consumer.parent_collect_before(str(layout.source), cfg['limits'])
+        _CONNECTED_RAW[3] = before
+        cfg['inventory'] = _put_json(admin / 'INVENTORY.json', before)
+        domain = registry.domain()
+        _CONNECTED_RAW[4] = domain
+        cfg['domain'] = _put_json(admin / 'DOMAIN.json', domain)
+        inode = os.fstat(lease.fd)
+        cfg['writer_lease']['path'] = str(state['controller'].HISTORICAL_LOCK)
+        cfg['writer_lease']['device'], cfg['writer_lease']['inode'] = inode.st_dev,inode.st_ino
+        closure = dict(schema='h25-parent-run-closure-v1', source_root=str(layout.source),
+            inventory_sha256=cfg['inventory']['sha256'],domain_sha256=cfg['domain']['sha256'],
+            lease_protocol_sha256=cfg['writer_lease']['protocol_sha256'],
+            all_producers_enrolled=True,inventory_collected_under_held_lease=True,
+            all_measured_processes_reaped=True,all_terminal_receipts_final=True,
+            all_raw_streams_closed=True,no_future_writes_under_lease=True,purpose='postrun',
+            attempt_ids=[row['run'] for row in domain['runs']])
+        cfg['closure'] = _put_json(admin / 'CLOSURE.json',closure)
+        # Actual output parent identity is observed here, never transplanted from
+        # an old run. Its fixed output remains absent until the B one-shot mkdir.
+        output_parent = Path(cfg['output']).parent
+        need(output_parent == admin, 'fixed fresh retention output parent')
+        parent_info = output_parent.stat(follow_symlinks=False)
+        cfg['output_parent_identity'] = dict(device=parent_info.st_dev,inode=parent_info.st_ino,uid=parent_info.st_uid)
+        cfg = actual_consumer.validate_config(cfg)
+        _CONNECTED_RAW[5] = cfg
+        _put_json(admin / 'CONFIG.json',cfg)
+        processes = []
+        for original in _CONTEXT['entries'][:_CONTEXT['reserved']]:
+            need(original['spawn_returned'] is True and original['wait_state'] == 'COMMITTED'
+                 and original['wait_uncertain'] is False and type(original['pid']) is int
+                 and type(original['returncode']) is int, 'genuine original entered process union finalized')
+            processes.append(dict(pid=original['pid'],returncode=original['returncode'],reaped=True,
+                terminal_status='PASS' if original['returncode'] == 0 else 'NONZERO'))
+        measured_end = state['controller']._JOINED_RUN['queue_native_ns'][1]
+        need(type(measured_end) is int and 0 < measured_end <= time.monotonic_ns(),
+             'genuine queue endpoint before finalized event')
+        event = dict(schema='h25-finalized-postrun-event-v2',source_root=str(layout.source),
+            one_shot_id=cfg['one_shot_id'],closure_sha256=cfg['closure']['sha256'],
+            domain_sha256=cfg['domain']['sha256'],inventory_sha256=cfg['inventory']['sha256'],
+            terminal_receipts_final=True,raw_streams_closed=True,
+            measured_end_monotonic_ns=measured_end,receipts_final_monotonic_ns=time.monotonic_ns(),
+            processes=processes,all_process_groups_empty=True,no_additional_measured_processes=True)
+        event_pin = _put_json(admin / 'EVENT.json',event)
+        state['event_pin'] = event_pin
+        cap = parent_authority.issue_sealed(cfg,event_pin)
+        state['capability'] = cap
+        # This fixed hook consumes the source-private capability and enters the
+        # original full consumer through the one actual no-exec fork.
+        observed = postrun_hook.connected_completed_run_hook(cap,state['guardian'],admin,
+            selected['borrower_source_sha256'],selected['reserved_terminal_ns'])
+        _CONNECTED_RAW[6] = observed
+        state['borrower'] = observed
+        lease.verify()
+        raw_result = native_io.source_bytes(cfg['output']+'/RESULT.json',
+            cfg['resources']['accounting_tail_bytes'],site='connected-original-result-readback')
+        result = actual_consumer.parse(raw_result)
+        _CONNECTED_RAW[7] = result
+        state['result'] = result
+        need(result['status'] == 'PASS_PENDING_PARENT_READBACK', 'full original consumer incomplete')
+        readback = actual_consumer.verify_parent_readback(cfg,result,cap,lease.fd)
+        _CONNECTED_RAW[8] = readback
+        need(type(readback) is dict and readback.get('status') == 'PASS'
+             and all(readback.get(key) is True for key in ('full_archive_verified','full_restored_verified','inode_nonalias','external_pins_rechecked')),
+             'full independent actual parent readback absent')
+        actual_consumer.read_pinned(event_pin['path'],event_pin['sha256'])
+        parent_authority.parent_completed(cap,observed['wait'],observed['captures_closed'],True)
+        state['phase'] = 'PARENT_READBACK_COMPLETE'
+        _CONTEXT['finished'] = True
+        _RAW = raw_snapshot()
+        _RAW.update(production_parent_capability_issued=True,child_delegation_implemented=True,
+            complete_source_selection_implemented=True,one_real_no_exec_fork=True,
+            copied_context_used_in_child=False,financial_close_created=False)
+        retain_raw(str(evidence / 'RETENTION-PROVENANCE-RAW.json'),_RAW)
+        _put_json(admin / 'PARENT-READBACK.json',readback)
+        parent_authority.require_release_ready()
+        return dict(status='PARENT_FULL_READBACK_COMPLETE',source_root=str(layout.source),
+            native_seal_sha256=state['native_seal_sha256'],borrower=observed,
+            parent_readback=readback,original_status_replaced=False,financial_close_created=False)
+    except BaseException as error:
+        if state['primary'] is None:
+            state['primary'] = error
+            state['trace'] = BaseException.__traceback__.__get__(error,type(error))
+        else:
+            _connected_error(error)
+        state['phase'] = 'INCOMPLETE'
+        raise BaseException.with_traceback(state['primary'],state['trace'])
+
+
+def require_owner_disposal_ready():
+    """Unknown actual B birth/wait never borrows the ordinary release path."""
+    need(_CONNECTED is not None, 'actual connected owner required')
+    state = _CONNECTED
+    if state['phase'] == 'PARENT_READBACK_COMPLETE':
+        return parent_authority.require_release_ready()
+    ticket = parent_authority._FORK
+    if ticket is not None and ticket.get('fork_native_entered') is True:
+        raise IntegrationObstruction('actual borrower birth/wait unresolved; G whole-domain retirement required')
+    # Before a native B entry, the original A2 can dispose its own actual EX.
+    # This is failure cleanup, never successful retention/source admission.
+    need(ticket is None or ticket.get('fork_native_entered') is not True,
+         'unknown B lifetime cannot be cleared by original owner release')
+    return True
