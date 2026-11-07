@@ -1,4 +1,4 @@
-# Two-coefficient rigidity of native frame contractions
+# Coefficient rigidity of native frame contractions
 
 **No new κ.** On the exact P104 native word of #6824, none of its **1,466
 single-contact frame visits** can be contracted by deleting the intervening
@@ -7,9 +7,10 @@ arbitrary invertible rational basis changes at both boundary hubs.
 
 This is an **exhaustive, source-bound algebraic obstruction**. The coefficient
 of the compensating ADD, COPY or SCALE ranges over all rational numbers;
-there is no bounded coefficient search. The result leaves changed operands,
-new scalar gates, three or more coefficient changes, and interior basis
-changes open.
+there is no bounded coefficient search. A second, narrower theorem fixes
+deletion **10947** and excludes **two** jointly retuned compensators as well.
+The result leaves changed operands, new scalar gates, three coefficient
+changes at other deletions, larger edits and interior basis changes open.
 
 ## Why this matters
 
@@ -26,6 +27,12 @@ claims remain credited to their authors. The new contribution is the complete
 two-event perturbation filter and its exact source certificate, including the
 otherwise easy-to-miss case where the compensator has zero original boundary
 derivative.
+
+The joint extension closes the next coefficient class for one particularly
+simple contraction: helper 438's two rank-one MOVEs through frame 245.
+It solves both compensators together, rather than first choosing a singular
+one-compensator repair. It does not extend the three-coefficient conclusion
+to all 1,278 deletions.
 
 ## Result and evidence
 
@@ -52,6 +59,30 @@ ADD and a repair by a compensator with zero original boundary derivative.
 Negative controls reject a damaged source and damage to every one of the 15 actual null vectors. Both time orders of a zero-derivative compensator are tested, together with twelve identities involving nonzero owned overwrite and erasure.
 
 A separately written `independent_audit.py` imports no primary or predecessor checker and reads no frozen certificate. It enumerates complete register traces, checks all ordered compensators, solves the full sparse boundary equations and applies Gaussian elimination to the changed 772-by-772 matrices. It reproduces every count and finds exact rank **771** in all 15 cases. A different agent also reviewed the proof and its hub-replacement premise. See `REVIEW.md` for the actual review boundaries.
+
+## Fixed-deletion joint extension
+
+For deletion 10947, permit arbitrary rational changes to any two distinct
+other existing scalar coefficients. A complete rank-one boundary filter
+leaves **46,381 unordered pairs**. Their necessary boundary equations give
+99 inconsistent monomial systems, 43,334 direct determinant-zero identities,
+and 2,948 residual coordinate lines on which the determinant also vanishes
+(2,012 fixing the first coefficient and 936 fixing the second). The four
+one-compensator possibilities are recomputed to cover zero changes.
+
+`JOINT-PROOF.md` gives the completeness and determinant arguments.
+`verify_joint.py` authenticates the primary event semantics, reconstructs
+the deleted baseline and its inverse, and recomputes every pair without
+reading a frozen search report. Fourteen literal changed-word checks and a
+successful joint-repair control supplement the proof. The free replacement
+of a boundary hub is handled separately from merely wrapping a modified
+hub: coefficients absorbed into a replacement reduce to the first theorem.
+
+A separate `independent_joint_audit.py` reconstructs the same complete
+domain and partition using its own native replay, a full 772-row Gaussian
+inverse and expanded boundary equations. It imports no primary, joint or
+predecessor checker and reads no frozen equations. The independent compact
+receipt is `JOINT-INDEPENDENT-AUDIT.json`.
 
 ## Exact sources and scope
 
@@ -92,6 +123,10 @@ python3 -I -B research/p104-contact-coefficient-rigidity/verify.py
 python3 -I -O -B research/p104-contact-coefficient-rigidity/verify.py
 python3 -I -O -B research/p104-contact-coefficient-rigidity/independent_audit.py \
   --word research/p104-contact-coefficient-rigidity/retained/WORD.json.gz
+python3 -I -O -B research/p104-contact-coefficient-rigidity/verify_joint.py \
+  --package research/p104-contact-coefficient-rigidity
+python3 -I -O -B research/p104-contact-coefficient-rigidity/independent_joint_audit.py \
+  --word research/p104-contact-coefficient-rigidity/retained/WORD.json.gz
 ```
 
 Expected marker: `PASS_P104_CONTACT_COEFFICIENT_RIGIDITY`, with
@@ -118,15 +153,15 @@ PR #6805 changes a main-register route before an independent helper split;
 #6824 changes helper entrance frames and coordinated scalar delivery;
 #6835 holds the middle word fixed while re-solving its boundary hubs. None is
 replaced or contradicted by the present fixed-operands two-coefficient result.
-The simultaneous gauge-invariance investigation concerns a fixed middle map
-and is complementary.
+The simultaneous gauge-invariance investigation concerns a fixed middle
+event word and matched physical cut, and is complementary.
 
 ## Open next questions
 
-* **Three coefficient changes.** Does an exact triple remove one of the
-  certified contacts? First derive a three-event boundary equation and an
-  exhaustive support filter for one selected gate. The current result gives
-  a lower bound on this edit count, not a three-event impossibility.
+* **Further coordinated coefficients.** Can two compensators repair another
+  certified deletion, or can three compensators repair deletion 10947?
+  The joint theorem covers only deletion 10947 with two compensators.
+  Any changed domain needs its own complete boundary filter and native bill.
 * **Interior basis changes.** Can a legal co-frame basis change remove a stop
   while changing operands? First identify one actual bank and its entry,
   exit and restoration costs. A local scalar identity alone is insufficient.

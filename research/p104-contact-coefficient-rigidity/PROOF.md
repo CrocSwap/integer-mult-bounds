@@ -286,11 +286,11 @@ productive/paid invoice and the outer proof obligations.
 
 ## 7. Open next questions
 
-* Does a three-coefficient change remove a single-contact stop? The present
-  certificate proves that two coefficient changes are insufficient, but its
-  mixed-term method suggests a finite support filter for the third event.
-  A first experiment should target one certified gate and solve the exact
-  boundary equations before attempting a native reconstruction.
+* The companion `JOINT-PROOF.md` closes the next coefficient class for
+  deletion 10947: two additional jointly solved compensators also fail.
+  Can that larger class work for another deletion, or can three compensators
+  repair deletion 10947? The joint theorem does not cover all triples or
+  other operation classes.
 * Can an interior basis change remove a stop while changing the scalar
   operands? The theorem allows only boundary gauges and fixed operands.
   Specify one available co-frame bank and charge its complete entry, exit
