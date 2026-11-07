@@ -39,9 +39,14 @@ identity-frame value A_t.
 mode-preserving frames, W_j = I + V_jE as in #6660. Their dependency space
 consists of exactly those rank-3 maps onto E, so
 
-    15.78976 F^27 ≤ min over frames of |fiber(0)| ≤ 15.789775 F^27   (t = 27).
+    min over frames of |fiber(0)| = (1 + 12ρ₂^25 + 3ρ₂^26) F^27 = 15.7897746… F^27   (t = 27).
 
-This settles the first step of #6660's question to six significant figures.
+**This is exact.** Any dependency space contains a 4-dimensional one with a
+smaller sum, so 4-dimensional patterns suffice. Every map type and mixture is
+then checked: an exhaustive search covers up to 7 injective maps, and exact
+AM–GM comparisons exclude everything else. The rank-3-onto-E pattern of the
+frames is the unique best type. This settles the first step of #6660's question
+completely.
 [build_frames.py](build_frames.py) regenerates the frames deterministically.
 See [PROOF.md](PROOF.md).
 

@@ -141,6 +141,43 @@ Hence, at depth 27,
 A direct-sum prefix of 26 stages cannot work, because it would force the 27th
 coordinate map to be injective. These frames avoid such a prefix.
 
+## 3½. The exact minimum zero fiber at depth 27
+
+**Theorem.** Over all mode-preserving frame sequences at t = 27,
+
+    min |fiber(0)| = (1 + 12ρ₂^25 + 3ρ₂^26) · F^27 = 15.7897746… · F^27,
+
+and FRAMES27.json attains it.
+
+*Proof.*
+
+1. **Reduction to dimension 4.** By (c), dim D ≥ 4. Every term of (1) is
+   positive, so any 4-dimensional subspace D′ ⊆ D gives a smaller or equal
+   sum. It therefore suffices to minimize Σ_{x∈F2^4} Π_j ρ(ℓ_j x) over all
+   27-tuples of linear maps ℓ_j : F2^4 → Q. Allowing non-injective joint maps
+   only enlarges the set minimized over; the minimizer found below is
+   injective and realized.
+2. **Map types.** ρ(ℓx) depends only on whether ℓx is 0, in E∖0, or outside E.
+   verify.py evaluates all 65,536 maps: the per-map product over the 15 nonzero
+   x takes 8 values. The smallest is ρ₂^14, for a rank-3 map onto E. The next is
+   ρ₁⁸ρ₂⁷, for an injective map. All others are at least 1.00056·ρ₂^14.
+3. **Few injective maps.** With only maps onto E (kernel a line, value 1 there,
+   ρ₂ elsewhere) and q ≤ 7 injective maps (value ρ₂ on a hyperplane, ρ₁ off it),
+   verify.py enumerates every multiset of q hyperplanes exactly. For each it
+   places the 27 − q kernel lines optimally; the cost is separable and convex,
+   so greedy placement is optimal. The minimum is at q = 0, with kernels on 12
+   lines twice and 3 lines once. The value is 1 + 12ρ₂^25 + 3ρ₂^26.
+4. **Everything else.** By AM–GM, Σ_{x≠0} ≥ 15·(Π of per-map products)^(1/15).
+   This lower bound already exceeds the q = 0 value whenever q ≥ 8, and whenever
+   any map has neither of the two smallest types. These comparisons are exact
+   rational checks.
+5. **Realization.** The §3 frames realize this pattern exactly. ∎
+
+So for zero outputs the depth-27 question is closed: the minimum is
+⌈log₂((1 + 12ρ₂^25 + 3ρ₂^26)F^27)⌉ = 696 bits. Whether the maximum fiber of the
+optimal frames exceeds their zero fiber is still open; if it does not, this is
+the depth-27 optimum.
+
 ## 4. Larger depth
 
 RESULT.json lists t = 27,…,40 with the best d ≤ 8. For 28 ≤ t ≤ 40, taking d = 8
@@ -153,9 +190,9 @@ evaluate. Asymptotically, d = 4t − 104 gives roughly 16^(t−26) ρ₂^(7t/8) 
 
 This is a lower bound for the zero fiber, and hence for the optimal maximum
 fiber, of PR6660's exact interface: fixed known frames in G, one precision bit,
-unbounded integers and full output access. At t = 27 explicit frames pin the
-minimum zero fiber to a window of relative width 10⁻⁶. The exact minimum and
-the maximum fiber of those frames, and hence the exact optimum, remain open. It supplies no codec, physical tag, caller or restoration
+unbounded integers and full output access. At t = 27 the minimum zero fiber is determined exactly and attained by explicit
+frames. The maximum fiber of those frames, and hence the exact optimum, remain
+open. It supplies no codec, physical tag, caller or restoration
 cost. κ, the selected frontier and its five assumptions are unchanged.
 PR6660's theorems (Z) and (c) are cited premises at its pinned head, not
 replayed; that PR is open at the time of writing. The written proof is

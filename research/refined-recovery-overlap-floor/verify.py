@@ -3,6 +3,8 @@
 Prints PASS_REFINED_RECOVERY_OVERLAP_FLOOR on success.
 """
 import hashlib
+import heapq
+import itertools
 import json
 import math
 import pathlib
@@ -202,6 +204,62 @@ def check_frames(rows, code, rho):
     return total
 
 
+def exact_minimum_27(r1, r2):
+    """Exact minimum of sum_{x in F2^4} prod_j rho(l_j x) over all 27-tuples of
+    linear maps l_j: F2^4 -> Q whose joint map is injective.
+
+    rho depends only on whether l_j x is 0, in E\\0, or outside E, so E may be
+    modelled as any hyperplane of F2^4. Returns (minimum, checks passed).
+    """
+    T = 27
+    pts = range(1, 16)
+    par = lambda a, b: wt(a & b) & 1
+    E = {x for x in range(16) if par(1, x) == 0}
+    rho = lambda a: Fraction(1) if a == 0 else (r2 if a in E else r1)
+    # per-map products over the 15 nonzero points, for all 65536 maps
+    prods = set()
+    for L in itertools.product(range(16), repeat=4):
+        p = Fraction(1)
+        for x in pts:
+            y = 0
+            for b in range(4):
+                if x >> b & 1:
+                    y ^= L[b]
+            p *= rho(y)
+        prods.add(p)
+    ps = sorted(prods)
+    prod_e, prod_i, third = ps[0], ps[1], ps[2]
+    check(prod_e == r2 ** 14 and prod_i == r1 ** 8 * r2 ** 7, "two smallest per-map products: onto E, injective")
+    # E-type maps (rank 3 onto E) contribute r2 off their kernel line, 1 on it;
+    # injective maps contribute r2 on the hyperplane l^-1(E), r1 elsewhere.
+    hyper = [[x for x in pts if par(h, x) == 0] for h in pts]
+    best = None
+    for q in range(8):
+        p_e = T - q
+        for H in itertools.combinations_with_replacement(range(15), q):
+            n = {x: 0 for x in pts}
+            for h in H:
+                for x in hyper[h]:
+                    n[x] += 1
+            terms = {x: r2 ** (p_e + n[x]) * r1 ** (q - n[x]) for x in pts}
+            heap = [(terms[x] / r2, x) for x in pts]
+            heapq.heapify(heap)
+            for _ in range(p_e):  # kernels: separable convex, greedy is optimal
+                v, x = heapq.heappop(heap)
+                terms[x] = v
+                heapq.heappush(heap, (v / r2, x))
+            val = 1 + sum(terms.values())
+            if best is None or val < best[0]:
+                best = (val, q)
+    V = best[0] - 1
+    check(best[1] == 0, "minimum uses only maps onto E")
+    # AM-GM: (sum_{x != 0}/15)^15 >= product of all per-map products
+    for q in range(8, T + 1):
+        check((V / 15) ** 15 < prod_e ** (T - q) * prod_i ** q, "AM-GM excludes %d injective maps" % q)
+    check((V / 15) ** 15 < prod_e ** (T - 1) * third, "AM-GM excludes any other map type")
+    return best[0]
+
+
 def main():
     rows = load_rows()
     code = code_from_rows(rows)
@@ -275,6 +333,8 @@ def main():
     check(attained > L27 and attained - L27 < Fraction(1, 10 ** 4), "d=4 AM-GM bound nearly attained")
     realized = check_frames(rows, code, rho)
     check(realized == attained, "committed frames realize the near-optimal pattern exactly")
+    exact = exact_minimum_27(r1, r2)
+    check(exact == attained, "the realized pattern is the exact minimum over all dependency patterns")
 
     # Table for t = 27..40: best certified d, floor, bits; identity-frame upper bound A_t
     table = []
