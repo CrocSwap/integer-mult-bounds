@@ -35,10 +35,15 @@ identity-frame value A_t.
    even-coset plane E, not by injective ones, because ρ₂⁷ < ρ₁⁸ (ratio
    1 − 1.2·10⁻⁷).
 
-At t = 27 an abstract pattern of 27 such maps reaches 1 + 12ρ₂^25 + 3ρ₂^26, which is
-within 10⁻⁴ of the floor. The bound is therefore essentially sharp for
-four-dimensional dependency spaces. Whether actual frames realize that pattern is
-open. See [PROOF.md](PROOF.md).
+**Realized by actual frames.** [FRAMES27.json](FRAMES27.json) holds 27 explicit
+mode-preserving frames, W_j = I + V_jE as in #6660. Their dependency space
+consists of exactly those rank-3 maps onto E, so
+
+    15.78976 F^27 ≤ min over frames of |fiber(0)| ≤ 15.789775 F^27   (t = 27).
+
+This settles the first step of #6660's question to six significant figures.
+[build_frames.py](build_frames.py) regenerates the frames deterministically.
+See [PROOF.md](PROOF.md).
 
 ## Reproduce
 
@@ -53,7 +58,13 @@ python3.12 -B scripts/research_package.py --package research/refined-recovery-ov
 Each run prints `PASS_REFINED_RECOVERY_OVERLAP_FLOOR` in under a second. It
 derives C from the pinned matrix and checks every number stated above in exact
 rational arithmetic, including all 67 subspaces of F2^8/C for μ_d (d ≤ 8). It
-recomputes RESULT.json and runs two failure controls.
+also checks the committed frames from their integers alone, recomputes
+RESULT.json and runs two failure controls.
+
+```sh
+python3.12 -B research/refined-recovery-overlap-floor/build_frames.py "$SCRATCH/FRAMES27.json"
+cmp "$SCRATCH/FRAMES27.json" research/refined-recovery-overlap-floor/FRAMES27.json
+```
 
 ## Limitations
 
@@ -68,10 +79,10 @@ review is claimed.
 
 ## Open next questions
 
-1. **Realizable minimum and max fiber at t = 27.** Can frames in G realize a
-   dependency space whose stage maps are rank-3 maps onto E? If the first 26
-   stages form a direct sum, the 27th map is forced to be injective. Is the
-   maximum fiber equal to the zero fiber there?
+1. **Max fiber at t = 27.** For the frames in FRAMES27.json, does any output
+   have a larger fiber than the zero output? If not, the depth-27 optimum lies
+   within the window above. First step: extend #6660's stage-by-stage box count
+   to the coupled stages of a 4-dimensional E-valued dependency.
 2. **Upper side.** Beat the identity-frame bound A_t with one four-dimensional
    overlap, by extending PR6660's stage-by-stage box lemma to one coupled pair
    of stages. The present window is about 100 bits.

@@ -137,6 +137,71 @@ def zero_fiber_ratio(maps, rho, d):
     return total
 
 
+def check_frames(rows, code, rho):
+    """Exact zero-fiber value of the committed depth-27 frame sequence.
+
+    W_j = I + V_j E (E = rows 0,1,2,4) with M^T V_j = 0 and E V_j = 0, so
+    U_j = I + (V_j - V_(j+1))E lies in G and (U_(j-1)...U_1)^-1 = W_j, as in #6660.
+    Returns sum over the binary dependency space D of prod_j rho(a_j).
+    """
+    eidx = (0, 1, 2, 4)
+    data = json.loads((HERE / "FRAMES27.json").read_text())
+    V = [[[0] * N for _ in range(4)] for _ in data["V_columns_sparse"]]
+    for j, block in enumerate(data["V_columns_sparse"]):
+        check(len(block) == 4, "four columns per block")
+        for t, col in enumerate(block):
+            for i, x in col.items():
+                V[j][t][int(i)] = x
+    T = len(V)
+    check(T == 27, "27 frames")
+    check(all(x == 0 for col in V[0] for x in col), "W_1 = I")
+    for Vj in V:
+        for v in Vj:
+            check(all(v[i] == 0 for i in eidx), "E V_j = 0")
+            check(all(sum(rows[i][k] * v[i] for i in range(N)) == 0 for k in range(MODES)), "M^T V_j = 0")
+    # binary images of W_j M e_k
+    columns = []
+    for j in range(T):
+        for k in range(MODES):
+            m = [rows[i][k] for i in range(N)]
+            out = m[:]
+            for t, i in enumerate(eidx):
+                if m[i]:
+                    out = [a + m[i] * b for a, b in zip(out, V[j][t])]
+            columns.append(sum(1 << i for i, x in enumerate(out) if x % 2))
+    piv, null = {}, []
+    for idx, c in enumerate(columns):
+        v, comb = c, 1 << idx
+        while v:
+            p = v.bit_length() - 1
+            if p not in piv:
+                piv[p] = (v, comb)
+                break
+            pv, pc = piv[p]
+            v ^= pv
+            comb ^= pc
+        else:
+            null.append(comb)
+    check(len(null) == 8 * T - DIM_CAP, "images span 104 dimensions")
+    rep = lambda u: min(u ^ c for c in code)
+    D = {tuple([0] * T)}
+    for g in null:
+        cos = tuple(rep(g >> (8 * j) & 255) for j in range(T))
+        D |= {tuple(rep(a ^ b) for a, b in zip(d, cos)) for d in D}
+    check(len(D) == 16, "dependency space of dimension 4")
+    even = lambda a: wt(a) % 2 == 0
+    for d in D:
+        if any(d):
+            check(all(even(a) for a in d), "every stage coset of D lies in E")
+    total = Fraction(0)
+    for d in D:
+        p = Fraction(1)
+        for a in d:
+            p *= rho[a]
+        total += p
+    return total
+
+
 def main():
     rows = load_rows()
     code = code_from_rows(rows)
@@ -208,6 +273,8 @@ def main():
     attained = zero_fiber_ratio(maps, rho, 4)
     check(attained == 1 + 12 * r2 ** 25 + 3 * r2 ** 26, "abstract configuration value")
     check(attained > L27 and attained - L27 < Fraction(1, 10 ** 4), "d=4 AM-GM bound nearly attained")
+    realized = check_frames(rows, code, rho)
+    check(realized == attained, "committed frames realize the near-optimal pattern exactly")
 
     # Table for t = 27..40: best certified d, floor, bits; identity-frame upper bound A_t
     table = []

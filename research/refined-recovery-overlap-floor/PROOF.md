@@ -109,10 +109,37 @@ frame needs ⌈log₂ A_27⌉ = 796 bits.
 onto E. Their kernels cover 12 nonzero points twice and 3 points once, so they
 meet trivially and the map is injective. This pattern gives
 Σ_x P(x) = 1 + 12ρ₂^25 + 3ρ₂^26 = 15.789775 (exact rational in verify.py). It
-exceeds the floor by less than 10⁻⁴. So among four-dimensional dependency
-spaces, the bound is essentially the true minimum of (1). Whether frames in G
-can realize this pattern is **not** established. For example, if the first 26
-stages form a direct sum, the 27th coordinate map is forced to be injective.
+exceeds the floor by less than 10⁻⁴.
+
+**Realization by actual frames.** FRAMES27.json gives integer blocks V_1 = 0,
+V_2, …, V_27 with MᵀV_j = 0 and E V_j = 0, where E is the rows 0, 1, 2, 4 as in
+#6660. With W_j = I + V_j E and U_j = I + (V_j − V_(j+1))E, these are
+mode-preserving frames, by the same algebra as #6660 §6. verify.py does not
+trust their derivation. From the committed integers it checks:
+
+* MᵀV_j = 0 and E V_j = 0;
+* the 27 binary images W_jM span exactly 104 dimensions;
+* the dependency space D is 4-dimensional and lies in E^27;
+* Σ_{a∈D} Π_j ρ(a_j) equals 1 + 12ρ₂^25 + 3ρ₂^26 exactly.
+
+Hence, at depth 27,
+
+    15.78976 F^27 ≤ min over frame sequences of |fiber(0)| ≤ 15.789775 F^27.
+
+**How the frames are built** (`build_frames.py`, deterministic):
+1. Realizable images are graphs N = {μ(a) + ψ(a)}, where μ is M mod 2 and ψ is
+   any map into R′. Here R′ is the mod-2 reduction of {v ∈ ℤ^112 : Mᵀv = 0,
+   v_E = 0}. It has dimension 100 and complements im M; the script finds a ℤ-basis
+   by unimodular column reduction.
+2. A relation Σ_j φ_j(a_j) = 0 therefore splits into Σ_j a_j = 0 and
+   Σ_j ψ_j(a_j) = 0.
+3. Choose rank-3 maps ℓ_j onto E with Σ_j ℓ_j = 0 and kernels covering 12 lines
+   twice and 3 lines once.
+4. Choose ψ_1 = 0 and ψ_2, …, ψ_22 at random. Solve Σ_j ψ_j ℓ_j = 0 for the last
+   five maps, adding a random homogeneous part. Seed 20 gives full rank 104.
+
+A direct-sum prefix of 26 stages cannot work, because it would force the 27th
+coordinate map to be injective. These frames avoid such a prefix.
 
 ## 4. Larger depth
 
@@ -126,9 +153,9 @@ evaluate. Asymptotically, d = 4t − 104 gives roughly 16^(t−26) ρ₂^(7t/8) 
 
 This is a lower bound for the zero fiber, and hence for the optimal maximum
 fiber, of PR6660's exact interface: fixed known frames in G, one precision bit,
-unbounded integers and full output access. It is not the exact optimum.
-Realizability of the near-optimal pattern and the true maximum fiber at
-t ≥ 27 remain open. It supplies no codec, physical tag, caller or restoration
+unbounded integers and full output access. At t = 27 explicit frames pin the
+minimum zero fiber to a window of relative width 10⁻⁶. The exact minimum and
+the maximum fiber of those frames, and hence the exact optimum, remain open. It supplies no codec, physical tag, caller or restoration
 cost. κ, the selected frontier and its five assumptions are unchanged.
 PR6660's theorems (Z) and (c) are cited premises at its pinned head, not
 replayed; that PR is open at the time of writing. The written proof is
