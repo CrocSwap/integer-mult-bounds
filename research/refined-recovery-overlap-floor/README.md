@@ -60,7 +60,7 @@ python3.12 -I -O -W error -B research/refined-recovery-overlap-floor/verify.py
 python3.12 -B scripts/research_package.py --package research/refined-recovery-overlap-floor
 ```
 
-Each run prints `PASS_REFINED_RECOVERY_OVERLAP_FLOOR` in under a second. It
+Each run prints `PASS_REFINED_RECOVERY_OVERLAP_FLOOR` in under a minute. It
 derives C from the pinned matrix and checks every number stated above in exact
 rational arithmetic, including all 67 subspaces of F2^8/C for μ_d (d ≤ 8). It
 also checks the committed frames from their integers alone, recomputes
