@@ -1,0 +1,85 @@
+"""Retire one private timeout-owned verification group on every guard exit.
+
+Run ONLY as the direct child of the recorded GNU timeout group owner. This
+manager deliberately kills its own still-owned group after saving pre-retirement
+evidence. The external Codex parent independently finalizes the prepaid ledger.
+"""
+from pathlib import Path
+import hashlib
+import json
+import os
+import signal
+import subprocess
+import time
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/caller-proof-construction-20261106T2330Z'
+GUARD = R / 'validation/run_native_proposal_controls.py'
+
+
+def save(path, value):
+    with path.open('x') as stream:
+        json.dump(value, stream, indent=2, sort_keys=True)
+        stream.write('\n')
+    path.chmod(0o444)
+
+
+def main():
+    admission = json.loads((R / 'control/NATIVE-PROPOSAL-CONTROL-ADMISSION-v1.json').read_text())
+    if admission['outer_sha256'] != hashlib.sha256(Path(__file__).read_bytes()).hexdigest():
+        raise ValueError('exact reviewed outer owner')
+    if admission['guard_sha256'] != hashlib.sha256(GUARD.read_bytes()).hexdigest():
+        raise ValueError('exact reviewed guard')
+    group = os.getpgrp()
+    # GNU timeout's default mode holds this group leader while waiting for this
+    # manager. Refuse an ambient/inherited group before creating any child.
+    if group != os.getppid() or group == os.getpid() or group <= 1:
+        raise ValueError('direct child of the recorded private timeout group owner required')
+    def retire_group(signum=None, frame=None):
+        try:
+            os.killpg(group, signal.SIGKILL)
+        except BaseException:
+            while True:
+                signal.pause()
+    # A timeout TERM must not release the group owner before the +5 KILL.
+    # Retire the held whole group immediately, before any child is created.
+    signal.signal(signal.SIGTERM, retire_group)
+    folder = R / 'verification-native-outer'
+    folder.mkdir(exist_ok=False)
+    process = None
+    errors = []
+    row = {'manager_pid': os.getpid(), 'held_outer_group': group,
+           'group_owner_pid': os.getppid(), 'guard_known_wait': False,
+           'protocol': 'whole group SIGKILL after guard exit; external parent finalizes'}
+    streams = []
+    started = time.monotonic()
+    try:
+        for name in ('stdout', 'stderr'):
+            streams.append((folder / (name + '.raw')).open('xb', buffering=0))
+        process = subprocess.Popen(['/usr/bin/python3.12', '-S', '-s', '-P', '-B', str(GUARD)],
+            cwd=W, env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C', 'LANG': 'C'},
+            stdin=subprocess.DEVNULL, stdout=streams[0], stderr=streams[1], close_fds=True)
+        row['guard_pid'] = process.pid
+        process.wait(timeout=43)
+        row['guard_known_wait'] = True
+        row['guard_returncode'] = process.returncode
+    except BaseException as error:
+        errors.append({'type': type(error).__name__, 'message': str(error)})
+    finally:
+        for stream in streams:
+            try:
+                stream.close()
+            except BaseException as error:
+                errors.append({'type': type(error).__name__, 'message': str(error)})
+        row.update({'errors': errors, 'elapsed_seconds': time.monotonic() - started})
+        try:
+            save(folder / 'PRE-RETIREMENT.json', row)
+        finally:
+            # The timeout leader remains our parent and holds the numeric group
+            # identity here. Kill all members, including this manager/owner,
+            # before any such identity can be released or recycled.
+            retire_group()
+
+
+if __name__ == '__main__':
+    main()

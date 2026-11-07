@@ -1,0 +1,116 @@
+/* PROPOSED, UNEXECUTED controls of the actual proposed policy constructor.
+ * No namespace/limit/mount/seccomp syscall is executed by these controls.
+ * The native install boundary is mocked; a small independent forward-only
+ * cBPF evaluator checks the emitted policy against explicit operation oracles.
+ * Compile/run only after exact independent GO and parent guarded admission. */
+#define prctl changed_mock_prctl
+#define syscall changed_mock_syscall
+#define close changed_mock_close
+#define main changed_unused_entry_main
+#include "../proposal/science_view_entry.c"
+#undef main
+#undef close
+#undef syscall
+#undef prctl
+#include <stdarg.h>
+
+static struct sock_fprog captured;
+static int failures,install_calls,install_errno,unexpected_native_calls;
+static void check(bool value,const char *label) {
+    if(!value){fprintf(stderr,"control failure: %s\n",label);failures++;}
+}
+int changed_mock_prctl(int operation,...) {
+    va_list ap;va_start(ap,operation);
+    int mode=va_arg(ap,int);struct sock_fprog *filter=va_arg(ap,struct sock_fprog *);
+    install_calls++;
+    check(operation==PR_SET_SECCOMP&&mode==SECCOMP_MODE_FILTER,"only filter installation is reached");
+    check(filter&&filter->filter==program&&filter->len==program_count&&filter->len>0,
+          "actual constructor supplies its emitted program");
+    if(filter)captured=*filter;
+    va_end(ap);
+    if(install_errno){errno=install_errno;return -1;}return 0;
+}
+long changed_mock_syscall(long operation,...) {
+    (void)operation;unexpected_native_calls++;errno=ENOSYS;return -1;
+}
+int changed_mock_close(int descriptor) {
+    (void)descriptor;unexpected_native_calls++;errno=EBADF;return -1;
+}
+static uint32_t evaluate(const struct seccomp_data *input) {
+    uint32_t accumulator=0;size_t pc=0;
+    for(size_t steps=0;steps<=captured.len&&pc<captured.len;steps++) {
+        const struct sock_filter *instruction=&captured.filter[pc];
+        switch(instruction->code) {
+        case BPF_LD|BPF_W|BPF_ABS:
+            if(instruction->k>sizeof(*input)-sizeof accumulator) {
+                check(false,"load stays within seccomp input");return UINT32_MAX;
+            }
+            memcpy(&accumulator,(const unsigned char *)input+instruction->k,sizeof accumulator);
+            pc++;break;
+        case BPF_JMP|BPF_JEQ|BPF_K:
+            pc+=1+(accumulator==instruction->k?instruction->jt:instruction->jf);break;
+        case BPF_JMP|BPF_JSET|BPF_K:
+            pc+=1+((accumulator&instruction->k)?instruction->jt:instruction->jf);break;
+        case BPF_RET|BPF_K:
+            return instruction->k;
+        default:
+            check(false,"only reviewed forward cBPF instructions occur");return UINT32_MAX;
+        }
+    }
+    check(false,"program reaches a bounded return");return UINT32_MAX;
+}
+static struct seccomp_data call(int number,uint64_t a0,uint64_t a1,uint64_t a2,uint64_t a3) {
+    struct seccomp_data input={.nr=number,.arch=AUDIT_ARCH_X86_64};
+    input.args[0]=a0;input.args[1]=a1;input.args[2]=a2;input.args[3]=a3;
+    return input;
+}
+static void expect(struct seccomp_data input,uint32_t action,const char *label) {
+    check(evaluate(&input)==action,label);
+}
+static void reset_constructor(void) {
+    program_count=error_count=0;filtered=false;uncertain=error_overflow=false;
+    captured=(struct sock_fprog){0};install_calls=install_errno=unexpected_native_calls=0;
+}
+int main(void) {
+    reset_constructor();
+    check(install_seccomp()&&filtered&&install_calls==1&&!error_count,
+          "actual proposed constructor commits only successful installation");
+    /* These are operation oracles, not a reimplementation of the resource
+     * filter. Pointer/resource contents are opaque to seccomp and must reach
+     * native kernel validation, including its original EFAULT/EINVAL cases. */
+    expect(call(SYS_setrlimit,RLIMIT_CORE,0,0,0),SECCOMP_RET_ALLOW,"self CORE NULL pointer reaches kernel");
+    expect(call(SYS_setrlimit,RLIMIT_CORE,UINT64_C(0x100000000),0,0),SECCOMP_RET_ALLOW,"self CORE high-word pointer reaches kernel");
+    expect(call(SYS_setrlimit,RLIMIT_FSIZE,7,0,0),SECCOMP_RET_ALLOW,"original child FSIZE setter admitted");
+    expect(call(SYS_setrlimit,UINT64_MAX,3,0,0),SECCOMP_RET_ALLOW,"invalid resource retains native errno owner");
+    expect(call(SYS_prlimit64,0,RLIMIT_CORE,0,9),SECCOMP_RET_ALLOW,"self CORE query admitted");
+    expect(call(SYS_prlimit64,0,RLIMIT_CORE,UINT64_C(0x100000000),0),SECCOMP_RET_ALLOW,"self CORE mutation admitted");
+    expect(call(SYS_prlimit64,0,RLIMIT_FSIZE,11,13),SECCOMP_RET_ALLOW,"original self FSIZE query/mutation admitted");
+    expect(call(SYS_prlimit64,0,UINT64_MAX,17,19),SECCOMP_RET_ALLOW,"prlimit invalid resource retains native errno owner");
+    expect(call(SYS_prlimit64,UINT64_C(0x100000000),RLIMIT_CORE,7,0),SECCOMP_RET_ALLOW,"pid_t low32 normalization preserves self");
+    expect(call(SYS_prlimit64,1234,RLIMIT_CORE,0,7),SECCOMP_RET_ERRNO|EPERM,"nonzero process query remains excluded");
+    expect(call(SYS_prlimit64,1234,RLIMIT_FSIZE,7,0),SECCOMP_RET_ERRNO|EPERM,"nonzero process mutation remains excluded");
+    /* Adjacent branches ensure that shortening the resource dispatch did not
+     * bypass the existing lockdown/default or architecture discriminator. */
+    enum {NR_FSOPEN=430,NR_FSCONFIG=431,NR_FSMOUNT=432,NR_FSPICK=433};
+    const int excluded[]={NR_FSOPEN,NR_FSCONFIG,NR_FSMOUNT,NR_FSPICK,SYS_mount,
+                          SYS_mount_setattr,SYS_open_tree,SYS_setns,SYS_unshare,SYS_pidfd_getfd,
+                          SV_NR_STATMOUNT,SV_NR_LISTMOUNT,SV_NR_LSM_LIST_MODULES};
+    for(size_t i=0;i<sizeof excluded/sizeof excluded[0];i++)
+        expect(call(excluded[i],0,0,0,0),SECCOMP_RET_ERRNO|EPERM,"removed setup gains no science authority");
+    expect(call(SYS_clone3,0,0,0,0),SECCOMP_RET_ERRNO|ENOSYS,"original clone fallback selection retained");
+    expect(call(SYS_clone,0x003d0f00U,0,0,0),SECCOMP_RET_ALLOW,"required ordinary thread tuple retained");
+    expect(call(SYS_clone,0x00004111U,0,0,0),SECCOMP_RET_ALLOW,"required ordinary spawn tuple retained");
+    expect(call(SYS_clone,0x01200011U,0,0,0),SECCOMP_RET_ALLOW,"required ordinary fork tuple retained");
+    expect(call(SYS_clone,0x01220011U,0,0,0),SECCOMP_RET_ERRNO|EPERM,"tuple union is not allowed");
+    expect(call(SYS_setrlimit|0x40000000U,RLIMIT_CORE,0,0,0),SECCOMP_RET_KILL_PROCESS,"x32 cannot enter relaxed resource branch");
+    struct seccomp_data alternate=call(SYS_setrlimit,RLIMIT_CORE,0,0,0);alternate.arch=0;
+    expect(alternate,SECCOMP_RET_KILL_PROCESS,"alternate ABI cannot enter relaxed resource branch");
+    check(!unexpected_native_calls,"policy construction invokes no native setup probe");
+
+    reset_constructor();install_errno=EACCES;
+    check(!install_seccomp()&&!filtered&&install_calls==1&&error_count==1&&
+          errors[0].number==EACCES&&!strcmp(errors[0].site,"install-fixed-LP64-seccomp"),
+          "failed actual install retains raw errno and no success witness");
+    check(!unexpected_native_calls,"failed install control invokes no native setup probe");
+    return failures?1:0;
+}
