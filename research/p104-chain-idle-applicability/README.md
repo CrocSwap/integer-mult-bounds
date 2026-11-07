@@ -7,10 +7,14 @@ interface, including ranks 48–64 and changing ordinary field bases, conditiona
 on the retained native and physical interfaces. **No new κ.** This is a scoped
 application proof and independent certificate, not complete supplier admission.
 
-The source explicitly left this question in `PROOF.md` section 6 and
+The frozen source revision recorded this question in `PROOF.md` section 6 and
 `ADAPTERS.md`: earlier common-idle constructions used a shared basis, whereas
-this caller preserves a line and its dual through different bases. The proof
-here supplies a direct answer at the **actual literal word**. Between covered
+this caller preserves a line and its dual through different bases. The author's
+later `IDLE-RANK-ADDENDUM.md` in #6833 at
+`51f54e3c31f2f3a3e056a483b3ed66ae916ad06a` clarifies that the retained compiler
+adds no rank-specific hypothesis and states a conditional whole-idle lemma.
+This package independently certifies its carrier-transport and canonical-job
+premises at the **actual literal word**. Between covered
 native boundaries, each whole ordinary transition has the unit row and column
 needed to transport the arbitrary carrier payload. On the right, the carrier
 really changes physical register. One whole positive Gaussian then acts on the
@@ -44,7 +48,7 @@ while scalar field matrices remain outside tensor powers. The finite descriptor
 checks at multiplicities 1, 2 and 3 are corroboration; the all-multiplicity result
 comes from the exact tensor-coordinate proof.
 
-This resolves the finite applicability reading left open by #6833. It preserves
+This independently certifies finite applicability for the frozen #6833 caller. It preserves
 the predecessor's paid histogram and ordinary costs: 208 jobs at each rank
 8,16,...,64, `100,464,000` units for their two boundary maps at the retained
 rate, and the existing caller envelope `82,334,720`. There is no extra scalar
@@ -94,6 +98,11 @@ replay the full native supplier, prove arbitrary physical tape primitives,
 check global product/completion/compiler ambient constants, rerun the outer
 ledger, update a selected certificate or establish a new multiplication bound.
 This is AI-assisted mathematical verification, not independent human approval.
+
+This work complements DreamingOfClouds's concurrent #6836 at
+`99b18108eda17764d55301aae12948b547b17635`, which bounds one-sided idle-cover
+cost under its stated hypotheses; the present contribution certifies the
+literal transport and canonical-job implementation independently.
 
 ## Open next questions
 

@@ -6,7 +6,11 @@ proof and independent verifier. Apache-2.0.
 
 DreamingOfClouds's CrocSwap/integer-mult-bounds#6833 supplies the exact chain
 caller, chain-merge lemma, source proof context and complete proposed price.
-The proof/application scope was explicitly left open in that contribution.
+The frozen `ad24ad966b857dbfed50d9121624db84b2eccc92` revision recorded the
+application question. The author's later `IDLE-RANK-ADDENDUM.md` at
+`51f54e3c31f2f3a3e056a483b3ed66ae916ad06a` states the conditional whole-idle
+lemma and clarifies that no new rank-specific compiler hypothesis is needed;
+that conclusion is credited rather than claimed as a new compiler-gap result.
 Its own Claude Opus assistance disclosure is preserved in its source notice.
 
 The common-idle mechanism retains thu-nmrc's

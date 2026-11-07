@@ -2,10 +2,14 @@
 
 ## Result and exact scope
 
-This note resolves the **finite whole-job applicability** question in
-CrocSwap/integer-mult-bounds#6833, `PROOF.md` section 6 and `ADAPTERS.md`, for its
-literal `(9|9)` caller at commit
-`ad24ad966b857dbfed50d9121624db84b2eccc92`. It supplies a direct carrier trace
+This note independently certifies **finite whole-job applicability** for the
+literal `(9|9)` caller in CrocSwap/integer-mult-bounds#6833 at commit
+`ad24ad966b857dbfed50d9121624db84b2eccc92`. That frozen revision recorded the
+question in `PROOF.md` section 6 and `ADAPTERS.md`. DreamingOfClouds's later
+`IDLE-RANK-ADDENDUM.md` at `51f54e3c31f2f3a3e056a483b3ed66ae916ad06a` states a
+conditional whole-idle lemma and clarifies that no new rank-specific compiler
+hypothesis is needed. We credit that conclusion; the distinct evidence here
+certifies the literal transport and canonical-job premises. It supplies a direct carrier trace
 through the actual scalar instructions and an explicit lowering of all sixteen
 merged idle jobs to the retained canonical Gaussian job interface. Each job
 works at every positive column multiplicity. The ordinary field bases do not
