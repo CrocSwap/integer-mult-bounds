@@ -112,3 +112,5 @@ replay engines and native input lifting (#6349, with #6353 and #6372); DreamingO
 Gareth Davidson for native/caller predecessors; Jacob Alan Sussman for productive
 recursion/compiler work; Cao Yifan, ywz65, Nick Petalas and all retained source authors for
 interval and analytic work. Original notices, headers and the Apache-2.0 license are preserved.
+
+The rank-sensitivity of whole idles is examined in `IDLE-RANK-ADDENDUM.md` (check: `python3 -B research/p104-chain-nested-root/check_idle_rank.py`). It does not discharge the `compiler` assumption.
