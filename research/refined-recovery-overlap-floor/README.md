@@ -57,8 +57,10 @@ recomputes RESULT.json and runs two failure controls.
 
 ## Limitations
 
-PR6660's zero-fiber formula and 104-dimensional cap are cited premises at its
-pinned head, which is open and unmerged. This package does not replay them. The
+PR6660's zero-fiber formula and 104-dimensional cap are cited premises at head
+`b6de532eff668a7daf8f2f98668f97af5af41338`, which is open and unmerged. Its
+fork commit is not reachable from this repository, so SOURCES.json does not pin
+it. This package does not replay those premises. The
 result is a lower bound; the exact maximum fiber at t ≥ 27 remains open. It
 supplies no codec, physical tag, caller or restoration cost. κ, the selected
 frontier and its five assumptions are unchanged. No independent human or proof-kernel
