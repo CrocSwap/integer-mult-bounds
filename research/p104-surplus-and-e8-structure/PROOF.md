@@ -54,8 +54,6 @@ not change `O`) leaves `S` fixed, and an edit that lowers `O` by `δ` raises `S`
 (ii) [checked] `S = 760` for #6702, #6805, #6824 on the #6726 caller (k = 18) and `S = 808` for the #6348 caller on the
 #6349 native word (k = 19), each also `= (k−1)p − k·56`. Over the chain `ΔS = 48Δk − Δp` (the kernel-era invoices of #4697,
 `800 = 48·19 − 112` and `753 = 48·18 − 111`, fit the same shape).
-(iii) The remark that `S` moved at only three frontier jumps was **not** reproduced: the callers of the
-intermediate words (e.g. #6398) are not available as literal inputs here, so only the checkpoints above are claimed.
 
 **Proposition 3.2 (first order) [proved].** Let `F(t) = Σ (T−P) r^(1−t)` and `D(t) = −F'(t) = Σ (T−P) r^(1−t) ln r`. Since
 `F(0) = S` and `F(κ) = 0`, `S = ∫_0^κ D(t) dt = κ·D̄`. [checked] On the four invoices `S/D(0) < κ < S/D(κ)`, each bound within

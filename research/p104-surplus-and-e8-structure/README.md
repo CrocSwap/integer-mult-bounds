@@ -74,8 +74,6 @@ Expected markers: `PASS_P104_SURPLUS_AND_E8_STRUCTURE` and `PASS_REGISTERED_RESE
 ## Not established
 
 * The outer law `p(17k−1)` and the stage balance are checked on three literal callers, not proved for every caller.
-* The earlier claim that `S` changed at only three frontier jumps was not reproduced: no literal caller of the intermediate
-  frontier words is available, so only the checkpoints above are claimed. Consistently, `ΔS = 48Δk − Δp`.
 * The 56-unit lower bound needs the hypotheses of §7.3; the literal word does not satisfy them (rank 10).
 * The mixed-port bound rests on the stated bookkeeping hypothesis; no mixed word exists.
 
