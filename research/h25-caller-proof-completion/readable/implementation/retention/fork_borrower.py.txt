@@ -1,0 +1,329 @@
+"""Fixed one-shot os.fork borrower of the actual C2 original EX OFD.
+
+No CLI, exec, owner constructor, acquire or unlock exists on this route. Child
+raw errors live in that child; the pipe carries bounded DATA observations only.
+This SOURCE is unexecuted and needs exact native/effect/current qualification.
+"""
+import ctypes
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import selectors
+import signal
+import stat
+import time
+import parent_authority
+import error_custody
+import actual_consumer
+
+_FORK, _WAITPID, _EXIT = os.fork, os.waitpid, os._exit
+_LIBC = ctypes.CDLL(None, use_errno=True)
+_PRCTL = _LIBC.prctl
+_PRCTL.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
+                  ctypes.c_ulong, ctypes.c_ulong]
+_PRCTL.restype = ctypes.c_int
+_PRCTL_ADDRESS = ctypes.cast(_PRCTL, ctypes.c_void_p).value
+_CAP = 2097152
+_H = 536870912
+_AS = 268435456
+_LIVE = []
+
+
+def need(value, message):
+    if value is not True:
+        raise RuntimeError(message)
+
+
+class Slots:
+    """Reserve acquisition state before entry; retire before each one close."""
+    def __init__(self):
+        self.rows = [[None, "FREE"] for unused in range(16)]
+        self.errors = [None] * 64
+        self.native_returns = [None] * 16
+        self.primary = None
+        self.used, self.error_used, self.unknown = 0, 0, False
+        _LIVE.append(self)  # Occupied raw slots survive all later projections.
+    def hold_error(self, error):
+        if self.primary is None:
+            self.primary = error
+        if self.error_used < len(self.errors):
+            self.errors[self.error_used] = (error, BaseException.__traceback__.__get__(error, type(error)))
+            self.error_used += 1
+        else:
+            self.unknown = True
+        return self.primary
+    def acquire(self, operation, *args):
+        need(self.used < len(self.rows) and not self.unknown, "bounded known FD acquisition")
+        row = self.rows[self.used]
+        self.used += 1
+        row[1] = "PENDING"
+        try:
+            row[0] = operation(*args)  # actual native result retained before check
+            need(type(row[0]) is int and row[0] >= 0, "native FD return")
+            row[1] = "OWNED"
+            return row
+        except BaseException as error:
+            if self.primary is None:
+                self.primary = error
+            self.hold_error(error)
+            row[1], self.unknown = "UNCERTAIN", True
+            raise
+    def pipe(self):
+        need(self.used + 2 <= len(self.rows) and not self.unknown, "two preallocated pipe slots")
+        pair = (self.rows[self.used], self.rows[self.used + 1])
+        self.used += 2
+        pair[0][1] = pair[1][1] = "PENDING"
+        try:
+            actual = os.pipe2(os.O_CLOEXEC | os.O_NONBLOCK)
+            self.native_returns[self.used - 2] = actual  # raw actual pair before schema/unpack
+            need(type(actual) is tuple and len(actual) == 2 and
+                 all(type(fd) is int and fd >= 0 for fd in actual), "actual native pipe pair")
+            pair[0][0], pair[1][0] = actual
+            pair[0][1] = pair[1][1] = "OWNED"
+            return pair
+        except BaseException as error:
+            if self.primary is None:
+                self.primary = error
+            self.hold_error(error)
+            pair[0][1] = pair[1][1] = "UNCERTAIN"
+            self.unknown = True
+            raise
+    def close(self, row):
+        if row[1] != "OWNED":
+            return
+        row[1] = "RETIRED"  # never retry a failed numerical close
+        try:
+            os.close(row[0])
+        except BaseException as error:
+            row[1], self.unknown = "UNCERTAIN", True
+            self.hold_error(error)
+            raise
+        row[1] = "CLOSED"
+    def finish(self):
+        for row in self.rows[:self.used]:
+            if row[1] == "OWNED":
+                try:
+                    self.close(row)
+                except BaseException as error:
+                    self.hold_error(error)
+
+
+def borrower_address_space_limits(inherited, configured_bytes, infinity=-1):
+    """At most selected256MiB without raising any inherited AS resource bound."""
+    need(type(configured_bytes) is int and 0 < configured_bytes <= _AS, "positive configured borrower AS within selected ceiling")
+    need(type(inherited) is tuple and len(inherited) == 2 and
+         all(type(value) is int and (value >= 0 or value == infinity) for value in inherited),
+         "exact inherited borrower AS limits")
+    soft, hard = inherited
+    need(hard == infinity or (soft != infinity and soft <= hard), "ordered inherited borrower AS")
+    hard = configured_bytes if hard == infinity else min(hard, configured_bytes)
+    soft = hard if soft == infinity else min(soft, hard)
+    return soft, hard
+
+
+def _raw_write(fd, raw):
+    need(type(raw) is bytes and len(raw) <= _CAP, "bounded exact capture bytes")
+    offset = 0
+    while offset < len(raw):
+        count = os.write(fd, memoryview(raw)[offset:offset + 65536])
+        need(type(count) is int and 0 < count <= min(65536, len(raw) - offset), "native write progress")
+        offset += count
+
+
+def enter_actual_fork_borrower(ticket, out_write, err_write, slots, deadline_ns):
+    """Reached only by the actual zero return of this image's one native fork."""
+    parent_pid = ticket["parent_pid"]
+    # G is parent-only. Before any protected read, sever its inherited channel,
+    # arm kernel parent-death SIGKILL, then close the pre-arm death race.
+    os.close(198)
+    need(ctypes.cast(_PRCTL, ctypes.c_void_p).value == _PRCTL_ADDRESS,
+         "fixed pristine prctl target changed")
+    need(_PRCTL(1, signal.SIGKILL, 0, 0, 0) == 0, "PR_SET_PDEATHSIG refused")
+    need(os.getppid() == parent_pid, "actual C2 died before parent-death arming")
+    parent_authority.fork_returned(ticket, 0)
+    os.dup2(out_write[0], 1, inheritable=False)
+    os.dup2(err_write[0], 2, inheritable=False)
+    # Pipes remain bounded by parent drains and the child whole deadline.
+    os.set_blocking(1, True)
+    os.set_blocking(2, True)
+    slots.finish()
+    need(not slots.unknown, "borrower inherited FD close uncertainty")
+    soft, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
+    need(hard == _H and soft <= 2097152, "sole borrower FSIZE policy")
+    resource.setrlimit(resource.RLIMIT_FSIZE, (_H, _H))
+    # This source-private copied configuration is already issued by the same
+    # actual parent; reading it performs no payload IO or copied-owner call.
+    configured, unused_lease, unused_authority = parent_authority.borrowed_arguments(ticket["capability"])
+    configured_as = configured["resources"]["address_space_bytes"]
+    as_limits = borrower_address_space_limits(resource.getrlimit(resource.RLIMIT_AS), configured_as, resource.RLIM_INFINITY)
+    resource.setrlimit(resource.RLIMIT_AS, as_limits)
+    need(resource.getrlimit(resource.RLIMIT_AS) == as_limits, "actual borrower AS readback")
+    ticket["configured_address_space_bytes"] = configured_as
+    ticket["installed_address_space_limits"] = as_limits
+    need(type(deadline_ns) is int and time.monotonic_ns() < deadline_ns, "effective retention deadline")
+    # Hard alarm is armed through RESULT, raw error export and exit. G remains
+    # independent; this alarm does not establish physical domain retirement.
+    signal.signal(signal.SIGALRM, signal.SIG_DFL)
+    signal.setitimer(signal.ITIMER_REAL, (deadline_ns - time.monotonic_ns()) / 1000000000)
+    cap = ticket["capability"]
+    custody = error_custody.new_custody()
+    code = 1
+    try:
+        actual = actual_consumer.run_as_fork_borrower(cap, custody=custody)
+        # Keep the actual return in child memory before plain DATA projection.
+        ticket["actual_consumer_return"] = actual
+        raw = actual_consumer.canonical(dict(schema="h25-fork-borrower-observation-v1",
+            status=actual["status"], one_shot_id=actual["one_shot_id"],
+            expected_root_sha256=actual.get("expected_root_sha256"),
+            child_actual_return_retained=True, exception_identity_crossed_fork=False,
+            configured_address_space_bytes=configured_as,
+            installed_address_space_limits=list(as_limits),
+            resource_observation_is_not_independent_runtime_qualification=True))
+        _raw_write(1, raw)
+        code = 0 if actual["status"] == "PASS_PENDING_PARENT_READBACK" else 1
+    except BaseException as error:
+        # Assignment before helper/projection; no reconstruction in parent.
+        ticket["actual_consumer_error"] = error
+        ticket["actual_consumer_traceback"] = BaseException.__traceback__.__get__(error, type(error))
+        try:
+            error_custody.retain(custody, "PRIMARY_BORROWER", error, primary=True)
+            error_custody.export(custody)
+        except BaseException as secondary:
+            ticket["actual_export_error"] = secondary
+    finally:
+        # Child closing its inherited reference never unlocks the parent's OFD.
+        # No ctx/lease.close/LOCK_UN is reachable here.
+        lease_fd = parent_authority.joined_binding(cap).lease_fd
+        ticket["lease_close_phase"] = "RETIRED"
+        try:
+            os.close(lease_fd)
+            ticket["lease_close_phase"] = "CLOSED"
+        except BaseException as secondary:
+            ticket["lease_close_error"] = secondary
+            code = 1
+        _EXIT(code)
+
+
+
+def _child_only(ticket,out_write,err_write,slots,deadline_ns):
+    """All zero-return child paths terminate, including the first startup fault."""
+    try:
+        enter_actual_fork_borrower(ticket,out_write,err_write,slots,deadline_ns)
+    except BaseException as error:
+        ticket['actual_child_entry_error'] = error
+        ticket['actual_child_entry_traceback'] = BaseException.__traceback__.__get__(error,type(error))
+    finally:
+        _EXIT(126)
+
+
+def run_parent(capability, guardian, admin, deadline_ns, borrower_source_sha256):
+    """Parent drains both streams, genuinely waits, closes every known holder."""
+    ticket = parent_authority.begin_fork(capability)
+    slots = Slots()
+    actual_wait, child, selector = None, None, None
+    captures, raw_prefixes = [], [bytearray(), bytearray()]
+    counts, streams = [0, 0], [None, None]
+    primary = None
+    try:
+        # All later preparation is below the irreversible BIRTH_PENDING latch.
+        need(type(admin) is type(Path('/')) and type(deadline_ns) is int, "fixed parent dispatch fields")
+        binding = parent_authority.joined_binding(capability)
+        need(admin == Path(binding.config['output']).parent and admin.resolve(strict=True) == admin,
+             "source-fixed canonical retention administrative capture parent")
+        parent_info = admin.lstat()
+        need(stat.S_ISDIR(parent_info.st_mode) and parent_info.st_uid == os.getuid()
+             and stat.S_IMODE(parent_info.st_mode) == 0o700,
+             "actual owned private retention directory")
+        pairs = [slots.pipe(), slots.pipe()]
+        for name in ("BORROWER.stdout", "BORROWER.stderr"):
+            path = admin / name
+            row = slots.acquire(os.open, path, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                                os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+            info = os.fstat(row[0])
+            need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600
+                 and info.st_nlink == 1 and info.st_uid == os.getuid(), "fresh regular0600 capture")
+            captures.append(row)
+        guardian.spawn_pending('B', borrower_source_sha256)
+        ticket["fork_native_entered"] = True
+        child = _FORK()
+        ticket["actual_fork_return"] = child
+        if child == 0:
+            _child_only(ticket,pairs[0][1],pairs[1][1],slots,deadline_ns)
+            _EXIT(127)  # Native _exit is nonreturning under selected TCB.
+        parent_authority.fork_returned(ticket, child)
+        child_pidfd = slots.acquire(os.pidfd_open, child, 0)
+        guardian.child_known('B', child, borrower_source_sha256, pidfd=child_pidfd[0])
+        for read_end, write_end in pairs:
+            slots.close(write_end)
+        selector = selectors.DefaultSelector()
+        for index, (read_end, unused) in enumerate(pairs):
+            streams[index] = read_end
+            selector.register(read_end[0], selectors.EVENT_READ, index)
+        pending = {0, 1}
+        wait_state = "READY"
+        while pending or actual_wait is None:
+            need(time.monotonic_ns() < deadline_ns, "paid retention/drain/wait deadline crossed")
+            for key, unused in selector.select(min(0.05, (deadline_ns-time.monotonic_ns())/1000000000)):
+                index = key.data
+                block = os.read(key.fd, min(65536, _CAP + 1 - min(counts[index], _CAP)))
+                if not block:
+                    selector.unregister(key.fd)
+                    slots.close(streams[index])
+                    pending.remove(index)
+                    continue
+                counts[index] += len(block)  # count BEFORE append/write
+                prefix = block[:max(0, _CAP - len(raw_prefixes[index]))]
+                raw_prefixes[index].extend(prefix)
+                if prefix:
+                    _raw_write(captures[index][0], prefix)
+                need(counts[index] <= _CAP, "borrower capture cap exceeded; actual prefix retained")
+            if actual_wait is None:
+                need(wait_state in ("READY", "NONTERMINAL"), "no retry after uncertain native wait")
+                wait_state = "UNRESOLVED"
+                observation = _WAITPID(child, os.WNOHANG)
+                ticket["actual_wait_return"] = observation
+                need(type(observation) is tuple and len(observation) == 2 and
+                     all(type(v) is int for v in observation), "genuine native borrower wait tuple")
+                if observation == (0, 0):
+                    wait_state = "NONTERMINAL"
+                else:
+                    actual_wait = observation  # consumed before decode
+                    wait_state = "CONSUMED"
+                    need(actual_wait[0] == child, "waited exact actual fork child")
+        for row in captures:
+            os.fsync(row[0])
+            slots.close(row)
+        need(not slots.unknown, "borrower capture/pipe closure unresolved")
+        slots.close(child_pidfd)
+        guardian.child_closed('B', child)
+        code = os.waitstatus_to_exitcode(actual_wait[1])
+        need(code == 0, "actual full borrower did not complete")
+        return dict(schema="h25-actual-fork-borrower-parent-v1", wait=actual_wait,
+            child_pid=child, returncode=code, captures_closed=True,
+            stdout_bytes=counts[0], stderr_bytes=counts[1],
+            stdout_sha256=hashlib.sha256(raw_prefixes[0]).hexdigest(),
+            stderr_sha256=hashlib.sha256(raw_prefixes[1]).hexdigest(),
+            observation=actual_consumer.parse(bytes(raw_prefixes[0])))
+    except BaseException as error:
+        primary = error  # raw first; no clock/formatting/helper before this hold
+        if slots.primary is None:
+            slots.primary = error
+        slots.hold_error(error)
+        parent_authority.mark_fork_uncertain(ticket, error)
+        try:
+            guardian.retire("BORROWER_OR_FORK_UNCERTAIN")
+        except BaseException as secondary:
+            slots.hold_error(secondary)
+        raise
+    finally:
+        if selector is not None:
+            try:
+                selector.close()
+            except BaseException as secondary:
+                slots.hold_error(secondary)
+        slots.finish()  # each distinct known FD once, even after earlier failure
+        if primary is None and (slots.primary is not None or slots.unknown):
+            parent_authority.mark_fork_uncertain(ticket, slots.primary)
+            raise slots.primary if slots.primary is not None else RuntimeError("unclosed borrower FDs")

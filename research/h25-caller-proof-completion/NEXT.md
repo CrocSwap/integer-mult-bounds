@@ -1,0 +1,8 @@
+# Open next questions
+
+1. **Qualify an actual environment for the stated proof.** The current necessary release screen returned Linux 7.0.0-42-generic x86_64, while the argument explicitly covers Linux 6.12. Establish a source-associated environment satisfying the existing class, or undertake a separately reviewed proof-model extension. No host change or automatic proof extension follows from this archive.
+2. **Implement the fresh comparison owner.** Preserve the already selected baseline launcher and exact original input relation. Implement the separately guarded fresh baseline transfer, typed observation ownership and complete baseline/candidate equality executor. A historical baseline anchor is insufficient.
+3. **Close actual source/image/configuration and resource gates.** Identify installed toolchain images, generated defaults, loaders/libraries/plugins, kernel/security/filesystem primitives and the original currentness interval. Establish complete peak resource fit, funding and original admission without substituting flags for evidence or expanding the original exclusion.
+4. **Execute the decisive original check only after those gates.** Run the unchanged complete normal/optimized baseline/candidate schedule, independently verify exact original observations, ownership, errors and cleanup, and retain all failures and actual costs. The source controls and archive integrity check supply no result for this step.
+
+The smallest immediate decision is which source-associated environment can satisfy the explicit proof premises. The comparison-owner implementation is a separate concrete source task. No original acceptance criterion, helper/context denominator, deadline or budget is changed by this list.
