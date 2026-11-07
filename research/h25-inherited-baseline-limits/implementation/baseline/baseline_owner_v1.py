@@ -1,0 +1,540 @@
+"""Separate private PR6029 compatibility owner; source-only, all gates closed.
+
+The authenticated outer owns finite completion, durable order, budget reservation
+and same-process subreaper installation before its one bind_outer call. Parsed
+JSON is configuration/data only. No callback or candidate authority is accepted.
+"""
+import os
+from pathlib import Path
+import resource
+import signal
+import subprocess
+import time
+import epoch_schema_v5 as schema
+import epoch_copy_v5 as copying
+import baseline_domain_v1 as domain
+import baseline_custody_v1 as custody
+import baseline_data_v1 as evidence
+import baseline_closure_v1 as closure
+import h25_baseline_queue as queue
+
+CONFIGURATION = None
+SOURCE_REVIEW = None
+RUNTIME_CONFIGURATION = None
+STAGE_APPROVAL = None
+COMMAND_APPROVAL = None
+FUNDING = None
+EXECUTION_APPROVAL = None
+_OUTER = []
+_BIND_USED = [False]
+_ROOT_PARENTS = []
+_TYPE, _LEN = type, len
+_OPEN, _CLOSE, _MKDIR, _STAT = os.open, os.close, os.mkdir, os.stat
+_POPEN, _CLOCK, _SLEEP = subprocess.Popen, time.monotonic, time.sleep
+_SETRLIMIT, _GETRLIMIT = resource.setrlimit, resource.getrlimit
+_SETTIMER, _GETTIMER = signal.setitimer, signal.getitimer
+_SIGNAL, _GETSIGNAL = signal.signal, signal.getsignal
+_GETRUSAGE = resource.getrusage
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+STAGE_SHA = '9e63ce3e9799e150fa144ff01c1684468404363fd4222aef98442a87c2210d12'
+JOBS_SHA = 'b374044646e461270a53e4fa935b0038824d59e3a9869ce65eef0bbcb37ddbeb'
+ENTRY_SHA = 'b2586395bf1f14ad2e94cb7cdfe60676950cb5c79e2e21e673dbdde7d1c078f1'
+DRIVER_SHA = '5b963a5f108b334a627e68001c80b9843fb300c7394693e72f34ce0a6050e6f1'
+RUNNER_SHA = 'bd882e3dadb1b6aeaa63ee824f1a1c58f8ef2546b6840a2bffa46885a184d3eb'
+QUEUE_SHA = '1348a7b4d7cc1f9fef556f5e0abdaf04411a998afdcd574d7812c76ab37dcf68'
+PROTOCOL_SHA = '53dcff53cc15c01f546c937fb66f47339bb5b99ccb530fa5b1782f31de37518f'
+
+
+# Inherited-limit calculation reused from PR #6830, head 39fcd67c991bd72918080b1d2c02feb3d679206d.
+# Kept local to the baseline closure so B does not import candidate bootstrap.
+def root_address_space_limits(inherited, requested_bytes, infinity=-1):
+    """Preserve the enclosing hard cap and every lower inherited Root bound.
+
+    requested_bytes remains the original admitted upper bound. C2's selected
+    lower hard limit cannot legally be raised by its unprivileged child.
+    """
+    schema.need(type(requested_bytes) is int and 0 < requested_bytes <= 1024 ** 3,
+         'original admitted Root AS upper bound')
+    schema.need(type(inherited) is tuple and len(inherited) == 2 and
+         all(type(value) is int and (value >= 0 or value == infinity) for value in inherited),
+         'exact inherited Root AS limits')
+    soft, hard = inherited
+    schema.need(hard == infinity or (soft != infinity and soft <= hard), 'ordered inherited Root AS limits')
+    hard = requested_bytes if hard == infinity else min(hard, requested_bytes)
+    soft = hard if soft == infinity else min(soft, hard)
+    return soft, hard
+
+
+class BaselineDeadline(RuntimeError):
+    pass
+
+
+def _gate():
+    schema.exact(CONFIGURATION, ('root', 'plans', 'source_closure_admission_sha256', 'receiver_policy'))
+    schema.blob(CONFIGURATION['receiver_policy'], schema.RECORD_BYTES)
+    schema.path(CONFIGURATION['root'])
+    schema.digest(CONFIGURATION['source_closure_admission_sha256'])
+    schema.need(type(CONFIGURATION['plans']) is dict and 1 <= len(CONFIGURATION['plans']) <= 4,
+                'first-pair and three qualification baseline plans required at most')
+    for key, pin in CONFIGURATION['plans'].items():
+        schema.label(key)
+        schema.blob(pin, schema.RECORD_BYTES)
+    for value, name in ((SOURCE_REVIEW, 'SOURCE_REVIEW'), (RUNTIME_CONFIGURATION, 'RUNTIME_CONFIGURATION'),
+        (STAGE_APPROVAL, 'STAGE_APPROVAL'), (COMMAND_APPROVAL, 'COMMAND_APPROVAL'),
+        (FUNDING, 'FUNDING'), (EXECUTION_APPROVAL, 'EXECUTION_APPROVAL')):
+        schema.need(type(value) is tuple and len(value) == 2 and value[0] == name,
+                    'baseline external source/configuration/command/funding/execution gate absent')
+        schema.digest(value[1])
+
+
+def bind_outer(unknown_owner, error_owner, shared_deadline, modules):
+    """Once, from the source-authenticated outer; no capability restored from JSON.
+
+    The exact live error owner's native state must already occupy the original
+    shared UNKNOWN_OWNER. No new native/error-owner registry is manufactured.
+    The outer retains subreaper library/call and independently enforces the live
+    finite-normal/O transition and durable B,C / BCCBBC order.
+    """
+    _gate()
+    schema.need(not _OUTER and _BIND_USED[0] is False, 'baseline outer binding is one-shot')
+    _BIND_USED[0] = True
+    schema.exact(unknown_owner, ('quarantine', 'pending', 'iterator_uncertain', 'primary', 'native_errors'))
+    native = schema.owner_state(error_owner)
+    schema.need(type(unknown_owner['native_errors']) is list and len(unknown_owner['native_errors']) == 4 and
+                any(item is native for item in unknown_owner['native_errors']), 'original live error owner absent')
+    domain.refresh_unknown_owner(unknown_owner)
+    schema.need(all(unknown_owner[k][0] is False for k in ('quarantine', 'pending', 'iterator_uncertain')) and
+                unknown_owner['primary'][0] is None, 'shared original unknown owner quarantined')
+    queue.require_trusted_launch()
+    schema.need(type(shared_deadline) in (int, float) and _CLOCK() < shared_deadline <= _CLOCK() + 2400,
+                'original global deadline absent or widened')
+    required = {'epoch_schema_v5', 'epoch_copy_v5', 'h25_baseline_queue', 'baseline_closure_v1',
+                'baseline_data_v1', 'baseline_custody_v1', 'baseline_domain_v1',
+                'baseline_owner_v1', 'baseline_receiver_v1'}
+    schema.need(type(modules) is dict and set(modules) == required, 'baseline own exact module closure required')
+    policy = evidence.decode(copying.read_verified(CONFIGURATION['receiver_policy'], schema.RECORD_BYTES,
+                                                  error_owner=error_owner))
+    schema.need(set(policy) == required, 'baseline receiver policy differs')
+    receivers = closure.bind_receivers(modules, policy, error_owner)
+    token = object()
+    _OUTER.append((token, unknown_owner, error_owner, shared_deadline, os.getpid(),
+                   evidence.encode(CONFIGURATION), receivers, policy))
+    return token
+
+
+def _state(owner):
+    schema.need(type(owner) is object, 'exact live baseline owner required')
+    for token, state in _ROOT_PARENTS:
+        if token is owner:
+            return state
+    raise schema.EpochStop('unknown private baseline owner')
+
+
+def _guard(state):
+    _gate()
+    schema.need(state['phase'] != 'STOP' and os.getpid() == state['pid'], 'baseline owner stopped or moved process')
+    schema.need(len(_OUTER) == 1 and state['outer'] is _OUTER[0][0] and
+                evidence.encode(CONFIGURATION) == _OUTER[0][5], 'baseline outer configuration changed')
+    closure.check_receivers(_OUTER[0][6])
+    domain.refresh_unknown_owner(state['unknown_owner'])
+    schema.need(state['unknown_owner']['primary'][0] is None and
+                all(state['unknown_owner'][k][0] is False for k in ('quarantine', 'pending', 'iterator_uncertain')),
+                'baseline inherited unknown ownership prohibits further use')
+    schema.need(CONFIGURATION['plans'][state['case_id']] == state['plan_pin'], 'baseline fixed plan changed')
+    copying.verify(state['plan_pin'], schema.RECORD_BYTES, error_owner=state['errors'])
+    schema.need(evidence.encode(state['plan']) == state['plan_raw'], 'baseline private plan changed')
+    schema.need((_OPEN, _CLOSE, _MKDIR, _STAT, _POPEN, _CLOCK, _SLEEP, _SETRLIMIT, _GETRLIMIT,
+                 _SETTIMER, _GETTIMER, _SIGNAL, _GETSIGNAL, _GETRUSAGE) ==
+                (os.open, os.close, os.mkdir, os.stat, subprocess.Popen, time.monotonic, time.sleep,
+                 resource.setrlimit, resource.getrlimit, signal.setitimer, signal.getitimer,
+                 signal.signal, signal.getsignal, resource.getrusage), 'baseline original primitive changed')
+    schema.need(_CLOCK() <= state['shared_deadline'], 'baseline original global deadline exceeded')
+
+
+def _stop(state, operation, error):
+    unknown = state['unknown_owner']
+    if unknown['primary'][0] is None:
+        unknown['primary'][0] = error
+    unknown['quarantine'][0] = True
+    if state['primary'][0] is None:
+        state['primary'][0] = error
+    state['phase'] = 'STOP'
+    for run in state.get('runs', {}).values():
+        try:
+            _failure_metrics(state, run)
+        except BaseException as later:
+            state['fallback'][0] = later
+
+
+def _failure_metrics(state, run):
+    if 'primary_wall_start' not in run:
+        return
+    usage_end = (_GETRUSAGE(resource.RUSAGE_SELF), _GETRUSAGE(resource.RUSAGE_CHILDREN))
+    run['failed_primary_metrics'] = {
+        'parent_command_wall_seconds_through_validation': _CLOCK() - run['primary_wall_start'],
+        'parent_command_cpu_seconds_with_runner_children_validation': sum(
+            (b.ru_utime + b.ru_stime) - (a.ru_utime + a.ru_stime)
+            for a, b in zip(run['primary_usage_start'], usage_end)),
+        'status': 'STOP', 'sample_eligible': False, 'all_failure_costs_charged': True}
+
+
+def _alarm(signum, frame):
+    raise BaselineDeadline('complete baseline runner including spawn deadline')
+
+
+def validate_launch_contract(root, row):
+    """Pure data contract used unchanged by the real owner and narrow controls."""
+    case = row['queue_case']
+    schema.exact(case, ('stage', 'job', 'label', 'stage_sha256', 'science_status', 'science_fields'))
+    schema.label(case['label'])
+    schema.need(case == {'stage': 'predecessor-pr6029-v1', 'job': 'full-all', 'label': case['label'],
+        'stage_sha256': STAGE_SHA, 'science_status': 'FULL_NETWORK_COMPLETE_PASS',
+        'science_fields': {'mode': 'candidate', 'lanes': 'all', 'driver_sha256': DRIVER_SHA}},
+        'baseline exact unchanged full-all queue case differs')
+    schema.need(row['source_role'] == 'baseline-full' and row['phase'] == 'full' and
+        row['driver_sha256'] == DRIVER_SHA and row['cwd'] == root and
+        row['stage_directory'] == root + '/stages/predecessor-pr6029-v1' and
+        row['output'] == root + '/runtime/runs/' + case['label'] + '/science' and
+        row['command'] == ['/usr/bin/python3.12', *FLAGS, root + '/run_guarded_v3.py',
+                           'predecessor-pr6029-v1', 'full-all', case['label']],
+        'baseline must launch the exact common runner and compatibility-only stage')
+    schema.need(row['stage_manifest']['sha256'] == STAGE_SHA and row['root_seconds'] == 180 and
+                row['rss_bytes'] == row['address_space_bytes'] == 1024 ** 3,
+                'original baseline stage/root180/1GiB contract differs')
+    schema.path(row['evidence_directory'])
+    schema.need(row['evidence_directory'].startswith(root + '/validation/attempts/') and
+                row['evidence_directory'] != row['output'], 'baseline evidence destination differs')
+    return {'stage_sha256': STAGE_SHA, 'job': 'full-all', 'entry_sha256': ENTRY_SHA,
+            'driver_sha256': DRIVER_SHA, 'assertions_on': True, 'baseline_workload_only': True}
+
+
+def make_baseline_owner(outer_token, case_id):
+    """One fresh process owner per fixed source-configured scientific B case."""
+    _gate()
+    schema.need(type(outer_token) is object and len(_OUTER) == 1 and outer_token is _OUTER[0][0],
+                'original process-local outer binding required')
+    _, unknown, errors, deadline, pid, unused, receivers, policy = _OUTER[0]
+    schema.need(pid == os.getpid() and len(_ROOT_PARENTS) < 4 and
+                not any(s['case_id'] == case_id for _, s in _ROOT_PARENTS), 'baseline case replay')
+    schema.label(case_id)
+    pin = CONFIGURATION['plans'][case_id]
+    state = {'outer': outer_token, 'case_id': case_id, 'plan_pin': schema.plain_copy(pin),
+             'pid': pid, 'phase': 'RESERVED', 'runs': {}, 'next': 0, 'errors': errors,
+             'unknown_owner': unknown, 'io_quarantine': unknown['quarantine'],
+             'shared_deadline': deadline, 'primary': [None], 'fallback': [None] * 4}
+    token = object()
+    _ROOT_PARENTS.append((token, state))  # Burn before fallible configuration/source reads.
+    try:
+        plan = evidence.decode(copying.read_verified(pin, schema.RECORD_BYTES, error_owner=errors))
+        schema.exact(plan, ('schema', 'case_id', 'source_closure_admission_sha256', 'source_files', 'actions'))
+        schema.need(plan['schema'] == 'h25-baseline-fixed-plan-v1' and plan['case_id'] == case_id and
+                    plan['source_closure_admission_sha256'] == CONFIGURATION['source_closure_admission_sha256'] and
+                    type(plan['actions']) is list and len(plan['actions']) == 1, 'exact baseline case plan differs')
+        row = plan['actions'][0]
+        schema.exact(row, ('action_id', 'generation', 'source_role', 'binding_sha256', 'phase',
+            'command', 'cwd', 'output', 'evidence_directory', 'stage_directory', 'stage_manifest',
+            'stage_directories', 'root_seconds', 'address_space_bytes', 'rss_bytes', 'evidence_plan',
+            'driver_sha256', 'queue_case'))
+        for key in ('action_id', 'generation'):
+            schema.label(row[key])
+        schema.digest(row['binding_sha256'])
+        projected = {key: value for key, value in row.items() if key != 'binding_sha256'}
+        schema.need(row['binding_sha256'] == schema.sha(evidence.encode(projected)),
+                    'baseline exact complete action binding differs')
+        root = CONFIGURATION['root']
+        validate_launch_contract(root, row)
+        by_path = {p['path']: p for p in plan['source_files']}
+        for module_pin in policy.values():
+            schema.need(module_pin['path'] in by_path and
+                        by_path[module_pin['path']]['sha256'] == module_pin['sha256'] and
+                        by_path[module_pin['path']]['bytes'] == module_pin['bytes'],
+                        'actual baseline receiving source absent from arm closure')
+        for path, expected in ((root + '/run_guarded_v3.py', RUNNER_SHA),
+                (root + '/integration/run_reviewed_queue_v4.py', QUEUE_SHA),
+                (root + '/execution-guards/build-log-queue-v2/supervisor.py',
+                 'cfb09a18dd10b597cc6d5a8139ee769bef679bc44ae029329755e3d97b055075'),
+                (root + '/control/MEASUREMENT-PROTOCOL-v2.json', PROTOCOL_SHA),
+                (row['stage_directory'] + '/JOBS.json', JOBS_SHA),
+                (row['stage_directory'] + '/integration/predecessor_entry.py', ENTRY_SHA),
+                (row['stage_directory'] + '/integration/full_driver.py', DRIVER_SHA)):
+            schema.need(path in by_path and by_path[path]['sha256'] == expected,
+                        'baseline exact protocol/stage/entry/common guard dependency absent')
+        jobs = evidence.decode(copying.read_verified(copying.inspect(row['stage_directory'] + '/JOBS.json',
+            schema.RECORD_BYTES, error_owner=errors), schema.RECORD_BYTES, error_owner=errors))
+        schema.need(jobs['full-all'] == {'entry': 'integration/predecessor_entry.py', 'finite_only': False,
+                                      'lanes': 'all'}, 'baseline job gained bootstrap/optimization/workload')
+        state.update(plan=plan, plan_raw=evidence.encode(plan), phase='READY')
+        _guard(state)
+        return token
+    except BaseException as error:
+        _stop(state, 'baseline_owner_construction', error)
+        raise
+
+
+def _snapshot_sources(plan, errors):
+    return custody._snapshot_sources(plan, errors)
+
+
+def _stage(plan, errors, state):
+    return custody._stage(plan, errors, state)
+
+
+def _source_custody_bytes(state, files, stage):
+    return custody._source_custody_bytes(state, files, stage)
+
+
+def _close_logs(run, primary):
+    return custody._close_logs(run, primary)
+
+
+def run_baseline(owner_capability, action_id):
+    state = _state(owner_capability)
+    try:
+        _guard(state)
+        schema.label(action_id)
+        schema.need(state['phase'] == 'READY' and state['next'] < len(state['plan']['actions']) and
+                    action_id == state['plan']['actions'][state['next']]['action_id'] and action_id not in state['runs'],
+                    'fixed Root order, replay or prior completion differs')
+    except BaseException as primary:
+        _stop(state, 'run_producer_entry', primary)
+        raise
+    row = state['plan']['actions'][state['next']]
+    producer_role = row['source_role']
+    # Consume the declared fixed Root before any later preparation or launch.
+    try:
+        # The caller has durably burned this exact declared action before entry.
+        # This private Root owner adds a second source-owned one-shot reservation.
+        run_token = object()
+        run = {'token': run_token, 'role': producer_role, 'phase': 'RESERVED',
+           'unknown_owner': state['unknown_owner'],
+           'plan': row, 'domain': None, 'process': None, 'root': None, 'terminal': None,
+           'log_fds': [None, None], 'log_close_attempted': [False, False],
+           'log_close_confirmed': [False, False], 'errors': [None] * 8,
+           'primary': [None], 'acquisition_in_flight': False, 'spawn_entered': False,
+           'spawn_returned': False, 'source_before': None, 'stage_before': None,
+               'began': _CLOCK(), 'peak_rss': 0, 'file_limits': tuple(_GETRLIMIT(resource.RLIMIT_FSIZE))}
+        state['runs'][action_id] = run
+        state['phase'] = 'PRODUCER_IN_FLIGHT'
+    except BaseException as primary:
+        _stop(state, 'run_producer_reservation', primary)
+        raise
+    primary = None
+    old_handler = None
+    alarm_installed = False
+    try:
+        _guard(state)
+        _MKDIR(row['evidence_directory'], 0o700)
+        # output remains absent; the genuine original Root creates it exclusively.
+        try:
+            _STAT(row['output'], follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            raise schema.EpochStop('producer output already exists')
+        local_plan = dict(state['plan'], **row)
+        run['source_before'] = _snapshot_sources(state['plan'], state['errors'])
+        run['stage_before'] = _stage(local_plan, state['errors'], state)
+        # Reject oversized complete-custody records BEFORE any child launch.
+        run['source_bytes_before'] = _source_custody_bytes(state, run['source_before'], run['stage_before'])
+        inherited_address_space = tuple(_GETRLIMIT(resource.RLIMIT_AS))
+        run['inherited_address_space_limits'] = inherited_address_space
+        run['installed_root_address_space_limits'] = root_address_space_limits(
+            inherited_address_space, row['address_space_bytes'], resource.RLIM_INFINITY)
+        run['domain'] = domain.create_domain(state['unknown_owner'])
+        launch = {'schema': 'h25-owned-fixed-root-launch-v2', 'case_id': state['case_id'],
+            'mode': 'assertions-on', 'role': producer_role,
+            'generation': row['generation'], 'action_id': action_id,
+            'parent_pid': state['pid'], 'command': row['command'], 'environment': ENV, 'cwd': row['cwd'],
+            'stage_sha256': STAGE_SHA, 'entry_sha256': ENTRY_SHA, 'runner_sha256': RUNNER_SHA, 'parent_file_limits': list(run['file_limits']),
+            'new_session': True, 'close_fds': True, 'pass_fds': [],
+            'root_seconds': row['root_seconds'], 'rss_bytes': row['rss_bytes'],
+            'address_space_bytes': row['address_space_bytes'],
+            'inherited_address_space_limits': list(run['inherited_address_space_limits']),
+            'installed_root_address_space_limits': list(run['installed_root_address_space_limits']),
+            'lower_inherited_AS_preserved': True}
+        run['launch'] = copying.write_once(row['evidence_directory'] + '/LAUNCH.json',
+            schema.canonical(launch), error_owner=state['errors'])
+        for index, name in enumerate(('stdout.raw', 'stderr.raw')):
+            schema.need(state['io_quarantine'][0] is False and state['unknown_owner']['pending'][0] is False and
+                        state['unknown_owner']['iterator_uncertain'][0] is False,
+                        'raw stream cannot acquire after uncertain ownership')
+            run['acquisition_in_flight'] = True
+            state['unknown_owner']['pending'][0] = True
+            run['log_fds'][index] = _OPEN(row['evidence_directory'] + '/' + name,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+            run['acquisition_in_flight'] = False
+            state['unknown_owner']['pending'][0] = False
+        setter, kind, limits = _SETRLIMIT, resource.RLIMIT_AS, run['installed_root_address_space_limits']
+        def child_limit():
+            setter(kind, limits)
+        schema.need(_GETTIMER(signal.ITIMER_REAL) == (0.0, 0.0), 'existing parent timer cannot be replaced')
+        old_handler = _GETSIGNAL(signal.SIGALRM)
+        _SIGNAL(signal.SIGALRM, _alarm)
+        alarm_installed = True
+        deadline = min(run['began'] + row['root_seconds'], state['shared_deadline'] - domain.CLEANUP_SECONDS)
+        schema.need(_CLOCK() < deadline, 'no funded root/cleanup interval remains')
+        _SETTIMER(signal.ITIMER_REAL, max(0.000001, deadline - _CLOCK()))
+        run['spawn_entered'] = True
+        run['primary_usage_start'] = (_GETRUSAGE(resource.RUSAGE_SELF), _GETRUSAGE(resource.RUSAGE_CHILDREN))
+        run['primary_wall_start'] = _CLOCK()
+        run['process'] = _POPEN(row['command'], cwd=row['cwd'], env=dict(ENV),
+            stdout=run['log_fds'][0], stderr=run['log_fds'][1], stdin=subprocess.DEVNULL,
+            close_fds=True, pass_fds=(), start_new_session=True, preexec_fn=child_limit)
+        run['spawn_returned'] = True
+        run['root'] = domain.adopt_popen(run['domain'], run['process'])
+        while True:
+            unused, current = domain.observe(run['domain'])
+            run['peak_rss'] = max(run['peak_rss'], sum(item[6] for item in current))
+            schema.need(run['peak_rss'] <= row['rss_bytes'], 'owned process RSS sum exceeded')
+            schema.need(max(_STAT(row['evidence_directory'] + '/' + name, follow_symlinks=False).st_size
+                        for name in ('stdout.raw', 'stderr.raw')) <= schema.LOG_BYTES, 'root output bound exceeded')
+            if domain.poll_owned(run['domain']) is not None:
+                break
+            _SLEEP(0.01)
+    except BaseException as error:
+        if state['unknown_owner']['primary'][0] is None:
+            state['unknown_owner']['primary'][0] = error
+        primary = state['unknown_owner']['primary'][0]
+        run['primary'][0] = primary
+        if primary is not error:
+            run['errors'][4] = error
+        if (run['acquisition_in_flight'] or state['unknown_owner']['pending'][0] or
+                state['unknown_owner']['iterator_uncertain'][0] or _TYPE(error) is MemoryError):
+            state['io_quarantine'][0] = True
+        raise primary
+    finally:
+        # Preserve the first locally delivered primary through all cleanup.
+        first_cleanup = None
+        if alarm_installed:
+            try:
+                _SETTIMER(signal.ITIMER_REAL, 0)
+                _SIGNAL(signal.SIGALRM, old_handler)
+            except BaseException as error:
+                run['errors'][2] = error
+                first_cleanup = error
+        if run['domain'] is not None:
+            try:
+                domain.finish_domain(run['domain'])
+            except BaseException as error:
+                run['errors'][3] = error
+                state['io_quarantine'][0] = True
+                if first_cleanup is None:
+                    first_cleanup = error
+        try:
+            _close_logs(run, primary if primary is not None else first_cleanup)
+        except BaseException as error:
+            if first_cleanup is None:
+                first_cleanup = error
+        for index in range(2):
+            if run['log_close_attempted'][index] and not run['log_close_confirmed'][index]:
+                state['io_quarantine'][0] = True
+        if primary is not None:
+            _stop(state, 'run_producer', primary)
+        elif first_cleanup is not None:
+            _stop(state, 'run_producer_cleanup', first_cleanup)
+            raise first_cleanup
+    try:
+        schema.need(run['spawn_entered'] is True and run['spawn_returned'] is True and
+                    run['acquisition_in_flight'] is False and all(run['log_close_confirmed']),
+                    'root spawn or raw stream ownership incomplete')
+        run['terminal'] = domain.terminal_facts(run['domain'])
+        schema.need(tuple(_GETRLIMIT(resource.RLIMIT_FSIZE)) == run['file_limits'], 'parent file limit drift')
+        schema.need(tuple(_GETRLIMIT(resource.RLIMIT_AS)) == run['inherited_address_space_limits'],
+                    'parent address-space limit drift')
+        run['phase'] = 'JOINED'
+        state['phase'] = 'PRODUCER_JOINED'
+        _guard(state)
+        return run_token
+    except BaseException as primary:
+        _stop(state, 'postcleanup_terminal', primary)
+        raise
+
+
+
+def _joined(owner, joined):
+    state = _state(owner)
+    _guard(state)
+    schema.need(_TYPE(joined) is object and state['phase'] == 'PRODUCER_JOINED', 'owned joined Root required')
+    matches = [r for r in state['runs'].values() if r['token'] is joined]
+    schema.need(len(matches) == 1 and matches[0]['phase'] == 'JOINED', 'owned Root token replay')
+    run = matches[0]
+    run['phase'] = 'RECEIVER_CONSUMED'
+    return state, run
+
+
+
+
+def _accepted(state, run):
+    """Finish only after the complete scientific receiver and retained cleanup."""
+    _guard(state)
+    schema.need(run['phase'] == 'RECEIVER_CONSUMED', 'baseline receiver acceptance replay')
+    schema.need(domain.terminal_facts(run['domain']) == run['terminal'], 'baseline late cleanup changed')
+    schema.need(_snapshot_sources(state['plan'], state['errors']) == run['source_before'], 'baseline final sources changed')
+    schema.need(_stage(dict(state['plan'], **run['plan']), state['errors'], state) == run['stage_before'],
+                'baseline final stage changed')
+    schema.need(_CLOCK() <= run['began'] + 180, 'complete baseline receiver exceeds root180 bound')
+    # Both scopes include actual runner children already joined by the domain;
+    # nested runner/driver/compiler fields are diagnostics, never added again.
+    usage_end = (_GETRUSAGE(resource.RUSAGE_SELF), _GETRUSAGE(resource.RUSAGE_CHILDREN))
+    wall_end = _CLOCK()
+    wall = wall_end - run['primary_wall_start']
+    cpu = sum((b.ru_utime + b.ru_stime) - (a.ru_utime + a.ru_stime)
+              for a, b in zip(run['primary_usage_start'], usage_end))
+    schema.need(wall >= 0 and cpu >= 0, 'baseline primary clock scope differs')
+    run['primary_metrics'] = {
+        'parent_command_wall_seconds_through_validation': wall,
+        'parent_command_cpu_seconds_with_runner_children_validation': cpu,
+        'prelaunch_setup_wall_seconds_separate': run['primary_wall_start'] - run['began'],
+        'sampled_owned_rss_bytes': run['peak_rss'],
+        'baseline_phase_RSS_available': False,
+        'primary_fields_are_enclosing_not_additive': True,
+        'metric_serialization_and_outer_queue_finalization_charged_separately': True}
+    run['phase'] = 'ACCEPTED'
+    state['next'] += 1
+    state['phase'] = 'COMPLETE'
+    return dict(run['primary_metrics'])
+
+
+def _queue_result(state, run):
+    """Call exact unchanged V4 predicates and bind their raw data to live ownership."""
+    _guard(state)
+    row = run['plan']
+    case = row['queue_case']
+    schema.need(queue.ROOT == Path(CONFIGURATION['root']), 'original queue root relocated')
+    result = queue.validate(case)
+    folder = CONFIGURATION['root'] + '/runtime/runs/' + case['label']
+    raw_pins = []
+    for filename, bound in (('receipt.json', schema.RECORD_BYTES), ('START.json', schema.RECORD_BYTES),
+                             ('stdout.txt', schema.LOG_BYTES), ('stderr.txt', schema.LOG_BYTES),
+                             ('usage.json', 16384)):
+        pin = copying.inspect(folder + '/' + filename, bound, error_owner=state['errors'])
+        raw = copying.read_verified(pin, bound, error_owner=state['errors'])
+        raw_pins.append((pin, raw))
+    runner = evidence.decode(raw_pins[0][1])
+    expected_inner = ['/usr/bin/python3.12', *FLAGS,
+        row['stage_directory'] + '/integration/predecessor_entry.py', '--output', row['output'], '--lanes', 'all']
+    schema.need(runner['command'] == expected_inner and runner['phase_cap_seconds'] == 2400,
+                'baseline actual runner did not launch exact original entry/full scientific job')
+    raw_root = []
+    for filename in ('stdout.raw', 'stderr.raw'):
+        pin = copying.inspect(row['evidence_directory'] + '/' + filename, schema.LOG_BYTES, error_owner=state['errors'])
+        raw = copying.read_verified(pin, schema.LOG_BYTES, error_owner=state['errors'])
+        raw_root.append((pin, raw))
+    schema.need(raw_root[1][1] == b'' and evidence.same_json(evidence.decode(raw_root[0][1]), runner),
+                'live owned runner terminal/raw receipt cross-binding differs')
+    for pin, raw in raw_pins + raw_root:
+        copying.verify(pin, error_owner=state['errors'])
+    schema.need(domain.terminal_facts(run['domain']) == run['terminal'], 'baseline runner terminal changed')
+    run['runner_raw'] = tuple(raw_pins + raw_root)
+    run['queue_diagnostics'] = result
+    return result
+
+
+def stop_evidence(owner):
+    """Opaque primary/secondary objects, including failed attempts; no retry token."""
+    state = _state(owner)
+    return state['primary'], state['fallback'], tuple(
+        (r['primary'], r['errors'], r.get('failed_primary_metrics'), r.get('primary_metrics'))
+        for r in state['runs'].values())
