@@ -1,0 +1,150 @@
+"""Common source custody for the baseline's own exact dependency closure."""
+import os
+import stat
+import epoch_schema_v5 as schema
+import epoch_copy_v5 as copying
+import baseline_data_v1 as group01
+_TYPE, _LEN = type, len
+_STAT, _SCANDIR = os.stat, os.scandir
+_CLOSE = os.close
+MAX_SOURCE_FILES = 8192
+MAX_STAGE_ENTRIES = 16384
+
+def _snapshot_sources(plan, error_owner):
+    schema.need(_TYPE(plan['source_files']) is list and 1 <= _LEN(plan['source_files']) <= MAX_SOURCE_FILES,
+                'complete prelaunch source inventory bound differs')
+    rows, paths, categories = [], set(), set()
+    for expected in plan['source_files']:
+        schema.exact(expected, ('category', 'path', 'sha256', 'bytes', 'mode'))
+        schema.choice(expected['category'], ('parent', 'root', 'driver', 'project', 'oracle', 'stage'))
+        schema.path(expected['path'])
+        schema.digest(expected['sha256'])
+        schema.integer(expected['bytes'], 0, schema.FILE_BYTES)
+        schema.integer(expected['mode'], 0, 0o7777)
+        schema.need(expected['path'] not in paths, 'duplicate prelaunch source path')
+        paths.add(expected['path'])
+        categories.add(expected['category'])
+        actual = copying.inspect(expected['path'], schema.FILE_BYTES, error_owner=error_owner)
+        schema.need(actual['sha256'] == expected['sha256'] and actual['bytes'] == expected['bytes'] and
+                    actual['identity']['mode'] & 0o7777 == expected['mode'], 'source/profile/closure changed')
+        rows.append(actual)
+    schema.need(categories == {'parent', 'root', 'driver', 'project', 'oracle', 'stage'}, 'a mandatory source category is absent')
+    return rows
+
+
+
+def _tree(root, state):
+    """Bounded exact stage census; all actual file contents are separately read."""
+    schema.path(root)
+    pending, files, directories = [('', root)], [], []
+    count = 0
+    while pending:
+        schema.need(state['io_quarantine'][0] is False and state['unknown_owner']['pending'][0] is False and
+                    state['unknown_owner']['iterator_uncertain'][0] is False,
+                    'stage census cannot acquire after uncertain ownership')
+        relative, current = pending.pop()
+        before = _STAT(current, follow_symlinks=False)
+        schema.need(stat.S_ISDIR(before.st_mode) and not before.st_mode & 0o222,
+                    'immutable stage directory kind/mode differs')
+        entries, primary = None, None
+        state['unknown_owner']['pending'][0] = True
+        try:
+            entries = _SCANDIR(current)
+            state['unknown_owner']['pending'][0] = False
+            for entry in entries:
+                count += 1
+                schema.need(count <= MAX_STAGE_ENTRIES, 'stage census bound exceeded')
+                name = entry.name
+                schema.need(_TYPE(name) is str and name not in ('.', '..') and '/' not in name,
+                            'stage entry name differs')
+                child = name if not relative else relative + '/' + name
+                info = entry.stat(follow_symlinks=False)
+                if stat.S_ISREG(info.st_mode):
+                    files.append(child)
+                elif stat.S_ISDIR(info.st_mode):
+                    directories.append(child)
+                    pending.append((child, current + '/' + name))
+                else:
+                    raise schema.EpochStop('stage has symlink or special file')
+        except BaseException as error:
+            primary = error
+            if state['unknown_owner']['primary'][0] is None:
+                state['unknown_owner']['primary'][0] = error
+            state['io_quarantine'][0] = True
+            state['unknown_owner']['iterator_uncertain'][0] = True
+            state['fallback'][2] = error
+            raise
+        finally:
+            if entries is not None:
+                owned = entries
+                entries = None
+                try:
+                    owned.close()
+                except BaseException as error:
+                    if state['unknown_owner']['primary'][0] is None:
+                        state['unknown_owner']['primary'][0] = error
+                    state['io_quarantine'][0] = True
+                    state['unknown_owner']['iterator_uncertain'][0] = True
+                    state['fallback'][3] = error
+                    if primary is None:
+                        raise
+        after = _STAT(current, follow_symlinks=False)
+        schema.need((before.st_dev, before.st_ino, before.st_mode, before.st_mtime_ns, before.st_ctime_ns) ==
+                    (after.st_dev, after.st_ino, after.st_mode, after.st_mtime_ns, after.st_ctime_ns),
+                    'stage directory changed during census')
+    return sorted(files), sorted(directories)
+
+
+
+def _stage(plan, error_owner, state):
+    copying.verify(plan['stage_manifest'], error_owner=error_owner)
+    raw = copying.read_verified(plan['stage_manifest'], schema.RECORD_BYTES, error_owner=error_owner)
+    declared = group01.decode(raw)
+    schema.need(_TYPE(declared.get('files')) is dict and
+                plan['stage_manifest']['path'] == plan['stage_directory'] + '/STAGE.json',
+                'independent stage manifest origin differs')
+    files, directories = _tree(plan['stage_directory'], state)
+    schema.need(files == sorted(list(declared['files']) + ['STAGE.json']) and
+                directories == plan['stage_directories'], 'complete immutable stage census differs')
+    source_by_path = {row['path']: row for row in plan['source_files']}
+    for relative, expected in declared['files'].items():
+        schema.need(_TYPE(relative) is str and not relative.startswith('/') and
+                    all(part not in ('', '.', '..') for part in relative.split('/')),
+                    'stage relative path differs')
+        path = plan['stage_directory'] + '/' + relative
+        schema.need(path in source_by_path and expected ==
+            {'sha256': source_by_path[path]['sha256'], 'mode': source_by_path[path]['mode']},
+            'stage file absent from independently fixed current source closure')
+    return {'manifest': plan['stage_manifest'], 'file_count': len(files), 'directories': directories}
+
+
+
+def _close_logs(run, primary):
+    first = None
+    for index in range(2):
+        descriptor = run['log_fds'][index]
+        if descriptor is None or run['log_close_attempted'][index]:
+            continue
+        run['log_close_attempted'][index] = True
+        try:
+            _CLOSE(descriptor)
+            run['log_close_confirmed'][index] = True
+        except BaseException as error:
+            if run['unknown_owner']['primary'][0] is None:
+                run['unknown_owner']['primary'][0] = primary if primary is not None else error
+            run['unknown_owner']['quarantine'][0] = True
+            run['errors'][index] = error
+            if first is None:
+                first = error
+    if primary is None and first is not None:
+        raise first
+
+
+
+def _source_custody_bytes(state, files, stage):
+    raw = group01.encode({'schema': 'h25-parent-current-source-custody-v1', 'files': files,
+        'stage': stage, 'source_closure_admission_sha256': state['plan']['source_closure_admission_sha256'],
+        'historical_compiler_interval_proof_claimed_by_this_record': False})
+    schema.need(len(raw) <= schema.RECORD_BYTES, 'complete source custody record exceeds admitted writer bound')
+    return raw
+

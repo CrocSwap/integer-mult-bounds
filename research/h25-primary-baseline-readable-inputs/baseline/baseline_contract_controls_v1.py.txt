@@ -1,0 +1,76 @@
+"""Ten narrow production-contract bodies; source only and separately funded.
+
+This module is excluded from the scientific baseline dependency DAG. These
+controls neither launch a child nor validate process-domain cleanup or science.
+The actual original process/entry/queue controls remain additional obligations.
+"""
+import baseline_owner_v1 as owner
+import baseline_data_v1 as data
+import epoch_schema_v5 as schema
+
+CONTROL_SOURCE_REVIEW = None
+CONTROL_EXECUTION_APPROVAL = None
+CONTROL_FUNDING = None
+
+
+def run_contract_controls():
+    for value, name in ((CONTROL_SOURCE_REVIEW, 'CONTROL_SOURCE_REVIEW'),
+                        (CONTROL_EXECUTION_APPROVAL, 'CONTROL_EXECUTION_APPROVAL'),
+                        (CONTROL_FUNDING, 'CONTROL_FUNDING')):
+        schema.need(type(value) is tuple and len(value) == 2 and value[0] == name,
+                    'separate launch-contract control gate absent')
+        schema.digest(value[1])
+    root = '/source-only-contract-root'
+    base = {'queue_case': {'stage': 'predecessor-pr6029-v1', 'job': 'full-all', 'label': 'b',
+        'stage_sha256': owner.STAGE_SHA, 'science_status': 'FULL_NETWORK_COMPLETE_PASS',
+        'science_fields': {'mode': 'candidate', 'lanes': 'all', 'driver_sha256': owner.DRIVER_SHA}},
+        'source_role': 'baseline-full', 'phase': 'full', 'driver_sha256': owner.DRIVER_SHA,
+        'cwd': root, 'stage_directory': root + '/stages/predecessor-pr6029-v1',
+        'output': root + '/runtime/runs/b/science',
+        'command': ['/usr/bin/python3.12', *owner.FLAGS, root + '/run_guarded_v3.py',
+                    'predecessor-pr6029-v1', 'full-all', 'b'],
+        'stage_manifest': {'sha256': owner.STAGE_SHA}, 'root_seconds': 180,
+        'rss_bytes': 1024 ** 3, 'address_space_bytes': 1024 ** 3,
+        'evidence_directory': root + '/validation/attempts/contract-b'}
+    expected = {'stage_sha256': owner.STAGE_SHA, 'job': 'full-all', 'entry_sha256': owner.ENTRY_SHA,
+                'driver_sha256': owner.DRIVER_SHA, 'assertions_on': True, 'baseline_workload_only': True}
+    results = []
+    for name in ('positive-unchanged-full', 'finite-job', 'optimized-command', 'candidate-driver',
+                 'foreign-stage', 'candidate-bootstrap', 'widened-rss', 'output-drift',
+                 'candidate-role', 'finite-phase'):
+        row = data.decode(data.encode(base))
+        if name == 'finite-job':
+            row['queue_case']['job'] = 'finite-all'
+        elif name == 'optimized-command':
+            row['command'].insert(5, '-O')
+        elif name == 'candidate-driver':
+            row['driver_sha256'] = '0' * 64
+        elif name == 'foreign-stage':
+            row['queue_case']['stage'] = 'candidate'
+        elif name == 'candidate-bootstrap':
+            row['command'].extend(['--provider', '/candidate/provider.py'])
+        elif name == 'widened-rss':
+            row['rss_bytes'] = 2 * 1024 ** 3
+        elif name == 'output-drift':
+            row['output'] = root + '/shared/science'
+        elif name == 'candidate-role':
+            row['source_role'] = 'candidate-full'
+        elif name == 'finite-phase':
+            row['phase'] = 'finite'
+        returned, error = None, None
+        try:
+            returned = owner.validate_launch_contract(root, row)
+        except BaseException as caught:
+            error = caught
+        # Retain the actual exception object/return before the independent oracle.
+        raw = {'name': name, 'actual_return': returned, 'actual_error': error,
+               'oracle_reached': False}
+        results.append(raw)
+        if name == 'positive-unchanged-full':
+            schema.need(error is None and data.same_json(returned, expected), 'positive launch contract differs')
+        else:
+            schema.need(type(error) is schema.EpochStop and returned is None, 'negative launch contract did not reject')
+        raw['oracle_reached'] = True
+    return {'schema': 'h25-baseline-narrow-contract-controls-v1', 'raw': tuple(results),
+            'scope': 'production launch contract only', 'complete_finite_union': False,
+            'process_cleanup_proved': False, 'scientific_run': False}

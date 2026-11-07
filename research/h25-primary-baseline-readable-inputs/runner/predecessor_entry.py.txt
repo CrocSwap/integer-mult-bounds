@@ -1,0 +1,113 @@
+"""Authenticated clean-launch entry for the unchanged PR6029 predecessor.
+
+Only compatibility work happens here. The trusted parent authenticates the
+readonly stage; this entry verifies its pinned predecessor references, installs
+one canonical sibling-import path, and executes the original driver bytes.
+It writes no files and emits no output. All entry costs belong to this arm.
+"""
+import builtins
+import hashlib
+from importlib.machinery import SourceFileLoader
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+from types import ModuleType
+
+ORIGINAL_STAGE_SHA = '558eebbc1dc65e42bbcb3ffd9973f8bc86641a3539493ecc1d53d8077c39cdbc'
+ORIGINAL_JOBS_SHA = '9add67e9d756928f65afe11c55125a86672a79942350389bd0626e3c7963ce7e'
+DRIVER_SHA = '5b963a5f108b334a627e68001c80b9843fb300c7394693e72f34ce0a6050e6f1'
+ADAPTER_SHA = 'f7ca7f4f03ac63c1a95ba42f06149543211566de5e29f487a3dc4d08c5ee9b94'
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+INITIAL_PATH = ('/usr/lib/python312.zip', '/usr/lib/python3.12',
+                '/usr/lib/python3.12/lib-dynload')
+READ_CAP = 65536
+
+
+def need(value, message):
+    if not value:
+        raise RuntimeError(message)
+
+
+def source_bytes(path, expected=None):
+    """Fresh bounded source read inside the authenticated readonly stage."""
+    need(path.is_absolute() and path.resolve() == path and not path.is_symlink(),
+         'Predecessor source path is not canonical')
+    before = path.stat()
+    need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == 0o444 and
+         before.st_size <= READ_CAP, 'Predecessor source type/mode/size differs')
+    with path.open('rb') as stream:
+        raw = stream.read(READ_CAP + 1)
+    after = path.stat()
+    fingerprint = lambda row: (row.st_dev, row.st_ino, row.st_mode, row.st_size,
+                               row.st_mtime_ns, row.st_ctime_ns)
+    need(len(raw) == before.st_size <= READ_CAP and fingerprint(before) == fingerprint(after),
+         'Predecessor source changed during fresh read')
+    if expected is not None:
+        need(hashlib.sha256(raw).hexdigest() == expected, 'Pinned predecessor source differs')
+    return raw
+
+
+def prepare():
+    """No scientific import, output creation or execution before all checks pass."""
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3, 12), 'Pinned predecessor interpreter required')
+    need(sys.flags.no_site == sys.flags.no_user_site == sys.flags.dont_write_bytecode == 1 and
+         sys.flags.safe_path and sys.flags.ignore_environment == sys.flags.isolated ==
+         sys.flags.hash_randomization == 0 and sys.flags.optimize in (0, 1),
+         'Trusted no-site safe-path fixed-seed predecessor launch required')
+    need(dict(os.environ) == ENV and tuple(sys.path) == INITIAL_PATH,
+         'Initial predecessor environment or system stdlib path changed')
+    need('adapters' not in sys.modules, 'Predecessor sibling adapter was already imported')
+    entry = Path(__file__).absolute()
+    need(entry.resolve() == entry and entry.name == 'predecessor_entry.py' and
+         entry.parent.name == 'integration', 'Entry must be the declared canonical integration file')
+    integration, stage = entry.parent, entry.parent.parent
+    need(stat.S_IMODE(integration.stat().st_mode) == 0o555 and
+         stat.S_IMODE(stage.stat().st_mode) == 0o555, 'Predecessor stage directories are not readonly')
+    original = json.loads(source_bytes(stage / 'provenance/predecessor-STAGE.json', ORIGINAL_STAGE_SHA))
+    original_jobs = source_bytes(stage / 'provenance/predecessor-JOBS.json', ORIGINAL_JOBS_SHA)
+    need(len(original['files']) == 160 and original['files']['JOBS.json'] ==
+         {'mode': 0o444, 'sha256': ORIGINAL_JOBS_SHA}, 'Original predecessor inventory differs')
+    current = json.loads(source_bytes(stage / 'STAGE.json'))
+    for name, row in original['files'].items():
+        if name != 'JOBS.json':
+            need(current['files'].get(name) == row, 'Original predecessor declaration changed: ' + name)
+    need(current['files']['integration/full_driver.py'] == {'mode': 0o444, 'sha256': DRIVER_SHA} and
+         current['files']['integration/adapters.py'] == {'mode': 0o444, 'sha256': ADAPTER_SHA},
+         'Original driver/adapter declarations changed')
+    # The only predecessor metadata exception is an explicit entry selector on
+    # every original job. Scientific options and original job names stay exact.
+    jobs = json.loads(source_bytes(stage / 'JOBS.json', current['files']['JOBS.json']['sha256']))
+    expected_jobs = json.loads(original_jobs)
+    for job in expected_jobs.values():
+        job['entry'] = 'integration/predecessor_entry.py'
+    need(jobs == expected_jobs, 'Predecessor JOBS metadata has an undeclared change')
+    need(current['files']['integration/predecessor_entry.py']['mode'] == 0o444,
+         'Compatibility entry is not a declared readonly stage member')
+    source_bytes(entry, current['files']['integration/predecessor_entry.py']['sha256'])
+    source_bytes(integration / 'adapters.py', ADAPTER_SHA)
+    driver = integration / 'full_driver.py'
+    raw = source_bytes(driver, DRIVER_SHA)
+    # Same source, filename, future flags and optimization level as the original
+    # script. No candidate bootstrap/authority/native profile is introduced.
+    code = compile(raw, str(driver), 'exec', dont_inherit=True, optimize=sys.flags.optimize)
+    return driver, integration, code
+
+
+def main():
+    driver, integration, code = prepare()
+    sys.path.insert(0, str(integration))
+    sys.argv[0] = str(driver)
+    original_main = ModuleType('__main__')
+    original_main.__dict__.update(__file__=str(driver), __name__='__main__',
+        __package__=None, __spec__=None, __cached__=None,
+        __loader__=SourceFileLoader('__main__', str(driver)), __builtins__=builtins)
+    sys.modules['__main__'] = original_main
+    exec(code, original_main.__dict__)
+
+
+if __name__ == '__main__':
+    main()
