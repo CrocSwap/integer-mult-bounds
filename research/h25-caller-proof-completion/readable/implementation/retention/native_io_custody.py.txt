@@ -1,0 +1,474 @@
+"""Owning native leaves: reserve -> actual return/catch -> retire -> one close.
+
+One fixed borrower operation has at most 256 simultaneously registered known FD
+owners: source depth<=32, directory ancestry<=64, source/target/publication and
+oracle frames plus metadata ports; 512 raw slots cover their distinct finalizers
+and non-close owner errors. Successful retired slots may be reused. Any unknown
+acquisition/close quarantines reads/acquisitions permanently; independent known
+FD closes continue once. No uncertain number is retried. Native/interpreter
+handler delivery and fd-return atomicity remain explicit profile premises.
+"""
+import functools
+import errno
+from contextlib import contextmanager
+import os
+import stat
+import sys
+import error_custody as _ERRORS
+from plain_boundary import need
+_OPEN, _CLOSE, _READ, _WRITE, _DUP = (os.open, os.close, os.read, os.write, os.dup)
+_NATIVE = {name: getattr(os, name) for name in ('fstat', 'stat', 'listxattr', 'mkdir', 'fsync', 'fchmod', 'fstatvfs', 'scandir')}
+_MAX_FDS = 256
+_MAX_CONTEXTS = 64
+_LIVE = []
+_PROCESS = None
+
+class FDSlot:
+    __slots__ = ('fd', 'status', 'close_attempts', 'site', 'close_error', 'close_tb', 'close_raw', 'close_sequence')
+
+    def __init__(self):
+        self.fd = None
+        self.status = 'FREE'
+        self.close_attempts = 0
+        self.site = ''
+        self.close_error = self.close_tb = None
+        self.close_raw = _ERRORS.RawSlot()
+        self.close_sequence=0
+
+class Context:
+    __slots__ = ('site', 'slots', 'errors', 'primary', 'primary_tb', 'quarantine', 'finished', 'export_failure', 'cleanup_policy', 'emergency', 'used', 'journal_fault', 'unregistered_error', 'invalid_fd_error', 'close_order', 'close_used')
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError('native IO context is source-owned')
+
+def new_context(site, errors=None):
+    need(type(site) is str and len(site) <= 128 and (len(_LIVE) < _MAX_CONTEXTS), 'native context cap/site')
+    ctx = object.__new__(Context)
+    ctx.site = site
+    ctx.slots = [FDSlot() for _ in range(_MAX_FDS)]
+    ctx.errors = _ERRORS.new_custody() if errors is None else _ERRORS.owned(errors)
+    ctx.primary = ctx.primary_tb = None
+    ctx.quarantine = ctx.finished = False
+    ctx.export_failure = None
+    ctx.cleanup_policy = 'distinct-known-os-fds'
+    ctx.emergency = _ERRORS.RawSlot()
+    ctx.journal_fault = _ERRORS.RawSlot()
+    ctx.unregistered_error = ValueError('close of unregistered FD refused')
+    ctx.invalid_fd_error = ValueError('nonnative FD return; acquisition uncertain')
+    ctx.used = 0
+    ctx.close_order=[None]*_MAX_FDS
+    ctx.close_used=0
+    _sync_primary(ctx)
+    _LIVE.append(ctx)
+    return ctx
+
+def owned(ctx):
+    need(type(ctx) is Context and any((ctx is row for row in _LIVE)), 'unowned native context')
+    return ctx
+
+def _sync_primary(ctx):
+    """Share the first actual error only when this owner has none.
+
+    Preserve an existing earlier owner E and its original traceback. A Q already
+    held in the shared custody must win before any later native error or generic
+    finished/saturation refusal is selected.
+    """
+    if ctx.primary is None and ctx.errors.primary is not None:
+        ctx.primary = ctx.errors.primary
+        ctx.primary_tb = ctx.errors.primary_tb
+    elif ctx.primary is not None and ctx.errors.primary is None:
+        ctx.errors.primary = ctx.primary
+        ctx.errors.primary_tb = ctx.primary_tb
+    return ctx
+
+
+def process_context():
+    global _PROCESS
+    if _PROCESS is None:
+        _PROCESS = new_context('fixed-retention-owner')
+    return _sync_primary(_PROCESS)
+
+def _slot_for_error(ctx, site):
+    _sync_primary(ctx)
+    if any((not row.occupied and row.kind == '' for row in ctx.errors.slots)):
+        return _ERRORS.reserve(ctx.errors, site)
+    ctx.errors.incomplete = True
+    ctx.quarantine = True
+    if ctx.emergency.occupied:
+        if ctx.primary is not None:
+            raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+        raise ctx.errors.saturation
+    return ctx.emergency
+
+def _commit(ctx, slot):
+    slot.occupied = True
+    _sync_primary(ctx)
+    if ctx.primary is None:
+        ctx.primary = slot.actual
+        ctx.primary_tb = slot.traceback
+    if ctx.errors.primary is None:
+        ctx.errors.primary = slot.actual
+        ctx.errors.primary_tb = slot.traceback
+    if ctx.journal_fault.occupied:
+        ctx.errors.incomplete=True
+        return slot.actual
+    try:
+        _ERRORS.record(ctx.errors, slot)
+    except BaseException as error:
+        ctx.journal_fault.actual = error
+        ctx.journal_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        ctx.journal_fault.occupied = True
+        ctx.errors.incomplete = True
+        ctx.quarantine = True
+    return slot.actual
+
+def capture(ctx, error, kind, site):
+    ctx = owned(ctx)
+    slot = _slot_for_error(ctx, kind + ':' + site)
+    slot.actual = error
+    slot.traceback = BaseException.__traceback__.__get__(error, BaseException)
+    return _commit(ctx, slot)
+
+def _safe(ctx):
+    _sync_primary(ctx)
+    if ctx.primary is not None and (ctx.finished or ctx.quarantine or ctx.errors.incomplete):
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+    need(not ctx.finished, 'native context finished')
+    if ctx.quarantine or ctx.errors.incomplete:
+        raise ctx.errors.saturation
+
+
+def _reserve_fd(ctx, site):
+    _safe(ctx)
+    for index, row in enumerate(ctx.slots):
+        if row.status in ('FREE', 'CLOSED', 'UNACQUIRED'):
+            row.fd = None
+            row.status = 'PENDING'
+            row.close_attempts = 0
+            row.site = site
+            row.close_error = row.close_tb = None
+            return (index, row)
+    raise ValueError('native simultaneous FD cap')
+
+def _acquire_native(ctx, path, flags, mode, parent, site, expected_missing=False):
+    index, row = _reserve_fd(ctx, site)
+    fault = _slot_for_error(ctx, 'OPEN:' + site)
+    try:
+        fd = _OPEN(path, flags, mode) if parent is None else _OPEN(path, flags, mode, dir_fd=parent)
+    except BaseException as error:
+        fault.actual = error
+        fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        row.status = 'UNACQUIRED' if type(error) in (OSError,FileNotFoundError,FileExistsError,PermissionError,NotADirectoryError,IsADirectoryError,BlockingIOError,InterruptedError) and type(error.errno) is int else 'UNCERTAIN'
+        if row.status=='UNCERTAIN':ctx.quarantine=True
+        if expected_missing and type(error) is FileNotFoundError and (error.errno == errno.ENOENT):
+            fault.occupied = True
+            raise
+        _commit(ctx, fault)
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+    row.fd = fd
+    row.status = 'OWNED'
+    if type(fd) is not int or fd < 0:
+        row.status = 'UNCERTAIN'
+        ctx.quarantine = True
+        fault.actual=ctx.invalid_fd_error
+        fault.traceback=None
+        _commit(ctx,fault)
+        raise BaseException.with_traceback(ctx.primary,ctx.primary_tb)
+    _ERRORS.release(ctx.errors, fault)
+    return index
+
+def acquire(ctx, path, flags, site, parent=None, mode=384):
+    ctx = owned(ctx)
+    parent_fd = None if parent is None else descriptor(ctx, parent)
+    return _acquire_native(ctx, path, flags, mode, parent_fd, site)
+
+def descriptor(ctx, index):
+    row = owned(ctx).slots[index]
+    need(row.status == 'OWNED' and type(row.fd) is int, 'descriptor not known-owned')
+    return row.fd
+
+def open_fd(path, flags, mode=511, *, dir_fd=None):
+    ctx = process_context()
+    return ctx.slots[_acquire_native(ctx, path, flags, mode, dir_fd, 'open')].fd
+
+def dup_fd(fd):
+    ctx = process_context()
+    index, row = _reserve_fd(ctx, 'dup')
+    fault = _slot_for_error(ctx, 'DUP')
+    try:
+        returned = _DUP(fd)
+    except BaseException as error:
+        fault.actual = error
+        fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        row.status = 'UNACQUIRED' if type(error) in (OSError,FileNotFoundError,PermissionError,BlockingIOError,InterruptedError) and type(error.errno) is int else 'UNCERTAIN'
+        if row.status=='UNCERTAIN':ctx.quarantine=True
+        _commit(ctx, fault)
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+    row.fd = returned
+    row.status = 'OWNED'
+    if type(returned) is not int or returned<0:
+        row.status='UNCERTAIN'
+        ctx.quarantine=True
+        fault.actual=ctx.invalid_fd_error
+        fault.traceback=None
+        _commit(ctx,fault)
+        raise BaseException.with_traceback(ctx.primary,ctx.primary_tb)
+    _ERRORS.release(ctx.errors, fault)
+    return returned
+
+def close_slot(ctx, index, site, allow_distinct_known=True):
+    ctx = owned(ctx)
+    _sync_primary(ctx)
+    row = ctx.slots[index]
+    if row.status != 'OWNED':
+        return False
+    if any((other is not row and other.status == 'UNCERTAIN' and type(other.fd) is int and (other.fd == row.fd) for other in ctx.slots)):
+        row.status = 'RETAINED_ALIAS'
+        ctx.quarantine = True
+        return False
+    fault = row.close_raw
+    fault.kind = 'CLOSE:' + site
+    fd = row.fd
+    row.status = 'RETIRED'
+    row.close_attempts = 1
+    try:
+        _CLOSE(fd)
+    except BaseException as error:
+        row.close_error = error
+        row.close_tb = BaseException.__traceback__.__get__(error, BaseException)
+        fault.actual = error
+        fault.traceback = row.close_tb
+        row.status = 'UNCERTAIN'
+        ctx.quarantine = True
+        # Raw close slots and a fixed ordered reference table precede the
+        # optional journal. Failure of that journal cannot erase close order.
+        _sync_primary(ctx)
+        if ctx.primary is None:
+            ctx.primary=error
+            ctx.primary_tb=row.close_tb
+        if ctx.errors.primary is None:
+            ctx.errors.primary=error
+            ctx.errors.primary_tb=row.close_tb
+        try:
+            row.close_sequence=ctx.close_used+1
+            ctx.close_order[ctx.close_used]=row
+            ctx.close_used+=1
+        except BaseException as sequence_error:
+            if not ctx.journal_fault.occupied:
+                ctx.journal_fault.actual=sequence_error
+                ctx.journal_fault.traceback=BaseException.__traceback__.__get__(sequence_error,BaseException)
+                ctx.journal_fault.occupied=True
+            ctx.errors.incomplete=True
+        _commit(ctx, fault)
+        return False
+    row.status = 'CLOSED'
+    _sync_primary(ctx)
+    _ERRORS.release(ctx.errors, fault)
+    return True
+
+def close_fd(fd):
+    ctx = process_context()
+    matches = [index for index, row in enumerate(ctx.slots) if type(row.fd) is int and row.fd == fd and row.status == 'OWNED']
+    if len(matches) == 1:
+        return close_slot(ctx, matches[0], 'raw-fd')
+    if any((type(row.fd) is int and row.fd == fd and row.status in ('UNCERTAIN', 'RETIRED', 'CLOSED', 'RETAINED_ALIAS') for row in ctx.slots)):
+        return False
+    ctx.quarantine = True
+    if not ctx.emergency.occupied:
+        ctx.emergency.actual = ctx.unregistered_error
+        ctx.emergency.traceback = None
+        _commit(ctx, ctx.emergency)
+    else:
+        ctx.errors.incomplete = True
+    return False
+
+def call_native(ctx, site, function, *args, expected_missing=False, **kwargs):
+    ctx = owned(ctx)
+    _safe(ctx)
+    fault = _slot_for_error(ctx, site)
+    try:
+        result = function(*args, **kwargs)
+    except BaseException as error:
+        fault.actual = error
+        fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        if expected_missing and type(error) is FileNotFoundError and (error.errno == errno.ENOENT):
+            fault.occupied = True
+            raise
+        _commit(ctx, fault)
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+    _ERRORS.release(ctx.errors, fault)
+    return result
+
+def read(ctx, index, count, site):
+    need(type(count) is int and 0 < count <= 1048576, 'bounded native read')
+    return call_native(ctx, site, _READ, descriptor(ctx, index), count)
+
+def read_fd(fd, count):
+    return call_native(process_context(), 'READ', _READ, fd, count)
+
+def write_fd(fd, raw):
+    return call_native(process_context(), 'WRITE', _WRITE, fd, raw)
+
+def native_effect(name, *args, **kwargs):
+    return call_native(process_context(), name, _NATIVE[name], *args, **kwargs)
+
+def cleanup(ctx):
+    ctx = owned(ctx)
+    _sync_primary(ctx)
+    for index in range(len(ctx.slots) - 1, -1, -1):
+        if ctx.slots[index].status == 'OWNED':
+            close_slot(ctx, index, 'independent-finalizer')
+    ctx.finished = True
+    _sync_primary(ctx)
+cleanup_known = cleanup
+
+def finish(ctx):
+    _sync_primary(ctx)
+    cleanup(ctx)
+    _sync_primary(ctx)
+    if ctx.primary is not None:
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+
+def stop_if_failed(ctx):
+    ctx = owned(ctx)
+    _safe(ctx)
+    if ctx.primary is not None:
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+    return ctx
+
+def state_data(ctx):
+    ctx = owned(ctx)
+    return dict(schema='h25-native-FD-custody-v4', quarantine=ctx.quarantine, finished=ctx.finished, cleanup_policy=ctx.cleanup_policy, descriptors=[dict(fd=row.fd, status=row.status, close_attempts=row.close_attempts, close_error_id=None if row.close_error is None else id(row.close_error)) for row in ctx.slots if row.status != 'FREE'], raw_errors=_ERRORS.snapshot(ctx.errors), ordered_close_errors=[dict(sequence=row.close_sequence,actual_id=id(row.close_error),traceback_id=id(row.close_tb)) for row in ctx.close_order[:ctx.close_used]], journal_incomplete=ctx.journal_fault.occupied)
+
+def publish(ctx):
+    return _ERRORS.export(owned(ctx).errors)
+
+def directory(ctx, path):
+    ctx = owned(ctx)
+    need(type(path) is str and path.startswith('/') and (os.path.normpath(path) == path), 'canonical directory')
+    current = acquire(ctx, '/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, 'directory-root')
+    for part in path.split('/')[1:]:
+        if part:
+            child = acquire(ctx, part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, 'directory-child', current)
+            if not close_slot(ctx, current, 'directory-transition'):
+                stop_if_failed(ctx)
+            current = child
+    return current
+
+def source_bytes(path, maximum=1048576, errors=None, site='source-bytes'):
+    ctx = new_context(site, errors)
+    need(type(path) is str and path.startswith('/') and (len(path) <= 4096) and (os.path.normpath(path) == path) and (type(maximum) is int) and (0 < maximum <= 8388608), 'bounded source bytes path/cap')
+    fault = _slot_for_error(ctx, 'SOURCE')
+    try:
+        parent = directory(ctx, os.path.dirname(path))
+        leaf = acquire(ctx, os.path.basename(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, 'source-leaf', parent)
+        info = call_native(ctx, 'FSTAT', os.fstat, descriptor(ctx, leaf))
+        need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and (0 <= info.st_size <= maximum), 'source type/link/size')
+        raw = bytearray()
+        while len(raw) <= maximum:
+            block = read(ctx, leaf, min(65536, maximum + 1 - len(raw)), 'source-read')
+            if not block:
+                break
+            raw.extend(block)
+        after = call_native(ctx, 'FSTAT-AFTER', os.fstat, descriptor(ctx, leaf))
+        need(len(raw) == info.st_size and (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns) == (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns), 'source custody drift')
+        result = bytes(raw)
+        _ERRORS.release(ctx.errors, fault)
+        return result
+    except BaseException as error:
+        fault.actual = error
+        fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        _commit(ctx, fault)
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+    finally:
+        finish(ctx)
+
+def owning_leaf(function):
+    """Leaf owner captures computation errors as well as native wrapper errors."""
+
+    @functools.wraps(function)
+    def guarded(*args, **kwargs):
+        ctx = process_context()
+        _safe(ctx)
+        fault = _slot_for_error(ctx, 'LEAF:' + function.__name__)
+        original = ctx.primary
+        before = ctx.errors.used
+        try:
+            result = function(*args, **kwargs)
+        except BaseException as error:
+            fault.actual = error
+            fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            _commit(ctx, fault)
+            cleanup(ctx)
+            raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+        _ERRORS.release(ctx.errors, fault)
+        _sync_primary(ctx)
+        if ctx.primary is not original or (ctx.primary is not None and ctx.errors.used != before):
+            cleanup(ctx)
+            raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+        return result
+    return guarded
+
+def owning_generator(function):
+
+    @functools.wraps(function)
+    def guarded(*args, **kwargs):
+        ctx = process_context()
+        _safe(ctx)
+        fault = _slot_for_error(ctx, 'GENERATOR:' + function.__name__)
+        original = ctx.primary
+        try:
+            result = (yield from function(*args, **kwargs))
+        except BaseException as error:
+            fault.actual = error
+            fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            _commit(ctx, fault)
+            cleanup(ctx)
+            raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+        _ERRORS.release(ctx.errors, fault)
+        _sync_primary(ctx)
+        if ctx.primary is not original:
+            cleanup(ctx)
+            raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+        return result
+    return guarded
+
+@contextmanager
+def scandir_fd(fd):
+    ctx = process_context()
+    fault = _slot_for_error(ctx, 'SCANDIR-OWNER')
+    iterator = None
+    close_fault = _ERRORS.RawSlot()
+    close_fault.kind='SCANDIR-CLOSE'
+    retired = False
+    try:
+        iterator = call_native(ctx, 'SCANDIR-OPEN', _NATIVE['scandir'], fd)
+        yield iterator
+    except BaseException as error:
+        fault.actual = error
+        fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        _commit(ctx, fault)
+    finally:
+        if iterator is not None and (not retired):
+            retired = True
+            try:
+                iterator.close()
+            except BaseException as error:
+                close_fault.actual = error
+                close_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+                ctx.quarantine = True
+                _commit(ctx, close_fault)
+            else:
+                _ERRORS.release(ctx.errors, close_fault)
+        if fault.occupied or ctx.quarantine:
+            cleanup(ctx)
+            if ctx.primary is not None:
+                raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+        _ERRORS.release(ctx.errors, fault)
+
+def open_optional_fd(path, flags, mode=511, *, dir_fd=None):
+    ctx = process_context()
+    return ctx.slots[_acquire_native(ctx, path, flags, mode, dir_fd, 'optional-open', True)].fd
+
+def native_effect_expected_missing(name, *args, **kwargs):
+    return call_native(process_context(), name, _NATIVE[name], *args, expected_missing=True, **kwargs)

@@ -1,0 +1,697 @@
+"""SOURCE ONLY: full selected capture/retention composition, nested diagnostics.
+Original f98 observation-error priority and real Popen/wait/descriptor custody
+are preserved. The separately owned outer meter includes this actor, controller
+and fee once. No old-ledger/frontier repair, fake body receipt or grant exists."""
+import argparse
+from decimal import Decimal, localcontext, ROUND_CEILING
+import hashlib
+import json
+import os
+import resource
+import select
+import stat
+import subprocess
+import sys
+import time
+from pathlib import Path
+from types import ModuleType
+
+ELIGIBILITY_PATH = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-successor-eligibility-v1/historical_eligibility.py')
+ELIGIBILITY_PIN = {'bytes':8682,'sha256':'bb60f3e93979fd43993a8655d3a3a82e23d74e361f7560857f975fc970607a63'}
+ELIGIBILITY = [None]
+SUCCESSOR_ACTIVE = ('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/IndependentPrefixDATASuccessorV1-EXECUTION-BARRIER', '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/runs/IndependentPrefixDATASuccessorV1-EXECUTION-QUARANTINE', '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/IndependentPrefixDATAComposedV1-EXECUTION-BARRIER', '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/fresh-metered-round-v1/controller-quarantines/IndependentPrefixDATAComposedV1')
+
+W = '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453'
+ROOT = W + "/outputs/h25-data-handling-20261028"
+ENV = {'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'PATH': '/usr/bin:/bin', 'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONHASHSEED': '0', 'TZ': 'UTC'}
+
+NAME = 'IndependentPrefixDATAComposedV1'
+CAPTURE = ROOT + '/validation/' + NAME + '-PARENT-CAPTURE'
+RETAINED = CAPTURE + '/retained'
+GRANT = ROOT + '/control/IndependentPrefixDATAComposedV1-CAPTURE-ACTUAL-GRANT.json'
+OUT = ROOT + '/validation/' + NAME + '-COMMAND.stdout.raw'
+ERR = ROOT + '/validation/' + NAME + '-COMMAND.stderr.raw'
+ACCOUNTING = ROOT + '/validation/' + NAME + '-OWNED/ACCOUNTING.json'
+SLOTS = [[None, None, None, False, None] for unused in range(48)]
+# Original maximum retained slots32 + ready pipe/dup3 + fee pidfd1;
+# twelve extra known slots keep acquisition refusal before the selected cap48.
+FIRST, SECONDARY = [None], [None] * 32
+UNKNOWN, PENDING, CHILDREN = [False], [False], []
+START, JOURNAL = [None], [None]
+# One actual deferred exception, held privately; no serialization/capability proxy.
+OBSERVATION_ERROR = [None]
+
+
+def need(condition, text):
+    if condition is not True:
+        raise ValueError(text)
+
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+    elif error is not FIRST[0]:
+        for index, prior in enumerate(SECONDARY):
+            if prior is error:
+                break
+            if prior is None:
+                SECONDARY[index] = error
+                break
+        else:
+            UNKNOWN[0] = True
+
+
+def canonical(value):
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True,
+                      allow_nan=False) + '\n').encode('ascii')
+    need(len(raw) <= 65536, 'bounded retained state')
+    return raw
+
+
+def exact(value, keys):
+    need(type(value) is dict and all(type(k) is str for k in value) and set(value) == set(keys),
+         'exact native metadata keys')
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'digest')
+    return value
+
+
+def ident(st):
+    return (st.st_dev, st.st_ino, st.st_mode, st.st_uid, st.st_nlink,
+            st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+
+
+def slot():
+    need(not UNKNOWN[0], 'unknown IO blocks further acquisition')
+    for s in SLOTS:
+        if s[4] is None:
+            s[4] = 'RESERVED'
+            return s
+    raise ValueError('fixed descriptor slots exhausted')
+
+
+def acquire(path, flags, mode=0o600):
+    s = slot()
+    s[4] = path
+    PENDING[0] = True
+    try:
+        s[0] = os.open(path, flags | os.O_NOFOLLOW | os.O_CLOEXEC, mode)
+    except BaseException as error:
+        s[1] = error
+        UNKNOWN[0] = True
+        raise
+    PENDING[0] = False
+    return s
+
+
+def close(s):
+    if s[0] is not None and s[3] is False:
+        s[3] = True
+        try:
+            os.close(s[0])
+        except BaseException as error:
+            s[2] = error
+            UNKNOWN[0] = True
+            remember(error)
+
+
+def read_new(path, cap, expected=None, expected_mode=None):
+    s = acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        before = os.fstat(s[0])
+        need(stat.S_ISREG(before.st_mode) and before.st_uid == os.geteuid() and
+             before.st_nlink == 1 and before.st_size <= cap, 'new regular retained input')
+        need(expected_mode is None or stat.S_IMODE(before.st_mode) == expected_mode, 'expected immutable mode')
+        chunks, count = [], 0
+        while True:
+            need(count <= cap, 'input byte cap')
+            block = os.read(s[0], min(65536, cap + 1 - count))
+            if not block:
+                break
+            chunks.append(block)
+            count += len(block)
+        raw = b''.join(chunks)
+        need(count == before.st_size and ident(before) == ident(os.fstat(s[0])) and
+             ident(before) == ident(os.stat(path, follow_symlinks=False)), 'current input changed')
+        if expected is not None:
+            need(hashlib.sha256(raw).hexdigest() == expected, 'source/metadata hash differs')
+        return raw
+    except BaseException as error:
+        s[1] = error
+        remember(error)
+        raise
+    finally:
+        close(s)
+        if s[1] is None and UNKNOWN[0]:
+            raise FIRST[0]
+
+
+def fresh(path):
+    s = acquire(path, os.O_RDWR | os.O_CREAT | os.O_EXCL)
+    st = os.fstat(s[0])
+    need(stat.S_ISREG(st.st_mode) and st.st_uid == os.geteuid() and
+         stat.S_IMODE(st.st_mode) == 0o600 and st.st_nlink == 1 and st.st_size == 0,
+         'fresh exclusive private output')
+    s[4] = [path, st.st_dev, st.st_ino]
+    return s
+
+
+def append(s, raw):
+    at = 0
+    while at < len(raw):
+        n = os.write(s[0], raw[at:at+65536])
+        need(type(n) is int and 0 < n <= min(65536, len(raw)-at), 'progressing metadata write')
+        at += n
+    os.fsync(s[0])
+
+
+def event(data):
+    if JOURNAL[0] is not None and JOURNAL[0][3] is False:
+        append(JOURNAL[0], canonical(data))
+
+
+def seal_capture(s, cap):
+    need(not UNKNOWN[0], 'uncertain IO blocks capture processing')
+    st = os.fstat(s[0])
+    path, device, inode = s[4]
+    need(stat.S_ISREG(st.st_mode) and st.st_uid == os.geteuid() and st.st_nlink == 1 and
+         (st.st_dev, st.st_ino) == (device, inode) and st.st_size <= cap,
+         'actual captured output identity/size')
+    os.fsync(s[0])
+    os.lseek(s[0], 0, os.SEEK_SET)
+    chunks, count = [], 0
+    while True:
+        need(count <= cap, 'capture cap')
+        block = os.read(s[0], min(65536, cap+1-count))
+        if not block:
+            break
+        chunks.append(block)
+        count += len(block)
+    raw = b''.join(chunks)
+    need(count == st.st_size and ident(st) == ident(os.fstat(s[0])) and
+         ident(st) == ident(os.stat(path, follow_symlinks=False)), 'actual complete capture changed')
+    os.fchmod(s[0], 0o400)
+    os.fsync(s[0])
+    pin = {'bytes':count, 'sha256':hashlib.sha256(raw).hexdigest(), 'mode':0o400,
+           'path':path, 'device':device, 'inode':inode}
+    close(s)
+    need(not UNKNOWN[0], 'capture close uncertain')
+    return raw, pin
+
+
+def sync_parent(path):
+    directory = acquire(os.path.dirname(path), os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory[0])
+    except BaseException as primary:
+        directory[1] = primary
+        remember(primary)
+        raise
+    finally:
+        close(directory)
+        if directory[1] is None and UNKNOWN[0]:
+            raise FIRST[0]
+
+
+def publish(path, raw):
+    s = fresh(path)
+    append(s, raw)
+    readback, pin = seal_capture(s, len(raw))
+    need(readback == raw, 'full retained metadata readback')
+    sync_parent(path)
+    return pin
+
+
+def markers_clear(phase):
+    need(phase in ('PREPARE','POST_TARGET'), 'exact successor capture lifecycle phase')
+    if ELIGIBILITY[0] is None:
+        need(phase == 'PREPARE', 'no source/module reload after target')
+        raw = read_new(str(ELIGIBILITY_PATH),65536,ELIGIBILITY_PIN['sha256'],0o444)
+        need(len(raw) == ELIGIBILITY_PIN['bytes'], 'eligibility source bytecount')
+        module = ModuleType('exact_successor_historical_eligibility_v1')
+        module.__dict__.update(__file__=str(ELIGIBILITY_PATH),__package__=None,__spec__=None)
+        exec(compile(raw,str(ELIGIBILITY_PATH),'exec',dont_inherit=True),module.__dict__)
+        ELIGIBILITY[0] = module
+    ELIGIBILITY[0].layout_only(SUCCESSOR_ACTIVE)  # No historical content or live-lease claim.
+
+
+
+
+def bind_runtime_paths(admin_root, grant_path, accounting_path):
+    global CAPTURE, RETAINED, GRANT, OUT, ERR, ACCOUNTING
+    need(not RUNTIME_BOUND[0] and all(type(x) is str and Path(x).is_absolute() for x in (admin_root,grant_path,accounting_path)), 'one fixed admin destination binding')
+    CAPTURE = str(Path(admin_root)/'K')
+    RETAINED = str(Path(CAPTURE)/'retained')
+    OUT, ERR = str(Path(CAPTURE)/'PUBLISHER.stdout.raw'),str(Path(CAPTURE)/'PUBLISHER.stderr.raw')
+    GRANT, ACCOUNTING = grant_path, accounting_path
+    RUNTIME_BOUND[0] = True
+
+
+def _ready_pipe():
+    a,b = slot(),slot()
+    # Raw descriptors held before projection; ambiguity forbids seal/retry.
+    try:
+        pair = os.pipe2(os.O_CLOEXEC | os.O_NONBLOCK)
+        a[0], b[0] = pair
+        a[4], b[4] = ['ready-read',0,0],['ready-write',0,0]
+        need(199 not in pair, 'reserved readiness descriptor collision')
+        c = slot()
+        c[0] = os.dup2(b[0],199,inheritable=True)
+        c[4] = ['ready-199',0,0]
+        close(b)
+        return a,c
+    except BaseException as error:
+        UNKNOWN[0] = True
+        remember(error)
+        raise
+
+
+def _await_ready(s, deadline):
+    try:
+        while True:
+            left=(deadline-time.monotonic_ns())/NS
+            need(left>0, 'fixed child registration deadline')
+            ready,unused,failed=select.select([s[0]],[],[s[0]],min(left,0.025))
+            need(not failed, 'readiness pipe failure')
+            if ready:
+                need(os.read(s[0],2)==b'R','exact child private registration acknowledgement')
+                break
+    except BaseException as error:
+        remember(error)
+        raise
+    finally:
+        close(s)
+
+
+def invoke(argv, outputs, timeout):
+    need(type(timeout) in (int,float) and Decimal(str(timeout)).is_finite() and timeout > 0,
+         'joint budget exhausted before launch; no child')
+    # The genuine Popen object remains private and strongly held until actual wait.
+    # Pending construction is deliberately UNKNOWN if it raises; no respawn.
+    record = [None, True, None, None, False]
+    CHILDREN.append(record)
+    try:
+        is_publisher = len(CHILDREN) == 1
+        role = 'P' if is_publisher else 'Fee'
+        cfg = SOURCE_BINDING[0][3]
+        source = cfg['source_pins']['publisher' if is_publisher else 'fee']['sha256']
+        ready = _ready_pipe() if is_publisher else None
+        GUARDIAN[0].spawn_pending(role, source)
+        record[0] = subprocess.Popen(argv, cwd=W, env=ENV, stdin=subprocess.DEVNULL,
+            stdout=outputs[0][0], stderr=outputs[1][0], close_fds=True, pass_fds=(198,199) if is_publisher else (), start_new_session=True)
+        record[1] = False
+        record[2] = record[0].pid
+        if is_publisher:
+            close(ready[1])
+            _await_ready(ready[0], time.monotonic_ns()+int(timeout*NS))
+            GUARDIAN[0].writers_closed(hashlib.sha256(b'K:no-source-domain-writer:v1').hexdigest())
+        else:
+            native_slot = slot()
+            native_slot[0] = os.pidfd_open(record[2],0)
+            native_slot[4] = ['actual-fee-child-pidfd',0,0]
+            GUARDIAN[0].child_known('Fee', record[2], source, pidfd=native_slot[0])
+            close(native_slot)
+        event({'phase':'POPEN_RETURNED_NATIVE_OBJECT_HELD', 'pid_observation':record[2],
+               'pid_is_not_capability':True, 'one_attempt':True})
+        try:
+            record[3] = record[0].wait(timeout=max(0.001, timeout))
+        except subprocess.TimeoutExpired as error:
+            remember(error)
+            record[4] = True
+            event({'phase':'DEADLINE_PAID_STOP_WAIT_STILL_PENDING',
+                'pid_observation':record[2], 'descendant_teardown_proved':False,
+                'no_kill_or_group_disposal_inferred':True})
+            # Whole-D retirement is distinct from the genuine retained wait.
+            GUARDIAN[0].phase(10)
+            remaining = (GUARDIAN[0].whole_deadline_ns-time.monotonic_ns())/NS
+            need(remaining > 0, 'no unbounded cleanup wait after deadline')
+            record[3] = record[0].wait(timeout=min(remaining, 2.0))
+        need(type(record[3]) is int and record[0].returncode == record[3], 'actual native wait status')
+        event({'phase':'NATIVE_WAIT_RETURNED', 'pid_observation':record[2],
+               'native_returncode':record[3], 'timed_out':record[4],
+               'genuine_owned_Popen_wait_observation':True,
+               'all_descendant_sessions_disposed_by_this_wait':False,
+               **partial_clock_observation('NATIVE_WAIT_RETURNED')})
+        GUARDIAN[0].child_closed('C2' if is_publisher else 'Fee', record[2])
+        return record
+    except BaseException as error:
+        if record[1] or record[3] is None:
+            UNKNOWN[0] = True
+        remember(error)
+        try:
+            GUARDIAN[0].phase(10)
+        except BaseException as secondary:
+            remember(secondary)
+        raise
+
+
+def partial_clock_observation(phase):
+    """Local partial window only; neither process authority nor a final endpoint."""
+    result = {'clock_observation_status':'UNAVAILABLE',
+              'clock_observation_phase':phase,
+              'wrapper_start_monotonic_ns':START[0],
+              'observation_monotonic_ns':None,
+              'wrapper_elapsed_ns_through_observation':None,
+              'clock_window_scope':'run_entry_to_local_sample_only',
+              'imports_setup_before_run_and_publication_close_exit_excluded':True,
+              'complete_wrapper_or_workflow_cost':False}
+    if (JOURNAL[0] is None or JOURNAL[0][3] is not False or
+            UNKNOWN[0] or PENDING[0]):
+        return result
+    try:
+        observed = time.monotonic_ns()
+        need(type(START[0]) is int and type(observed) is int and
+             0 <= START[0] <= observed, 'valid local partial clock observation')
+        elapsed = observed - START[0]
+        result.update(clock_observation_status='OBSERVED_PARTIAL_WINDOW',
+                      observation_monotonic_ns=observed,
+                      wrapper_elapsed_ns_through_observation=elapsed)
+    except BaseException as secondary:
+        if FIRST[0] is None:
+            # At most one pending error: target/fee success gates settle before
+            # another invoke; quarantine samples only after remember(original).
+            OBSERVATION_ERROR[0] = secondary
+        else:
+            remember(secondary)
+    return result
+
+
+def settle_observation_error(stop):
+    """Preserve original-operation priority, then fail before success-side work."""
+    error = OBSERVATION_ERROR[0]
+    if error is not None:
+        remember(error)
+        if stop:
+            raise FIRST[0]
+
+
+def rusage():
+    own = resource.getrusage(resource.RUSAGE_SELF)
+    child = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return {'wrapper_user_seconds_before_final_tail':own.ru_utime,
+            'wrapper_system_seconds_before_final_tail':own.ru_stime,
+            'wrapper_self_peak_RSS_kib_before_final_tail':own.ru_maxrss,
+            'reaped_children_user_seconds_diagnostic':child.ru_utime,
+            'reaped_children_system_seconds_diagnostic':child.ru_stime,
+            'reaped_children_peak_RSS_kib_diagnostic':child.ru_maxrss,
+            'complete_wrapper_CPU_RSS_final_tail_observed':False,
+            'provider_CPU_RSS_observed':False}
+
+
+
+
+
+
+
+
+
+
+SOURCE_BINDING = [None]
+GUARDIAN, RUNTIME_BOUND = [None], [False]
+NS = 1_000_000_000
+BODY_LIMIT_NS = 180 * NS
+ADMIN_POLICY = 'startup-and-final-publication-two-second-administrative-debit-v1'
+ADMIN_DEBIT_NS = 2 * NS
+
+
+def bind_sources(actual_C, actual_F, actual_A, contract, *, guardian=None):
+    """Trusted fixed bootstrap only, inside the enclosing genuine outer body.
+
+    Actual loaded-source/native authentication precedes this call externally.
+    Module type/JSON/hash checks are necessary consistency, not authentication.
+    No lease is opened and no caller-supplied callback becomes an IO provider.
+    """
+    need(SOURCE_BINDING[0] is None, 'one immutable source binding per actor')
+    need(all(type(x) is ModuleType for x in (actual_C, actual_F, actual_A)),
+         'actual selected source module objects, never JSON owner proxies')
+    actual_F.plain(contract)
+    saved = actual_F.decode(canonical(contract))
+    need(guardian is not None, "actual authenticated G channel required")
+    GUARDIAN[0] = guardian
+    SOURCE_BINDING[0] = (actual_C, actual_F, actual_A, saved)
+
+
+def composition_binding(role):
+    need(SOURCE_BINDING[0] is not None, 'separately authenticated fixed bootstrap binding absent')
+    C, F, A, cfg = SOURCE_BINDING[0]
+    F.exact(cfg, ('schema','role','name','phase','candidate_document_sha256','request',
+        'manual_entry','approved_opening','expected_head_pin','source_pins','plan_pin',
+        'admission_pin','operating_TCB_pin','clock_profile_pin','actor_profile_pin',
+        'source_policy_pin','resource_policy_pin','current_profile_pin','selected_packet_pin',
+        'whole_body_bill_pin','complete_work_review_pin','derived_role_profile_pin','publisher_argv',
+        'controller_argv','handoff_path','cleanup_reservation_ns','body_reservation_ns',
+        'administrative_policy','administrative_debit_ns','complete_delivery_scope_sha256'))
+    need(cfg['schema'] == 'fresh-composed-source-private-binding-v1' and cfg['role'] == role and
+         cfg['name'] == NAME and cfg['phase'] in ('INITIAL','FULL'), 'exact actor/name/phase binding')
+    F.digest(cfg['candidate_document_sha256']); F.digest(cfg['complete_delivery_scope_sha256'])
+    need(type(cfg['body_reservation_ns']) is int and 0 < cfg['body_reservation_ns'] <= BODY_LIMIT_NS and
+         type(cfg['cleanup_reservation_ns']) is int and 0 < cfg['cleanup_reservation_ns'] < cfg['body_reservation_ns'],
+         'same complete-body integer-ns reservation including nested work and cleanup')
+    need(cfg['administrative_policy'] == ADMIN_POLICY and cfg['administrative_debit_ns'] == ADMIN_DEBIT_NS and
+         type(cfg['administrative_debit_ns']) is int, 'separate administrative convention, not measured physical bound')
+    need(type(cfg['source_pins']) is dict and {'C','F','A','capture','publisher','fee','outer','capture_bootstrap','publisher_bootstrap','controller_bootstrap'}.issubset(cfg['source_pins']) and all(type(k) is str for k in cfg['source_pins']),
+         'complete selected source DAG; no easier replacement actor')
+    for row in cfg['source_pins'].values():
+        F.pin(row); need(row['mode'] == 0o444, 'actual frozen source mode0444, not obsolete0664')
+    for key in ('plan_pin','admission_pin','operating_TCB_pin','clock_profile_pin','actor_profile_pin',
+                'source_policy_pin','resource_policy_pin','current_profile_pin','expected_head_pin',
+                'selected_packet_pin','whole_body_bill_pin','complete_work_review_pin','derived_role_profile_pin'):
+        F.pin(cfg[key])
+    need(cfg['source_pins']['F']['sha256'] == cfg['approved_opening']['funding_source_sha256'],
+         'selected generic current-opening F source binding')
+    F.validate_pre_entry_provenance(cfg['manual_entry']['provenance'], NAME,
+        cfg['candidate_document_sha256'], cfg['body_reservation_ns'])
+    need(cfg['manual_entry']['request'] == cfg['request'] and cfg['request']['label'] == NAME and
+         cfg['request']['command_sha256'] == cfg['candidate_document_sha256'] and
+         cfg['request']['body_reservation_ns'] == cfg['body_reservation_ns'],
+         'same original enclosing manual/formal operation, never a new cheaper identity')
+    need(cfg['request']['policy_sha256'] == cfg['resource_policy_pin']['sha256'],
+         'same live registered administrative policy, not a separate cheap declaration')
+    if cfg['phase'] == 'INITIAL':
+        need(cfg['request']['phase_release_sha256'] is None,'INITIAL has no invented FULL release')
+    else:
+        F.digest(cfg['request']['phase_release_sha256'])
+    need(cfg['handoff_path'] == str(ROOT) + '/control/fresh-metered-round-v1/_handoff-intents/' + NAME + '.json',
+         'fixed handoff metadata path; no inherited FD or serialized owner')
+    for key, source in (('publisher_argv','publisher_bootstrap'),('controller_argv','controller_bootstrap')):
+        argv = cfg[key]
+        need(type(argv) is list and 6 <= len(argv) <= 64 and all(type(x) is str and 0 < len(x) <= 4096 for x in argv) and
+             argv[:5] == ['/usr/bin/python3.12','-S','-s','-P','-B'] and
+             argv[5] == cfg['source_pins'][source]['path'], 'fixed clean source-bootstrap argv, not arbitrary target')
+    need('--handoff-path' in cfg['controller_argv'] and cfg['handoff_path'] in cfg['controller_argv'],
+         'fixed bootstrap reads predetermined intent and revalidates under NEW actual EX')
+    return C, F, A, cfg
+
+
+def run(source_sha, grant_sha, before):
+    # This inner actor window is DIAGNOSTIC. The genuine enclosing outer owner
+    # starts before this bootstrap/actor and includes every nested fee/cleanup.
+    START[0] = time.monotonic_ns()
+    status, captures, target, fee = 'STOP', [], None, None
+    stdout_valid = False
+    usage_before = usage_after = None
+    end_ns, cfg, terminal_pin, candidate_pin = None, None, None, None
+    outer_begin_ns = None
+    try:
+        usage_before = (resource.getrusage(resource.RUSAGE_SELF),resource.getrusage(resource.RUSAGE_CHILDREN))
+        C, F, A, cfg = composition_binding('CAPTURE')
+        need(os.getcwd() == W and sys.executable == '/usr/bin/python3.12' and
+             sys.flags.no_site == sys.flags.no_user_site == sys.flags.dont_write_bytecode == 1 and
+             sys.flags.safe_path is True and sys.flags.optimize == 0 and dict(os.environ) == ENV,
+             'actual clean capture startup')
+        need(os.umask(0o077) == 0o077,'inherited umask077')
+        for fd,name in ((1,'capture.stdout.raw'),(2,'capture.stderr.raw')):
+            path = str(Path(CAPTURE).parent/'M'/name)
+            info = os.fstat(fd)
+            need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600 and
+                 info.st_uid == os.geteuid() and info.st_nlink == 1 and info.st_size == 0 and
+                 ident(info) == ident(os.stat(path,follow_symlinks=False)),
+                 'genuine fresh inherited outer capture transport, not arbitrary FD')
+        stdout_valid = True
+        F.exact(before,('schema','candidate_document_sha256','pre_entry_provenance'))
+        need(before['schema'] == 'fresh-composed-current-preentry-DATA-v1' and
+             before['candidate_document_sha256'] == cfg['candidate_document_sha256'] and
+             before['pre_entry_provenance'] == cfg['manual_entry']['provenance'],
+             'same original current manual registration/START/pending proof, never historical clock DATA')
+        F.validate_pre_entry_provenance(before['pre_entry_provenance'],NAME,
+            cfg['candidate_document_sha256'],cfg['body_reservation_ns'])
+        manual_start_pin = before['pre_entry_provenance']['original_start_pin']
+        manual_start_raw = read_new(manual_start_pin['path'],65536,
+            manual_start_pin['sha256'],manual_start_pin['mode'])
+        need(len(manual_start_raw) == manual_start_pin['bytes'],'exact genuine original START byte count')
+        manual_start = F.decode(manual_start_raw)
+        need(manual_start.get('schema') == 'fresh-owner-meter-incomplete-v1' and
+             type(manual_start.get('start_monotonic_ns')) is int and
+             0 <= manual_start['start_monotonic_ns'] <= START[0] and
+             manual_start.get('source_sha256') == cfg['source_pins']['outer']['sha256'] and
+             manual_start.get('probe_sha256') == cfg['source_pins']['capture_bootstrap']['sha256'],
+             'selected same-clock-domain genuine outer START, no arbitrary numeric argv')
+        outer_begin_ns = manual_start['start_monotonic_ns']
+        # Native/actual authentication of manual pre-entry remains the separately
+        # admitted top-owner/fixed-bootstrap premise; DATA is not that authority.
+        need(RUNTIME_BOUND[0], 'fixed prospective admin paths required')
+        markers_clear('PREPARE')
+        os.mkdir(CAPTURE,0o700)
+        JOURNAL[0] = fresh(CAPTURE+'/CAPTURE.jsonl')
+        sync_parent(CAPTURE); sync_parent(CAPTURE+'/CAPTURE.jsonl')
+        event({'phase':'CAPTURE_PREPARATION_STARTED','current_preentry':before,
+            'capture_local_start_ns':START[0],'clock_scope':'NESTED_CAPTURE_DIAGNOSTIC_NOT_ADDITIVE',
+            'complete_outer_body_observed_here':False,'old_ledger_or_frontier_writes':0})
+        own = cfg['source_pins']['capture']
+        need(own['path'] == os.path.abspath(__file__) and own['sha256'] == source_sha and own['mode'] == 0o444,
+             'actual capture source/pin/frozen mode')
+        need(len(read_new(own['path'],131072,source_sha,0o444)) == own['bytes'],'capture source byte count')
+        # Source/helper bytes retained before the target lease lifetime. There
+        # are no history/source reloads after controller release.
+        for key in ('publisher','publisher_bootstrap','C','F','A'):
+            row = cfg['source_pins'][key]
+            need(len(read_new(row['path'],131072,row['sha256'],row['mode'])) == row['bytes'],
+                 'selected source closure byte count')
+        row = cfg['source_pins']['fee']
+        fee_source = read_new(row['path'],65536,row['sha256'],row['mode']).decode('utf-8')
+        need(len(fee_source.encode('utf-8')) == row['bytes'],'exact retained fee source')
+        grant = F.decode(read_new(GRANT,131072,grant_sha,0o444))
+        F.exact(grant,('schema','name','candidate_document_sha256','capture_source_sha256',
+            'current_profile_sha256','source_policy_sha256','resource_policy_sha256',
+            'body_reservation_ns','complete_delivery_scope_sha256','allow_one_attempt'))
+        fixed = {'schema':'fresh-composed-one-use-capture-grant-v1','name':NAME,
+            'candidate_document_sha256':cfg['candidate_document_sha256'],'capture_source_sha256':source_sha,
+            'current_profile_sha256':cfg['current_profile_pin']['sha256'],
+            'source_policy_sha256':cfg['source_policy_pin']['sha256'],
+            'resource_policy_sha256':cfg['resource_policy_pin']['sha256'],
+            'body_reservation_ns':cfg['body_reservation_ns'],
+            'complete_delivery_scope_sha256':cfg['complete_delivery_scope_sha256'],'allow_one_attempt':True}
+        need(all(type(grant[k]) is type(v) and grant[k] == v for k,v in fixed.items()),
+             'separate genuine current one-use exact command/funding grant, never self-issued')
+        captures = [fresh(OUT),fresh(ERR)]
+        remaining_ns = cfg['body_reservation_ns']-(time.monotonic_ns()-outer_begin_ns)
+        need(remaining_ns > cfg['cleanup_reservation_ns'],'no nested dispatch after reserved body exhaustion')
+        target = invoke(list(cfg['publisher_argv']),captures,(remaining_ns-cfg['cleanup_reservation_ns'])/NS)
+        out,out_pin = seal_capture(captures[0],2097152)
+        err,err_pin = seal_capture(captures[1],2097152)
+        sync_parent(OUT)
+        event({'phase':'TARGET_CAPTURE_RETAINED','native_returncode':target[3],
+            'timed_out':target[4],'captures':[out_pin,err_pin],
+            'native_wait_not_full_descendant_cleanup':True})
+        need(target[3] == 0 and target[4] is False,'original command failed/late; no new helper after failure')
+        settle_observation_error(True)
+        markers_clear('POST_TARGET')
+        # New controller metadata only; no history/source/original ledger reopen.
+        accounting = read_new(ACCOUNTING,4194304)
+        metadata = json.loads(accounting,parse_float=Decimal,
+            parse_constant=lambda text: (_ for _ in ()).throw(ValueError('nonfinite controller metadata')))
+        need(metadata.get('schema') == 'fresh-composed-controller-observation-v1' and
+             metadata.get('all_costs_settled') is False,'exact source-bound controller observation')
+        diagnostic = {'schema':'fresh-composed-capture-retained-diagnostic-v1','name':NAME,
+            'candidate_document_sha256':cfg['candidate_document_sha256'],'native_target_returncode':target[3],
+            'target_wait_returned':target[3] is not None,'capture_local_start_ns':START[0],
+            'target_local_observed_ns':time.monotonic_ns(),'body_reservation_ns':cfg['body_reservation_ns'],
+            'administrative_policy':ADMIN_POLICY,'administrative_debit_ns':ADMIN_DEBIT_NS,
+            'nested_windows_additive':False,'whole_outer_body_elapsed_ns':None,
+            'physical_final_publication':'OPEN_NOT_ZERO','all_costs_settled':False}
+        os.mkdir(RETAINED,0o700)
+        pins = {}
+        for name,raw in zip(('CONTROLLER.json','CAPTURE-DIAGNOSTIC.json','TARGET-STDOUT.raw','TARGET-STDERR.raw'),
+                            (accounting,canonical(diagnostic),out,err)):
+            p = publish(RETAINED+'/'+name,raw)
+            pins[name] = {'bytes':p['bytes'],'sha256':p['sha256']}
+        fee_caps = [fresh(CAPTURE+'/FEE.stdout'),fresh(CAPTURE+'/FEE.stderr')]
+        fee_argv = ['/usr/bin/python3.12','-S','-s','-P','-B','-c',fee_source,
+            '--retained',RETAINED,'--input-pins',canonical(pins).decode('ascii').strip(),
+            '--invocation',NAME,'--command-admission-sha256',grant_sha]
+        remaining_ns = cfg['body_reservation_ns']-(time.monotonic_ns()-outer_begin_ns)
+        need(remaining_ns > cfg['cleanup_reservation_ns'],'fee denied when actual remaining local reserve exhausted')
+        fee = invoke(fee_argv,fee_caps,(remaining_ns-cfg['cleanup_reservation_ns'])/NS)
+        fee_outputs = [seal_capture(s,2097152)[1] for s in fee_caps]
+        sync_parent(CAPTURE+'/FEE.stdout')
+        need(fee[3] == 0 and fee[4] is False,'fee helper failure/overrun remains debt')
+        settle_observation_error(True)
+        candidate = read_new(RETAINED+'/PROVISIONAL-RETAINED.json',65536)
+        candidate_pin = {'bytes':len(candidate),'sha256':hashlib.sha256(candidate).hexdigest()}
+        need(F.decode(candidate).get('schema') == 'fresh-composed-provisional-retained-DATA-v1',
+             'only provisional DATA, no body receipt/CLOSE generated by nested fee')
+        event({'phase':'CAPTURE_AND_RETAINED_DATA_READY','candidate_pin':candidate_pin,
+            'fee_captures':fee_outputs,'one_enclosing_outer_body_not_additive':True,'all_costs_settled':False})
+        status = 'CAPTURE_AND_RETAINED_DATA_READY'
+    except BaseException as error:
+        remember(error)
+        settle_observation_error(False)
+        try:
+            event({'phase':'CAPTURE_QUARANTINED','first_type':type(FIRST[0]).__name__,
+                'unknown_IO_or_wait':UNKNOWN[0] or PENDING[0],
+                'actual_remaining_descendant_state':'UNRESOLVED_UNLESS_REAL_EXTERNAL_TEARDOWN',
+                'future_operation_blocked':True,'no_automatic_retry':True,'all_costs_settled':False,
+                **partial_clock_observation('CAPTURE_QUARANTINED')})
+        except BaseException as secondary:
+            remember(secondary)
+    finally:
+        # All known capture descriptors are attempted before the local endpoint.
+        for s in SLOTS:
+            close(s)
+        try:
+            usage_after = (resource.getrusage(resource.RUSAGE_SELF),resource.getrusage(resource.RUSAGE_CHILDREN))
+        except BaseException as secondary:
+            remember(secondary)
+        try:
+            end_ns = time.monotonic_ns()
+            need(type(end_ns) is int and end_ns >= START[0],'genuine local capture endpoints')
+        except BaseException as secondary:
+            remember(secondary)
+    if FIRST[0] is not None or UNKNOWN[0] or PENDING[0]:
+        status = 'STOP'
+    record = {'schema':'fresh-composed-capture-terminal-v1','body_status':status,
+        'capture_local_begin_ns':START[0],'capture_local_end_after_cleanup_ns':end_ns,
+        'actual_outer_START_from_original_manual_pin_ns':outer_begin_ns,
+        'capture_local_elapsed_ns':end_ns-START[0] if type(end_ns) is int and end_ns >= START[0] else None,
+        'one_enclosing_outer_body_not_additive':True,'complete_outer_body_observed_here':False,
+        'local_SELF_and_reaped_CHILDREN_rusage_before_after': [
+            [[u.ru_utime,u.ru_stime,u.ru_maxrss] for u in values] if values is not None else None
+            for values in (usage_before,usage_after)],
+        'rusage_is_not_whole_forest_CPU_or_simultaneous_RSS':True,
+        'native_waits_all_returned':bool(CHILDREN) and all(r[0] is not None and not r[1] and
+            type(r[3]) is int and r[0].returncode == r[3] for r in CHILDREN),
+        'native_waits_do_not_prove_full_descendant_disposal':True,
+        'unknown_IO_or_wait':UNKNOWN[0] or PENDING[0],
+        'first_error_present':FIRST[0] is not None,'candidate_pin':candidate_pin,
+        'physical_final_publication':'OPEN_NOT_ZERO','all_costs_settled':False,
+        'whole_body_receipt_or_CLOSE_created':False,'gain':False}
+    # This inner record/readback/close/exit is INSIDE the actual outer owner wait,
+    # never a second administrative debit or a fabricated outer final endpoint.
+    try:
+        need(stdout_valid,'no diagnostic write without actual inherited capture validation')
+        raw = canonical(record)
+        offset = 0
+        while offset < len(raw):
+            written = os.write(1,raw[offset:])
+            need(type(written) is int and 0 < written <= len(raw)-offset,'inherited outer capture progress')
+            offset += written
+        os.fsync(1)
+    except BaseException as secondary:
+        remember(secondary)
+    if GUARDIAN[0] is not None and status == 'CAPTURE_AND_RETAINED_DATA_READY' and FIRST[0] is None and not UNKNOWN[0]:
+        try:
+            GUARDIAN[0].phase(9,flags=2,start_ns=os.getpid())
+        except BaseException as error:
+            remember(error)
+    return 0 if status == 'CAPTURE_AND_RETAINED_DATA_READY' and FIRST[0] is None and not UNKNOWN[0] else 78
+
+
+
+
+
+
+def main():
+    p = argparse.ArgumentParser(allow_abbrev=False)
+    p.add_argument('--source-sha256',required=True)
+    p.add_argument('--grant-sha256',required=True)
+    p.add_argument('--before-json',required=True)
+    a = p.parse_args()
+    need(len(a.before_json) <= 4096,'BEFORE argument cap')
+    return run(digest(a.source_sha256), digest(a.grant_sha256), json.loads(a.before_json))
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,0 +1,307 @@
+"""Bounded actual exception custody for one fixed retention operation.
+
+Raw in-process references are authoritative. Export is bounded observation DATA,
+not cross-process identity. Allocation/unwind before a handler is entered is an
+explicit interpreter premise, never a universal allocation-success theorem.
+Adapted ordering: PR6339 608ad23a / PR6346 abff67b3; V2 raw-reference API.
+"""
+import json
+import os
+from plain_boundary import need, plain_copy, fd_number
+_MAX_CUSTODIES = 64
+_DEFAULT_CAPACITY = 512
+_LIVE = []
+_EXPORTED_BYTES = 0
+_EXPORT_CAP = 2097152
+_REVIEWED_SOURCE_TYPES = ()
+_TYPE_MRO_DESCRIPTOR = type.__dict__["__mro__"]
+
+class CustodySaturated(RuntimeError):
+    pass
+
+class RawSlot:
+    __slots__ = ('actual', 'traceback', 'kind', 'occupied', 'sequence', 'raw_sequence')
+
+    def __init__(self):
+        self.actual = None
+        self.traceback = None
+        self.kind = ''
+        self.occupied = False
+        self.sequence = 0
+        self.raw_sequence = 0
+
+class Custody:
+    __slots__ = ('slots', 'used', 'reserved', 'primary', 'primary_tb', 'export_fd', 'export_failed', 'export_failure_tb', 'retention_failure', 'retention_tb', 'serial', 'incomplete', 'saturation', 'saturation_slot', 'ordered', 'ordered_used', 'projection_fault', 'raw_slots', 'raw_used', 'raw_overflow', 'raw_bookkeeping_failure', 'journal_failure', 'journal_state')
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError('custody is source-owned')
+
+    @property
+    def events(self):
+        return tuple((self.ordered[index] for index in range(self.ordered_used)))
+
+    @property
+    def secondaries(self):
+        return tuple((row.actual for row in self.events if row.actual is not self.primary))
+
+def new_custody(export_fd=None, capacity=_DEFAULT_CAPACITY):
+    if export_fd is not None:
+        fd_number(export_fd)
+    need(type(capacity) is int and 16 <= capacity <= 4096, 'bounded custody capacity')
+    need(len(_LIVE) < _MAX_CUSTODIES, 'custody lifetime cap')
+    value = object.__new__(Custody)
+    value.slots = [RawSlot() for _ in range(capacity)]
+    value.used = value.reserved = 0
+    value.ordered = [None] * (capacity + 512)
+    value.ordered_used = 0
+    value.raw_slots = [None] * (capacity + 512)
+    value.raw_used = 0
+    value.raw_overflow = None
+    value.raw_bookkeeping_failure = RawSlot()
+    value.raw_bookkeeping_failure.kind = "RAW_HOLD_FAILURE"
+    value.journal_failure = RawSlot()
+    value.journal_failure.kind = "OPTIONAL_RECORD_FAILURE"
+    value.journal_state = "OPEN"
+    value.primary = value.primary_tb = None
+    value.export_fd = export_fd
+    value.export_failed = value.export_failure_tb = value.retention_failure = value.retention_tb = None
+    value.serial = len(_LIVE) + 1
+    value.incomplete = False
+    value.saturation = CustodySaturated('raw custody saturated; terminal incomplete')
+    value.saturation_slot = RawSlot()
+    value.saturation_slot.kind = "EXPORT_FAILURE"
+    value.projection_fault = RawSlot()
+    value.projection_fault.kind = "PROJECTION_FAILURE"
+    _LIVE.append(value)
+    return value
+
+def owned(value):
+    need(type(value) is Custody and any((value is item for item in _LIVE)), 'unowned custody')
+    return value
+
+def reserve(value, kind):
+    """Reserve before a fallible effect; caller assigns actual+tb in its except."""
+    value = owned(value)
+    need(type(kind) is str and len(kind) <= 128, 'custody exact kind')
+    for index, slot in enumerate(value.slots):
+        if not slot.occupied and slot.kind == '':
+            slot.kind = kind
+            value.used = max(value.used, index + 1)
+            value.reserved += 1
+            return slot
+    value.incomplete = True
+    value.journal_state = 'SATURATED'
+    raise value.saturation
+
+def release(value, slot):
+    """Release only an unused reservation, never an occupied raw reference."""
+    if not slot.occupied:
+        slot.kind = ''
+    while value.used and (not value.slots[value.used - 1].occupied) and (value.slots[value.used - 1].kind == ''):
+        value.used -= 1
+
+def _is_exception(actual):
+    """Use the native actual-type MRO; never consult DATA.__class__."""
+    return any(base is BaseException for base in _TYPE_MRO_DESCRIPTOR.__get__(type(actual), type))
+
+
+def _hold_slot(value, slot):
+    """Retain designated raw references before any optional ordered journal.
+
+    The fixed table is independent of journal append success. Full capacity or
+    a delivered bookkeeping failure is explicit incomplete custody, never PASS.
+    No unlimited error/allocator guarantee is asserted.
+    """
+    if slot.raw_sequence:
+        return True
+    if value.raw_bookkeeping_failure.occupied:
+        if value.raw_overflow is None:
+            value.raw_overflow = slot
+        value.incomplete = True
+        return False
+    try:
+        if value.raw_used == len(value.raw_slots):
+            if value.raw_overflow is None:
+                value.raw_overflow = slot
+            value.incomplete = True
+            value.journal_state = 'SATURATED'
+            return False
+        value.raw_slots[value.raw_used] = slot
+        value.raw_used += 1
+        slot.raw_sequence = value.raw_used
+    except BaseException as error:
+        value.raw_bookkeeping_failure.actual = error
+        value.raw_bookkeeping_failure.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        value.raw_bookkeeping_failure.occupied = True
+        if value.primary is None:
+            value.primary = error
+            value.primary_tb = value.raw_bookkeeping_failure.traceback
+        value.incomplete = True
+        value.journal_state = 'FAILED'
+        return False
+    return True
+
+
+def _journal_available(value):
+    return (value.journal_state == 'OPEN' and value.retention_failure is None
+            and not value.incomplete)
+
+
+def _optional_record(value, slot):
+    # Even a disabled journal must not drop this designated strong raw slot.
+    _hold_slot(value, slot)
+    if not _journal_available(value):
+        return False
+    try:
+        record(value, slot)
+    except BaseException as error:
+        # This branch is entered at most once: the failed journal is disabled
+        # before any later operation can ask it to record another observation.
+        value.journal_failure.actual = error
+        value.journal_failure.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        value.journal_failure.occupied = True
+        if value.primary is None:
+            value.primary = error
+            value.primary_tb = value.journal_failure.traceback
+        if value.retention_failure is None:
+            value.retention_failure = error
+            value.retention_tb = value.journal_failure.traceback
+        value.journal_state = 'FAILED'
+        value.incomplete = True
+        _hold_slot(value, value.journal_failure)
+        return False
+    return _journal_available(value)
+
+
+def commit(value, slot, primary=False):
+    """Actual+traceback occupy the designated slot before optional journal."""
+    value = owned(value)
+    slot.occupied = True
+    if value.primary is None:
+        value.primary = slot.actual
+        value.primary_tb = slot.traceback
+    _optional_record(value, slot)
+    return slot
+
+
+def record(value, slot):
+    """Journal one caught observation: object AND existing traceback identity.
+
+    Repeated lexical/designated capture of one observation shares its journal
+    ordinal. Re-raising the same object with a different traceback is a distinct
+    observation. All designated raw slots retain their own capture ordinals;
+    per-FD native-close ordinals remain independently owned by native_io_custody.
+    """
+    _hold_slot(value, slot)
+    if not _journal_available(value) or slot.sequence:
+        return False
+    if _is_exception(slot.actual):
+        for index in range(value.ordered_used):
+            previous = value.ordered[index]
+            if previous.actual is slot.actual and previous.traceback is slot.traceback:
+                slot.sequence = previous.sequence
+                return True
+    if value.ordered_used == len(value.ordered):
+        value.incomplete = True
+        value.journal_state = 'SATURATED'
+        return False
+    value.ordered[value.ordered_used] = slot
+    value.ordered_used += 1
+    slot.sequence = value.ordered_used
+    return True
+
+
+def retain(value, kind, actual, primary=False):
+    value = owned(value)
+    slot = reserve(value, kind)
+    slot.actual = actual
+    slot.traceback = BaseException.__traceback__.__get__(actual, BaseException) if _is_exception(actual) else None
+    slot.occupied = True
+    if primary and value.primary is None:
+        value.primary = actual
+        value.primary_tb = slot.traceback
+    _optional_record(value, slot)
+    return slot
+
+
+def error_data(error, custody=None):
+    return dict(actual_id=id(error), actual_type_id=id(type(error)), foreign_exception_unformatted=True, child_local_identity_only=True)
+
+def snapshot(value):
+    value = owned(value)
+    rows = []
+    for row in value.events:
+        projected = dict(kind=row.kind, sequence=row.sequence, actual_id=id(row.actual), traceback_id=None if row.traceback is None else id(row.traceback))
+        if ('RETURN' in row.kind or 'NATIVE' in row.kind) and not value.projection_fault.occupied:
+            try:
+                projected['native_observation'] = plain_copy(row.actual, max_nodes=4096, max_depth=16, max_text=65536)
+            except BaseException as error:
+                if not value.projection_fault.occupied:
+                    value.projection_fault.actual = error
+                    value.projection_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+                    value.projection_fault.occupied = True
+                    commit(value, value.projection_fault)
+                value.incomplete = True
+                projected['projection_unavailable'] = True
+        rows.append(projected)
+    raw_rows = [dict(kind=slot.kind, raw_sequence=slot.raw_sequence,
+                     observation_sequence=slot.sequence, actual_id=id(slot.actual),
+                     traceback_id=None if slot.traceback is None else id(slot.traceback))
+                for slot in value.raw_slots[:value.raw_used]]
+    return dict(schema='h25-actual-error-custody-v5', serial=value.serial,
+                primary_id=None if value.primary is None else id(value.primary),
+                primary_traceback_id=None if value.primary_tb is None else id(value.primary_tb),
+                events=rows, raw_observations=raw_rows,
+                journal_state=value.journal_state,
+                retention_failure_id=None if value.retention_failure is None else id(value.retention_failure),
+                retention_traceback_id=None if value.retention_tb is None else id(value.retention_tb),
+                raw_capacity_exhausted=value.raw_overflow is not None,
+                raw_bookkeeping_failed=value.raw_bookkeeping_failure.occupied,
+                strong_references_retained=True,
+                all_designated_raw_slots_retained=value.raw_overflow is None and not value.raw_bookkeeping_failure.occupied,
+                incomplete=value.incomplete,
+                capacity=len(value.slots), reserved=value.reserved,
+                export_failed=value.export_failed is not None, identity_scope='SAME_PROCESS_ONLY',
+                ledger_semantics='same actual+same traceback is one caught observation; raw capture and FD ordinals remain separate')
+
+
+def export(value):
+    """Optional journal after designated raw slots; export failure refuses PASS."""
+    global _EXPORTED_BYTES
+    value = owned(value)
+    if value.export_failed is not None:
+        value.incomplete = True
+        return False
+    slot = value.saturation_slot
+    try:
+        raw = (json.dumps(snapshot(value), sort_keys=True, separators=(',', ':')) + '\n').encode('ascii')
+        need(len(raw) <= 1048576 and _EXPORTED_BYTES + len(raw) <= _EXPORT_CAP, 'custody RAW byte cap')
+        fd = 2 if value.export_fd is None else fd_number(value.export_fd)
+        view = memoryview(raw)
+        while view:
+            count = os.write(fd, view)
+            need(type(count) is int and 0 < count <= len(view), 'custody RAW progress')
+            _EXPORTED_BYTES += count
+            view = view[count:]
+    except BaseException as error:
+        value.export_failed = error
+        value.export_failure_tb = BaseException.__traceback__.__get__(error, BaseException)
+        slot.actual = error
+        slot.traceback = value.export_failure_tb
+        slot.occupied = True
+        if value.primary is None:
+            value.primary = error
+            value.primary_tb = value.export_failure_tb
+        # If Q already disabled recording, this call only holds X in the raw
+        # table; record() is not invoked and no hypothetical R is fabricated.
+        # A healthy journal may make one attempt; its first failure is retained.
+        _optional_record(value, slot)
+        value.incomplete = True
+        return False
+    return not value.incomplete
+
+def raise_primary(value):
+    value = owned(value)
+    if value.primary is not None:
+        raise BaseException.with_traceback(value.primary, value.primary_tb)
+    need(not value.incomplete, 'custody incomplete')

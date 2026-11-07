@@ -1,0 +1,7 @@
+# Native dispatch source controls — unexecuted
+
+`dispatch_control.c` includes the actual entry source and redirects only `syscall` and `close` to fixed mocks. It exercises the real `create_private_binfmt_dispatch`, reservation/acquisition registry, once-close transitions and error custody. It does not reproduce the owner as a separate policy implementation.
+
+Cases cover successful one acquisition/create/close; prohibited second invocation; failed fsopen with no create/close; raw CREATE failure; publication followed by CREATE failure and an uncertain close; successful CREATE with failed close; ordering violations; and FD-capacity exhaustion before syscall. The close mock checks RETIRED before the call and actual create errno already captured before a secondary close error. A later close_all must not retry an uncertain descriptor. The partial-publication mock deliberately keeps publication present when the syscall fails, so the native success flag cannot be interpreted as proof of absence.
+
+These are authored controls only. **No control, compiler, native executable, namespace, mount, filesystem context, host registration or kernel probe has run.** Compilation or execution requires independent source GO followed by explicit parent guarded admission under the unchanged budget. A passing mocked control would establish only these source-state/error transitions; Linux callback/lifetime semantics, built-in registry association, finite original exec/CORE/LSM/topology compatibility and whole S10.03 remain separate obligations.

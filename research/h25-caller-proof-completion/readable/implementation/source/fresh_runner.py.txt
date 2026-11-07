@@ -1,0 +1,977 @@
+#!/usr/bin/env python3
+"""Parent-only immutable-stage runner; explicit clean no-site launch, fixed hash seed."""
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+from contextlib import contextmanager
+from types import ModuleType
+
+HERE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028')
+
+STAGE_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z/implementation/bindings/stages')
+CONFIG_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z/implementation/bindings/control')
+NESTED_BASE = HERE / 'runtime/fresh-metered-round-v1/nested-runs'
+TIMEOUT = 180
+RSS_CAP = 1024 ** 3
+OUTPUT_CAP = 2 * 1024 ** 2
+TOTAL_CAP = 2400
+LOG_CHUNK_BYTES = 64 * 1024
+USAGE_METADATA_CAP = 16 * 1024
+
+# This is a trusted parent launch contract, not Python self-authentication or -I.
+# -P suppresses unsafe path insertion; -S/-s prevent site and user-site loading.
+# Unlike -I, this preserves the explicitly whitelisted fixed hash seed.
+LAUNCH_FLAGS = ('-S', '-s', '-P', '-B')
+LAUNCH_ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0',
+              'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'TZ': 'UTC',
+              'PYTHONDONTWRITEBYTECODE': '1'}
+
+
+def require_trusted_launch():
+    if not (sys.flags.no_site == 1 and sys.flags.no_user_site == 1 and
+            sys.flags.safe_path and sys.flags.dont_write_bytecode == 1 and
+            sys.flags.ignore_environment == 0 and sys.flags.isolated == 0 and
+            sys.flags.hash_randomization == 0):
+        raise ValueError('Explicit no-site/safe-path parent launch required')
+    if dict(os.environ) != LAUNCH_ENV:
+        raise ValueError('Exact clean parent environment required')
+    if sys.executable != '/usr/bin/python3.12':
+        raise ValueError('Absolute admitted interpreter required')
+    if tuple(sys.path) != ('/usr/lib/python312.zip', '/usr/lib/python3.12',
+                           '/usr/lib/python3.12/lib-dynload'):
+        raise ValueError('Unadmitted ordered initial Python search path')
+    return {'contract': 'trusted-clean-nosite-safe-path-fixedseed-v1',
+            'no_site': sys.flags.no_site, 'no_user_site': sys.flags.no_user_site,
+            'safe_path': bool(sys.flags.safe_path),
+            'ignore_environment': sys.flags.ignore_environment,
+            'isolated': sys.flags.isolated, 'hash_seed_environment': '0',
+            'hash_randomization': sys.flags.hash_randomization,
+            'initial_sys_path': list(sys.path), 'environment': dict(os.environ),
+            'trust_boundary': 'Authenticated parent launcher, OS, interpreter and system stdlib before this module; no Python self-authentication claim'}
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def inventory(stage):
+    rows = {}
+    for path in sorted(stage.rglob('*')):
+        if path.is_symlink():
+            raise ValueError('Symlink in immutable stage')
+        if path.is_file() and path.name != 'STAGE.json':
+            rows[str(path.relative_to(stage))] = {
+                'sha256': digest(path.read_bytes()),
+                'mode': path.stat().st_mode & 0o777,
+            }
+    return rows
+
+
+def group_rss(group):
+    total = 0
+    for path in Path('/proc').iterdir():
+        if not path.name.isdigit():
+            continue
+        try:
+            raw = (path / 'stat').read_text()
+            fields = raw[raw.rfind(')') + 2:].split()
+            if int(fields[2]) == group:
+                total += int(fields[21]) * os.sysconf('SC_PAGE_SIZE')
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            pass
+    return total
+
+
+def log_identity(value):
+    """Exclude atime: our own read may change it."""
+    return (value.st_dev, value.st_ino, value.st_mode, value.st_size,
+            value.st_mtime_ns, value.st_ctime_ns)
+
+
+
+def _raw_open(path, flags, role):
+    state=_WRITER_STATE
+    if len(state['fds'])>=64 or state['overflow'] is not None or any(r['state']=='UNKNOWN' for r in state['fds']):
+        raise RuntimeError('runner raw descriptor custody unavailable')
+    row={'role':role,'path':path,'object':None,'state':'PENDING','primary':None,'secondary':None,'close_attempted':False}
+    state['fds'].append(row)
+    try:
+        fd=os.open(path,flags)
+    except BaseException as error:
+        row['primary'],row['state']=error,'UNKNOWN'
+        _remember_runner(error)
+        raise
+    row['object'],row['state']=fd,'OWNED'
+    return row
+
+
+def _raw_close(row):
+    if row['state']!='OWNED':
+        raise RuntimeError('one known runner raw descriptor retirement')
+    fd,row['object'],row['state'],row['close_attempted']=row['object'],None,'CLOSING',True
+    try:
+        os.close(fd)
+    except BaseException as error:
+        row['secondary'],row['state']=error,'UNKNOWN'
+        _remember_runner(error)
+        raise
+    row['state']='CLOSED'
+
+
+def stream_log(path):
+    """Original bounded complete snapshot; safe known-FD error ordering."""
+    path_before=path.stat(follow_symlinks=False)
+    fd,primary,secondary,traceback=None,None,None,None
+    ticket=None
+    hasher,count=hashlib.sha256(),0
+    before=after=None
+    try:
+        ticket=_raw_open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC,'retained-log-hash')
+        fd=ticket['object']
+        before=os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError('Retained log must be a regular file')
+        while count<before.st_size:
+            block=os.read(fd,min(LOG_CHUNK_BYTES,before.st_size-count))
+            if not block:
+                break
+            hasher.update(block);count+=len(block)
+        after=os.fstat(fd)
+    except BaseException as error:
+        primary=error
+        traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+        _remember_runner(error)
+    finally:
+        if fd is not None:
+            closing_fd,fd=fd,None
+            try:
+                _raw_close(ticket)
+            except BaseException as error:
+                secondary=error
+                _remember_runner(error)
+                _WRITER_STATE['overflow']=error
+    if primary is not None:
+        raise BaseException.with_traceback(primary,traceback)
+    if secondary is not None:
+        raise secondary
+    path_after=path.stat(follow_symlinks=False)
+    stable=(log_identity(path_before)==log_identity(before)==log_identity(after)==log_identity(path_after) and count==before.st_size)
+    return {'sha256':hasher.hexdigest(),'bytes':count,'snapshot_bytes':before.st_size,
+            'final_bytes':path_after.st_size,'stable':stable}
+
+
+def finalize_logs(folder, stop):
+    """Check sizes before any log read, stream complete stable evidence, recheck."""
+    paths = [folder / 'stdout.txt', folder / 'stderr.txt']
+    before = [path.stat(follow_symlinks=False) for path in paths]
+    cap_seen = 'process_monitor' if stop == 'output_cap' else None
+    if max(value.st_size for value in before) > OUTPUT_CAP:
+        stop = stop or 'output_cap'
+        cap_seen = cap_seen or 'before_stream_hash'
+    records = [stream_log(path) for path in paths]
+    final = [path.stat(follow_symlinks=False) for path in paths]
+    if max(value.st_size for value in final) > OUTPUT_CAP:
+        stop = stop or 'output_cap'
+        cap_seen = cap_seen or 'after_stream_hash'
+    for initial, record, ending in zip(before, records, final):
+        record['final_bytes'] = ending.st_size
+        record['stable'] = (record['stable'] and
+                            log_identity(initial) == log_identity(ending) and
+                            record['bytes'] == ending.st_size)
+    if not all(record['stable'] for record in records):
+        stop = stop or 'output_changed_during_hash'
+    return records[0], records[1], stop, cap_seen
+
+
+def read_usage(path):
+    """The time tool's small diagnostic must not reintroduce an unbounded read."""
+    if not path.exists():
+        return None, False
+    size = path.stat().st_size
+    if size > USAGE_METADATA_CAP:
+        return {'raw_omitted': True, 'bytes': size}, True
+    with _owned_stream(path,'rb') as stream:
+        raw = stream.read(USAGE_METADATA_CAP + 1)
+    if len(raw) > USAGE_METADATA_CAP or path.stat().st_size > USAGE_METADATA_CAP:
+        return {'raw_omitted': True, 'bytes': path.stat().st_size}, True
+    try:
+        return json.loads(raw), False
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {'raw': raw.decode('utf-8', errors='replace')}, False
+
+
+def nested_plain(value, depth=0):
+    if depth > 16:
+        raise ValueError('nested intent depth')
+    kind = type(value)
+    if kind is dict:
+        if len(value) > 64:
+            raise ValueError('nested intent object cap')
+        for key,item in value.items():
+            if type(key) is not str or len(key) > 128:
+                raise ValueError('nested intent exact string key')
+            nested_plain(item,depth+1)
+    elif kind is list:
+        if len(value) > 128:
+            raise ValueError('nested intent list cap')
+        for item in value:
+            nested_plain(item,depth+1)
+    elif kind is str:
+        if len(value) > 2048:
+            raise ValueError('nested intent string cap')
+    elif kind is int:
+        if not 0 <= value <= 9223372036854775807:
+            raise ValueError('nested intent integer bound')
+    elif value is not None and kind is not bool:
+        raise ValueError('nested intent exact builtin DATA')
+
+
+def nested_label(value):
+    if (type(value) is not str or not 1 <= len(value) <= 64 or
+            any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value)):
+        raise ValueError('nested simple label')
+    return value
+
+
+
+def validate_completed_layout(value):
+    fields = {'source_root','case_container','runner_root','artifact_parent','science_root','external_root','intent_path','attempt_identity'}
+    if type(value) is not dict or set(value) != fields or any(type(value[k]) is not str for k in fields):
+        raise ValueError('exact complete prospective layout DATA')
+    source = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z/runtime/completed-source/IndependentPrefixDATAComposedV1')
+    case = source / value['case_container'].split('/')[-1]
+    if case.name not in ('IndependentPrefixDATAComposedV1N','IndependentPrefixDATAComposedV1O'):
+        raise ValueError('fixed completed source label')
+    expected = {'source_root':str(source),'case_container':str(case),'runner_root':str(case/'runner'),
+                'artifact_parent':str(case/'runner/artifact'),'science_root':str(case/'runner/artifact/science'),'external_root':str(case/'serialized-DATA'),
+                'intent_path':str(case/'intent/INTENT.json'),'attempt_identity':value['attempt_identity']}
+    if value != expected or not 0 < len(value['attempt_identity']) <= 256:
+        raise ValueError('complete prospective path inverse')
+    return value
+
+def validate_nested_intent(value):
+    nested_plain(value)
+    keys = {'schema','round_id','outer_label','stage','job','label','stage_sha256','runner_sha256',
+            'parent_pid','parent_start_ticks','whole_body_begin_ns','whole_body_deadline_ns',
+            'body_reservation_ns','nested_allowance_ns','validation_allowance_ns','cleanup_allowance_ns',
+            'active_binding','native_capability','execution_permission','completed_layout',
+            'relay_pin','full_receiver_pin','native_entry_profile','association_record'}
+    if type(value) is not dict or set(value) != keys:
+        raise ValueError('exact nested intent schema')
+    if (value['schema'] != 'fresh-active-nested-runner-intent-v2' or
+            value['round_id'] != 'fresh-metered-round-v1' or
+            value['native_capability'] is not False or value['execution_permission'] is not False):
+        raise ValueError('nested intent is DATA only')
+    for key in ('outer_label','stage','job','label'):
+        nested_label(value[key])
+    for key in ('stage_sha256','runner_sha256'):
+        sha = value[key]
+        if type(sha) is not str or len(sha) != 64 or any(c not in '0123456789abcdef' for c in sha):
+            raise ValueError('nested source digest')
+    for key in ('parent_pid','parent_start_ticks','whole_body_begin_ns','whole_body_deadline_ns',
+                'body_reservation_ns','nested_allowance_ns','validation_allowance_ns','cleanup_allowance_ns'):
+        if type(value[key]) is not int or value[key] < 0:
+            raise ValueError('nested exact nonnegative integer')
+    if (value['parent_pid'] == 0 or not 0 < value['body_reservation_ns'] <= 180000000000 or
+            not 0 < value['nested_allowance_ns'] <= 180000000000 or
+            value['validation_allowance_ns'] <= 0 or value['cleanup_allowance_ns'] < 2000000000 or
+            value['whole_body_deadline_ns']-value['whole_body_begin_ns'] != value['body_reservation_ns'] or
+            value['nested_allowance_ns']+value['validation_allowance_ns']+value['cleanup_allowance_ns'] > value['body_reservation_ns']):
+        raise ValueError('nested whole-body necessary allowance')
+    binding = value['active_binding']
+    if (type(binding) is not dict or binding.get('schema') != 'fresh-active-current-binding-v1' or
+            set(binding) != {'schema','request','start','start_pin','head_pin','baseline_registry_pin',
+                            'native_capability','execution_permission'} or
+            binding['native_capability'] is not False or binding['execution_permission'] is not False):
+        raise ValueError('exact source-private current binding observation')
+    request, start = binding['request'], binding['start']
+    if (type(request) is not dict or type(start) is not dict or
+            request.get('label') != value['outer_label'] or start.get('label') != value['outer_label'] or
+            type(request.get('body_reservation_ns')) is not int or
+            request['body_reservation_ns'] != value['body_reservation_ns'] or
+            start.get('command_sha256') != request.get('command_sha256') or
+            start.get('body_reservation_ns') != request['body_reservation_ns']):
+        raise ValueError('nested current reservation DATA correlation')
+    validate_joined_inputs(value)
+    validate_completed_layout(value['completed_layout'])
+    if Path(value['completed_layout']['case_container']).name != value['label']:
+        raise ValueError('intent case identity inverse')
+    return value
+
+
+def read_nested_intent(path, size, sha):
+    path = Path(path)
+    if (not path.is_absolute() or path.resolve(strict=True) != path or type(size) is not int or
+            not 0 < size <= 16384 or type(sha) is not str or len(sha) != 64 or
+            any(c not in '0123456789abcdef' for c in sha)):
+        raise ValueError('canonical exact bounded nested intent')
+    before = path.lstat()
+    if (not stat.S_ISREG(before.st_mode) or stat.S_IMODE(before.st_mode) != 0o444 or
+            before.st_uid != os.getuid() or before.st_nlink != 1 or before.st_size != size):
+        raise ValueError('nested intent current-owner single-link0444')
+    fd, primary, secondary, raw = None,None,None,None
+    ticket=None
+    def full_identity(st):
+        return (st.st_dev,st.st_ino,st.st_mode,st.st_uid,st.st_nlink,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+    try:
+        ticket=_raw_open(path,os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,'nested-intent-read')
+        fd=ticket['object']
+        if full_identity(os.fstat(fd)) != full_identity(before):
+            raise ValueError('opened nested intent identity')
+        blocks, count = [],0
+        while True:
+            block = os.read(fd,min(65536,size+1-count))
+            if not block:
+                break
+            blocks.append(block); count += len(block)
+            if count > size:
+                raise ValueError('nested intent read cap')
+        raw = b''.join(blocks)
+        if (count != size or digest(raw) != sha or full_identity(os.fstat(fd)) != full_identity(before) or
+                full_identity(path.lstat()) != full_identity(before)):
+            raise ValueError('nested intent stable exact bytes')
+    except BaseException as error:
+        primary = error
+        _remember_runner(error)
+    finally:
+        if fd is not None:
+            try:
+                _raw_close(ticket)
+            except BaseException as error:
+                secondary = error
+                _remember_runner(error)
+                _WRITER_STATE['overflow']=error
+    if primary is not None:
+        raise primary
+    if secondary is not None:
+        raise secondary
+    def pairs(rows):
+        value = {}
+        for key,item in rows:
+            if key in value:
+                raise ValueError('duplicate nested intent key')
+            value[key] = item
+        return value
+    def no_float(unused):
+        raise ValueError('nested intent float/nonfinite forbidden')
+    value = validate_nested_intent(json.loads(raw.decode('ascii'),object_pairs_hook=pairs,
+                                             parse_float=no_float,parse_constant=no_float))
+    expected = Path(value['completed_layout']['intent_path'])
+    if path != expected:
+        raise ValueError('fixed active nested intent namespace')
+    parent = os.getppid()
+    with open('/proc/'+str(parent)+'/stat','rb') as stream:
+        info = stream.read(8193)
+    end = info.rfind(b') ')
+    if (len(info) > 8192 or end < 0 or parent != value['parent_pid'] or
+            int(info[end+2:].split()[19]) != value['parent_start_ticks']):
+        raise ValueError('actual parent generation differs from source intent')
+    return value,raw
+
+
+
+SOURCE_BASE = Path(__file__).absolute().parent
+
+
+def canonical_digest(value):
+    return digest((json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('ascii'))
+
+
+def validate_joined_inputs(intent):
+    for key, leaf in (('relay_pin','bounded_relay.py'),('full_receiver_pin','full_result_receiver.py')):
+        pin = intent[key]
+        if (type(pin) is not dict or set(pin) != {'path','bytes','sha256','mode'} or
+                pin['path'] != str(SOURCE_BASE/leaf) or pin['mode'] != 0o444 or
+                type(pin['bytes']) is not int or not 0 < pin['bytes'] <= 262144 or
+                type(pin['sha256']) is not str or len(pin['sha256']) != 64 or
+                any(c not in '0123456789abcdef' for c in pin['sha256'])):
+            raise ValueError('exact genuine-parent joined source pin')
+    profile = intent['native_entry_profile']
+    keys = {'schema','entry_path','entry_sha256','entry_bytes','time_path','time_sha256',
+            'time_bytes','source_sha256','association_sha256'}
+    if (type(profile) is not dict or set(profile) != keys or
+            profile['schema'] != 'joined-native-entry-profile-v1' or profile['time_path'] != '/usr/bin/time' or
+            type(profile['entry_path']) is not str or not Path(profile['entry_path']).is_absolute()):
+        raise ValueError('exact parent-associated native entry profile')
+    for key in ('entry_sha256','time_sha256','source_sha256','association_sha256'):
+        if (type(profile[key]) is not str or len(profile[key]) != 64 or
+                any(c not in '0123456789abcdef' for c in profile[key])):
+            raise ValueError('exact parent native source/image/association digest')
+    for key in ('entry_bytes','time_bytes'):
+        if type(profile[key]) is not int or not 0 < profile[key] <= 16777216:
+            raise ValueError('bounded exact parent native image length')
+    record=intent['association_record']
+    if (type(record) is not dict or record.get('case_id')!=intent['label'] or
+            record.get('parent_pid')!=intent['parent_pid'] or
+            record.get('association_sha256')!=profile['association_sha256']):
+        raise ValueError('actual parent/case association record correlation')
+    unsigned=dict(record);unsigned.pop('association_sha256')
+    if canonical_digest(unsigned)!=profile['association_sha256']:
+        raise ValueError('exact source-bound association record digest')
+
+
+
+def read_pinned(path, size, sha, mode=None):
+    before = path.lstat()
+    if (path.resolve(strict=True) != path or not stat.S_ISREG(before.st_mode) or
+            before.st_uid not in (0,os.getuid()) or before.st_nlink != 1 or before.st_size != size or
+            (mode is not None and stat.S_IMODE(before.st_mode) != mode)):
+        raise ValueError('canonical selected current-owner native/source inode')
+    with _owned_stream(path,'rb') as stream:
+        if log_identity(os.fstat(stream.fileno())) != log_identity(before):
+            raise ValueError('opened joined source/image identity')
+        raw = stream.read(size+1)
+        if (len(raw) != size or digest(raw) != sha or
+                log_identity(os.fstat(stream.fileno())) != log_identity(before) or
+                log_identity(path.lstat()) != log_identity(before)):
+            raise ValueError('complete stable selected source/native bytes')
+    return raw
+
+
+def load_joined(pin):
+    path = Path(pin['path'])
+    raw = read_pinned(path,pin['bytes'],pin['sha256'],0o444)
+    module = ModuleType('_joined_'+path.stem)
+    module.__file__ = str(path)
+    _WRITER_STATE['modules'].append(module)  # Actual owner before fallible compile/exec.
+    exec(compile(raw,str(path),'exec'),module.__dict__,module.__dict__)
+    return module
+
+
+def _proc_read(path):
+    """One pre-registered reusable read slot; only known-close permits reuse."""
+    row=_WRITER_STATE['proc_slot']
+    if row['state'] not in ('FREE','CLOSED','NOT_ENTERED'):
+        raise RuntimeError('proc census descriptor unknown; no retry')
+    row['path'],row['state']=path,'PENDING'
+    primary,secondary,traceback,raw=None,None,None,None
+    try:
+        try:
+            fd=os.open(path,os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK)
+        except (FileNotFoundError,ProcessLookupError):
+            row['state']='NOT_ENTERED'
+            return None
+        row['object'],row['state']=fd,'OWNED'
+        try:
+            raw=os.read(fd,8193)
+        except (FileNotFoundError,ProcessLookupError):
+            raw=None  # Disappeared proc generation; known descriptor still retires below.
+    except BaseException as error:
+        primary=error
+        traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+        row['primary']=error
+        if row['state']=='PENDING':
+            row['state']='UNKNOWN'
+        _remember_runner(error)
+    finally:
+        if row['state']=='OWNED':
+            try:
+                _raw_close(row)
+            except BaseException as error:
+                secondary=error
+                _remember_runner(error)
+    if primary is not None:
+        raise BaseException.with_traceback(primary,traceback)
+    if secondary is not None:
+        raise secondary
+    return raw
+
+
+def group_snapshot(group):
+    rows = []
+    for path in Path('/proc').iterdir():
+        if not path.name.isdigit():
+            continue
+        raw=_proc_read(path/'stat')
+        if raw is None:
+            continue
+        if len(raw) > 8192 or raw.rfind(b') ') < 0:
+            raise ValueError('bounded genuine group census')
+        fields = raw[raw.rfind(b') ')+2:].split()
+        if int(fields[2]) == group:
+            rows.append((int(path.name),int(fields[19]),int(fields[3]),fields[0].decode('ascii')))
+    return rows
+
+
+def native_entry_command(profile, timed, stage, artifact, usage_identity):
+    # Parent/profile association remains a separate genuine authenticated gate.
+    source=SOURCE_BASE.parent/'native/science_view_entry.c'
+    source_info=source.lstat()
+    if source_info.st_size>262144:
+        raise ValueError('bounded selected native entry source')
+    read_pinned(source,source_info.st_size,profile['source_sha256'],0o444)
+    read_pinned(Path(profile['entry_path']),profile['entry_bytes'],profile['entry_sha256'])
+    read_pinned(Path(profile['time_path']),profile['time_bytes'],profile['time_sha256'])
+    info = artifact.lstat()
+    if (artifact.resolve(strict=True) != artifact or not stat.S_ISDIR(info.st_mode) or
+            stat.S_IMODE(info.st_mode) != 0o700 or info.st_uid != os.getuid() or
+            list(artifact.iterdir()) or (artifact/'science').exists() or (artifact/'science').is_symlink()):
+        raise ValueError('actual owned empty artifact parent and absent science leaf')
+    return [profile['entry_path'],'--entry-image',profile['entry_path'],profile['entry_sha256'],str(profile['entry_bytes']),
+        '--time-image',profile['time_path'],profile['time_sha256'],str(profile['time_bytes']),
+        '--read-root',str(HERE),'--artifact-parent',str(artifact),str(info.st_dev),str(info.st_ino),
+        '--science-leaf','science','--usage',str(timed[4]),str(usage_identity[0]),str(usage_identity[1]),'--',*timed]
+
+
+def original_optimized_refusal(exit_code, stderr_raw, stdout_bytes,
+                               positive_receipt_present, stop_present, capture_complete):
+    """Original SC4 refusal after legitimate startup; native closure is separate.
+
+    The original startup creates science/initial-tcb-controls before the -O
+    guard. Only positive receipt/STOP/stdout defeat this negative disposition.
+    The unchanged outer owner still requires real waits, groups and retirement.
+    """
+    return (type(exit_code) is int and exit_code == 1 and
+            type(stderr_raw) is bytes and 0 < len(stderr_raw) <= 2097152 and
+            stderr_raw.startswith(b'Traceback (most recent call last):\n') and
+            b'_epoch_sc4_full_entry' in stderr_raw and
+            stderr_raw.endswith(b'RuntimeError: SC4 fixed assertion-on fresh candidate full invocation required\n') and
+            b'STOP evidence write failed:' not in stderr_raw and
+            type(stdout_bytes) is int and stdout_bytes == 0 and
+            positive_receipt_present is False and stop_present is False and
+            capture_complete is True)
+
+
+def main():
+    launch = require_trusted_launch()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('stage')
+    parser.add_argument('job')
+    parser.add_argument('label')
+    parser.add_argument('--intent',required=True)
+    parser.add_argument('--intent-bytes',required=True,type=int)
+    parser.add_argument('--intent-sha256',required=True)
+    args = parser.parse_args()
+    for value in (args.stage, args.job, args.label):
+        if not value or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value):
+            raise ValueError('Simple immutable stage/job/run names required')
+    intent,intent_raw = read_nested_intent(args.intent,args.intent_bytes,args.intent_sha256)
+    if (intent['stage'],intent['job'],intent['label']) != (args.stage,args.job,args.label):
+        raise ValueError('Exact nested stage/job/label declaration')
+    runner_start = time.monotonic()
+    runner_start_ns = time.monotonic_ns()
+    nested_deadline_ns = min(runner_start_ns+min(TIMEOUT*1000000000,intent['nested_allowance_ns']),
+                             intent['whole_body_deadline_ns']-intent['cleanup_allowance_ns']-intent['validation_allowance_ns'])
+    if nested_deadline_ns <= runner_start_ns:
+        raise ValueError('No nested allowance before local lock/body entry')
+    runner_usage_start = resource.getrusage(resource.RUSAGE_SELF)
+    (HERE / 'runtime').mkdir(exist_ok=True)
+    # A single parent owns this round; never wait behind another scientific run.
+    with _owned_stream(HERE / 'runtime/science.lock','a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        stage = STAGE_BASE / args.stage
+        stage_raw = (stage / 'STAGE.json').read_bytes()
+        declared = json.loads(stage_raw)
+        before = inventory(stage)
+        if before != declared['files']:
+            raise ValueError('Stage bytes/modes differ from declared closure')
+        jobs = json.loads((stage / 'JOBS.json').read_bytes())
+        job = jobs[args.job]
+        if digest(stage_raw) != intent['stage_sha256']:
+            raise ValueError('Stage differs from exact parent nested declaration')
+        runs = Path(intent['completed_layout']['case_container'])
+        if (runs.resolve(strict=True) != runs or not runs.is_dir() or
+                runs.lstat().st_uid != os.getuid() or stat.S_IMODE(runs.lstat().st_mode) != 0o700):
+            raise ValueError('Actual parent-created active nested namespace required')
+        if 'entry' in job:
+            entry = job['entry']
+            if (type(entry) is not str or entry != 'integration/predecessor_entry.py' or
+                    'bootstrap' in job or entry not in declared['files'] or
+                    (stage / entry).is_symlink() or
+                    (stage / entry).resolve() != stage.resolve() / entry):
+                raise ValueError('Entry must be the declared canonical predecessor file without bootstrap')
+        folder = Path(intent['completed_layout']['runner_root'])
+        folder.mkdir(mode=0o700)
+        _WRITER_STATE['folder'] = folder
+        runner_before = Path(__file__).read_bytes()
+        if digest(runner_before) != declared['runner_sha256']:
+            raise ValueError('Actual runner differs from frozen runner source')
+        fraction_path = Path('/usr/lib/python3.12/fractions.py')
+        fractions_before = fraction_path.read_bytes()
+        if digest(runner_before) != intent['runner_sha256']:
+            raise ValueError('Runner differs from exact parent source intent')
+        env = dict(LAUNCH_ENV)
+        relay_module = load_joined(intent['relay_pin'])
+        full_receiver = load_joined(intent['full_receiver_pin'])
+        if (declared.get('relay_sha256') != intent['relay_pin']['sha256'] or
+                declared.get('full_receiver_sha256') != intent['full_receiver_pin']['sha256'] or
+                declared.get('native_entry_source_sha256') != intent['native_entry_profile']['source_sha256'] or
+                declared.get('native_entry_profile_schema') != 'joined-native-entry-profile-v1'):
+            raise ValueError('complete stage/relay/receiver/native profile source inverse')
+        artifact = Path(intent['completed_layout']['artifact_parent'])
+        artifact.mkdir(mode=0o700)
+        command = full_receiver.command_for(stage,declared,args.job,job,Path(intent['completed_layout']['science_root']))
+        usage = folder / 'usage.json'
+        timed = ['/usr/bin/time', '-f', '{"user_seconds":%U,"system_seconds":%S,"kernel_max_rss_kib":%M,"exit":%x}', '-o', str(usage), '--', *command]
+        started = {'command': command, 'parent_launch': launch, 'stage_sha256': digest(stage_raw),
+                   'runner_sha256': digest(runner_before), 'fractions_sha256': digest(fractions_before),
+                   'funding_intent_sha256': digest(intent_raw), 'outer_label': intent['outer_label'],
+                   'nested_is_not_registry_charge': True, 'nested_deadline_ns': nested_deadline_ns, 'job': args.job, 'label': args.label}
+        _runner_write(folder/'START.json',(json.dumps(started,indent=2,sort_keys=True)+'\n').encode('ascii'))
+        start = time.monotonic()
+        stop = None
+        peak = 0
+        owner = relay_module.LocalOwner(_WRITER_STATE,_remember_runner)
+        relay = relay_module.BoundedRelay((folder/'stdout.txt',folder/'stderr.txt'),owner,'science')
+        _WRITER_STATE['relay'] = relay
+        relay.open()
+        usage_ticket = owner.pending('exclusive-usage-inode',usage)
+        _WRITER_STATE['usage_ticket'] = usage_ticket
+        try:
+            usage_fd = os.open(usage,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_CLOEXEC|os.O_NOFOLLOW,0o600)
+        except BaseException as error:
+            owner.failed(usage_ticket,error)
+            raise
+        owner.acquired(usage_ticket,usage_fd)
+        os.fchmod(usage_fd,0o600)
+        usage_info = os.fstat(usage_fd)
+        if (not stat.S_ISREG(usage_info.st_mode) or stat.S_IMODE(usage_info.st_mode) != 0o600 or
+                usage_info.st_uid != os.getuid() or usage_info.st_nlink != 1 or usage_info.st_size != 0):
+            raise ValueError('exclusive owned empty regular0600 usage inode')
+        _WRITER_STATE['usage_identity'] = (usage_info.st_dev,usage_info.st_ino)
+        owner.close(usage_ticket)
+        _WRITER_STATE['usage_inode_retired'] = True
+        native_command = native_entry_command(intent['native_entry_profile'],timed,stage,artifact,_WRITER_STATE['usage_identity'])
+        stdin_ticket = owner.pending('entry-devnull-stdin')
+        try:
+            stdin_fd = os.open('/dev/null',os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW)
+        except BaseException as error:
+            owner.failed(stdin_ticket,error)
+            raise
+        owner.acquired(stdin_ticket,stdin_fd)
+        out,err = relay.writers()
+        process = None
+        cleanup_deadline = None
+        try:
+            fsize_limits = relay_module.compiler_file_limits(resource.getrlimit(resource.RLIMIT_FSIZE),resource.RLIM_INFINITY)
+            resource.setrlimit(resource.RLIMIT_FSIZE,fsize_limits)
+            _WRITER_STATE['launch_entered'] = True
+            launch_error,launch_traceback=None,None
+            try:
+                process = subprocess.Popen(native_command,cwd=HERE,env=env,stdin=stdin_fd,stdout=out,stderr=err,
+                                           start_new_session=True,close_fds=True)
+                _WRITER_STATE['process'] = process
+                _WRITER_STATE['launch_returned'] = True
+            except BaseException as error:
+                launch_error=error
+                launch_traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+                _remember_runner(error)
+            finally:
+                for action in ('pipe-writers','stdin'):
+                    try:
+                        if action=='pipe-writers':
+                            relay.close_writers()
+                        elif stdin_ticket['state']=='OWNED':
+                            owner.close(stdin_ticket)
+                    except BaseException as error:
+                        _remember_runner(error)
+                        if launch_error is None:
+                            launch_error=error
+                            launch_traceback=BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            if launch_error is not None:
+                raise BaseException.with_traceback(launch_error,launch_traceback)
+            while _poll_child(process) is None:
+                relay.pump(0.01)
+                peak = max(peak,group_rss(process.pid))
+                if peak > RSS_CAP:
+                    stop = 'sampled_group_rss_cap'
+                elif time.monotonic_ns() > nested_deadline_ns:
+                    stop = 'wall_or_aggregate_cap'
+                elif relay.overflowed():
+                    stop = 'output_cap'
+                if stop:
+                    break
+            if stop:
+                try:
+                    os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            cleanup_deadline=min(time.monotonic()+2.0,intent['whole_body_deadline_ns']/1000000000)
+            code = _wait_child(process,relay,cleanup_deadline)
+        except BaseException as error:
+            _remember_runner(error)
+            raise
+        finally:
+            cleanup_first = None
+            if process is not None:
+                try:
+                    if _WRITER_STATE['wait_state'] in ('READY','SAFE_NONTERMINAL'):
+                        os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                except BaseException as error:
+                    cleanup_first = error
+                    _remember_runner(error)
+                try:
+                    if cleanup_deadline is None:
+                        cleanup_deadline=min(time.monotonic()+2.0,intent['whole_body_deadline_ns']/1000000000)
+                    _wait_child(process,relay,cleanup_deadline)
+                    retirement_deadline = cleanup_deadline
+                    while time.monotonic() < retirement_deadline:
+                        if relay.primary is None:
+                            relay.pump(0.01)
+                        remaining = group_snapshot(process.pid)
+                        if not remaining and relay.eof_complete():
+                            _WRITER_STATE['process_group_empty'] = True
+                            break
+                    if not _WRITER_STATE['process_group_empty']:
+                        stop = stop or 'writer_retirement_incomplete'
+                except BaseException as error:
+                    cleanup_first = error if cleanup_first is None else cleanup_first
+                    _remember_runner(error)
+            for action in ('pipe-writers','stdin','relay'):
+                try:
+                    if action=='pipe-writers':
+                        relay.close_writers()
+                    elif action=='stdin' and stdin_ticket['state']=='OWNED':
+                        owner.close(stdin_ticket)
+                    elif action=='relay':
+                        relay.retire()
+                except BaseException as error:
+                    cleanup_first = error if cleanup_first is None else cleanup_first
+                    _remember_runner(error)
+            _WRITER_STATE['relay_receipt'] = relay.snapshot()
+            _WRITER_STATE['streams_closed'] = relay.snapshot()['all_descriptors_known_closed']
+            if cleanup_first is not None and _WRITER_STATE['first'] is cleanup_first:
+                raise cleanup_first
+        if relay.overflowed():
+            stop = stop or 'output_cap'
+        if not relay.eof_complete():
+            stop = stop or 'writer_eof_incomplete'
+        elapsed = time.monotonic() - start
+        stdout, stderr, stop, cap_seen = finalize_logs(folder, stop)
+        for observed,stream in zip((stdout,stderr),relay.snapshot()['streams']):
+            if observed['sha256']!=stream['sha256'] or observed['bytes']!=stream['bytes']:
+                stop=stop or 'relay_capture_custody_mismatch'
+        usage_before=usage.lstat()
+        if ((usage_before.st_dev,usage_before.st_ino)!=_WRITER_STATE['usage_identity'] or
+                not stat.S_ISREG(usage_before.st_mode) or stat.S_IMODE(usage_before.st_mode)!=0o600 or
+                usage_before.st_uid!=os.getuid() or usage_before.st_nlink!=1):
+            raise ValueError('exact original exclusive usage backing inode after native retirement')
+        measurement, oversized_usage = read_usage(usage)
+        if log_identity(usage.lstat())!=log_identity(usage_before):
+            raise ValueError('usage currentness through bounded parse')
+        if oversized_usage:
+            stop = stop or 'usage_metadata_cap'
+        unchanged = (inventory(stage) == before and (stage / 'STAGE.json').read_bytes() == stage_raw and
+                     Path(__file__).read_bytes() == runner_before and fraction_path.read_bytes() == fractions_before)
+        runner_elapsed = time.monotonic() - runner_start
+        runner_usage_end = resource.getrusage(resource.RUSAGE_SELF)
+        if time.monotonic_ns() > nested_deadline_ns:
+            stop = stop or 'wall_or_aggregate_cap'
+        if runner_usage_end.ru_maxrss * 1024 > RSS_CAP:
+            stop = stop or 'runner_rss_cap'
+        expected_refusal = job.get('full_caller_role') == 'optimized-refusal:candidate'
+        refusal_bytes = None
+        if expected_refusal:
+            with _owned_stream(folder/'stderr.txt','rb') as refusal_stream:
+                refusal_bytes=refusal_stream.read(OUTPUT_CAP+1)
+        if expected_refusal:
+            science_root=Path(intent['completed_layout']['science_root'])
+            capture=relay.snapshot()
+            complete_capture=(stdout['stable'] and stderr['stable'] and
+                capture['eof_complete'] and capture['all_descriptors_known_closed'] and
+                not capture['overflow'] and not capture['raw_error_present'])
+            successful_disposition=original_optimized_refusal(code,refusal_bytes,stdout['bytes'],
+                (science_root/'receipt.json').exists(),(science_root/'STOP.json').exists(),complete_capture)
+        else:
+            successful_disposition=(code == 0 and stderr['bytes'] == 0)
+        receipt = dict(started, exit=code, wall_seconds=elapsed, usage=measurement,
+                       termination=stop, sampled_process_group_rss_bytes=peak,
+                       source_bytes_and_modes_unchanged=unchanged,
+                       stdout_sha256=stdout['sha256'], stdout_bytes=stdout['bytes'],
+                       stderr_sha256=stderr['sha256'], stderr_bytes=stderr['bytes'],
+                       stdout_final_bytes=stdout['final_bytes'], stderr_final_bytes=stderr['final_bytes'],
+                       retained_log_bytes_stable=stdout['stable'] and stderr['stable'],
+                       output_cap_observed_at=cap_seen, log_read_chunk_bytes=LOG_CHUNK_BYTES,
+                       runner_wall_seconds=runner_elapsed,
+                       runner_user_seconds=runner_usage_end.ru_utime - runner_usage_start.ru_utime,
+                       runner_system_seconds=runner_usage_end.ru_stime - runner_usage_start.ru_stime,
+                       runner_lifetime_max_rss_kib=runner_usage_end.ru_maxrss,
+                       python=sys.version, platform=platform.platform(),
+                       relay=relay.snapshot(), native_entry_profile_sha256=canonical_digest(intent['native_entry_profile']),
+                       installed_fsize_limits=list(fsize_limits), native_command=native_command,
+                       status='PASS' if successful_disposition and stop is None and unchanged and
+                           _WRITER_STATE['process_group_empty'] and relay.eof_complete() and
+                           relay.snapshot()['all_descriptors_known_closed'] else 'STOP')
+        _runner_write(folder/'receipt.json',(json.dumps(receipt,indent=2,sort_keys=True)+'\n').encode('ascii'))
+        print(json.dumps(receipt, sort_keys=True), flush=True)
+        if receipt['status'] != 'PASS':
+            raise SystemExit(1)
+
+
+_WRITER_STATE = {'folder':None,'launch_entered':False,'launch_returned':False,
+                 'process':None,'wait_known':False,'streams_closed':False,'first':None,'secondary':None,
+                 'errors':[None]*32,'overflow':None,'handles':[],'wait_state':'READY','raw_wait':None,
+                 'wait_calls':0,'wait_error':None,'fds':[],'modules':[],'relay':None,'relay_receipt':None,
+                 'proc_slot':{'object':None,'state':'FREE','path':None,'primary':None,'secondary':None,'close_attempted':False},
+                 'process_group_empty':False,'usage_ticket':None,'usage_identity':None,'usage_inode_retired':False}
+
+
+def _remember_runner(error):
+    if _WRITER_STATE['first'] is None:
+        _WRITER_STATE['first'] = error
+    for item in _WRITER_STATE['errors']:
+        if item is error:
+            return
+    for index,item in enumerate(_WRITER_STATE['errors']):
+        if item is None:
+            _WRITER_STATE['errors'][index] = error
+            return
+    if _WRITER_STATE['overflow'] is None:
+        _WRITER_STATE['overflow'] = error
+
+
+@contextmanager
+def _owned_stream(path,mode):
+    if len(_WRITER_STATE['handles']) >= 32 or _WRITER_STATE['overflow'] is not None or any(row[1]=='UNKNOWN' for row in _WRITER_STATE['handles']):
+        raise RuntimeError('runner IO custody unavailable; no new acquisition')
+    row = [None,'PENDING',None,None]
+    _WRITER_STATE['handles'].append(row)  # Register BEFORE acquisition.
+    primary,secondary,traceback = None,None,None
+    try:
+        stream = path.open(mode)
+        row[0],row[1] = stream,'OWNED'
+        yield stream
+    except BaseException as error:
+        primary = error
+        traceback = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+        row[2] = error
+        _remember_runner(error)
+        if row[0] is None:
+            row[1] = 'UNKNOWN'
+    finally:
+        if row[1]=='OWNED':
+            closing,row[0],row[1] = row[0],None,'CLOSING'
+            try:
+                closing.close()
+            except BaseException as error:
+                secondary,row[3],row[1] = error,error,'UNKNOWN'
+                _remember_runner(error)
+            else:
+                row[1] = 'CLOSED'
+    if primary is not None:
+        raise BaseException.with_traceback(primary,traceback)
+    if secondary is not None:
+        raise secondary
+
+
+def _runner_write(path,raw):
+    if type(raw) is not bytes or len(raw)>4194304:
+        raise ValueError('bounded runner metadata bytes')
+    with _owned_stream(path,'xb') as stream:
+        position = 0
+        while position<len(raw):
+            count=stream.write(raw[position:position+65536])
+            if type(count) is not int or count<=0:
+                raise ValueError('runner complete metadata write')
+            position+=count
+        stream.flush();os.fsync(stream.fileno())
+
+
+def _poll_child(process):
+    state = _WRITER_STATE
+    if state['wait_state']=='COMMITTED':
+        return process.returncode
+    if state['wait_state']=='UNRESOLVED' or state['wait_calls']>=65536:
+        raise RuntimeError('runner native wait unresolved; no retry')
+    state['wait_state']='UNRESOLVED';state['wait_calls']+=1
+    try:
+        actual=os.waitpid(process.pid,os.WNOHANG)
+        state['raw_wait']=actual  # Actual tuple BEFORE comparison/decoder.
+        if type(actual) is not tuple or len(actual)!=2 or any(type(v) is not int for v in actual):
+            raise RuntimeError('runner native wait tuple')
+        if actual==(0,0):
+            state['wait_state']='SAFE_NONTERMINAL'
+            return None
+        if actual[0]!=process.pid:
+            raise RuntimeError('runner waited actual child differs')
+        state['wait_state']='CONSUMED'
+        code=os.waitstatus_to_exitcode(actual[1])
+        if type(code) is not int:
+            raise RuntimeError('runner wait decoder')
+        process.returncode=code
+        state['wait_known']=True;state['wait_state']='COMMITTED'
+        return code
+    except BaseException as error:
+        state['wait_error']=error
+        state['wait_state']='UNRESOLVED'
+        _remember_runner(error)
+        raise
+
+
+def _wait_child(process,relay=None,deadline=None):
+    if deadline is None:
+        deadline=time.monotonic()+2.0
+    while True:
+        code=_poll_child(process)
+        if code is not None:
+            return code
+        if time.monotonic()>=deadline:
+            raise RuntimeError('runner reserved native cleanup wait exhausted')
+        if relay is not None and relay.primary is None:
+            relay.pump(0.01)
+        else:
+            time.sleep(0.01)
+
+def _owned_main():
+    try:
+        return main()
+    except BaseException as error:
+        _remember_runner(error)
+        raise
+    finally:
+        state = _WRITER_STATE
+        relay = state['relay']
+        # Any source/setup failure still retires every known acquired endpoint once.
+        if relay is not None and not relay.retired:
+            for action in ('writers','relay'):
+                try:
+                    if action=='writers':
+                        relay.close_writers()
+                    else:
+                        relay.retire()
+                except BaseException as error:
+                    _remember_runner(error)
+        if relay is not None:
+            state['relay_receipt'] = relay.snapshot()
+        for ticket in state['fds']:
+            if ticket['state'] == 'OWNED':
+                try:
+                    _raw_close(ticket)
+                except BaseException as error:
+                    _remember_runner(error)
+        folder = state['folder']
+        if folder is not None and state['overflow'] is None and all(row[1]=='CLOSED' for row in state['handles']):
+            try:
+                relay_receipt = state['relay_receipt']
+                local_fd_closed = (all(row['state']=='CLOSED' for row in state['fds']) and
+                    state['proc_slot']['state'] in ('FREE','CLOSED','NOT_ENTERED'))
+                no_birth = not state['launch_entered']
+                closed = local_fd_closed and (no_birth or (state['launch_returned'] and state['wait_known'] and
+                    state['usage_inode_retired'] and relay_receipt is not None and
+                    relay_receipt['all_descriptors_known_closed']))
+                value = {'schema':'h25-runner-native-writer-closure-v2',
+                    'launch_entered':state['launch_entered'],'launch_returned':state['launch_returned'],
+                    'wait_known':state['wait_known'],'stdio_aliases_closed':local_fd_closed,
+                    'process_group_empty':state['process_group_empty'],
+                    'usage_inode_retired':state['usage_inode_retired'],
+                    'local_holders_closed':closed,'domain_reconciliation_required':True,'relay':relay_receipt,
+                    'error_type':None if state['first'] is None else 'opaque-caught-exception'}
+                _runner_write(folder/'WRITER-CLOSURE.json',(json.dumps(value,indent=2,sort_keys=True)+'\n').encode('ascii'))
+            except BaseException as secondary:
+                state['secondary'] = secondary
+                _remember_runner(secondary)
+
+if __name__ == '__main__':
+    _owned_main()
