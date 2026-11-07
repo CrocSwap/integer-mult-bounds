@@ -438,6 +438,22 @@ target representation for the shortened word, including all induced idle work
 and any recursive change of representation. See [the independent review](review/REVIEW.md)
 for the separate derivation and replay.
 
+### The minimal common-stage question is now closed
+
+The independently reproduced [quotient support corollary](QUOTIENT-SUPPORT-COROLLARY.md)
+strengthens the explicit noncommutation example: no commuting rank-two family
+can support all eighteen full queries of this quotient. The known #6398 theorem allows at most two such supports in dimension
+at least four. The
+proof uses only root closure, nonzero square-zero queries, characteristic other
+than two, and commuting rank-two supporting idempotents. It requires no pricing,
+no-idle, ordinary-control or actual-prefix-commutation premise. The local repairs
+remain valid. A larger or noncommuting representation and its full invoice are
+the remaining possibilities, rather than another choice of rank-two projectors.
+The [prefix applicability audit](QUOTIENT-PREFIX-FLOOR.md) also transfers known
+even-interior floors to all eight affected source positions and rejects uniform
+rank three and balanced total incidence 54; no new general prefix theorem is
+claimed.
+
 ## 8. Verification scope and inherited assumptions
 
 `verify.py` is a standard-library exact checker, not a proof assistant. It

@@ -3,8 +3,8 @@
 **No new κ.** The three thin queries in the pending chain root preserve a larger
 idle carrier space collectively than they preserve one at a time. We determine
 that space exactly, prove why ordinary moving frames do not enlarge it, and show
-that the extra productive fields needed to use it repay the apparent saving in
-the declared carrier model.
+that two specified target-mask families repay the apparent saving under
+complete accounting.
 
 This extends the structural question behind
 CrocSwap/integer-mult-bounds#6833,
@@ -30,7 +30,8 @@ for the previous two-mask static search.
    outside this result.
 3. **Uniform full-span accounting obstruction.** Activating the empty field
    alone loses for power tariffs r^(1−κ), with 0<κ<1. Making all nonempty fields productive
-   at every full site loses even with unrestricted favorable idle pooling, for
+   at every full site has a worse complete invoice than the source, even with
+   unrestricted favorable idle pooling, for
    every positive odd arm pair and every `0<κ<1`. The per-port source advantage
    is at least `1-((8m+1)^(1-κ)-(8m)^(1-κ))>0`.
 4. **Exact finite partial-span certificate.** All 81 central dense-mask choices
@@ -42,14 +43,28 @@ for the previous two-mask static search.
    plane can be removed algebraically, turning the three-query bridge into one
    query on 18 dimensions. The original productive masks do not descend:
    all 18 direct compressions have a rank-one idempotence defect and all 153
-   pairs have rank-two commutators. This identifies a productive-interface
-   problem; it does not rule out corrected or otherwise changed masks.
+   pairs have rank-two commutators. Local rank-two repairs exist, but an independently reproduced known support cap
+   excludes **every** commuting rank-two supporting family for this quotient.
+   Larger or noncommuting productive interfaces remain open.
 
 The complete proofs, model assumptions, quotient limitation, and exact LP-dual
 argument are in [PROOF.md](PROOF.md). The [independent review](review/REVIEW.md)
 derives capacities from eigenspace nullspaces and agrees with all 13,851
 interval-capacity entries. Its separate rational arithmetic also verifies all
 81 complete dual prices; neither checker imports the author's model.
+
+The [quotient support corollary](QUOTIENT-SUPPORT-COROLLARY.md) proves that
+Ali Romman's known theorem permits at most two commuting rank-two supports
+for a defect-one rank-one root in dimension at least four. The quotient needs eighteen.
+This closes the minimal common-stage branch, independently of pricing or
+actual-prefix commutation, and makes the remaining interface question precise.
+
+The [source-bound prefix audit](QUOTIENT-PREFIX-FLOOR.md) transfers the known
+even-interior stage floors from CrocSwap/integer-mult-bounds#6717 to this exact
+quotient. It checks all eight affected full positions and excludes both
+uniform rank-three stages and the proposed balanced 54-incidence census.
+This is an applicability check of predecessor geometry, not a new general
+prefix theorem or a claim that the displayed necessary floor is sharp.
 
 ## Source pins and relationship to the selected result
 
@@ -135,13 +150,14 @@ needs a new complete invoice and is not excluded by this package.
 
 ## Open next questions
 
-- **Can the 18-dimensional quotient support a useful complete productive
-  interface?** Root closure and local rank-two projector repairs are explicit
-  in Section 7 of [PROOF.md](PROOF.md). The first repaired pair still has a
-  rank-two commutator. The missing step is simultaneous target geometry with
-  all induced idle, source, adapter and restoration costs. A first step is to
-  determine the corrected projectors' commutator algebra and derive an exact
-  target/paid profile; larger masks and changed representations remain open.
+- **Can the 18-dimensional quotient support a useful larger or noncommuting
+  productive interface?** Root closure and local rank-two projector repairs are explicit
+  in Section 7 of [PROOF.md](PROOF.md). The corollary excludes every commuting rank-two supporting family,
+  beyond the first repaired pair's rank-two commutator. The known prefix floors
+  also block uniform rank three and balanced total incidence 54. A larger-stage
+  candidate must satisfy all these geometry constraints and have a favorable
+  complete target/paid profile; a noncommuting representation needs an explicit
+  recursive boundary with all induced source, adapter and restoration costs.
 - **Can a recursive, sector-dependent carrier adapter beat the ordinary-frame
   limitation?** Such an adapter is not covered by neutral-sector rigidity. A
   first step is a single explicit two-site intertwiner with its own Gaussian
