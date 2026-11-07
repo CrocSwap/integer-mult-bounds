@@ -486,6 +486,16 @@ class DeadlineOwner:
             raise BaseException.with_traceback(first,tb)
 
 
+def pop_deadline_preserving(owner, token, primary, remember):
+    """Retain a timer-unwind failure after an already captured working error."""
+    try:
+        owner.pop(token)
+    except BaseException as error:
+        remember(error)
+        if primary is None:
+            raise
+
+
 def direct_children_exact(all_rows):
     # The kernel child list prevents an unreadable direct child from vanishing
     # merely because a /proc census could not decode its stat file.
@@ -1664,8 +1674,12 @@ def bind_active_run_root(active_module, kernel_module, active_context, *, whole_
                     need(not relay.overflowed(), 'observer diagnostic first extra byte observed')
                     if registry.poll_root(process) is not None:
                         break
+            except BaseException as error:
+                first=error;query_row['first']=error
+                custody.remember(error)  # Before fallible timer unwind.
+                raise
             finally:
-                state['deadlines'][case_id].pop(query_deadline_token)
+                pop_deadline_preserving(state['deadlines'][case_id],query_deadline_token,first,custody.remember)
         except BaseException as error:
             first = error; query_row['first'] = error
             custody.remember(error)
@@ -1888,9 +1902,14 @@ def bind_active_run_root(active_module, kernel_module, active_context, *, whole_
                     need(not relay.overflowed(),'Outer raw log first extra byte observed')
                     if registry.poll_root(process) is not None:
                         break
+            except BaseException as error:
+                first_error=error if first_error is None else first_error
+                registry.capture_error(attempt,error)  # Before fallible timer unwind.
+                raise
             finally:
                 if root_deadline_token is not None and deadline_owner.stack and deadline_owner.stack[-1][0] is root_deadline_token:
-                    deadline_owner.pop(root_deadline_token)
+                    pop_deadline_preserving(deadline_owner,root_deadline_token,first_error,
+                                            lambda error:registry.capture_error(attempt,error))
 
         except BaseException as error:
             first_error=error if first_error is None else first_error

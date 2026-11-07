@@ -9,7 +9,7 @@ The source is a concrete implementation candidate. It is not an installed, indep
 - The intent producer waits for an actual stopped entry and held R/time/entry generations. A JSON arrival token alone cannot release work.
 - Query cleanup borrows a protected exclusion set. It does not own the root pidfds or the parent execution owner.
 - One absolute alarm owner spans launch, qualification and caller validation. A nested query can shorten the working deadline; it cannot give the parent a fresh interval or remove its retirement cutoff.
-- The entry uses bounded pipes and inherited capture aliases, retains first failures, and emits closure/result records only after known local retirement. Envelope failures exit125, distinct from the original optimized refusal exit1.
+- The entry uses bounded pipes and inherited capture aliases, retains first failures, and emits closure/result records only after known local retirement. Envelope failures exit 125, distinct from the original optimized refusal exit 1.
 - The receiver binds both the common entry command and the original inner command. The original optimized STOP is never rewritten as positive PASS. Parent wall and SELF+CHILDREN CPU endpoints extend through validation. Concurrent waiting/query RSS samples are retained in the owned-forest peak; no new parent RSS admission criterion is introduced.
 
 ## Executed controls and limits
@@ -20,10 +20,14 @@ The two readback failure controls passed in controls-v3: intent and release-seal
 
 Earlier failures are retained under evidence/: descriptor-census lifetime, moved-local name, fixture image ownership, missing retention directory and wrong frozen-source modes. The last two were fixture preparation mistakes; production source guards were preserved. Successful unchanged timer and readback controls were not rerun.
 
-Each fixture dispatch used clean environment, Python3.12 -S -s -P -B, AS256MiB, softFSIZE2MiB/hard512MiB, core0, umask077 and an outer timeout with kill tail. The file cap applies to capture; complete artifact-fit proof remains open. These settings are test conditions, not universal resource bounds. Costs outside the recorded guard debit remain OPEN_NOT_ZERO.
+Each fixture dispatch used clean environment, Python 3.12 -S -s -P -B, AS 256 MiB, soft FSIZE 2 MiB/hard 512 MiB, core 0, umask 077 and an outer timeout with kill tail. The file cap applies to capture; complete artifact-fit proof remains open. These settings are test conditions, not universal resource bounds. Costs outside the recorded guard debit remain OPEN_NOT_ZERO.
 
-Suggested fixture reproduction after deliberate local review: create validation/tmp, set the four source files loaded by the fixture to mode0444, then run validation/test_waiting_boundary.py under the stated guard. This is not a registered research replay package; no VERIFY hook executes the unqualified scientific images.
+Suggested fixture reproduction after deliberate local review: create validation/tmp, set the four source files loaded by the fixture to mode 0444, then run validation/test_waiting_boundary.py under the stated guard. This is not a registered research replay package; no VERIFY hook executes the unqualified scientific images.
 
 ## Remaining decisive check
 
 See NEXT-QUESTIONS.md. The full authenticated source/role assembly, real parent qualification, baseline/candidate comparison, funding, retention and final CLOSE remain uncompleted. This contribution establishes no speedup, multiplication bound, complete resource admission or original-activity credit.
+
+## Bounded Pro review and correction
+
+Pro inspected the exact initial public source and found a first-error ordering defect in both query and root timer unwind. The successor captures the original raw working error before fallible timer pop and records a pop error afterwards. A deterministic collision regression executes both actual production try/except/finally nodes with an injected body error and actual DeadlineOwner expiry against inert clock/signal ports; both preserve the exact original exception object. This correction has local regression evidence, not independent review of the complete successor. Pro did not fully review relay, loader/bootstrap authentication, external dependencies or the full assembly. No such acceptance is claimed.
