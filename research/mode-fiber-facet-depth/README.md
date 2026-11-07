@@ -1,4 +1,4 @@
-# No facet of the mode zonotope has a depth gap
+# No facet or ridge of the mode zonotope has a depth gap
 
 Prepared for apoursh with substantial Anthropic Claude assistance. Apache-2.0.
 
@@ -30,38 +30,46 @@ depth obstruction.
    is connected.
 
 A control direction that is not a facet, (5,3,0,…,0), does have a gap, so the
-property is not automatic. See [PROOF.md](PROOF.md).
+property is not automatic.
+
+**Ridges.** For each of the 21,589 rank-6 flats of the representatives, the
+rows are projected onto the 2-D normal plane of the flat. Up to symmetry, these
+flats cover every ridge. In each case, every lattice point strictly inside the
+projected zonogon is a projected sign sum. So no two-dimensional shadow along a
+ridge obstructs R = 1 either. A bitset dynamic program performs the test. It is
+cross-checked against a set-based recomputation and against a toy zonogon with
+known holes. See [PROOF.md](PROOF.md).
 
 ## Reproduce
 
 From the repository root, CPython 3.12, standard library only:
 
 ```sh
-python3.12 -I -W error -B research/mode-fiber-facet-depth/verify.py
-python3.12 -I -O -W error -B research/mode-fiber-facet-depth/verify.py
+python3.12 -I -W error -B research/mode-fiber-facet-depth/verify.py facets
+python3.12 -I -W error -B research/mode-fiber-facet-depth/verify.py ridges
+python3.12 -I -O -W error -B research/mode-fiber-facet-depth/verify.py facets
+python3.12 -I -O -W error -B research/mode-fiber-facet-depth/verify.py ridges
 python3.12 -B scripts/research_package.py --package research/mode-fiber-facet-depth
 ```
 
-Each run prints `PASS_MODE_FIBER_FACET_DEPTH` in about 80 s locally; the
-registered timeout is 600 s. The orbits were found by a breadth-first search
+The facets part takes about 80 s locally and the ridges part about 3 minutes;
+the registered timeouts are 200 s and 400 s. The orbits were found by a breadth-first search
 from one facet, which took about 40 minutes with an unoptimized script. The
 committed verifier only checks the certificate.
 
 ## Limitations
 
-This rules out single-facet depth obstructions only. It does **not** prove R = 1.
-Faces of codimension ≥ 2 and obstructions invisible to every linear shadow remain
-open, and 1 ≤ R ≤ 3/2 is unchanged. Exact-mode contract only. No physical
+This rules out obstructions visible in facet (1-D) and ridge (2-D) shadows only.
+It does **not** prove R = 1. Shadows along faces of codimension 3 to 8 remain
+unchecked; codimension 8 is the full question. 1 ≤ R ≤ 3/2 is unchanged. Exact-mode contract only. No physical
 rounder, κ, frontier or assumption change. No independent human or proof-kernel
 review is claimed.
 
 ## Open next questions
 
-1. **Codimension-2 faces.** For each ridge, do the two-dimensional depth vectors
-   of the forced rows cover every lattice point of 2L near the ridge that lies
-   inside Z? First step: start from the 41 facet orbits and their ridge lists.
-   The (5,3,0,…) shadow gap shows that single shadows can fail there, so the
-   test must use the actual 2-D cone.
+1. **Codimension 3.** Run the same filling test on 3-D shadows along rank-5
+   flats. First step: take the rank-5 flats inside the 21,589 rank-6 flats and
+   use a 3-D bitset. Expect a much larger flat count and more cost per flat.
 2. **A proof of R = 1.** Can the facet-level greedy property (smallest value g,
    no jumps) be propagated to all faces, giving an inductive filling argument?
 

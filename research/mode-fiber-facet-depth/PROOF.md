@@ -1,4 +1,4 @@
-# No facet of the mode zonotope has a depth gap
+# No facet or ridge of the mode zonotope has a depth gap
 
 Prepared for apoursh with substantial Anthropic Claude assistance. Apache-2.0.
 
@@ -65,7 +65,40 @@ Consequently the shadow of K on every facet normal equals the shadow of
 4. **Count.** The orbit of θ under Γ, up to ±, has |Aut-images of |θ||·2^(nnz θ)/2
    elements. Summing over the 41 orbits gives 422,224. ∎
 
-## 3. Controls
+## 3. Ridges: two-dimensional shadows
+
+Let F be any rank-6 flat of rows and π : ℝ^8 → ℝ^8/span(F) ≅ ℝ² the projection,
+written in an integer basis (n₁,n₂) of span(F)^⊥. The rows outside F project to
+p_i ≠ 0, and the rows in F project to 0. A sign sum projects to π(K) = Σ±p_i, and
+π(2L) = 2Λ with Λ = span_ℤ{p_i}. Since Σ_i m_i = 2C with C ∈ L, writing
+q = Σp_i − 2s turns "q ∈ π(2L) ∩ int π(Z) is a projected sign sum" into a
+2-D filling statement:
+
+    every s ∈ Λ strictly inside Σ_{i∉F} [0,1] p_i is a subset sum of the p_i.
+
+If this failed for some s, then every y ∈ 2L ∩ int Z projecting to q would be a
+counterexample to R = 1. Near the ridge such y exist whenever the 6-dimensional
+fiber is large, which is the two-normal analogue of §1.
+
+**Theorem (ridges).** The 2-D filling statement holds for every rank-6 flat of
+rows. Hence no two-dimensional shadow along a ridge carries an obstruction to
+R = 1. *Proof (finite, exact; verify.py).*
+1. Every ridge lies in a facet, and every facet is a Γ-image of one of the 41
+   representatives, so the rank-6 flats of the representatives cover all
+   ridges up to Γ. There are 21,589 such flats, collected during the closure check.
+2. For each flat, verify.py rewrites the p_i in a basis of Λ. It computes all
+   subset sums by a bitset dynamic program. Partial sums stay in the bounding
+   box, so row shifts never wrap. It then scans every interior lattice point
+   row by row, using the exact edge inequalities of the zonogon. No hole occurs.
+3. An independent set-based recomputation agrees on a spread of flats. A toy
+   zonogon with p = (1,−3), (1,−2), (1,0) is correctly found to have the holes
+   (1,−1) and (2,−4). ∎
+
+Single linear shadows can still have gaps inside these zonogons; the
+(5,3,0,…,0) control below lies in such a plane. Their 2-D shadows nonetheless
+fill, so a one-dimensional gap there does not reach any interior lattice point.
+
+## 4. Controls
 
 * The non-facet direction θ = (5,3,0,…,0) **does** have a gap: the values
   {2, 3, 5, 8} miss 1. So the property is specific to facets, not automatic.
@@ -75,11 +108,10 @@ Consequently the shadow of K on every facet normal equals the shadow of
 
 ## Scope
 
-This rules out one family of potential counterexamples to R = 1: a missing
-depth layer just inside a single facet. It does not prove R = 1. Obstructions
-at faces of codimension ≥ 2, where two or more normals constrain the flipped
-rows jointly, and obstructions not detectable by any single linear shadow
-remain possible. 1 ≤ R ≤ 3/2 is unchanged.
+This rules out potential counterexamples to R = 1 that are visible in the
+one-dimensional facet shadows or the two-dimensional ridge shadows. It does not
+prove R = 1. Shadows along faces of codimension ≥ 3 remain unchecked, up to
+codimension 8, which is the full question. 1 ≤ R ≤ 3/2 is unchanged.
 
 This concerns the exact-mode contract of #6312 only. It supplies no physical
 rounder, tape or error bill. κ, the selected frontier and its five assumptions
