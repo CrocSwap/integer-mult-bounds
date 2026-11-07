@@ -1,0 +1,724 @@
+/* Finite native property-query observer. SOURCE ONLY; no execution admission.
+ * Copyright (c) 2026 OpenAI/Codex contributors. SPDX-License-Identifier: Apache-2.0
+ * This observer is an evidence producer subordinate to the genuine supervisor.
+ * It cannot create a lease, native qualification, scientific refusal or authority.
+ */
+#define _GNU_SOURCE
+#include "property_query_contract.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <linux/audit.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/ptrace.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/sysmacros.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
+#if !defined(__x86_64__) || defined(__ILP32__) || __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+#error Only the selected native little-endian LP64 x86-64 ABI is implemented
+#endif
+_Static_assert(sizeof(void *) == 8 && sizeof(long) == 8, "LP64");
+#ifndef __WALL
+#define __WALL 0x40000000
+#endif
+#ifndef PTRACE_GET_SYSCALL_INFO
+#define PTRACE_GET_SYSCALL_INFO 0x420e
+#endif
+#define PQ_OPTIONS (PTRACE_O_TRACESYSGOOD | PTRACE_O_EXITKILL | PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE | PTRACE_O_TRACEVFORKDONE | PTRACE_O_TRACESECCOMP)
+#define PQ_TASK_MAX 8u
+#define PQ_IOV_MAX 64u
+#define PQ_CLEANUP_MS 2000u
+/* Exact selected syscall-info shape; size returned by kernel is checked. */
+struct pq_sysinfo {
+    uint8_t op, pad[3]; uint32_t arch; uint64_t ip, sp;
+    union {
+        struct { uint64_t nr, args[6]; } entry;
+        struct { int64_t rval; uint8_t is_error; } exit;
+        struct { uint64_t nr, args[6]; uint32_t ret_data; } seccomp;
+    } u;
+};
+_Static_assert(offsetof(struct pq_sysinfo, u) == 24, "syscall-info ABI");
+enum { RQ, SN, OUT, ERR, TM, JR, EX, CW, IN, NFD };
+enum { E_ARGUMENT=1, E_REQUEST, E_FD, E_PIPE, E_FORK, E_WAIT, E_PTRACE,
+       E_ABI, E_PROTOCOL, E_REMOTE, E_WRITE, E_DRAIN, E_CAPACITY, E_TIMEOUT,
+       E_DESCENDANT, E_READBACK, E_CLOSE, E_CHILD, E_CLOCK, E_AUDIT };
+struct pq_request {
+    struct pq_request_header h;
+    unsigned char raw[PQ_REQUEST_MAX + 1];
+    char strings[PQ_REQUEST_MAX + PQ_ARG_MAX + PQ_ENV_MAX + 1];
+    char *argv[PQ_ARG_MAX + 1], *env[PQ_ENV_MAX + 1];
+};
+struct pq_task { pid_t pid; bool live, stopped, kill_sent; };
+struct pq_pending {
+    bool inside, output; uint64_t nr, args[6], requested;
+    uint32_t seq, fd;
+};
+static struct pq_request req;
+static struct pq_journal *journal;
+static int fds[NFD], pipes_fd[2][2] = {{-1,-1},{-1,-1}};
+static bool fd_live[NFD], pipe_live[2][2], failed_state, cleanup_uncertain;
+static struct pq_task tasks[PQ_TASK_MAX];
+static unsigned task_count, retired_tasks, phase;
+static pid_t child_pid = -1;
+static struct pq_pending pending;
+static unsigned char snapshot[2][PQ_STREAM_MAX], drained[2][PQ_STREAM_MAX];
+static size_t snapshot_len[2], drained_len[2], retained_len[2], readback_len[2];
+static bool eof_seen[2];
+static struct stat pipe_identity[2];
+static uint64_t snapshot_file_bytes;
+static unsigned syscall_entries, syscall_exits, write_entries, write_exits, snapshot_records;
+static unsigned exec_events, exit_event_seen, terminal_wait_seen, term_signal, terminal_exit_entries;
+static int exit_code = -1;
+static uint64_t deadline, cleanup_deadline;
+
+/* Reserved before the first acquisition. Pre-journal native failures remain
+ * first in this fixed storage even if formatting or the fallback relay fails. */
+static struct pq_native_error early_errors[PQ_ERROR_MAX];
+static unsigned early_count;
+static bool early_overflow, fallback_relay_ready;
+static ssize_t output_write(int fd, const void *p, size_t n);
+static void store_early(unsigned operation, int raw_errno, unsigned detail, uint64_t auxiliary) {
+    if (early_count < PQ_ERROR_MAX)
+        early_errors[early_count++] = (struct pq_native_error){phase, operation, raw_errno, detail, auxiliary};
+    else { early_overflow = true; cleanup_uncertain = true; }
+}
+/* The raw errno is captured by callers before any fallible bookkeeping. */
+static void error_event(unsigned operation, int raw_errno, unsigned detail, uint64_t auxiliary) {
+    failed_state = true;
+    if (journal) {
+        uint32_t i = atomic_fetch_add_explicit(&journal->used, 1, memory_order_relaxed);
+        if (i < PQ_ERROR_MAX) {
+            journal->entries[i] = (struct pq_native_error){phase, operation, raw_errno, detail, auxiliary};
+            uint32_t expected = atomic_load_explicit(&journal->primary_index, memory_order_relaxed);
+            /* Monotone minimum preserves the first reserved native slot even
+             * if the child and observer finish their stores out of order. */
+            while (i < expected &&
+                   !atomic_compare_exchange_strong_explicit(&journal->primary_index, &expected, i,
+                                                            memory_order_relaxed, memory_order_relaxed)) { }
+
+            atomic_store_explicit(&journal->ready[i], 1, memory_order_release);
+        } else {
+            atomic_store_explicit(&journal->overflow, 1, memory_order_release);
+            cleanup_uncertain = true;
+        }
+    } else {
+        /* Before journal acquisition the genuine outer relay owns this raw
+         * native event; missing journal can never become qualified evidence. */
+        store_early(operation, raw_errno, detail, auxiliary);
+        if (!fallback_relay_ready) { cleanup_uncertain = true; return; }
+        char b[160];
+        int n = snprintf(b, sizeof b, "PQOBS_NATIVE_ERROR %u %d %u %" PRIu64 "\n",
+                         operation, raw_errno, detail, auxiliary);
+        if (n < 0 || (size_t)n >= sizeof b) {
+            int saved = n < 0 ? errno : 0;
+            store_early(E_WRITE, saved, 4, 0); cleanup_uncertain = true;
+        } else {
+            size_t at = 0; unsigned interrupted = 0;
+            while (at < (size_t)n) {
+                ssize_t k = output_write(2, b + at, (size_t)n - at);
+                if (k < 0) {
+                    int saved = errno;
+                    if (saved == EINTR && interrupted++ < 8) continue;
+                    store_early(E_WRITE, saved, 5, at); cleanup_uncertain = true; break;
+                }
+                if (!k) { store_early(E_WRITE, 0, 6, at); cleanup_uncertain = true; break; }
+                at += (size_t)k;
+            }
+        }
+    }
+}
+static bool refuse(unsigned operation, unsigned detail, uint64_t auxiliary) {
+    error_event(operation, 0, detail, auxiliary); return false;
+}
+static bool os_error(unsigned operation, int saved, uint64_t auxiliary) {
+    error_event(operation, saved, 0, auxiliary); return false;
+}
+static uint64_t clock_ms(void) {
+    struct timespec t;
+    if (clock_gettime(CLOCK_MONOTONIC, &t) < 0) {
+        int saved = errno; os_error(E_CLOCK, saved, 0); return UINT64_MAX;
+    }
+    if (t.tv_sec < 0 || (uint64_t)t.tv_sec > (UINT64_MAX - 1000) / 1000)
+        return refuse(E_CLOCK, 1, 0), UINT64_MAX;
+    return (uint64_t)t.tv_sec * 1000 + (unsigned long)t.tv_nsec / 1000000;
+}
+static bool close_owned(int fd) {
+    if (close(fd) < 0) {
+        int saved = errno; cleanup_uncertain = true;
+        return os_error(E_CLOSE, saved, (unsigned)fd);
+    }
+    return true;
+}
+static void close_input(unsigned i) {
+    if (fd_live[i]) { fd_live[i] = false; (void)close_owned(fds[i]); }
+}
+static void close_pipe(unsigned p, unsigned end) {
+    if (pipe_live[p][end]) { pipe_live[p][end] = false; (void)close_owned(pipes_fd[p][end]); }
+}
+static ssize_t output_write(int fd, const void *p, size_t n) {
+#ifdef PQ_TEST
+    extern ssize_t pq_mock_write(int, const void *, size_t);
+    return pq_mock_write(fd, p, n);
+#else
+    return write(fd, p, n);
+#endif
+}
+static bool write_all(int fd, const void *data, size_t n, uint64_t *written) {
+    const unsigned char *p = data;
+    for (size_t at = 0; at < n;) {
+        ssize_t k = output_write(fd, p + at, n - at);
+        if (k < 0) {
+            int saved = errno;
+            if (saved == EINTR) continue;
+            return os_error(E_WRITE, saved, (unsigned)fd);
+        }
+        if (k == 0) return refuse(E_WRITE, 1, (unsigned)fd);
+        at += (size_t)k;
+        if (written) *written += (uint64_t)k;
+    }
+    return true;
+}
+static bool pread_exact(int fd, void *data, size_t n, off_t off) {
+    unsigned char *p = data;
+    for (size_t at = 0; at < n;) {
+        ssize_t k = pread(fd, p + at, n - at, off + (off_t)at);
+        if (k < 0) { int saved = errno; if (saved == EINTR) continue; return os_error(E_READBACK, saved, (unsigned)fd); }
+        if (!k) return refuse(E_READBACK, 1, (unsigned)fd);
+        at += (size_t)k;
+    }
+    return true;
+}
+static bool decimal_fd(const char *s, int *out) {
+    unsigned long v = 0;
+    if (!s || !*s || (s[0] == '0' && s[1])) return false;
+    for (; *s; s++) {
+        if (*s < '0' || *s > '9' || v > ((unsigned long)INT_MAX - (unsigned)(*s-'0')) / 10) return false;
+        v = v * 10 + (unsigned)(*s-'0');
+    }
+    if (v < 3) return false;
+    *out = (int)v; return true;
+}
+static bool parse_fds(int argc, char **argv) {
+    static const char *names[NFD] = {"--request-fd", "--snapshot-fd", "--stdout-fd", "--stderr-fd", "--terminal-fd", "--journal-fd", "--exec-fd", "--cwd-fd", "--stdin-fd"};
+    if (argc != 19) return refuse(E_ARGUMENT, 1, (unsigned)argc);
+    for (unsigned i = 0; i < NFD; i++) {
+        if (strcmp(argv[1+2*i], names[i]) || !decimal_fd(argv[2+2*i], &fds[i])) return refuse(E_ARGUMENT, 2, i);
+        for (unsigned k = 0; k < i; k++) if (fds[k] == fds[i]) return refuse(E_ARGUMENT, 3, i);
+        fd_live[i] = true;
+    }
+    return true;
+}
+static bool initialize_journal(void) {
+    struct stat s;
+    if (fstat(fds[JR], &s) < 0) { int saved = errno; return os_error(E_FD, saved, JR); }
+    int flags = fcntl(fds[JR], F_GETFL);
+    if (flags < 0) { int saved = errno; return os_error(E_FD, saved, JR); }
+    if (!S_ISREG(s.st_mode) || s.st_size != PQ_JOURNAL_BYTES || s.st_nlink != 1 ||
+        (flags & O_ACCMODE) != O_RDWR || (flags & O_APPEND)) return refuse(E_FD, 1, JR);
+    unsigned char zero[PQ_JOURNAL_BYTES];
+    if (!pread_exact(fds[JR], zero, sizeof zero, 0)) return false;
+    for (size_t i = 0; i < sizeof zero; i++) if (zero[i]) return refuse(E_FD, 2, JR);
+    void *p = mmap(NULL, PQ_JOURNAL_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, fds[JR], 0);
+    if (p == MAP_FAILED) { int saved = errno; return os_error(E_FD, saved, JR); }
+    journal = p;
+    memcpy(journal->magic, PQ_JOURNAL_MAGIC, 8); journal->version = 1;
+    atomic_store(&journal->primary_index, UINT32_MAX);
+    return true;
+}
+static bool validate_fds(void) {
+    struct stat identities[NFD];
+    for (unsigned i = 0; i < NFD; i++) {
+        if (fstat(fds[i], &identities[i]) < 0) { int saved = errno; return os_error(E_FD, saved, i); }
+        int flags = fcntl(fds[i], F_GETFL);
+        if (flags < 0) { int saved = errno; return os_error(E_FD, saved, i); }
+        if (i <= TM && i != RQ) {
+            if (!S_ISREG(identities[i].st_mode) || identities[i].st_size || identities[i].st_nlink != 1 ||
+                (flags & O_ACCMODE) != O_RDWR || (flags & O_APPEND)) return refuse(E_FD, 3, i);
+            off_t at = lseek(fds[i], 0, SEEK_CUR);
+            if (at < 0) { int saved = errno; return os_error(E_FD, saved, i); }
+            if (at) return refuse(E_FD, 4, i);
+        }
+        if (i == RQ && (!S_ISREG(identities[i].st_mode) || identities[i].st_size < 40 ||
+            identities[i].st_size > PQ_REQUEST_MAX || (flags & O_ACCMODE) != O_RDONLY)) return refuse(E_FD, 5, i);
+        if (i == EX && !S_ISREG(identities[i].st_mode)) return refuse(E_FD, 6, i);
+        if (i == CW && !S_ISDIR(identities[i].st_mode)) return refuse(E_FD, 7, i);
+        if (i == IN && (!S_ISCHR(identities[i].st_mode) || major(identities[i].st_rdev) != 1 ||
+            minor(identities[i].st_rdev) != 3 || (flags & O_ACCMODE) != O_RDONLY)) return refuse(E_FD, 8, i);
+    }
+    for (unsigned i = RQ; i <= JR; i++) for (unsigned k = RQ; k < i; k++)
+        if (identities[i].st_dev == identities[k].st_dev && identities[i].st_ino == identities[k].st_ino)
+            return refuse(E_FD, 9, i);
+    return true;
+}
+static uint32_t le32(const unsigned char *p) {
+    return (uint32_t)p[0] | (uint32_t)p[1]<<8 | (uint32_t)p[2]<<16 | (uint32_t)p[3]<<24;
+}
+static bool parse_request(void) {
+    struct stat s;
+    if (fstat(fds[RQ], &s) < 0) { int saved = errno; return os_error(E_REQUEST, saved, 0); }
+    if (s.st_size < 40 || s.st_size > PQ_REQUEST_MAX) return refuse(E_REQUEST, 10, (uint64_t)s.st_size);
+    size_t n = (size_t)s.st_size;
+    if (!pread_exact(fds[RQ], req.raw, n, 0)) return false;
+    memcpy(&req.h, req.raw, sizeof req.h);
+    if (memcmp(req.h.magic, PQ_REQUEST_MAGIC, 8) || req.h.query_id < 1 || req.h.query_id > 17 ||
+        !req.h.argc || req.h.argc > PQ_ARG_MAX || !req.h.envc || req.h.envc > PQ_ENV_MAX ||
+        !req.h.stdout_cap || req.h.stdout_cap > PQ_STREAM_MAX || !req.h.stderr_cap || req.h.stderr_cap > PQ_STREAM_MAX ||
+        !req.h.syscall_cap || req.h.syscall_cap > PQ_SYSCALL_MAX || !req.h.write_cap || req.h.write_cap > PQ_WRITE_MAX ||
+        !req.h.timeout_ms || req.h.timeout_ms > PQ_TIMEOUT_MAX_MS) return refuse(E_REQUEST, 1, n);
+    size_t at = 40, used = 0; bool locale = false, temporary = false;
+    for (unsigned i = 0; i < req.h.argc + req.h.envc; i++) {
+        if (at > n || n-at < 4) return refuse(E_REQUEST, 2, i);
+        uint32_t len = le32(req.raw+at); at += 4;
+        if (!len || len > n-at || memchr(req.raw+at, 0, len) || used+len+1 > sizeof req.strings) return refuse(E_REQUEST, 3, i);
+        char *p = req.strings+used; memcpy(p, req.raw+at, len); p[len] = 0;
+        at += len; used += len+1;
+        if (i < req.h.argc) req.argv[i] = p;
+        else {
+            unsigned k = i-req.h.argc; req.env[k] = p;
+            char *eq = strchr(p, '=');
+            if (!eq || eq == p || (k && strcmp(req.env[k-1], p) >= 0)) return refuse(E_REQUEST, 4, i);
+            for (char *c = p; c < eq; c++) if (!((*c >= 'A' && *c <= 'Z') || (*c >= 'a' && *c <= 'z') || (*c >= '0' && *c <= '9') || *c == '_')) return refuse(E_REQUEST, 5, i);
+            if (k) { char *old = strchr(req.env[k-1], '='); if ((size_t)(old-req.env[k-1]) == (size_t)(eq-p) && !memcmp(req.env[k-1], p, (size_t)(eq-p))) return refuse(E_REQUEST, 6, i); }
+            if (!strcmp(p, "LC_ALL=C")) locale = true;
+            if (!strncmp(p, "TMPDIR=/", 8)) temporary = true;
+            if (!strncmp(p, "LD_", 3) || !strncmp(p, "GLIBC_TUNABLES=", 15) || !strncmp(p, "TMP=", 4) || !strncmp(p, "TEMP=", 5)) return refuse(E_REQUEST, 7, i);
+        }
+    }
+    if (at != n || !locale || !temporary) return refuse(E_REQUEST, 8, at);
+    if (req.argv[0][0] != '/') for (const unsigned char *p=(unsigned char *)req.argv[0]; *p; p++)
+        if (!( (*p>='A'&&*p<='Z') || (*p>='a'&&*p<='z') || (*p>='0'&&*p<='9') || strchr("_.+-", *p))) return refuse(E_REQUEST, 9, *p);
+    return true;
+}
+struct pq_dirent { uint64_t ino; int64_t off; unsigned short reclen; unsigned char type; char name[]; };
+static bool audit_directory(const char *path, bool task_directory) {
+    int fd = open(path, O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
+    if (fd < 0) { int saved = errno; return os_error(E_AUDIT, saved, 0); }
+    bool okay = true, complete = false; unsigned seen = 0;
+    unsigned char b[8192] __attribute__((aligned(8)));
+    for (unsigned reads=0; okay && reads<4; reads++) {
+        long n = syscall(SYS_getdents64, fd, b, sizeof b);
+        if (n < 0) { int saved = errno; okay = os_error(E_AUDIT, saved, 1); break; }
+        if (!n) { complete = true; break; }
+        for (size_t at=0; okay && at<(size_t)n;) {
+            struct pq_dirent *d=(struct pq_dirent *)(void *)(b+at);
+            if ((size_t)n-at<20 || d->reclen<20 || d->reclen>(size_t)n-at || !memchr(d->name,0,d->reclen-19)) { okay=refuse(E_AUDIT,2,at); break; }
+            if (strcmp(d->name,".") && strcmp(d->name,"..")) {
+                uint64_t v=0; const char *p=d->name;
+                if (!*p) okay=false;
+                for (; *p && okay; p++) { if (*p<'0'||*p>'9'||v>((uint64_t)INT_MAX-(unsigned)(*p-'0'))/10) okay=false; else v=v*10+(unsigned)(*p-'0'); }
+                bool allowed=task_directory ? v==(uint64_t)getpid() : (v<=2 || v==(unsigned)fd);
+                if (!task_directory) for(unsigned k=0;k<NFD;k++) if(v==(unsigned)fds[k]) allowed=true;
+                if (!okay || !allowed || ++seen>32) okay=refuse(E_AUDIT,3,v);
+            }
+            at+=d->reclen;
+        }
+    }
+    if (okay && (!complete || (task_directory && seen!=1))) okay=refuse(E_AUDIT,4,seen);
+    bool closed=close_owned(fd); return okay && closed;
+}
+static bool audit_start(void) {
+    if (!audit_directory("/proc/self/fd",false) || !audit_directory("/proc/self/task",true)) return false;
+    char path[96]; int n=snprintf(path,sizeof path,"/proc/self/task/%ld/children",(long)getpid());
+    if(n<=0||(size_t)n>=sizeof path) return refuse(E_AUDIT,5,0);
+    int fd=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);
+    if(fd<0){int saved=errno;return os_error(E_AUDIT,saved,2);}
+    char c;ssize_t got=read(fd,&c,1);bool okay;
+    if(got<0){int saved=errno;okay=os_error(E_AUDIT,saved,3);}else okay=got==0 || refuse(E_AUDIT,6,(uint64_t)got);
+    bool closed=close_owned(fd);return okay&&closed;
+}
+static bool remote_read(uint64_t address, void *buffer, size_t n) {
+    if (!n) return true;
+    if (address > UINT64_MAX-n) return refuse(E_REMOTE,1,n);
+#ifdef PQ_TEST
+    extern ssize_t pq_mock_remote(uint64_t, void *, size_t);
+    ssize_t got=pq_mock_remote(address,buffer,n);
+#else
+    struct iovec local={buffer,n},remote={(void *)(uintptr_t)address,n};
+    ssize_t got=process_vm_readv(child_pid,&local,1,&remote,1,0);
+#endif
+    if(got<0){int saved=errno;return os_error(E_REMOTE,saved,n);}
+    if((size_t)got!=n)return refuse(E_REMOTE,2,(uint64_t)got);
+    return true;
+}
+static bool probe_fd(int fd, int expected_pipe) {
+#ifdef PQ_TEST
+    extern int pq_mock_probe(int,int);
+    int result=pq_mock_probe(fd,expected_pipe);
+    return result==0 || refuse(E_FD,10,(unsigned)fd);
+#else
+    char path[96];int n=snprintf(path,sizeof path,"/proc/%ld/fd/%d",(long)child_pid,fd);
+    if(n<=0||(size_t)n>=sizeof path)return refuse(E_FD,11,(unsigned)fd);
+    int held=open(path,O_PATH|O_CLOEXEC);if(held<0){int saved=errno;return os_error(E_FD,saved,(unsigned)fd);}
+    struct stat s;bool okay=true;
+    if(fstat(held,&s)<0){int saved=errno;okay=os_error(E_FD,saved,(unsigned)fd);}
+    if(okay) {
+        bool match[2];for(unsigned i=0;i<2;i++)match[i]=s.st_dev==pipe_identity[i].st_dev&&s.st_ino==pipe_identity[i].st_ino;
+        if(expected_pipe>=0)okay=match[expected_pipe] || refuse(E_FD,12,(unsigned)fd);
+        else okay=(!match[0]&&!match[1]) || refuse(E_FD,13,(unsigned)fd);
+    }
+    bool closed=close_owned(held);return okay&&closed;
+#endif
+}
+/* A finite whitelist: unknown/new output or FD-transfer mechanisms stop the
+ * report before they run. New query paths require source review, never fallback. */
+static bool syscall_allowed(uint64_t nr, const uint64_t a[6]) {
+    if(nr==SYS_write||nr==SYS_writev)return true;
+    if(nr==SYS_execveat)return exec_events==0 && a[0]==3 && a[4]==AT_EMPTY_PATH;
+    uint32_t fd = (uint32_t)a[0], other = (uint32_t)a[1];
+    if(nr==SYS_close)return fd>2 && fd<=INT_MAX;
+    if(nr==SYS_close_range)return fd>2 && other>=fd && a[2]==0;
+    if(nr==SYS_dup||nr==SYS_dup2||nr==SYS_dup3) return fd>2 && fd<=INT_MAX && (nr==SYS_dup || (other>2 && other<=INT_MAX));
+    if(nr==SYS_fcntl) {
+        unsigned cmd=(unsigned)a[1];
+        if(fd<=2)return cmd==F_GETFD||cmd==F_GETFL||cmd==F_GETPIPE_SZ;
+        return cmd==F_GETFD||cmd==F_SETFD||cmd==F_GETFL||cmd==F_SETFL||cmd==F_DUPFD||cmd==F_DUPFD_CLOEXEC||cmd==F_GETLK||cmd==F_SETLK||cmd==F_SETLKW;
+    }
+    if(nr==SYS_ioctl)return a[1]==0x5401U||a[1]==0x5413U||a[1]==0x541bU;
+    if(nr==SYS_pwrite64||nr==SYS_pwritev||nr==SYS_pwritev2||nr==SYS_ftruncate||nr==SYS_fchmod||nr==SYS_fchown||nr==SYS_fsync||nr==SYS_fdatasync)return fd>2 && fd<=INT_MAX;
+    if(nr==SYS_mmap)return (a[3]&MAP_ANONYMOUS) || (uint32_t)a[4]>2;
+    if(nr==SYS_prlimit64)return (uint32_t)a[0]==0 && !((uint32_t)a[1]==RLIMIT_AS && a[2]!=0);
+    static const unsigned allowed[]={
+        SYS_read,SYS_pread64,SYS_readv,SYS_preadv,SYS_preadv2,SYS_open,SYS_openat,SYS_openat2,SYS_creat,
+        SYS_fstat,SYS_stat,SYS_lstat,SYS_newfstatat,SYS_statx,SYS_access,SYS_faccessat,SYS_faccessat2,
+        SYS_lseek,SYS_mprotect,SYS_munmap,SYS_brk,SYS_mremap,SYS_madvise,SYS_msync,SYS_mincore,
+        SYS_rt_sigaction,SYS_rt_sigprocmask,SYS_rt_sigreturn,SYS_sigaltstack,
+        SYS_readlink,SYS_readlinkat,SYS_getcwd,SYS_getdents,SYS_getdents64,
+        SYS_getpid,SYS_getppid,SYS_gettid,SYS_getuid,SYS_geteuid,SYS_getgid,SYS_getegid,SYS_getgroups,
+        SYS_getresuid,SYS_getresgid,SYS_arch_prctl,SYS_set_tid_address,SYS_set_robust_list,SYS_rseq,
+        SYS_futex,SYS_getrandom,SYS_uname,SYS_sysinfo,SYS_getrlimit,SYS_getrusage,SYS_times,
+        SYS_clock_gettime,SYS_clock_getres,SYS_gettimeofday,SYS_time,SYS_sched_getaffinity,
+        SYS_poll,SYS_ppoll,SYS_select,SYS_pselect6,SYS_sched_yield,SYS_nanosleep,SYS_clock_nanosleep,
+        SYS_ftruncate,SYS_fsync,SYS_fdatasync,SYS_fchmod,SYS_fchown,SYS_umask,
+        SYS_unlink,SYS_unlinkat,SYS_rename,SYS_renameat,SYS_renameat2,SYS_mkdir,SYS_mkdirat,
+        SYS_exit,SYS_exit_group
+    };
+    for(size_t i=0;i<sizeof allowed/sizeof allowed[0];i++)if(nr==allowed[i])return true;
+    return false;
+}
+static bool fd_returning(uint64_t nr,const uint64_t a[6]) {
+    return nr==SYS_open||nr==SYS_openat||nr==SYS_openat2||nr==SYS_creat||nr==SYS_dup||nr==SYS_dup2||nr==SYS_dup3||
+        (nr==SYS_fcntl&&(a[1]==F_DUPFD||a[1]==F_DUPFD_CLOEXEC));
+}
+static bool snapshot_record(unsigned kind, int64_t returned, const void *payload, size_t len) {
+    struct pq_snapshot_record rec={kind,pending.seq,pending.fd,(uint32_t)pending.nr,pending.requested,returned,(uint32_t)len,0};
+    if(!write_all(fds[SN],&rec,sizeof rec,&snapshot_file_bytes))return false;
+    if(len&&!write_all(fds[SN],payload,len,&snapshot_file_bytes))return false;
+    snapshot_records++;return true;
+}
+static bool capture_output(void) {
+    uint32_t actual_fd=(uint32_t)pending.args[0];
+    if(actual_fd>INT_MAX)return refuse(E_FD,15,actual_fd);
+    if(actual_fd!=1 && actual_fd!=2)return probe_fd((int)actual_fd,-1);
+    unsigned which=actual_fd-1;uint64_t amount=0;
+    if(write_entries==req.h.write_cap)return refuse(E_CAPACITY,1,write_entries);
+    if(!probe_fd((int)actual_fd,(int)which))return false;
+    size_t cap=which?req.h.stderr_cap:req.h.stdout_cap;
+    struct iovec vec[PQ_IOV_MAX];unsigned count=1;
+    if(pending.nr==SYS_write){vec[0]=(struct iovec){(void *)(uintptr_t)pending.args[1],(size_t)pending.args[2]};}
+    else {
+        if(pending.args[2]>PQ_IOV_MAX)return refuse(E_CAPACITY,2,pending.args[2]);
+        count=(unsigned)pending.args[2];
+        if(!remote_read(pending.args[1],vec,count*sizeof vec[0]))return false;
+    }
+    for(unsigned i=0;i<count;i++) {
+        if(vec[i].iov_len>cap-snapshot_len[which]-amount)return refuse(E_CAPACITY,3,vec[i].iov_len);
+        amount+=vec[i].iov_len;
+    }
+    size_t at=snapshot_len[which];
+    for(unsigned i=0;i<count;i++) {
+        if(!remote_read((uint64_t)(uintptr_t)vec[i].iov_base,snapshot[which]+at,vec[i].iov_len))return false;
+        at+=vec[i].iov_len;
+    }
+    pending.output=true;pending.fd=actual_fd;pending.requested=amount;pending.seq=++write_entries;
+    return snapshot_record(1,0,snapshot[which]+snapshot_len[which],(size_t)amount);
+}
+static bool syscall_entry(const struct pq_sysinfo *info) {
+    if(pending.inside)return refuse(E_PROTOCOL,1,syscall_entries);
+    if(syscall_entries+terminal_exit_entries==req.h.syscall_cap)return refuse(E_CAPACITY,4,syscall_entries);
+    uint64_t nr=info->u.entry.nr;
+    if(info->arch!=AUDIT_ARCH_X86_64 || nr>INT_MAX || (nr&0x40000000U))return refuse(E_ABI,1,nr);
+    if(!syscall_allowed(nr,info->u.entry.args))return refuse(E_PROTOCOL,2,nr);
+    pending=(struct pq_pending){.inside=true,.nr=nr};memcpy(pending.args,info->u.entry.args,sizeof pending.args);
+    if (nr == SYS_exit || nr == SYS_exit_group) terminal_exit_entries++;
+    else syscall_entries++;
+    if(nr==SYS_write||nr==SYS_writev)return capture_output();
+    return true;
+}
+static bool syscall_exit(const struct pq_sysinfo *info) {
+    if(!pending.inside||info->arch!=AUDIT_ARCH_X86_64||pending.nr==SYS_exit||pending.nr==SYS_exit_group)return refuse(E_PROTOCOL,3,syscall_exits);
+    int64_t result=info->u.exit.rval;syscall_exits++;
+    if(pending.output) {
+        if(!snapshot_record(2,result,NULL,0))return false;
+        write_exits++;
+        if(info->u.exit.is_error || result<0) {
+            int raw=(result<0 && result>=-4095)?(int)-result:0;
+            error_event(E_WRITE,raw,2,(uint64_t)result);return false;
+        }
+        if((uint64_t)result!=pending.requested)return refuse(E_WRITE,3,(uint64_t)result);
+        snapshot_len[pending.fd-1]+=(size_t)pending.requested;
+    }
+    if(!info->u.exit.is_error && result>=0 && fd_returning(pending.nr,pending.args)) {
+        if(result>INT_MAX||result<=2)return refuse(E_FD,14,(uint64_t)result);
+        if(!probe_fd((int)result,-1))return false;
+    }
+    pending.inside=false;pending.output=false;return true;
+}
+/* A nonreturning exit entry has an exit event and a terminal wait, never a
+ * fabricated syscall-return stop. This predicate is shared by literal mocks. */
+static bool accept_exit_event(void) {
+    if (!exec_events || exit_event_seen || pending.output || !pending.inside ||
+        (pending.nr != SYS_exit && pending.nr != SYS_exit_group) ||
+        terminal_exit_entries != 1 || syscall_entries != syscall_exits)
+        return refuse(E_PROTOCOL, 8, pending.nr);
+    exit_event_seen = 1; phase = 5; return true;
+}
+static struct pq_task *task(pid_t pid,bool create) {
+    for(unsigned i=0;i<task_count;i++)if(tasks[i].pid==pid)return &tasks[i];
+    if(!create)return NULL;
+    if(task_count==PQ_TASK_MAX){cleanup_uncertain=true;refuse(E_CAPACITY,5,(unsigned)pid);return NULL;}
+    tasks[task_count]=(struct pq_task){.pid=pid,.live=true};return &tasks[task_count++];
+}
+static unsigned live_tasks(void){unsigned n=0;for(unsigned i=0;i<task_count;i++)n+=tasks[i].live;return n;}
+static bool resume_task(struct pq_task *t, bool exit_stop) {
+    if(ptrace(exit_stop?PTRACE_CONT:PTRACE_SYSCALL,t->pid,NULL,NULL)<0){int saved=errno;return os_error(E_PTRACE,saved,(unsigned)t->pid);}
+    t->stopped=false;return true;
+}
+static void kill_known(void) {
+    for(unsigned i=0;i<task_count;i++)if(tasks[i].live) {
+        if (!tasks[i].kill_sent) {
+            tasks[i].kill_sent=true;
+            if(kill(tasks[i].pid,SIGKILL)<0){int saved=errno;os_error(E_DESCENDANT,saved,(unsigned)tasks[i].pid);}
+        }
+        if(tasks[i].stopped) {
+            if(ptrace(PTRACE_CONT,tasks[i].pid,NULL,(void *)(uintptr_t)SIGKILL)<0){int saved=errno;os_error(E_PTRACE,saved,(unsigned)tasks[i].pid);}
+            tasks[i].stopped=false;
+        }
+    }
+}
+static void process_wait(pid_t pid,int status) {
+    struct pq_task *t=task(pid,false);
+    if(!t){t=task(pid,true);refuse(E_DESCENDANT,1,(unsigned)pid);}
+    if(!t){if(kill(pid,SIGKILL)<0){int saved=errno;os_error(E_DESCENDANT,saved,(unsigned)pid);}return;}
+    if(WIFEXITED(status)||WIFSIGNALED(status)) {
+        if(!t->live){refuse(E_PROTOCOL,4,(unsigned)pid);return;}
+        t->live=false;t->stopped=false;retired_tasks++;
+        if(pid==child_pid){terminal_wait_seen=1;exit_code=WIFEXITED(status)?WEXITSTATUS(status):-1;term_signal=WIFSIGNALED(status)?(unsigned)WTERMSIG(status):0;phase=6;
+            if(!exit_event_seen||pending.output||(!WIFEXITED(status)||exit_code!=0))refuse(E_PROTOCOL,5,(unsigned)status);}
+        return;
+    }
+    if(!WIFSTOPPED(status)){refuse(E_WAIT,1,(unsigned)status);return;}
+    t->stopped=true;
+    if(failed_state)return;
+    if(pid!=child_pid){refuse(E_DESCENDANT,2,(unsigned)pid);return;}
+    unsigned event=(unsigned)status>>16;int signal=WSTOPSIG(status);
+    if(phase==1 && signal==SIGSTOP && !event) {
+        if(ptrace(PTRACE_SETOPTIONS,pid,NULL,(void *)(uintptr_t)PQ_OPTIONS)<0){int saved=errno;os_error(E_PTRACE,saved,1);return;}
+        phase=2;(void)resume_task(t,false);return;
+    }
+    if(event) {
+        if(signal!=SIGTRAP){refuse(E_PROTOCOL,6,(unsigned)status);return;}
+        if(event==PTRACE_EVENT_EXEC) {
+            if(exec_events||!pending.inside||pending.nr!=SYS_execveat){refuse(E_PROTOCOL,7,event);return;}
+            exec_events++;phase=3;
+            if(!probe_fd(1,0)||!probe_fd(2,1))return;
+            (void)resume_task(t,false);return;
+        }
+        if(event==PTRACE_EVENT_EXIT) {
+            unsigned long message=0;
+            if(ptrace(PTRACE_GETEVENTMSG,pid,NULL,(void *)&message)<0){int saved=errno;os_error(E_PTRACE,saved,event);return;}
+            if(!accept_exit_event())return;
+            (void)resume_task(t,true);return;
+        }
+        if(event==PTRACE_EVENT_FORK||event==PTRACE_EVENT_VFORK||event==PTRACE_EVENT_CLONE) {
+            unsigned long descendant=0;
+            if(ptrace(PTRACE_GETEVENTMSG,pid,NULL,&descendant)<0){int saved=errno;cleanup_uncertain=true;os_error(E_PTRACE,saved,event);}
+            else if(descendant>0&&descendant<=INT_MAX)(void)task((pid_t)descendant,true);
+            else cleanup_uncertain=true;
+        }
+        refuse(E_DESCENDANT,3,event);return;
+    }
+    if(signal!=(SIGTRAP|0x80)){refuse(E_PROTOCOL,10,(unsigned)signal);return;}
+    struct pq_sysinfo info;memset(&info,0,sizeof info);
+    long n=ptrace(PTRACE_GET_SYSCALL_INFO,pid,(void *)sizeof info,(void *)&info);
+    if(n<0){int saved=errno;os_error(E_PTRACE,saved,2);return;}
+    if(info.op==1 && n>=80){if(!syscall_entry(&info))return;}
+    else if(info.op==2 && n>=33){if(!syscall_exit(&info))return;}
+    else {refuse(E_PROTOCOL,11,(unsigned)n);return;}
+    if(exec_events)phase=4;
+    (void)resume_task(t,false);
+}
+static void drain_pipe(unsigned which) {
+    unsigned char b[65536];
+    for(unsigned blocks=0;blocks<32&&!eof_seen[which];blocks++) {
+        ssize_t n=read(pipes_fd[which][0],b,sizeof b);
+        if(n<0){int saved=errno;if(saved==EINTR)continue;if(saved==EAGAIN||saved==EWOULDBLOCK)return;os_error(E_DRAIN,saved,which);return;}
+        if(!n){eof_seen[which]=true;return;}
+        size_t cap=which?req.h.stderr_cap:req.h.stdout_cap;
+        if((size_t)n>cap-drained_len[which]){refuse(E_CAPACITY,6,which);continue;}
+        memcpy(drained[which]+drained_len[which],b,(size_t)n);drained_len[which]+=(size_t)n;
+        uint64_t written=0;
+        if(!write_all(fds[which?ERR:OUT],b,(size_t)n,&written)){retained_len[which]+=(size_t)written;return;}
+        retained_len[which]+=(size_t)written;
+    }
+}
+static bool stream_readback(unsigned which) {
+    size_t n=drained_len[which];
+    if(snapshot_len[which]!=n||retained_len[which]!=n||memcmp(snapshot[which],drained[which],n))return refuse(E_READBACK,2,which);
+    int fd=fds[which?ERR:OUT];struct stat s;
+    if(fstat(fd,&s)<0){int saved=errno;return os_error(E_READBACK,saved,which);}
+    if(s.st_size!=(off_t)n)return refuse(E_READBACK,3,which);
+    unsigned char b[65536];
+    for(size_t at=0;at<n;){size_t k=n-at;if(k>sizeof b)k=sizeof b;if(!pread_exact(fd,b,k,(off_t)at))return false;
+        if(memcmp(b,drained[which]+at,k))return refuse(E_READBACK,4,which);at+=k;readback_len[which]+=k;}
+    return true;
+}
+static bool snapshot_readback(void) {
+    unsigned char magic[8],b[65536];
+    if(!pread_exact(fds[SN],magic,8,0)||memcmp(magic,PQ_SNAPSHOT_MAGIC,8))return refuse(E_READBACK,5,0);
+    off_t off=8;size_t at[2]={0,0};
+    for(unsigned seq=1;seq<=write_entries;seq++) {
+        struct pq_snapshot_record a,z;
+        if(!pread_exact(fds[SN],&a,sizeof a,off))return false;off+=sizeof a;
+        if(a.kind!=1||a.seq!=seq||(a.fd!=1&&a.fd!=2)||(a.syscall_nr!=SYS_write&&a.syscall_nr!=SYS_writev)||a.returned||a.reserved||a.payload_len!=a.requested)return refuse(E_READBACK,6,seq);
+        unsigned k=a.fd-1;if(a.requested>snapshot_len[k]-at[k])return refuse(E_READBACK,7,seq);
+        for(size_t left=(size_t)a.requested;left;){size_t amount=left;if(amount>sizeof b)amount=sizeof b;if(!pread_exact(fds[SN],b,amount,off))return false;
+            if(memcmp(b,snapshot[k]+at[k],amount))return refuse(E_READBACK,8,seq);at[k]+=amount;off+=(off_t)amount;left-=amount;}
+        if(!pread_exact(fds[SN],&z,sizeof z,off))return false;off+=sizeof z;
+        if(z.kind!=2||z.seq!=seq||z.fd!=a.fd||z.syscall_nr!=a.syscall_nr||z.requested!=a.requested||z.returned!=(int64_t)a.requested||z.payload_len||z.reserved)return refuse(E_READBACK,9,seq);
+    }
+    struct stat s;if(fstat(fds[SN],&s)<0){int saved=errno;return os_error(E_READBACK,saved,SN);}
+    return ((uint64_t)off==snapshot_file_bytes && s.st_size==off && at[0]==snapshot_len[0]&&at[1]==snapshot_len[1]) || refuse(E_READBACK,10,(uint64_t)off);
+}
+static void child_error(unsigned detail,int saved) { error_event(E_CHILD,saved,detail,0);_exit(111); }
+static void child_close(int fd){if(close(fd)<0){int saved=errno;child_error(1,saved);}}
+static void child_main(void) {
+    if(fchdir(fds[CW])<0){int saved=errno;child_error(2,saved);}
+    /* Retire the inherited relay streams explicitly before replacement. */
+    child_close(0);child_close(1);child_close(2);
+    int sources[3]={fds[IN],pipes_fd[0][1],pipes_fd[1][1]};
+    for(int i=0;i<3;i++)if(dup3(sources[i],i,0)<0){int saved=errno;child_error(3,saved);}
+    if(fds[EX]!=3) {
+        bool held=false;for(unsigned i=0;i<NFD;i++)if(fds[i]==3)held=true;
+        for(unsigned p=0;p<2;p++)for(unsigned e=0;e<2;e++)if(pipes_fd[p][e]==3)held=true;
+        if(held)child_close(3);
+        if(dup3(fds[EX],3,O_CLOEXEC)<0){int saved=errno;child_error(4,saved);}
+    }else if(fcntl(3,F_SETFD,FD_CLOEXEC)<0){int saved=errno;child_error(5,saved);}
+    for(unsigned i=0;i<NFD;i++)if(fds[i]>3)child_close(fds[i]);
+    for(unsigned p=0;p<2;p++)for(unsigned e=0;e<2;e++)if(pipes_fd[p][e]>3)child_close(pipes_fd[p][e]);
+    for(int i=1;i<=2;i++){int flags=fcntl(i,F_GETFL);if(flags<0){int saved=errno;child_error(6,saved);}if(fcntl(i,F_SETFL,flags&~O_NONBLOCK)<0){int saved=errno;child_error(7,saved);}}
+    struct rlimit as;if(getrlimit(RLIMIT_AS,&as)<0){int saved=errno;child_error(8,saved);}
+    if(as.rlim_max> PQ_HARD_AS)as.rlim_max=PQ_HARD_AS;if(as.rlim_cur>as.rlim_max)as.rlim_cur=as.rlim_max;
+    if(setrlimit(RLIMIT_AS,&as)<0){int saved=errno;child_error(9,saved);}
+    struct rlimit actual;if(getrlimit(RLIMIT_AS,&actual)<0){int saved=errno;child_error(10,saved);}
+    if(actual.rlim_cur>PQ_HARD_AS||actual.rlim_max>PQ_HARD_AS)child_error(11,0);
+    struct sigaction action;memset(&action,0,sizeof action);action.sa_handler=SIG_DFL;sigemptyset(&action.sa_mask);
+    if(sigaction(SIGPIPE,&action,NULL)<0){int saved=errno;child_error(12,saved);}
+    sigset_t empty;sigemptyset(&empty);if(sigprocmask(SIG_SETMASK,&empty,NULL)<0){int saved=errno;child_error(13,saved);}
+    if(ptrace(PTRACE_TRACEME,0,NULL,NULL)<0){int saved=errno;child_error(14,saved);}
+    if(raise(SIGSTOP)!=0){int saved=errno;child_error(15,saved);}
+    syscall(SYS_execveat,3,"",req.argv,req.env,AT_EMPTY_PATH);
+    {int saved=errno;child_error(16,saved);}
+}
+static void run_trace(void) {
+    while(live_tasks()||!eof_seen[0]||!eof_seen[1]) {
+        uint64_t now=clock_ms();
+        if(!failed_state&&now>=deadline)refuse(E_TIMEOUT,1,now);
+        if(journal&&atomic_load_explicit(&journal->ready[0],memory_order_acquire)&&!failed_state)failed_state=true;
+        if(failed_state) {
+            if(!cleanup_deadline)cleanup_deadline=now+PQ_CLEANUP_MS;
+            kill_known();
+            if(now>=cleanup_deadline){cleanup_uncertain=true;refuse(E_TIMEOUT,2,live_tasks());break;}
+        }
+        for(unsigned waits=0;waits<32;waits++) {
+            int status;pid_t pid=waitpid(-1,&status,__WALL|WNOHANG);
+            if(pid>0){process_wait(pid,status);if(failed_state)break;continue;}
+            if(pid==0)break;
+            int saved=errno;if(saved==EINTR)continue;
+            if(saved==ECHILD){if(live_tasks()){cleanup_uncertain=true;os_error(E_WAIT,saved,live_tasks());}break;}
+            os_error(E_WAIT,saved,0);break;
+        }
+        for(unsigned i=0;i<2;i++)if(!eof_seen[i])drain_pipe(i);
+        if(!live_tasks()&&eof_seen[0]&&eof_seen[1])break;
+        struct pollfd p[2]={{pipes_fd[0][0],POLLIN|POLLHUP,0},{pipes_fd[1][0],POLLIN|POLLHUP,0}};
+        int n=poll(p,2,5);if(n<0){int saved=errno;if(saved!=EINTR)os_error(E_DRAIN,saved,2);}
+    }
+    if(failed_state)kill_known();
+}
+static bool emit_terminal(void) {
+    char b[16384];unsigned count=journal?atomic_load(&journal->used):0;
+    int n=snprintf(b,sizeof b,
+        "{\"schema\":\"native-property-observation-v1\",\"query_id\":%u,\"tracee_pid\":%ld,\"protocol_phase\":%u,\"exec_events\":%u,\"exit_event_seen\":%u,\"terminal_wait_seen\":%u,\"exit_code\":%d,\"term_signal\":%u,\"eof_mask\":%u,\"retired_tasks\":%u,\"live_tasks\":%u,\"syscall_entries\":%u,\"syscall_exits\":%u,\"terminal_exit_entries\":%u,\"write_entries\":%u,\"write_exits\":%u,\"snapshot_records\":%u,\"snapshot_stdout_bytes\":%zu,\"snapshot_stderr_bytes\":%zu,\"drained_stdout_bytes\":%zu,\"drained_stderr_bytes\":%zu,\"retained_stdout_bytes\":%zu,\"retained_stderr_bytes\":%zu,\"readback_stdout_bytes\":%zu,\"readback_stderr_bytes\":%zu,\"journal_entries\":%u,\"journal_overflow\":%u,\"primary_index\":%u,\"cleanup_uncertain\":%u,\"early_errors\":[",
+        req.h.query_id,(long)child_pid,phase,exec_events,exit_event_seen,terminal_wait_seen,exit_code,term_signal,
+        (eof_seen[0]?1u:0u)|(eof_seen[1]?2u:0u),retired_tasks,live_tasks(),syscall_entries,syscall_exits,terminal_exit_entries,write_entries,write_exits,snapshot_records,
+        snapshot_len[0],snapshot_len[1],drained_len[0],drained_len[1],retained_len[0],retained_len[1],readback_len[0],readback_len[1],count,
+        journal?atomic_load(&journal->overflow):0,journal?atomic_load(&journal->primary_index):UINT32_MAX,cleanup_uncertain?1u:0u);
+    if(n<0){int saved=errno;return os_error(E_WRITE,saved,TM);}
+    if((size_t)n>=sizeof b)return refuse(E_CAPACITY,7,(unsigned)n);
+    size_t used = (size_t)n;
+    for (unsigned i=0; i<early_count; i++) {
+        const struct pq_native_error *e=&early_errors[i];
+        n=snprintf(b+used,sizeof b-used,"%s{\"phase\":%u,\"operation\":%u,\"raw_errno\":%d,\"detail\":%u,\"auxiliary\":%" PRIu64 "}",
+                   i?",":"",e->phase,e->operation,e->raw_errno,e->detail,e->auxiliary);
+        if(n<0||(size_t)n>=sizeof b-used)return refuse(E_CAPACITY,8,i);
+        used+=(size_t)n;
+    }
+    if (sizeof b-used<4) return refuse(E_CAPACITY,9,used);
+    memcpy(b+used,"]}\n",3);used+=3;
+    return write_all(fds[TM],b,used,NULL);
+}
+int main(int argc,char **argv) {
+    /* SIGPIPE belongs to the observer relay only. The child restores default
+     * SIGPIPE before its genuine trace stop and exact exec. */
+    struct sigaction ignore; memset(&ignore, 0, sizeof ignore);
+    ignore.sa_handler = SIG_IGN; sigemptyset(&ignore.sa_mask);
+    bool okay;
+    if (sigaction(SIGPIPE, &ignore, NULL) < 0) {
+        int saved = errno; error_event(E_CHILD, saved, 17, 0); okay = false;
+    } else { fallback_relay_ready = true; okay = parse_fds(argc, argv); }
+    if(okay)okay=initialize_journal()&&validate_fds()&&parse_request()&&audit_start();
+    if(okay) {
+        /* All stream arenas, request strings, error slots and task slots are
+         * fixed and reserved before fork; no later dynamic payload allocation. */
+        memset(snapshot,0,sizeof snapshot);memset(drained,0,sizeof drained);
+        for(unsigned i=0;i<2&&okay;i++) {
+            if(pipe2(pipes_fd[i],O_CLOEXEC|O_NONBLOCK)<0){int saved=errno;okay=os_error(E_PIPE,saved,i);break;}
+            pipe_live[i][0]=pipe_live[i][1]=true;
+            if(fstat(pipes_fd[i][0],&pipe_identity[i])<0){int saved=errno;okay=os_error(E_PIPE,saved,i);}
+        }
+    }
+    if(okay)okay=write_all(fds[SN],PQ_SNAPSHOT_MAGIC,8,&snapshot_file_bytes);
+    if(okay) {
+        uint64_t now=clock_ms();if(failed_state)okay=false;else deadline=now+req.h.timeout_ms;
+    }
+    if(okay) {
+        phase=1;child_pid=fork();
+        if(child_pid<0){int saved=errno;okay=os_error(E_FORK,saved,0);}
+        else if(!child_pid)child_main();
+        else { (void)task(child_pid,true);close_pipe(0,1);close_pipe(1,1);run_trace(); }
+    }
+    if(okay&&!failed_state) {
+        if(!exec_events||!exit_event_seen||!terminal_wait_seen||exit_code||term_signal||live_tasks()||!eof_seen[0]||!eof_seen[1]||write_entries!=write_exits||snapshot_records!=2*write_entries||terminal_exit_entries!=1||syscall_entries!=syscall_exits||cleanup_uncertain)
+            refuse(E_PROTOCOL,12,phase);
+        else { phase=7;if(stream_readback(0)&&stream_readback(1)&&snapshot_readback())phase=8; }
+    }
+    for(unsigned p=0;p<2;p++)for(unsigned e=0;e<2;e++)close_pipe(p,e);
+    /* Close every evidence/input owner except terminal; journal mapping stays
+     * alive through all final closes, and is retired by actual process death. */
+    for(unsigned i=0;i<NFD;i++)if(i!=TM)close_input(i);
+    if(fd_live[TM]){(void)emit_terminal();close_input(TM);}
+    if(early_count||early_overflow||(journal&&(atomic_load(&journal->used)||atomic_load(&journal->overflow))))failed_state=true;
+    _exit(!failed_state&&phase==8?0:78);
+}

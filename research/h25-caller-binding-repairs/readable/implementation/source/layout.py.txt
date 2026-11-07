@@ -1,0 +1,93 @@
+"""Fixed prospective complete-source layout; no old-tree copy or runtime grant.
+
+The authenticated bootstrap selects this module before any producer creation.
+Every selected case exists only after the actual registry reserve operation.
+Whole-operation administrative outputs are disjoint from source at creation.
+"""
+from pathlib import Path
+import os
+import stat
+
+ROUND_ROOT = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-qualification-reconciliation-20261107T2312Z/successor')
+SOURCE_ROOT = ROUND_ROOT / 'runtime/completed-source/IndependentPrefixDATAComposedV1'
+ADMIN_ROOT = ROUND_ROOT / 'runtime/admin/IndependentPrefixDATAComposedV1'
+CASE_LABELS = ('IndependentPrefixDATAComposedV1N', 'IndependentPrefixDATAComposedV1O')
+CASE_MEMBERS = ('attempt', 'runner', 'intent', 'supervision', 'queue', 'validation', 'serialized-DATA')
+
+
+def need(value, message):
+    if not value:
+        raise ValueError(message)
+
+
+def label(value):
+    need(type(value) is str and 0 < len(value) <= 128 and
+         all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value),
+         'exact simple case label')
+    return value
+
+
+class CaseLayout(tuple):
+    __slots__ = ()
+    def __new__(cls, source, case_label):
+        need(type(source) is type(SOURCE_ROOT), 'concrete fixed source path')
+        return tuple.__new__(cls, (source, label(case_label)))
+    source = property(lambda self: self[0])
+    label = property(lambda self: self[1])
+    case_root = property(lambda self: self.source / self.label)
+    attempt_root = property(lambda self: self.case_root / 'attempt')
+    runner_root = property(lambda self: self.case_root / 'runner')
+    artifact_parent = property(lambda self: self.runner_root / 'artifact')
+    science_root = property(lambda self: self.artifact_parent / 'science')
+    intent_path = property(lambda self: self.case_root / 'intent/INTENT.json')
+    supervision_root = property(lambda self: self.case_root / 'supervision')
+    queue_root = property(lambda self: self.case_root / 'queue')
+    validation_root = property(lambda self: self.case_root / 'validation')
+    external_root = property(lambda self: self.case_root / 'serialized-DATA')
+    def intent_fields(self, identity):
+        need(type(identity) is str and 0 < len(identity) <= 256, 'actual attempt identity DATA')
+        return {'source_root': str(self.source), 'case_container': str(self.case_root),
+                'runner_root': str(self.runner_root), 'artifact_parent':str(self.artifact_parent), 'science_root': str(self.science_root),
+                'external_root': str(self.external_root), 'intent_path': str(self.intent_path),
+                'attempt_identity': identity}
+    def relative_map(self):
+        return {name: name for name in CASE_MEMBERS}
+
+
+class LayoutSelection(tuple):
+    __slots__ = ()
+    def __new__(cls, source=SOURCE_ROOT, admin=ADMIN_ROOT, labels=CASE_LABELS):
+        need(type(source) is type(SOURCE_ROOT) and type(admin) is type(ADMIN_ROOT),
+             'exact concrete fixed layout paths')
+        need(source == SOURCE_ROOT and admin == ADMIN_ROOT and type(labels) is tuple and labels == CASE_LABELS,
+             'source-fixed prospective selection; no arbitrary destination')
+        need(source.is_absolute() and admin.is_absolute() and not source.is_relative_to(admin) and
+             not admin.is_relative_to(source), 'disjoint complete source/admin roots')
+        for path in (source, admin):
+            existing = path
+            while not existing.exists():
+                need(not existing.is_symlink(), 'no symlink in prospective namespace')
+                existing = existing.parent
+            need(existing.resolve(strict=True) == existing, 'canonical existing namespace ancestor')
+        return tuple.__new__(cls, (source, admin, labels))
+    source = property(lambda self: self[0])
+    admin = property(lambda self: self[1])
+    labels = property(lambda self: self[2])
+    def case(self, case_label):
+        need(label(case_label) in self.labels, 'fixed selected case')
+        return CaseLayout(self.source, case_label)
+    def admin_role(self, role):
+        need(role in ('G', 'M', 'K', 'C2', 'queue', 'control', 'retention'), 'fixed administrative role')
+        return self.admin / role
+
+
+def validate_case_fields(value):
+    """Strict complete inverse used by the child; serialized fields are DATA only."""
+    keys = {'source_root', 'case_container', 'runner_root', 'artifact_parent', 'science_root', 'external_root',
+            'intent_path', 'attempt_identity'}
+    need(type(value) is dict and set(value) == keys, 'exact prospective layout fields')
+    need(all(type(value[k]) is str for k in keys), 'exact string layout DATA')
+    case_label = Path(value['case_container']).name
+    row = LayoutSelection().case(case_label)
+    need(value == row.intent_fields(value['attempt_identity']), 'fixed prospective path inverse')
+    return row

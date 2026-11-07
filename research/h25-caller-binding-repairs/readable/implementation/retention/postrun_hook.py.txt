@@ -1,0 +1,172 @@
+"""SOURCE ONLY: synchronous parent hook after finalized measured attempts.
+The parent owns process containment, event pin custody, inherited lease and funding.
+No hook is installed by this file and import has no filesystem effects.
+"""
+import time
+import types
+from plain_boundary import plain_copy, fd_number
+import parent_authority
+import error_custody
+from actual_consumer import (canonical, digest, exact, need, parse, read_pinned,
+                             validate_config)
+
+
+def _completed_run_hook(config, lease_fd, authority_sha256, event_path,
+                       event_sha256, measured_processes, consumer_path, consumer_sha256,
+                       config_path, config_sha256, dispatch_reviewed_retention, capability=None,custody=None):
+    """Call once while parent retains its global science lease.
+
+    measured_processes is the exact {pid: subprocess.Popen} map retained by the
+    parent for the finalized event, including nonzero/STOP attempts. Retention
+    executes synchronously; no background task or measured-write replacement.
+    Containment-empty proof is parent-attested because Popen.poll alone cannot
+    establish absence of descendants or unenrolled producers.
+    """
+    # Deep JSON copies prevent callback/caller mutation of shared answer state.
+    cfg = validate_config(config)
+    fd_number(lease_fd)
+    binding = parent_authority.authenticate(capability, cfg, lease_fd,custody)
+    lease_observation = parent_authority.verify_lease_history(binding, lease_fd,custody)
+    issued = parent_authority.process_map(binding, measured_processes)
+    need(digest(authority_sha256) and authority_sha256 == cfg["authority_review_sha256"],
+         "postrun external authority mismatch")
+    need(type(lease_fd) is int and lease_fd >= 0, "postrun inherited lease descriptor")
+    need(cfg["purpose"] == "postrun", "postrun purpose required")
+    event = parse(read_pinned(event_path, event_sha256))
+    exact(event, ("schema", "source_root", "one_shot_id", "closure_sha256", "domain_sha256",
+                  "inventory_sha256", "terminal_receipts_final", "raw_streams_closed",
+                  "measured_end_monotonic_ns", "receipts_final_monotonic_ns", "processes",
+                  "all_process_groups_empty", "no_additional_measured_processes"), "postrun event fields")
+    need(event["schema"] == "h25-finalized-postrun-event-v2"
+         and event["source_root"] == cfg["source_root"] and event["one_shot_id"] == cfg["one_shot_id"],
+         "postrun event identity")
+    for key in ("closure", "domain", "inventory"):
+        need(event[key + "_sha256"] == cfg[key]["sha256"], "postrun event pin binding")
+    for key in ("terminal_receipts_final", "raw_streams_closed", "all_process_groups_empty",
+                "no_additional_measured_processes"):
+        need(event[key] is True, "postrun finalization barrier: " + key)
+    times = [event["measured_end_monotonic_ns"], event["receipts_final_monotonic_ns"]]
+    need(all(type(v) is int and v > 0 for v in times)
+         and times[0] <= times[1] <= time.monotonic_ns(), "postrun event order/clock domain")
+    need(type(event["processes"]) is list and event["processes"]
+         and type(measured_processes) is dict, "complete measured process map required")
+    seen = set()
+    for row in event["processes"]:
+        exact(row, ("pid", "returncode", "reaped", "terminal_status"), "postrun process row")
+        need(type(row["pid"]) is int and row["pid"] > 0 and row["pid"] not in seen
+             and type(row["returncode"]) is int and row["reaped"] is True, "postrun process completion")
+        need(row["terminal_status"] in ("PASS", "STOP", "NONZERO", "INTERRUPTED"), "postrun includes STOP status")
+        # Map keys, original registry identity, source and primitive bindings
+        # were checked before ANY process property/method. No poll callback.
+        entry = issued.get(row["pid"])
+        need(entry is not None and entry.returncode == row["returncode"], "live or mismatched measured process")
+        seen.add(row["pid"])
+    need(seen == set(measured_processes), "postrun measured process union mismatch")
+    # All original receipts remain in the source. Retention creates separate
+    # receipts and never changes a scientific measurement or terminal result.
+    # Parent alone integrates this capability with its reviewed guard. The hook
+    # cannot select a runner, stage, logs, funding or authority. Dispatch must
+    # verify all pins below, retain lease for the full child and terminal tail,
+    # use explicit pass_fds=(lease_fd,), and return a terminal guard receipt.
+    need(digest(consumer_sha256) and digest(config_sha256), "postrun command pins")
+    read_pinned(consumer_path, consumer_sha256, 1048576)
+    config_raw = read_pinned(config_path, config_sha256)
+    need(canonical(parse(config_raw)) == canonical(cfg), "postrun config mismatch")
+    need(type(dispatch_reviewed_retention) is types.FunctionType
+         and dispatch_reviewed_retention is binding.dispatch
+         and dispatch_reviewed_retention.__code__ is binding.dispatch_code,
+         "parent original guarded dispatch capability required")
+    command = dict(schema="h25-parent-retention-dispatch-request-v2", one_shot_id=cfg["one_shot_id"],
+                   consumer_path=consumer_path, consumer_sha256=consumer_sha256,
+                   argv=[consumer_path, "--config", config_path, "--config-sha256", config_sha256,
+                         "--authority-sha256", authority_sha256, "--lease-fd", str(lease_fd)],
+                   inherited_fds=[lease_fd], lease_protocol_sha256=cfg["writer_lease"]["protocol_sha256"],
+                   resources=dict(cfg["resources"]), output=cfg["output"],
+                   event_path=event_path, event_sha256=event_sha256,
+                   require_complete_raw_logs=True, require_terminal_guard_receipt=True,
+                   require_outer_tail_accounting=True, scientific_measurement_replacement=False)
+    import hashlib
+    command_raw = canonical(command)
+    command_pin = hashlib.sha256(command_raw).hexdigest()
+    need(parent_authority.verify_lease_history(binding, lease_fd,custody) == lease_observation, "postrun held EX lease changed")
+    response_custody = error_custody.new_custody()
+    try:
+        response = dispatch_reviewed_retention(parse(command_raw))
+    except BaseException as dispatch_error:
+        error_custody.retain(response_custody, "PRIMARY_DISPATCH_ERROR", dispatch_error, primary=True)
+        error_custody.export(response_custody)
+        raise
+    error_custody.retain(response_custody, "ACTUAL_DISPATCH_RETURN", response)
+    need(error_custody.export(response_custody), "dispatch RAW return export incomplete")
+    receipt = plain_copy(response, max_nodes=4096, max_depth=16, max_text=1048576)
+    exact(receipt, ("schema", "one_shot_id", "terminal", "status", "command_sha256",
+                    "guard_receipt_sha256", "all_raw_logs_final", "lease_held_through_terminal"),
+          "parent dispatch terminal receipt fields")
+    need(receipt["schema"] == "h25-parent-retention-dispatch-result-v2"
+         and receipt["one_shot_id"] == cfg["one_shot_id"] and receipt["terminal"] is True
+         and receipt["status"] in ("PASS_PENDING_PARENT_READBACK", "STOP")
+         and receipt["command_sha256"] == command_pin
+         and digest(receipt["guard_receipt_sha256"]) and receipt["all_raw_logs_final"] is True
+         and receipt["lease_held_through_terminal"] is True, "incomplete parent retention dispatch")
+    return receipt
+
+
+def completed_run_hook(config,lease_fd,authority_sha256,event_path,event_sha256,measured_processes,
+                       consumer_path,consumer_sha256,config_path,config_sha256,dispatch_reviewed_retention,
+                       capability=None,custody=None):
+    cfg=validate_config(config)
+    fd_number(lease_fd)
+    custody=error_custody.new_custody() if custody is None else error_custody.owned(custody)
+    need(custody.primary is None and len(custody.events)==0,"fresh source-owned hook custody required")
+    try:
+        return _completed_run_hook(cfg,lease_fd,authority_sha256,event_path,event_sha256,measured_processes,
+            consumer_path,consumer_sha256,config_path,config_sha256,dispatch_reviewed_retention,capability,custody)
+    except BaseException as error:
+        if custody.primary is None:
+            error_custody.retain(custody,"PRIMARY_HOOK_PREFLIGHT",error,primary=True)
+        elif custody.primary is not error:
+            error_custody.retain(custody,"SECONDARY_HOOK_DELIVERED",error)
+        error_custody.export(custody)
+        raise custody.primary
+
+
+def connected_completed_run_hook(capability, guardian, admin, borrower_source_sha256,
+                                 reserved_terminal_ns):
+    """Fixed C2-held entry before its original seal_success and release."""
+    import fork_borrower
+    owner = parent_authority.owner_verified()
+    need(guardian is owner['guardian'], 'genuine same enclosing G association')
+    binding = parent_authority.joined_binding(capability)
+    parent_authority.authenticate(capability,binding.config,binding.lease_fd)
+    held = parent_authority.verify_lease_history(binding,binding.lease_fd)
+    event = parse(read_pinned(binding.event_pin['path'],binding.event_pin['sha256']))
+    exact(event,('schema','source_root','one_shot_id','closure_sha256','domain_sha256',
+        'inventory_sha256','terminal_receipts_final','raw_streams_closed','measured_end_monotonic_ns',
+        'receipts_final_monotonic_ns','processes','all_process_groups_empty',
+        'no_additional_measured_processes'),'actual connected finalized event fields')
+    need(event['schema']=='h25-finalized-postrun-event-v2'
+         and event['source_root']==binding.config['source_root']
+         and event['one_shot_id']==binding.config['one_shot_id'], 'actual finalized event identity')
+    for key in ('inventory','domain','closure'):
+        need(event[key+'_sha256']==binding.config[key]['sha256'],'same full external event/input pins')
+    need(all(event[key] is True for key in ('terminal_receipts_final','raw_streams_closed',
+        'all_process_groups_empty','no_additional_measured_processes')),
+        'full registered original finally/event barriers')
+    need(type(event['measured_end_monotonic_ns']) is int
+         and type(event['receipts_final_monotonic_ns']) is int
+         and 0 < event['measured_end_monotonic_ns'] <= event['receipts_final_monotonic_ns'] <= time.monotonic_ns(),
+         'actual finalized event same-clock order')
+    need(type(reserved_terminal_ns) is int and 0 < reserved_terminal_ns <= 30000000000,
+         'complete positive C2/K/M/G terminal reserve')
+    need(digest(borrower_source_sha256), 'fixed actual borrower source pin')
+    deadline = guardian.retention_begin()
+    now = time.monotonic_ns()
+    need(type(deadline) is int and deadline > now + reserved_terminal_ns,
+         'outside30 and whole180 leave no retention+terminal allowance')
+    deadline = min(deadline-reserved_terminal_ns,
+                   now + binding.config['resources']['wall_seconds'] * 1000000000)
+    observed = fork_borrower.run_parent(capability,guardian,admin,deadline,borrower_source_sha256)
+    read_pinned(binding.event_pin['path'],binding.event_pin['sha256'])
+    need(parent_authority.verify_lease_history(binding,binding.lease_fd) == held,
+         'same original EX held through full child drain/wait/known closes')
+    return observed

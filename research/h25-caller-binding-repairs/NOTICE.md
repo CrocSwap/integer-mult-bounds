@@ -1,0 +1,7 @@
+# Attribution and modification notice
+
+Prepared for Clear1nsight with substantial OpenAI Codex and ChatGPT Pro assistance. Retains original investigation #6321, parent/native/receiver source #6830 at 39fcd67c991bd72918080b1d2c02feb3d679206d, common-runner ancestry #6837 at 92bd2213be787cc4451a3b61b00793dad26bebdd, inherited-limit repair #6847 at efb116491184bd16c5d1ada60d71efdefee61691 and complete-outcome source #6762 at 3bcf99910a95248452e955d382c59bd23792a39b. The immediate modified source is #6862 at 47cf8c9af49d22686264db2762700215032eda90.
+
+The readable owner source files are modified successors: local root bindings, complete detached source selection, staged entry routing and the _COMMON loader lifecycle are changed as described in README. Scientific payload bodies are preserved. Exact source bodies and their paths/bytes/SHA256/modes are retained in SOURCE-MAP.json; .txt is an inert export suffix. Original Apache-2.0 licensing, root LICENSE/NOTICE and predecessor/source-specific attribution remain applicable. Historical source reviews and Pro assistance do not supply independent human, proof-kernel, runtime or scientific acceptance.
+
+The successor also preserves both caught timer-retirement failures and separates retirement entry from known native completion. prepare_retirement_repair.py and prepare_retirement_repair_v3.py document the versioned correction and carried relative-root repair. The earlier failed subject remains at its immutable parent commit.
