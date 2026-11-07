@@ -1,0 +1,1 @@
+Readable exact source export for CrocSwap/integer-mult-bounds. Retain the original copyright, licence and predecessor notices in every source. Source code remains unchanged; Python files are inert text. Substantial OpenAI Codex and ChatGPT Pro assistance. See README.md for scope and external dependencies.
