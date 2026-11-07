@@ -13,6 +13,27 @@ This identifies which restriction a further complex-supplier improvement must
 change. It does not establish compiler admission, replace the selected result,
 or rule out different roots, native circuits or idle lifetimes.
 
+### Concurrent work and the remaining distinction
+
+A publication checkpoint located the concurrently opened
+CrocSwap/integer-mult-bounds#6836 by DreamingOfClouds, exact head
+`99b18108eda17764d55301aae12948b547b17635`. Its
+`research/p104-chain-idle-cover-optimal/PROOF.md`, Proposition 4, independently
+checks the same maximizing shape at 18 native stages over all ordered
+compositions with optimized binary children, and reports a scaled-native
+dynamic program for totals 10 through 40. It also gives separate idle-cover,
+top-target and retirement results. Those contributions are credited and are
+not claimed here.
+
+The distinct result here is the analytic ceiling over **every positive total
+length**, every ordered child partition and every full binary child-tree
+invoice, with a proof excluding later favorable saving intervals. The fixed
+18-stage optimum is independently corroborated by #6836 rather than claimed
+as an exclusive discovery. The present verifier was developed independently
+and imports neither that package nor its pricing implementation. The
+concurrent proof was read at the checkpoint; no unmerged result from it is a
+dependency of this package.
+
 ## Exact sources and scope
 
 - Canonical base: `7c49fe32c55de02c2c873655c804b16e4c3fef0a`.
