@@ -28,6 +28,12 @@ SOURCE-MAP.json maps each actual absolute source pin to an exact UTF-8 readable 
 
 build_source_assembly.py and freeze_source_assembly.py document the declared copy, root/path inverse and hash dependency order. They are source-preparation tools, not authority or runtime launchers. Rebuilding requires the pinned original local inputs. An exact source map is not an execution grant.
 
+## Timer retirement correction and new controls
+
+The bounded Pro source review of parent commit aa7d64cfc74c1e771054c4f17f162dd57bd38c06 supported the inspected loader, bootstrap, stage, qualifier, relay, receiver and prior timer-pop connections. It found a separate defect: DeadlineOwner.finish discarded a second caught error during native timer cancellation/handler restoration. The correction preallocates owner-held raw error and traceback slots, retains both operations in order, forwards them to the real registry, captures a supplied working primary first, and separates entered-once from known successful cancellation/restoration. Neither native operation is retried after uncertainty.
+
+Ten bounded controls now pass in 0.623 seconds: the four source-assembly checks on the new immutable paths plus six timer/finalizer controls. The latter reproduce the frozen predecessor loss, exercise exact changed BoundConsumers method bodies with the actual registry and inert signal ports, check clean and existing-primary dual failures, single failures, exact raw identities/tracebacks, uncertainty, successful retirement and no retry. They use a fixture source registry and inert native verification, not a genuine financial Context or full bootstrap admission. The initial versioned control attempt passed all six timer tests but correctly rejected two stale root-relative loader paths; the failure and predecessor-relative-root repair are retained. No check was weakened. The complete source dependency closure remains only partially reviewed.
+
 ## Next acceptance boundary
 
 Pro must audit the assembled caller and the prior error-custody correction, specifically loader/module/globals identities, role/manifest acyclicity, stages/common-entry inverse, actual qualification/release, query ownership, primary measurement endpoints, and error/deadline retirement. A source GO is conditional on genuine original runtime inputs. Missing role issuance/native fit/funding must remain separate. Do not credit an original activity from the assembly or controls.

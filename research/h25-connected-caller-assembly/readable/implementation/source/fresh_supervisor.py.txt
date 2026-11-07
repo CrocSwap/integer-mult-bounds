@@ -20,16 +20,16 @@ from types import ModuleType, FunctionType, MethodType, GetSetDescriptorType
 
 ROOT = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028')
 
-STAGE_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/implementation/bindings/stages')
-CONFIG_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/implementation/bindings/control')
+STAGE_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/repair-v3/implementation/bindings/stages')
+CONFIG_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/repair-v3/implementation/bindings/control')
 NESTED_BASE = ROOT / 'runtime/fresh-metered-round-v1/nested-runs'
-RUNNER_PATH = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/implementation/source/run_guarded_v3.py')
+RUNNER_PATH = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/repair-v3/implementation/source/run_guarded_v3.py')
 _BOUND_CONTEXTS = {}
 
 FLAGS = ('-S', '-s', '-P', '-B')
 ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
        'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
-RUNNER_SHA = 'd7e328e8512ec9597c20b9a6d9090a28a8d813607e697c38528ea3a45ae9f9fe'
+RUNNER_SHA = '4eb77fbe6b127c114fd94bdae0579d7d4632297988190c2d78589f52e188d7b2'
 QUEUE_SHA = '3dc44e957b2aaa4807ec0735ae6ac77b58563bf9db00db4f5495077544e8305c'
 TCB_SHA = '610492b3fc06baa0560175edc3ba27057de00d00b8fd3d58dbe55e5a371c042a'
 LIBC = '/usr/lib/x86_64-linux-gnu/libc.so.6'
@@ -437,6 +437,11 @@ class DeadlineOwner:
         self.end_ns, self.stack, self.started, self.finished = absolute_end_ns, [], False, False
         self.old_handler = None
         self.poisoned = False
+        # entered-once is separate from known successful native retirement.
+        self.timer_cancel_known = self.handler_restore_known = False
+        self.retired = False
+        self.retirement_errors = [None, None]
+        self.retirement_tracebacks = [None, None]
     def _expired(self, signum, frame):
         self.poisoned = True
         left = self.end_ns-time.monotonic_ns()
@@ -472,19 +477,42 @@ class DeadlineOwner:
              min([self.end_ns] + [row[1] for row in self.stack]), 'absolute active deadline')
     def finish(self):
         need(self.started and not self.finished, 'one timer retirement')
-        self.finished = True  # Never retry an uncertain timer/handler operation.
+        self.finished = True  # Entered once; never retry an uncertain operation.
         first, tb = None, None
         try:
             signal.setitimer(signal.ITIMER_REAL, 0)
+            self.timer_cancel_known = True
         except BaseException as error:
-            first, tb = error, BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            self.retirement_errors[0] = error
+            self.retirement_tracebacks[0] = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+            first, tb = error, self.retirement_tracebacks[0]
         try:
             signal.signal(signal.SIGALRM, self.old_handler)
+            self.handler_restore_known = True
         except BaseException as error:
+            self.retirement_errors[1] = error
+            self.retirement_tracebacks[1] = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
             if first is None:
-                first, tb = error, BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+                first, tb = error, self.retirement_tracebacks[1]
+        self.retired = self.timer_cancel_known and self.handler_restore_known
         if first is not None:
             raise BaseException.with_traceback(first,tb)
+
+
+def finish_deadline_retaining(owner, registry, attempt):
+    """Forward caught retirement errors in operation order, retaining raw slots."""
+    first, tb = None, None
+    try:
+        owner.finish()
+    except BaseException as error:
+        first, tb = error, BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+    for error in owner.retirement_errors:
+        if error is not None:
+            registry.capture_error(attempt,error)
+    if not owner.retired:
+        registry.mark_uncertain(attempt,'timer cancellation or handler restoration not known complete; retirement entered once, no retry')
+    if first is not None:
+        raise BaseException.with_traceback(first,tb)
 
 
 def pop_deadline_preserving(owner, token, primary, remember):
@@ -807,7 +835,7 @@ def validate_completed_layout(value):
     fields = {'source_root','case_container','runner_root','artifact_parent','science_root','external_root','intent_path','attempt_identity'}
     if type(value) is not dict or set(value) != fields or any(type(value[k]) is not str for k in fields):
         raise ValueError('exact complete prospective layout DATA')
-    source = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/runtime/completed-source/IndependentPrefixDATAComposedV1')
+    source = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/connected-caller-assembly-20261107T2053Z/repair-v3/runtime/completed-source/IndependentPrefixDATAComposedV1')
     case = source / value['case_container'].split('/')[-1]
     if case.name not in ('IndependentPrefixDATAComposedV1N','IndependentPrefixDATAComposedV1O'):
         raise ValueError('fixed completed source label')
@@ -2064,7 +2092,8 @@ def bind_active_run_root(active_module, kernel_module, active_context, *, whole_
             after_self=resource.getrusage(resource.RUSAGE_SELF)
             after_children=resource.getrusage(resource.RUSAGE_CHILDREN)
             end=time.monotonic_ns()
-            owner=state['deadlines'][label];owner.checkpoint();owner.finish()
+            owner=state['deadlines'][label];owner.checkpoint()
+            finish_deadline_retaining(owner,registry,registry.attempt(nested_label(label)))
             return {'parent_command_wall_seconds_through_validation':(end-begin)/1e9,
                 'parent_command_cpu_seconds_with_runner_children_validation':
                 (after_self.ru_utime+after_self.ru_stime-before_self.ru_utime-before_self.ru_stime)+
@@ -2072,14 +2101,16 @@ def bind_active_run_root(active_module, kernel_module, active_context, *, whole_
                 'primary_begin_monotonic_ns':begin,'primary_end_monotonic_ns':end}
         def finish_case(self,label,error=None):
             need(self is bound,'same actual bound source finalizer')
-            owner=state['deadlines'].get(label)
-            if owner is not None and owner.started and not owner.finished:
-                try: owner.finish()
-                except BaseException as failure:
-                    registry.capture_error(registry.attempt(label),failure)
-                    if error is None: error=failure
             attempt = registry.attempt(nested_label(label))
             registry.assert_open(attempt)
+            if error is not None:
+                registry.capture_error(attempt,error)  # Working primary precedes retirement.
+            owner=state['deadlines'].get(label)
+            if owner is not None and owner.started and not owner.finished:
+                try: finish_deadline_retaining(owner,registry,attempt)
+                except BaseException as failure:
+                    registry.capture_error(attempt,failure)
+                    if error is None: error=failure
             registry.retire_unentered(attempt)
             verify_native(cleanup=True)
             registry.prepare_finalizer_dirs(attempt)

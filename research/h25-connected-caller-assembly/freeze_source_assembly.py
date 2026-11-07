@@ -27,7 +27,7 @@ def freeze():
     for mode,leaf in [('normal','joined-full-candidate-v1'),('optimized','joined-full-candidate-refusal-v1')]:
         base=NEW/'implementation/bindings/stages'/leaf
         jobs=json.loads((base/'JOBS.json').read_bytes())
-        jobs[mode].pop('bootstrap')
+        jobs[mode].pop('bootstrap',None)
         jobs[mode]['entry']='integration/candidate_entry.py'
         put(base/'JOBS.json',encode(jobs))
         put(base/'integration/candidate_entry.py',(source/'candidate_entry.py').read_bytes())
@@ -51,11 +51,13 @@ def freeze():
         profile['root_runner_argv'][mode]=['/usr/bin/python3.12','-S','-s','-P','-B',common['path'],leaf,mode,label,
             '--waiting-config',str(wait),'--waiting-sha256','@ACTUAL_'+mode.upper()+'_WAITING_SHA256@']
     profile['required'].append('Candidate qualification occurs in the source-authenticated parent after actual stopped entry arrival. One immutable common runner pin and one-use release; primary wall/CPU endpoints unchanged.')
+    profile['required']=list(dict.fromkeys(profile['required']))
     put(commands,encode(profile))
     effects=NEW/'implementation/bindings/profiles/effects.json'
     e=json.loads(effects.read_bytes())
     e['roles']['WaitingEntry']=['Known-close ARRIVED then SIGSTOP before inner birth; authenticate intent/release after one held-pidfd SIGCONT; own inherited capture aliases and pipe-only native launch.']
     e['required'].append('The loader permits exactly one authenticated _COMMON source-pair binding. RUNNER_PATH and RUNNER_SHA remain immutable frozen source selections. Runtime grants and native qualification are separate inputs.')
+    e['required']=list(dict.fromkeys(e['required']))
     put(effects,encode(e))
     # Packet has only existing leaf pins; it does not contain itself/manifest.
     packet=NEW/'implementation/bindings/SELECTED-SOURCE-PACKET-v1.json'

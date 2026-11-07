@@ -10,7 +10,7 @@ import unittest
 
 D=Path(__file__).resolve().parents[1]
 B=D/'implementation/bindings'
-OLD=D.parent/'caller-proof-completion-20261107T0155Z'
+OLD=Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/caller-proof-completion-20261107T0155Z')
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
