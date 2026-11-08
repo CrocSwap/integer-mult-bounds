@@ -7,7 +7,7 @@ the raw crossing lies in (0.0033999301323957, 0.0033999301323958).
 **Conditional statement.** The result holds under the five framework assumptions of #6833 **and under assumption A6, owned ascent, which is load-bearing: no ascent, no word.**
 A6: an owned nested rise costs one paid H_r plus rank-0 adapters, with no credit, on arbitrary contents, factorwise at every width, with CLEAR at any frame under owned_erasure.
 The word has 23 owned rises (rank mass 56); the predecessor rule lets owned moves only descend. The one-line change, both verifiers, the rejection control and the direction-free cost argument are in `PROOF-OWNED-ASCENT.md`.
-The nearest text, `notes/copied-centers-lemma.tex:58-62,71`, covers a copy started by COPY; this word accumulates by ADD first, so A6 goes further than that text. The compiler text #4268 is not available to us and was not checked.
+The nearest text, `notes/copied-centers-lemma.tex:58-62,71`, covers a copy started by COPY; this word accumulates by ADD first, so A6 goes further than that text. The compiler text (#4268, on main at `research/lever-mixed-targets-2979`, with `FINITE-PRECOMPILATION.md`) does not condition its kernel count on direction (`05-layers.tex:83`: "including on decreasing edges"), and allows paid jobs on correlated owned fields (`FINITE-PRECOMPILATION.md:258-268`). An earlier version of this package wrongly said that text was unavailable. No sentence decides the features that go beyond the P112 native: lifetimes read before the rise, contacts between rises, starts at nonzero frames, and both directions in one word; so A6 stays a declared assumption.
 
 ## Departures (each classified; counts recomputed by `check.py`)
 File and line citations without a directory (`native.py`, `pricing.py`, `chain_root.py`, `local.py`, `check_root.py`) refer to the #6833 package `research/p104-chain-nested-root`.
@@ -41,7 +41,8 @@ The binding item is the retained BIT pin: the tested price 0.00339993007 is belo
 
 ## Not claimed, and not independently examined
 No frontier change; no claim without A6; no claim above the 0.0034 pin; the inherited precision-tape and compiler assumptions are not discharged. Direction-based lower bounds (#6315 Lemma S, #6229, #6257, #6831, and the c ≥ 56 input of #6881) are scoped to words whose owned registers only descend and are not cited as global.
-Not independently examined: the compiler text #4268; the adjoint (transpose) replay of this word; the tensor-width-3 (Q = −i) sector, where only widths 1 and 2 were run and width 3 follows from the ring replay. The physical replay uses one prime and one random input per run.
+**Open, being added:** the caller physical replay (idle rank and phase on owners, adapters, field map, aliases) that predecessor packages run is not yet included for the HOST event, and the 82 LAMBDA events inherited from open #6726 and #6763 are not yet declared with a classification. Treat the claim as incomplete until a later commit here adds both.
+Not independently examined: the adjoint (transpose) replay of this word; the tensor-width-3 (Q = −i) sector, where only widths 1 and 2 were run and width 3 follows from the ring replay. The physical replay uses one prime and one random input per run.
 
 ## Open next questions
 1. Is owned ascent (A6) accepted for the native verifier, as it is in the P112 native?
