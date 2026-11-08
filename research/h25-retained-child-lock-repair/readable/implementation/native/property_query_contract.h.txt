@@ -1,0 +1,106 @@
+/* Native property-query DATA protocol, v1. Source only; no execution admission.
+ * Copyright (c) 2026 OpenAI/Codex contributors. SPDX-License-Identifier: Apache-2.0
+ * Authority remains with the genuine supervisor/C2 owners, never these records.
+ */
+#ifndef PROPERTY_QUERY_CONTRACT_H
+#define PROPERTY_QUERY_CONTRACT_H
+#include <stdint.h>
+#include <stddef.h>
+#include <stdatomic.h>
+#define PQ_REQUEST_MAGIC "PQOBS001"
+#define PQ_SNAPSHOT_MAGIC "PQSNAP01"
+#define PQ_JOURNAL_MAGIC "PQERR001"
+#define PQ_REQUEST_MAX 32768u
+#define PQ_ARG_MAX 24u
+#define PQ_ENV_MAX 32u
+#define PQ_STREAM_MAX 1048576u
+#define PQ_SYSCALL_MAX 65536u
+#define PQ_WRITE_MAX 8192u
+#define PQ_TIMEOUT_MAX_MS 10000u
+#define PQ_HARD_AS 268435456u
+#define PQ_ERROR_MAX 64u
+#define PQ_JOURNAL_BYTES 4096u
+/* Request: magic[8], then eight LE u32 words below, then argc+envc strings.
+ * Each string is LE u32 length followed by exactly length non-NUL bytes.
+ * No padding/trailer. Environment is a strictly byte-sorted NAME=value vector,
+ * with unique NAMEs; argv[0] is the original program spelling: absolute or a validated single basename.
+ */
+struct pq_request_header {
+    unsigned char magic[8];
+    uint32_t query_id, argc, envc, stdout_cap, stderr_cap;
+    uint32_t syscall_cap, write_cap, timeout_ms;
+};
+/* Snapshot stream starts with PQ_SNAPSHOT_MAGIC[8]. Each record is exactly
+ * this 40-byte LE header plus payload_len bytes. kind=1 is stopped write/writev
+ * entry and carries all requested bytes; kind=2 is its exact syscall exit,
+ * carries no payload, and retains actual signed rval. Entry/exit use one seq.
+ * fd is 1 or 2. syscall_nr is x86-64 write(1) or writev(20).
+ */
+struct pq_snapshot_record {
+    uint32_t kind, seq, fd, syscall_nr;
+    uint64_t requested;
+    int64_t returned;
+    uint32_t payload_len, reserved;
+};
+/* Journal file is created, sized and zeroed by the parent before observer birth.
+ * Native observer initializes magic/version and primary_index=UINT32_MAX before
+ * fork. Entries are committed once, in atomic fetch-add order, ready[index]=1
+ * (release) only after the full entry is stored. Parent reads after terminal wait.
+ * Raw errno is zero for protocol/capacity refusals; no synthetic errno is minted.
+ * Mapping intentionally remains until process death, so final FD-close failures
+ * can still be recorded. Parent's observed wait owns mapping retirement.
+ */
+struct pq_native_error {
+    uint32_t phase, operation;
+    int32_t raw_errno;
+    uint32_t detail;
+    uint64_t auxiliary;
+};
+struct pq_journal {
+    unsigned char magic[8];
+    uint32_t version;
+    _Atomic uint32_t used;
+    _Atomic uint32_t overflow;
+    _Atomic uint32_t primary_index;
+    uint32_t reserved[2];
+    struct pq_native_error entries[PQ_ERROR_MAX];
+    _Atomic uint32_t ready[PQ_ERROR_MAX];
+    unsigned char tail[2272];
+};
+_Static_assert(sizeof(struct pq_request_header)==40,"request layout");
+_Static_assert(sizeof(struct pq_snapshot_record)==40,"snapshot layout");
+_Static_assert(sizeof(struct pq_native_error)==24,"native error layout");
+_Static_assert(offsetof(struct pq_journal,entries)==32,"journal entries");
+_Static_assert(offsetof(struct pq_journal,ready)==1568,"journal ready");
+_Static_assert(sizeof(struct pq_journal)==PQ_JOURNAL_BYTES,"journal extent");
+_Static_assert(ATOMIC_INT_LOCK_FREE==2,"process-shared u32 atomics must be native");
+/* Exact argv order (argc=19):
+ * --request-fd N --snapshot-fd N --stdout-fd N --stderr-fd N --terminal-fd N
+ * --journal-fd N --exec-fd N --cwd-fd N --stdin-fd N
+ * All nine FDs are distinct and >=3. Evidence outputs are empty regular O_RDWR,
+ * nonappend objects with disjoint dev/ino. Request is readonly regular <=32768.
+ * Journal is O_RDWR, regular, 4096 zero bytes. Exec is held regular image; cwd is
+ * held directory; stdin is genuine /dev/null. Child uses fixed exec FD3, close-on-
+ * exec, original argv[0] bytes, supplied environment and cwd, then execveat(AT_EMPTY_PATH).
+ * Parent source/image/profile/command/case/attempt binding is independently owned.
+ *
+ * Terminal is one bounded JSON line, schema="native-property-observation-v1".
+ * It carries these integer fields (no qualified/authority boolean):
+ * query_id, tracee_pid, protocol_phase, exec_events, exit_event_seen,
+ * terminal_wait_seen, exit_code (-1 if signaled), term_signal, eof_mask,
+ * retired_tasks, live_tasks, syscall_entries, syscall_exits, terminal_exit_entries, write_entries,
+ * write_exits, snapshot_records, snapshot_stdout_bytes, snapshot_stderr_bytes,
+ * drained_stdout_bytes, drained_stderr_bytes, retained_stdout_bytes,
+ * retained_stderr_bytes, readback_stdout_bytes, readback_stderr_bytes,
+ * journal_entries, journal_overflow, primary_index, cleanup_uncertain.
+ * Plus early_errors: a bounded array of numeric native error records captured
+ * before journal acquisition; successful qualification requires this array empty.
+ * syscall_entries/exits count returning syscalls only. Exactly one nonreturning
+ * terminal_exit_entries is tied to the actual exit entry/event/wait sequence.
+ * protocol_phase=8 means native retained-file readback completed, NOT parent
+ * qualification. Parent must require its actual observer wait0, domain/guardian
+ * retirement, complete journal readback with no errors/overflow, record pairing,
+ * successful full counts, actual two pipe EOFs, snapshot==drain==retained bytes,
+ * independent parent file readback, and all exact source/image/profile joins.
+ */
+#endif

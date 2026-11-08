@@ -1,0 +1,230 @@
+"""Freeze the connected source successor; issue no runtime records or grants."""
+import ast
+import hashlib
+import json
+from pathlib import Path
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+D = Path(__file__).resolve().parent
+OLD = D / 'successor'
+NEW = D / 'repair-v2'
+OLD_MANIFEST_SHA = 'eb8f01f2c756d71cfc607506ae73415faffcade780d0e751280ca0b44feda171'
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def encode(value):
+    return (json.dumps(value, sort_keys=True, indent=2) + '\n').encode()
+
+def pin(path):
+    raw = path.read_bytes()
+    return dict(path=str(path), bytes=len(raw), sha256=sha(raw), mode=0o444)
+
+def put(path, raw):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        path.chmod(0o600)
+    path.write_bytes(raw)
+    path.chmod(0o444)
+
+def verify(row):
+    p = Path(row['path'])
+    raw = p.read_bytes()
+    assert len(raw) == row['bytes'] and sha(raw) == row['sha256'], str(p)
+    assert p.stat().st_mode & 0o777 == row['mode']
+    return raw
+
+def relocate(value):
+    if isinstance(value, str):
+        return value.replace(str(OLD), str(NEW))
+    if isinstance(value, list):
+        return [relocate(v) for v in value]
+    if isinstance(value, dict):
+        return {relocate(k): relocate(v) for k, v in value.items()}
+    return value
+
+def replace_assignment(text, name, expected, replacement):
+    tree = ast.parse(text)
+    matches = [n for n in tree.body if isinstance(n, ast.Assign)
+               and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)
+               and n.targets[0].id == name]
+    assert len(matches) == 1, (name, 'one exact module assignment')
+    n = matches[0]
+    current = ast.get_source_segment(text, n)
+    assert current == expected, (name, current)
+    lines = text.splitlines(True)
+    lines[n.lineno - 1:n.end_lineno] = [replacement + '\n']
+    return ''.join(lines)
+
+def prepare():
+    assert not NEW.exists(), 'immutable successor already exists'
+    original_bytes = (OLD / 'implementation/bindings/SOURCE-MANIFEST-v2.json').read_bytes()
+    assert sha(original_bytes) == OLD_MANIFEST_SHA
+    original = json.loads(original_bytes)
+    NEW.mkdir()
+    origins = {}
+    # Only selected ordinary source/profile leaves and declared stage members.
+    for row in [*original['source_pins'].values(), *original['profiles'].values(),
+                *original['control_pins']]:
+        raw = verify(row)
+        p = Path(row['path'])
+        if p.is_relative_to(OLD):
+            q = NEW / p.relative_to(OLD)
+            if q.exists():
+                assert q.read_bytes() == raw
+            else:
+                put(q, raw)
+            origins[str(q)] = row
+    for leaf in ('joined-full-candidate-v1', 'joined-full-candidate-refusal-v1'):
+        base = OLD / 'implementation/bindings/stages' / leaf
+        declared = json.loads((base / 'STAGE.json').read_bytes())
+        for rel, row in declared['files'].items():
+            assert not Path(rel).is_absolute() and '..' not in Path(rel).parts
+            p = base / rel
+            raw = verify(dict(path=str(p), bytes=p.stat().st_size, **row))
+            q = NEW / p.relative_to(OLD)
+            if q.exists():
+                assert q.read_bytes() == raw
+            else:
+                put(q, raw)
+    # All spellings of this exact selected predecessor root, including W + '/outputs/...'.
+    old_relative = str(OLD.relative_to(W)).encode()
+    new_relative = str(NEW.relative_to(W)).encode()
+    for p in sorted((NEW / 'implementation').rglob('*')):
+        if p.is_file() and '/stages/' not in str(p) and p.suffix in ('.py', '.json'):
+            raw = p.read_bytes().replace(str(OLD).encode(), str(NEW).encode())
+            raw = raw.replace(old_relative, new_relative)
+            put(p, raw)
+    # The one bounded Pro-specified enclosing-lock correction; no helper owner.
+    runner = NEW / 'implementation/source/run_guarded_v3.py'
+    text = runner.read_text()
+    tree = ast.parse(text)
+    main = next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='main')
+    lock = [n for n in main.body if isinstance(n,ast.With)]
+    assert len(lock)==1 and len(lock[0].items)==1
+    lock = lock[0]
+    lines = text.splitlines(True)
+    removed = ''.join(lines[lock.lineno-1:lock.end_lineno])
+    body = ''.join(lines[lock.body[0].lineno-1:lock.end_lineno])
+    expected = "        if receipt['status'] != 'PASS':\n            raise SystemExit(1)\n"
+    assert body.endswith(expected)
+    body = body[:-len(expected)] + "        expected_stop = receipt['status'] != 'PASS'\n"
+    prefix = """    if _LOCK_CUSTODY[0] is not None:
+        raise RuntimeError('one common-runner lock owner')
+    lock_state = {
+        'handle': None, 'acquire': 'NOT_ENTERED', 'close': 'NOT_ENTERED',
+        'errors': [[None, None], [None, None]], 'unknown': False,
+    }
+    _LOCK_CUSTODY[0] = lock_state
+    expected_stop = False
+    try:
+        lock_state['acquire'] = 'ENTERED'
+        lock = (HERE / 'runtime/science.lock').open('a')
+        lock_state['handle'] = lock
+        lock_state['acquire'] = 'OWNED'
+"""
+    suffix = """    except BaseException as error:
+        lock_state['errors'][0][0] = error
+        lock_state['errors'][0][1] = (
+            BaseException.__dict__['__traceback__'].__get__(error, BaseException))
+        if lock_state['acquire'] == 'ENTERED':
+            lock_state['acquire'] = 'UNKNOWN'
+            lock_state['unknown'] = True
+    finally:
+        if lock_state['acquire'] == 'OWNED':
+            lock_state['close'] = 'ENTERED'
+            try:
+                lock_state['handle'].close()
+            except BaseException as error:
+                lock_state['errors'][1][0] = error
+                lock_state['errors'][1][1] = (
+                    BaseException.__dict__['__traceback__'].__get__(error, BaseException))
+                lock_state['close'] = 'UNKNOWN'
+                lock_state['unknown'] = True
+            else:
+                lock_state['close'] = 'CLOSED'
+        elif lock_state['acquire'] == 'UNKNOWN':
+            lock_state['unknown'] = True
+    for error, traceback in lock_state['errors']:
+        if error is not None:
+            raise BaseException.with_traceback(error, traceback)
+    if lock_state['unknown'] or lock_state['close'] != 'CLOSED':
+        raise RuntimeError('common-runner lock retirement remains unknown')
+    if expected_stop:
+        raise SystemExit(1)
+"""
+    replacement = prefix + body + suffix
+    lines[lock.lineno-1:lock.end_lineno] = [replacement]
+    revised = ''.join(lines)
+    revised = revised.replace('_GROUP_CUSTODY = [None]', '_LOCK_CUSTODY = [None]\n\n_GROUP_CUSTODY = [None]', 1)
+    assert revised.replace('_LOCK_CUSTODY = [None]\n\n','',1).replace(replacement,removed,1)==text
+    put(runner,revised.encode())
+    put(D/'evidence/lock-removed-block-v2.txt',removed.encode())
+    put(D/'evidence/lock-replacement-block-v2.txt',replacement.encode())
+    commands_path = NEW/'implementation/bindings/profiles/commands.json'
+    commands=json.loads(commands_path.read_bytes())
+    commands['required'].append('Common runner main preallocates lock custody, retains working/lock-close errors independently, closes once without extra unlock, and defers only the expected administrative exit1 until known retirement. No outer successful-output or domain-closure claim follows from local custody.')
+    put(commands_path,encode(commands))
+    effects_path=NEW/'implementation/bindings/profiles/effects.json'
+    effects=json.loads(effects_path.read_bytes())
+    effects['roles']['CommonRunner'].append('The enclosing science.lock is owned explicitly inside main; a failed close cannot mask a working primary or hide behind the expected quiet exit1. Local raw exceptions are not cross-process durable evidence after Root death.')
+    put(effects_path,encode(effects))
+    freeze(original, origins)
+
+def freeze(original, origins):
+    source = NEW / 'implementation/source'
+    common = pin(source / 'run_guarded_v3.py')
+    supervisor = source / 'fresh_supervisor.py'
+    old_common = original['source_pins']['common_runner']['sha256']
+    put(supervisor, replace_assignment(supervisor.read_text(), 'RUNNER_SHA',
+        'RUNNER_SHA = ' + repr(old_common), 'RUNNER_SHA = ' + repr(common['sha256'])).encode())
+    for p in (NEW / 'implementation').rglob('*.py'):
+        if '/stages/' not in str(p):
+            ast.parse(p.read_bytes(), filename=str(p))
+    entry = pin(source / 'candidate_entry.py')
+    receiver = pin(source / 'full_result_receiver.py')
+    relay = pin(source / 'bounded_relay.py')
+    stages = {}
+    for mode, leaf in [('normal', 'joined-full-candidate-v1'),
+                       ('optimized', 'joined-full-candidate-refusal-v1')]:
+        base = NEW / 'implementation/bindings/stages' / leaf
+        put(base / 'integration/candidate_entry.py', (source / 'candidate_entry.py').read_bytes())
+        declared = json.loads((base / 'STAGE.json').read_bytes())
+        declared['files']['integration/candidate_entry.py'] = dict(sha256=entry['sha256'], mode=0o444)
+        declared['runner_sha256'] = common['sha256']
+        declared['full_receiver_sha256'] = receiver['sha256']
+        declared['relay_sha256'] = relay['sha256']
+        put(base / 'STAGE.json', encode(declared))
+        stages[mode] = pin(base / 'STAGE.json')
+    queue = NEW / 'implementation/bindings/control/IndependentPrefixDATAComposedV1-QUEUE.json'
+    q = json.loads(queue.read_bytes())
+    for case in q['cases']:
+        case['stage_sha256'] = stages[case['job']]['sha256']
+    put(queue, encode(q))
+    packet_path = NEW / 'implementation/bindings/SELECTED-SOURCE-PACKET-v1.json'
+    packet = json.loads(packet_path.read_bytes())
+    for path in packet['files']:
+        row = pin(Path(path))
+        packet['files'][path] = {k:v for k,v in row.items() if k != 'path'}
+    put(packet_path, encode(packet))
+    manifest = relocate(original)
+    for key, row in manifest['source_pins'].items():
+        manifest['source_pins'][key] = pin(Path(row['path']))
+    for key, row in manifest['profiles'].items():
+        manifest['profiles'][key] = pin(Path(row['path']))
+    assert manifest['source_pins']['runner'] == manifest['source_pins']['common_runner']
+    assert manifest['source_pins']['private_loader']['path'] == str(NEW / 'implementation/bindings/private_loader.py')
+    put(NEW / 'implementation/bindings/SOURCE-MANIFEST-v2.json', encode(manifest))
+    receipt = dict(schema='connected-group-retirement-lock-successor-v2', predecessor_manifest_sha256=OLD_MANIFEST_SHA,
+        manifest=pin(NEW / 'implementation/bindings/SOURCE-MANIFEST-v2.json'),
+        source_roles=len(manifest['source_pins']), profiles=len(manifest['profiles']),
+        historical_controls=len(manifest['control_pins']), stages=stages,
+        substantive_repairs=['preserve the exact tested retained-child function', 'explicit enclosing main lock custody and deferred administrative exit', 'rebuild every dependent caller/stage/profile binding'],
+        all_other_runtime_changes='exact selected-root relocation and dependent pins only; prior factory/cwd/timer repairs and every original scientific member retained',
+        runtime_records_or_grants_issued=False, execution_permission=False,
+        original_credit_delta=0, physical_costs='OPEN_NOT_ZERO', origins=origins)
+    put(NEW / 'control/ASSEMBLY-v1.json', encode(receipt))
+    print(json.dumps({k:v for k,v in receipt.items() if k != 'origins'}, indent=2))
+
+if __name__ == '__main__':
+    prepare()

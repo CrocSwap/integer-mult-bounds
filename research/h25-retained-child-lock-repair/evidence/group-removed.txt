@@ -1,0 +1,24 @@
+        stop = None
+        peak = 0
+        with (folder / 'stdout.txt').open('wb') as out, (folder / 'stderr.txt').open('wb') as err:
+            process = subprocess.Popen(timed, cwd=stage, env=env, stdout=out, stderr=err, start_new_session=True)
+            try:
+                while process.poll() is None:
+                    peak = max(peak, group_rss(process.pid))
+                    if peak > RSS_CAP:
+                        stop = 'sampled_group_rss_cap'
+                    elif time.monotonic() - runner_start > min(TIMEOUT, cap - spent):
+                        stop = 'wall_or_aggregate_cap'
+                    elif max((folder / 'stdout.txt').stat().st_size, (folder / 'stderr.txt').stat().st_size) > OUTPUT_CAP:
+                        stop = 'output_cap'
+                    if stop:
+                        os.killpg(process.pid, signal.SIGKILL)
+                        break
+                    time.sleep(0.05)
+                code = process.wait()
+            finally:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
