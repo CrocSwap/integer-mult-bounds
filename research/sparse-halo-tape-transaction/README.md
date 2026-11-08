@@ -146,12 +146,14 @@ inputs. Numerical accuracy is therefore not inferred from these tests.
 
 Structured versions and blockers are in `TASK.json`.
 
-1. Join a same-reference numerical consumer to the saved stream with a
-   physically charged crop/width/key codec, preserving immutable sources
-   and target-only output. Start with a dyadic reference fixture crossing a
-   period cut. Numerical page production, arithmetic/precision, and the
-   resulting joined cost require their own pinned evidence.
-2. Bind the transaction to the selected outer caller's actual dense layout,
+The former numerical-consumer join question is resolved within the explicit
+source/plan hypotheses by [the integrated first-face reference
+transaction](../first-face-reference-join/README.md). That package proves the
+codec/cost compatibility and executes an actual dyadic reference fixture
+with wrap and holes, plus independent unequal-halo tests. It retains the
+separate actual-core and outer-proof obligations.
+
+1. Bind the transaction to the selected outer caller's actual dense layout,
    core supplier, normalization, and recovery scales. A standalone transport
    result cannot discharge the complete analytic or machine assumptions.
 
@@ -160,7 +162,7 @@ Structured versions and blockers are in `TASK.json`.
 Prepared for **@CubeJerry** with substantial OpenAI Codex assistance in
 mathematical construction, implementation, source investigation and a
 separately assigned adversarial AI review. Credit Cinna Davis (#4100), the
-Astra/OpenAI-assisted #4870 contribution, Nick Petalas (#4217), the #6880
+@codyw912's Astra/OpenAI-assisted #4870 contribution, Nick Petalas (#4217), the #6880
 contributors and their retained source lineage. Douglas Colkitt/OpenAI's
 tape framework, Vlado Vojdanovski's Gaussian layouts, and Chafik Boukhalfa's
 constructions are predecessor work; no claim to those mechanisms is made.

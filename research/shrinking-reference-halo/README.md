@@ -183,12 +183,15 @@ lineage and Apache-2.0 notices are retained in the declared sources.
 
 ## Open next questions
 
-1. **Join this consumer to an actual first-face copy/return transaction.**
-   The numerical program needs original copied values and must return each
-   discarded key exactly once. First bind one wrapping/hole rectangle's
-   encoded payload, normalizer and grid on both sides, then prove the complete
-   group bill. The dense chronology and output ownership remain the blocker.
-2. **Use the same rounded reference at the actual finite core and outer
+The former first-face transaction join question is resolved within the
+explicit source/plan hypotheses by [the integrated reference
+transaction](../first-face-reference-join/README.md). Its source-bound
+streamed codec preserves the common grid and original values, canonicalizes
+only target returns, and proves the complete group bill. Actual-reference
+wrap/hole execution and independent unequal-halo full-grid checks are
+retained there. This does not admit the accelerated core or outer caller.
+
+1. **Use the same rounded reference at the actual finite core and outer
    recovery.** The local result does not permit substituting a similarly named
    Gaussian matrix. First pin the core's exact reference/normalizers and its
    all-input error, then insert (5) in its existing recovery ledger. Source
