@@ -233,6 +233,7 @@ for cls, what in (
     ('verifier', 'events %d, public %d, owned roles %d, lifetimes %d, peak owned %d against local.py:52,54,103 and pricing.py:84-87 literals (the predecessor word already exceeds the 26000 cap; counts are recounted, not pinned).' % (len(W['program']), n, NO, life, peak)),
     ('verifier', 'per-call scalar work %d against the displayed pricing.py:93 bound 10^7 (word scalar %d + routes %d); the outer ledger has no scalar-work term.' % (scal + routes, scal, routes)),
     ('verifier', 'coefficient height of the caller: numerators up to %d bits, denominators up to %d bits against the predecessor 8 and 7 bits (pricing.py:96-97).' % hb),
+    ('convention', 'LAMBDA: 82 caller events (two-term two-sided scalar pass at width >= 2) inherited from the open predecessor callers (#6726, #6763); no compiler list names it and it is not on main; the text does not decide whether it is a scalar or a routing pass. It is checked algebraically by the composition replay at four central characters and counted in ordinary work, not by a physical contact check.'),
     ('convention', 'root family: N=n+2 and two units per stage instead of the shortest root with one full site per child (chain_root.py:79,82,83,98; check_root.py:26,133,141-145); the SPEC-level identities are re-proved in root_check.py.'),
     ('convention', 'pricing: the 36x104 one-site idle jobs at the hosted stages are PAID whole H8 idles (P[8]); targets get nothing for them. kappa rests on pricing them as whole H8 idles (the line construction attains that exactly); priced as 8 rank-1 jobs each, kappa would be 0.00298.'),
     ('assumption', 'owned erasure of dirty owned content (%d erasures, predecessor 45): the owned_erasure assumption of the predecessor, unchanged.' % dirty)):
@@ -258,6 +259,16 @@ print('  raw bound pieces: caller+thin+outputs+idle adapters+query adapters = %d
 need(raw_lit < 10 ** 9, 'raw bound, literal definition (18 calls x 10^7 + terms): %d < 10^9' % raw_lit)
 need(raw_act < 10 ** 9, 'raw bound with the ACTUAL per-call work (18 x %d + terms): %d < 10^9, margin %.1f%%' % (per_call, raw_act, 100 * (1 - raw_act / 10 ** 9)))
 print('  NOTE: per-call %d exceeds the displayed per-call bound 10^7 (pricing.py:93); the literal raw uses 10^7 per call, so only the actual-work total is self-consistent. The 11.93M feeds raw only in that second total.' % per_call)
+upper_rev = 0
+for e in W['program']:
+    if e[0] == 'SCALE':
+        q = Q(e[2]); upper_rev += 4 * (abs(q.numerator).bit_length() + q.denominator.bit_length() + 1)
+    elif e[0] in ('ADD', 'COPY'):
+        q = Q(e[3]); upper_rev += 4 * (abs(q.numerator).bit_length() + bin(abs(q.numerator)).count('1') + q.denominator.bit_length() + 1)
+raw_rev = 18 * (upper_rev + routes) + rest
+print('  CONSTANT SUBSTITUTION (FINITE-PRECOMPILATION.md:278-283): events %d; scalar allowance %d; reviewed scalar upper %d; routes %d; per call %d (allowance) or %d (reviewed upper); caller envelope %d; raw upper %d (allowance) or %d (reviewed upper) against 10^9.' % (len(W['program']), scal, upper_rev, routes, per_call, upper_rev + routes, 32 * roles * 104 * len(evs), raw_act, raw_rev))
+src_ep = open(os.path.join(HERE, 'retained', 'runtime', 'endpoint.py')).read()
+need(not any(t in src_ep for t in ('10**9', '10 ** 9', '10**7', '10 ** 7', '1e9')), 'the outer ledger source contains no scalar-work or 10^9 term: the raw bound is a parameter of the precompilation constants, not an input of the 54+4 inequalities')
 # net accounting: new = 2 x base + word part + lines
 tk = kn; ex = lambda r_: (D(r_).ln() * (1 - tk)).exp()
 mom = lambda H_: sum(v * ex(r_) for r_, v in H_.items())
@@ -291,6 +302,8 @@ need(alpha[1] < 1 - reserve and gamma[1] < decay and delta[1] < decay, 'tail rat
 maxT = max(Tq); quarter = E.power(maxT, Q(power, 4) * TESTED); factor = E.mul(E.mul(quarter, quarter), E.mul(quarter, quarter))
 eta = E.scale(E.divide((Q(1), Q(1)), factor), tt_)
 need(eta[0] > Q(63, 64) ** 2100 and factor[1] < 2 ** 2100 and cutoff ** 64 < floor ** 63 and 2 * (cutoff ** power) ** 64 <= (maxT ** power) ** 63, 'compiler complement capacity and shifted exits (max target rank %d)' % maxT)
+normalized = 1 / (1 + power * reserve) + 4 * decay ** power
+need(normalized < 1 and normalized == 1 / (1 + power * reserve) + 4 * decay ** power, 'composite bound (predecessor pricing.py:211): 1/(1+power*reserve) + 4*decay^power < 1 at power 1920 (excess over the first term %.2e)' % float(4 * decay ** power))
 gap = (TESTED - KAPPA) / 7; need(gap.numerator == 1, 'compiler grid: (tested-kappa)/7 = %s' % gap)
 step = gap.denominator
 wins = lambda j: (step * j + 1) ** 2100 < 2 ** j
