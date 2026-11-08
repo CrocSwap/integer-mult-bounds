@@ -1,0 +1,616 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Surviving original-parent custody around the unchanged native guardian.
+
+SOURCE ONLY. This is a native custody owner, not an inner AttemptRegistry,
+financial owner, new grant, cgroup delegator, or runtime qualification receipt.
+The authenticated fixed target entry is its only source caller. It installs the
+actual selected supervisor's already specified subreaper/native profile before
+any controlled birth. That installer and its native keepers remain retained.
+
+The retirement algorithm is adapted from fresh_supervisor.direct_children_exact
+and OwnedDomain. It deliberately retains only genuine direct children. After a
+controlled ancestor exits, the existing subreaper semantics make surviving
+descendants direct children of this still-live owner, regardless of setsid.
+All signals use actual owned pidfds. Each consuming wait is entered once and
+only after a nonconsuming wait has observed exit. No failed signal is followed
+by a blocking wait. No live-domain failure path closes known pidfds.
+
+Original H25 source authors retain credit. AI-authored source adaptation.
+No target/native import, process operation, or control was executed in authoring.
+"""
+import hashlib
+import os
+from pathlib import Path
+import signal
+import stat
+import sys
+import time
+from types import FunctionType, ModuleType
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+ROOT = W/'outputs/h25-data-handling-20261028'
+R = W/'outputs/group-retirement-repair-20261108T0136Z/repair-v2'
+SUPERVISOR = {'path': str(R/'implementation/source/fresh_supervisor.py'),
+              'bytes': 127997, 'mode': 0o444,
+              'sha256': 'e5d1e3b834e3ac0c1cec02ca70776ae7a724c42e2b5bbb1661402c824f98affa'}
+# The unchanged G packet admits 1024 current members, besides G itself.
+# This is source observation storage, not a new process/resource permission.
+# Overflow preserves live pending custody; it never proves an empty domain.
+MAX_CHILDREN = 1025
+_TOKEN = object()
+_USED = [False]
+_OWNERS = []
+
+
+def need(condition, message):
+    if condition is not True:
+        raise RuntimeError(message)
+
+
+def _identity(st):
+    return (st.st_dev, st.st_ino, st.st_mode, st.st_uid, st.st_nlink,
+            st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+
+
+class OuterCustodyPending(RuntimeError):
+    """The actual owner must remain alive; this exception is not retirement."""
+    def __init__(self, owner, reason):
+        self.owner = owner
+        super().__init__(reason)
+
+
+class OuterRetirement:
+    __slots__ = ('_pid', '_token', '_phase', '_birth', '_root_pid', '_root_key',
+                 '_root_status', '_root_observation', '_source', '_raw',
+                 '_globals', '_functions', '_native', '_native_evidence',
+                 '_ctypes', '_native_prctl', '_native_types', '_native_addressof',
+                 '_first', '_secondary', '_unknown', '_source_ticket', '_tickets',
+                 '_retire_entered', '_retired', '_empty_observed', '_reaped',
+                 '_observations', '_last_error', '_close_entered', '_io',
+                 '_retire_deadline', '_pending_error', '_pending_reason')
+
+    def __init__(self, token):
+        need(token is _TOKEN, 'actual source-private outer constructor')
+        self._pid, self._token = os.getpid(), token
+        self._phase, self._birth = 'ALLOCATED', 'UNENTERED'
+        self._root_pid = self._root_key = self._root_status = None
+        self._root_observation = None
+        self._source = self._raw = self._globals = self._functions = None
+        self._native = self._native_evidence = self._ctypes = None
+        self._native_prctl = self._native_types = self._native_addressof = None
+        self._first, self._secondary, self._last_error = None, [None]*64, None
+        self._unknown = False
+        self._source_ticket = [None, 'UNENTERED']
+        self._io = [[None, 'FREE', None, None, None] for unused in range(8)]
+        # A ticket exists before every possible pidfd acquisition.
+        self._tickets = [dict(phase='FREE', pid=None, key=None, fd=None,
+                              signal_entered=False, signal_returned=False,
+                              exit_observation=None, wait_entered=False,
+                              wait_returned=False, wait_status=None,
+                              errors=[None, None, None, None])
+                         for unused in range(MAX_CHILDREN)]
+        self._retire_entered = self._retired = self._empty_observed = False
+        self._retire_deadline = None
+        self._pending_reason = None
+        self._pending_error = OuterCustodyPending(self, 'actual outer native custody remains pending')
+        self._close_entered = False
+        self._reaped, self._observations = [], 0
+
+    def _remember(self, error):
+        self._last_error = error
+        if self._first is None:
+            self._first = error
+        elif error is not self._first:
+            for index, prior in enumerate(self._secondary):
+                if prior is error:
+                    break
+                if prior is None:
+                    self._secondary[index] = error
+                    break
+            else:
+                self._unknown = True
+        return self._first
+
+    def _actual(self):
+        need(self._token is _TOKEN and any(owner is self for owner in _OWNERS)
+             and self._pid == os.getpid(), 'same actual surviving outer owner')
+
+    def _pending(self, reason):
+        self._phase, self._pending_reason = 'CUSTODY_PENDING', reason
+        raise self._pending_error
+
+    def _retirement_budget(self):
+        if self._retire_entered:
+            try:
+                now = time.monotonic_ns()
+            except BaseException as error:
+                self._remember(error)
+                self._pending('original retirement clock result unknown')
+            if now >= self._retire_deadline:
+                self._pending('original absolute retirement deadline reached')
+
+    def _source_current(self):
+        self._actual()
+        module = self._source
+        need(type(module) is ModuleType and module.__dict__ is self._globals[0],
+             'actual retained selected supervisor namespace')
+        namespace, objects = self._globals
+        need(set(namespace) == set(objects) and
+             all(namespace[key] is value for key, value in objects.items()),
+             'selected supervisor global identities unchanged')
+        for name, image in self._functions.items():
+            function, code, globals_, defaults, kwdefaults, closure = image
+            need(namespace[name] is function and function.__code__ is code and
+                 function.__globals__ is globals_ and function.__defaults__ is defaults and
+                 function.__kwdefaults__ is kwdefaults and function.__closure__ is closure,
+                 'selected supervisor code/default/closure identities unchanged')
+
+    def _load_source(self):
+        path = Path(SUPERVISOR['path'])
+        before = path.lstat()
+        need(path.resolve(strict=True) == path and stat.S_ISREG(before.st_mode) and
+             stat.S_IMODE(before.st_mode) == SUPERVISOR['mode'] and
+             before.st_uid in (0, os.getuid()) and before.st_nlink == 1 and
+             before.st_size == SUPERVISOR['bytes'], 'selected supervisor source file')
+        ticket = self._source_ticket
+        ticket[:] = [None, 'OPEN_PENDING']
+        pieces, count = [], 0
+        try:
+            ticket[0] = os.open(path, os.O_RDONLY|os.O_NONBLOCK|os.O_NOFOLLOW|os.O_CLOEXEC)
+            ticket[1] = 'OWNED'
+            need(_identity(os.fstat(ticket[0])) == _identity(before), 'actual source descriptor')
+            while count < SUPERVISOR['bytes']:
+                block = os.read(ticket[0], min(65536, SUPERVISOR['bytes']-count))
+                need(bool(block), 'complete selected supervisor source')
+                count += len(block); pieces.append(block)
+            raw = b''.join(pieces)
+            need(_identity(os.fstat(ticket[0])) == _identity(path.lstat()) == _identity(before)
+                 and count == SUPERVISOR['bytes'] and
+                 hashlib.sha256(raw).hexdigest() == SUPERVISOR['sha256'],
+                 'stable complete exact selected supervisor bytes')
+        except BaseException as error:
+            self._remember(error)
+            if ticket[1] == 'OPEN_PENDING':
+                self._unknown = True
+        finally:
+            if ticket[1] == 'OWNED':
+                fd = ticket[0]; ticket[:] = [None, 'CLOSE_ENTERED']
+                try:
+                    os.close(fd); ticket[1] = 'CLOSED'
+                except BaseException as error:
+                    ticket[1] = 'CLOSE_UNKNOWN'; self._unknown = True
+                    self._remember(error)
+        if self._first is not None:
+            raise self._first
+        name = '_h25_original_outer_supervisor_source'
+        need(name not in sys.modules, 'one fresh original supervisor namespace')
+        module = ModuleType(name)
+        module.__dict__.update(__name__=name, __file__=str(path), __package__=None, __spec__=None)
+        self._source, self._raw = module, raw  # Before source compilation.
+        sys.modules[name] = module
+        exec(compile(raw, str(path), 'exec', dont_inherit=True), module.__dict__)
+        namespace = module.__dict__
+        self._globals = (namespace, dict(namespace))
+        self._functions = {
+            name: (value, value.__code__, value.__globals__, value.__defaults__,
+                   value.__kwdefaults__, value.__closure__)
+            for name, value in namespace.items()
+            if type(value) is FunctionType and value.__globals__ is namespace
+        }
+
+    def _install(self):
+        self._load_source()
+        self._source_current()
+        need(signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL,
+             'original fresh-exec default SIGCHLD owner; no other consuming waiter')
+        # Actual original body, not a copied receipt or newly invented prctl ABI.
+        self._phase = 'SUBREAPER_INSTALL_PENDING'
+        evidence, native = self._source.install_subreaper(ROOT)
+        self._native_evidence, self._native = evidence, native
+        self._source_current()
+        need(type(native) is tuple and len(native) == 2 and evidence['pid'] == self._pid
+             and evidence['actual'] == 1, 'actual same-process original subreaper return')
+        self._ctypes = sys.modules['ctypes']
+        self._native_prctl = native[1]
+        self._native_types = (self._ctypes.c_int, self._ctypes.c_ulong)
+        self._native_addressof = self._ctypes.addressof
+        self._verify_subreaper()
+        need(not self._direct(), 'actual outer domain initially empty')
+        self._phase = 'READY'
+
+    def _verify_subreaper(self):
+        self._retirement_budget()
+        self._source_current()
+        ctypes = self._ctypes
+        need(sys.modules.get('ctypes') is ctypes and
+             ctypes.c_int is self._native_types[0] and
+             ctypes.c_ulong is self._native_types[1] and
+             ctypes.addressof is self._native_addressof and
+             self._native[1] is self._native_prctl,
+             'actual retained original typed native objects')
+        call = self._native_prctl
+        need(call.argtypes == [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
+                               ctypes.c_ulong, ctypes.c_ulong] and
+             call.restype is ctypes.c_int, 'original prctl ABI unchanged')
+        actual = ctypes.c_int()
+        need(call(37, ctypes.addressof(actual), 0, 0, 0) == 0 and actual.value == 1,
+             'surviving same-process subreaper remains installed')
+
+    def _read_metadata(self, path, cap):
+        """The original finite proc reads with explicit pending/close custody.
+
+        Read-only cleanup observation may continue after a working error. An
+        uncertain descriptor acquire or close poisons final holder retirement
+        and blocks every later new child-pidfd acquisition.
+        """
+        self._retirement_budget()
+        need(not self._unknown, 'uncertain native custody blocks fresh metadata acquisition')
+        ticket = next((item for item in self._io if item[1] in ('FREE', 'CLOSED')), None)
+        need(ticket is not None, 'bounded outer metadata reader custody')
+        ticket[:] = [None, 'OPEN_PENDING', str(path), None, None]
+        pieces, count, primary = [], 0, None
+        try:
+            ticket[0] = os.open(path, os.O_RDONLY|os.O_NONBLOCK|os.O_NOFOLLOW|os.O_CLOEXEC)
+            ticket[1] = 'OWNED'
+            while True:
+                block = os.read(ticket[0], min(65536, cap+1-count))
+                if not block:
+                    break
+                count += len(block)
+                need(count <= cap, 'complete bounded original kernel metadata')
+                pieces.append(block)
+            raw = b''.join(pieces)
+        except BaseException as error:
+            primary = error
+            ticket[3] = error
+            if ticket[1] == 'OPEN_PENDING':
+                ticket[1] = 'OPEN_UNKNOWN'; self._unknown = True
+            self._remember(error)
+        finally:
+            if ticket[1] == 'OWNED':
+                fd = ticket[0]; ticket[0], ticket[1] = None, 'CLOSE_ENTERED'
+                try:
+                    os.close(fd); ticket[1] = 'CLOSED'
+                except BaseException as error:
+                    ticket[1], ticket[4] = 'CLOSE_UNKNOWN', error
+                    self._unknown = True
+                    self._remember(error)
+                    if primary is None:
+                        primary = error
+        if primary is not None:
+            raise primary
+        return raw
+
+    def _proc(self, pid):
+        raw = self._read_metadata(Path('/proc')/str(pid)/'stat', 8192)
+        end = raw.rfind(b') ')
+        need(end >= 0, 'original process stat grammar')
+        fields = raw[end+2:].split()
+        need(len(fields) > 19, 'complete original process generation fields')
+        return {'pid': pid, 'ppid': int(fields[1]), 'pgid': int(fields[2]),
+                'sid': int(fields[3]), 'start_ticks': int(fields[19]),
+                'state': fields[0].decode('ascii')}
+
+    def _direct(self):
+        self._source_current()
+        # Adapted from actual direct_children_exact, with source-owned transport
+        # and enough metadata slots for the unchanged G domain plus G itself.
+        # Unlike a broad /proc census, an unreadable real child cannot disappear.
+        path = Path('/proc')/str(self._pid)/'task'/str(self._pid)/'children'
+        raw = self._read_metadata(path, 32768)
+        pids = [int(word) for word in raw.split()]
+        need(len(pids) <= MAX_CHILDREN and len(set(pids)) == len(pids) and
+             all(0 < pid <= 2147483647 for pid in pids),
+             'finite distinct actual direct-child identities')
+        rows = []
+        for pid in pids:
+            row = self._proc(pid)
+            need(row['ppid'] == self._pid, 'same actual unreaped direct child')
+            rows.append(row)
+        return rows
+
+    def birth_pending(self):
+        self._actual()
+        need(self._phase == 'READY' and self._birth == 'UNENTERED' and
+             not self._retire_entered, 'one original controlled birth')
+        self._verify_subreaper()
+        need(not self._direct(), 'no unrelated child before original birth')
+        self._birth = 'FORK_PENDING'  # Before the target's actual os.fork.
+
+    def birth_failed(self, error):
+        self._actual()
+        need(self._birth == 'FORK_PENDING', 'actual pending original birth')
+        self._birth = 'FORK_UNKNOWN'
+        self._remember(error)
+        # Do not guess absence. Retirement examines the actual direct-child list.
+
+    def retain_external_custody_uncertainty(self, error):
+        """Join the actual target's prior native uncertainty before retirement.
+
+        The fixed caller invokes this only after its real acquisition/close
+        bookkeeping became uncertain. It forwards an actual retained exception,
+        not permission DATA. No source, handle, process, or authority is acquired.
+        """
+        self._actual()
+        need(not self._retire_entered and not self._retired and
+             isinstance(error, BaseException),
+             'actual caller error before the single native retirement entry')
+        self._remember(error)
+        self._unknown = True
+
+    def _ticket_for(self, row):
+        need(row['ppid'] == self._pid and row['pid'] != self._pid,
+             'actual direct child of surviving original owner')
+        key = (row['pid'], row['start_ticks'])
+        for ticket in self._tickets:
+            if ticket['key'] == key:
+                need(not ticket['wait_entered'], 'consumed generation cannot be reused')
+                return ticket
+        need(not self._unknown, 'unknown native acquisition/wait/close blocks new child holders')
+        self._retirement_budget()
+        ticket = next((item for item in self._tickets if item['phase'] == 'FREE'), None)
+        need(ticket is not None, 'bounded original observed-generation domain')
+        ticket.update(phase='PIDFD_PENDING', pid=row['pid'], key=key)
+        try:
+            ticket['fd'] = os.pidfd_open(row['pid'], 0)
+            ticket['phase'] = 'OWNED'  # Retain before any fallible corroboration.
+            os.set_inheritable(ticket['fd'], False)
+            current = self._proc(row['pid'])
+            need(current is not None and current['ppid'] == self._pid and
+                 (current['pid'], current['start_ticks']) == key,
+                 'same unreaped direct child after actual pidfd acquisition')
+            self._observations += 1
+        except BaseException as error:
+            ticket['errors'][0] = error
+            if ticket['phase'] == 'PIDFD_PENDING':
+                ticket['phase'] = 'PIDFD_UNKNOWN'; self._unknown = True
+            self._remember(error)
+            raise
+        return ticket
+
+    def retain_root(self, pid):
+        self._actual()
+        need(self._birth == 'FORK_PENDING' and type(pid) is int and pid > 0,
+             'actual returned original fork child')
+        self._root_pid = pid  # Before any fallible lookup; no second birth.
+        self._birth = 'ROOT_RETAINED'
+        rows = self._direct()
+        row = next((row for row in rows if row['pid'] == pid), None)
+        need(row is not None, 'gated unreaped original child is observable')
+        ticket = self._ticket_for(row)
+        self._root_key = ticket['key']
+        self._phase = 'ACTIVE'
+
+    def _exit_observation(self, ticket):
+        self._retirement_budget()
+        need(ticket['phase'] == 'OWNED' and not ticket['wait_entered'],
+             'held direct generation before consuming wait')
+        result = os.waitid(os.P_PID, ticket['pid'], os.WEXITED|os.WNOWAIT|os.WNOHANG)
+        if result is not None:
+            need(result.si_pid == ticket['pid'], 'actual same retained child exit')
+            ticket['exit_observation'] = result
+            if ticket['key'] == self._root_key:
+                self._root_observation = result
+        return result
+
+    def root_exit_observed(self):
+        self._actual()
+        need(self._phase == 'ACTIVE' and self._birth == 'ROOT_RETAINED',
+             'actual original native root observation')
+        ticket = next(item for item in self._tickets if item['key'] == self._root_key)
+        return self._exit_observation(ticket) is not None
+
+    def observe(self):
+        self._actual()
+        need(self._phase in ('ACTIVE', 'RETIRING', 'CUSTODY_PENDING'),
+             'actual live outer domain observation')
+        self._verify_subreaper()
+        rows = self._direct()
+        for row in rows:
+            self._ticket_for(row)
+        return tuple((row['pid'], row['start_ticks']) for row in rows)
+
+    def _signal_once(self, ticket):
+        self._retirement_budget()
+        need(ticket['phase'] == 'OWNED' and not ticket['wait_entered'],
+             'never signal after a consuming wait has been entered')
+        if ticket['signal_entered']:
+            return
+        ticket['signal_entered'] = True
+        try:
+            signal.pidfd_send_signal(ticket['fd'], signal.SIGKILL, None, 0)
+            ticket['signal_returned'] = True
+        except ProcessLookupError as error:
+            # The pidfd still names the same object. Only a real exit observation
+            # below can authorise consuming its wait; ESRCH itself does not.
+            ticket['errors'][1] = error
+            self._remember(error)
+        except BaseException as error:
+            ticket['errors'][1] = error
+            self._remember(error)
+
+    def _consume_observed_once(self, ticket):
+        self._retirement_budget()
+        need(ticket['exit_observation'] is not None and not ticket['wait_entered'],
+             'actual nonconsuming exit observation before one consuming wait')
+        ticket['wait_entered'] = True
+        try:
+            pid, status = os.waitpid(ticket['pid'], os.WNOHANG)
+            need(pid == ticket['pid'], 'exclusive wait of same retained exited child')
+            ticket['wait_returned'], ticket['wait_status'] = True, status
+            self._reaped.append((ticket['key'], status))
+            if ticket['key'] == self._root_key:
+                self._root_status = status
+        except BaseException as error:
+            ticket['errors'][2] = error
+            self._unknown = True
+            self._remember(error)
+
+    def _empty_exact(self):
+        if self._direct():
+            return False
+        try:
+            self._retirement_budget()
+            # This does not consume an unknown child. ECHILD is the empty proof.
+            result = os.waitid(os.P_ALL, 0, os.WEXITED|os.WNOWAIT|os.WNOHANG)
+        except ChildProcessError:
+            return not self._direct()
+        return False
+
+    def _close_empty_once(self):
+        need(self._empty_observed and not self._close_entered,
+             'close retained native holders only after genuine domain emptiness')
+        self._close_entered = True
+        for ticket in self._tickets:
+            if ticket['phase'] != 'OWNED':
+                continue
+            self._retirement_budget()
+            fd = ticket['fd']
+            ticket['phase'], ticket['fd'] = 'CLOSE_ENTERED', None
+            try:
+                os.close(fd)
+                ticket['phase'] = 'CLOSED'
+            except BaseException as error:
+                ticket['phase'] = 'CLOSE_UNKNOWN'
+                ticket['errors'][3] = error
+                self._unknown = True
+                self._remember(error)
+
+    def _retire_known_without_acquisition(self):
+        """Safe already-owned cleanup after an uncertain acquisition or close.
+
+        No new descriptor, source/native load, process metadata reader, or child
+        holder is acquired here. This cannot prove the whole domain empty.
+        """
+        for ticket in self._tickets:
+            if ticket['phase'] != 'OWNED' or ticket['wait_entered']:
+                continue
+            self._retirement_budget()
+            try:
+                observed = self._exit_observation(ticket)
+                if observed is None:
+                    self._signal_once(ticket)
+                    observed = self._exit_observation(ticket)
+                if observed is not None:
+                    self._consume_observed_once(ticket)
+            except OuterCustodyPending:
+                raise
+            except BaseException as error:
+                self._remember(error)
+        self._pending('uncertain native acquisition/wait/close; known holders retained')
+
+    def retire(self, absolute_deadline_ns):
+        """One bounded retirement entry. Incomplete custody stays in this owner.
+
+        The caller must retain this same process/owner on OuterCustodyPending.
+        No new operation, budget, attempt, or retry is authorised by that branch.
+        """
+        self._actual()
+        need(type(absolute_deadline_ns) is int and not self._retire_entered and
+             self._birth in ('UNENTERED', 'FORK_PENDING', 'FORK_UNKNOWN', 'ROOT_RETAINED'),
+             'one enclosing original retirement')
+        self._retire_entered = True
+        self._retire_deadline = absolute_deadline_ns
+        self._phase = 'RETIRING'
+        # In this branch the actual caller has not entered any controlled fork.
+        # The native installer already observed zero children. No actual child
+        # or pidfd is invented merely because pre-entry preparation failed.
+        if self._birth == 'UNENTERED':
+            need(all(ticket['phase'] == 'FREE' for ticket in self._tickets),
+                 'no child holder exists before controlled birth')
+            if self._unknown:
+                self._pending('pre-birth native holder result remains unknown')
+            self._empty_observed, self._retired = True, True
+            self._phase = 'RETIRED'
+            return self.observation()
+        while True:
+            self._retirement_budget()
+            if self._unknown:
+                self._retire_known_without_acquisition()
+            try:
+                self._verify_subreaper()
+                rows = self._direct()
+                for row in rows:
+                    try:
+                        ticket = self._ticket_for(row)
+                        observed = self._exit_observation(ticket)
+                        if observed is None:
+                            self._signal_once(ticket)
+                            observed = self._exit_observation(ticket)
+                        if observed is not None:
+                            self._consume_observed_once(ticket)
+                    except OuterCustodyPending:
+                        raise
+                    except BaseException as error:
+                        self._remember(error)
+                    if self._unknown:
+                        self._retire_known_without_acquisition()
+                if self._empty_exact():
+                    self._empty_observed = True
+                    break
+            except OuterCustodyPending:
+                raise
+            except BaseException as error:
+                self._remember(error)
+            self._retirement_budget()
+            time.sleep(min(0.01, max(0, absolute_deadline_ns-time.monotonic_ns())/1e9))
+        self._close_empty_once()
+        if self._unknown or any(ticket['phase'] not in ('FREE', 'CLOSED') for ticket in self._tickets) or\
+           any(ticket[1] not in ('FREE', 'CLOSED') for ticket in self._io):
+            self._pending('native domain empty but a holder/wait result remains unknown')
+        self._retired = True
+        self._phase = 'RETIRED'
+        return self.observation()
+
+    def observation(self):
+        self._actual()
+        return {'schema': 'original-outer-subreaper-custody-v1',
+                'parent_pid': self._pid, 'phase': self._phase,
+                'birth': self._birth, 'root_pid': self._root_pid,
+                'root_generation': self._root_key, 'root_wait_status': self._root_status,
+                'native_subreaper_source_pin': dict(SUPERVISOR),
+                'native_subreaper_evidence': self._native_evidence,
+                'exact_domain_empty': self._empty_observed,
+                'known_holder_retirement': self._retired,
+                'observed_generations': self._observations,
+                'reaped': list(self._reaped),
+                'uncertainty': self._unknown,
+                'working_error_retained': self._first is not None,
+                'pending_reason': self._pending_reason,
+                'financial_authority_issued': False,
+                'new_budget_or_retry': False}
+
+    @property
+    def retired(self):
+        self._actual()
+        return self._retired
+
+    @property
+    def root_status(self):
+        self._actual()
+        return self._root_status
+
+    @property
+    def first_error(self):
+        self._actual()
+        return self._first
+
+    @property
+    def secondary_errors(self):
+        self._actual()
+        return tuple(error for error in self._secondary if error is not None)
+
+
+def open_outer_owner():
+    """Reached once by the exact authenticated target entry, before G birth."""
+    need(_USED[0] is False, 'one source-private original outer owner')
+    _USED[0] = True
+    owner = OuterRetirement(_TOKEN)
+    _OWNERS.append(owner)  # Retained before source/native acquisition.
+    try:
+        owner._install()
+    except BaseException as error:
+        owner._remember(error)
+        owner._phase = 'INSTALL_FAILED_NO_CONTROLLED_BIRTH'
+        raise owner.first_error
+    return owner
