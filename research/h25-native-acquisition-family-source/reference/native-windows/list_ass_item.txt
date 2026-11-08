@@ -1,0 +1,13 @@
+list_ass_item(PyListObject *a, Py_ssize_t i, PyObject *v)
+{
+    if (!valid_index(i, Py_SIZE(a))) {
+        PyErr_SetString(PyExc_IndexError,
+                        "list assignment index out of range");
+        return -1;
+    }
+    if (v == NULL)
+        return list_ass_slice(a, i, i+1, v);
+    Py_SETREF(a->ob_item[i], Py_NewRef(v));
+    return 0;
+}
+

@@ -1,0 +1,323 @@
+"""Actual original full-caller data and owned-terminal receiver; no saved PASS.
+
+The fixed Root launcher owns Popen/PID/start/terminal/source state. This receiver
+consumes its joined token once, independently reads every retained scientific
+artifact, and replays the exact source-derived finite predicates. It never
+accepts a caller receipt or treats child stdout alone as authority.
+"""
+import json
+import math
+import os
+import stat
+from fractions import Fraction
+import epoch_schema_v5 as schema
+import epoch_copy_v5 as copying
+import parent_completion_v1 as parent
+import parent_domain_v1 as domain
+import group01_evidence_v1 as evidence
+import group01_original_predicates_v1 as predicates
+import owned_root_v2 as owned
+
+_TYPE, _LEN = type, len
+_STAT, _SCANDIR = os.stat, os.scandir
+MAX_STAGE_ENTRIES = parent.MAX_STAGE_ENTRIES
+EXPECTED_STDOUT = ('PASS conditional 59/100000000000 > 2^-31; minimum margin 14779261/25000000000000000\n'
+                   'Side roles per invocation 108195 vs original 3693800\n').encode('utf-8')
+BASELINE_DRIVER_SHA256 = '5b963a5f108b334a627e68001c80b9843fb300c7394693e72f34ce0a6050e6f1'
+REFERENCE_DRIVER_SHA256 = '0d976d2eb6b845f20d4a3396591a806f966688b88693cd6a5f8a0c9e48925e36'
+BASE_COMMIT = '19fdb086ea96af9a9f87936a2b888e10af4ed810'
+SOURCE_PIN_SHA256 = '88bba3caf5975f30fa7abceaea9454110cf3b069233e8241a2ca13d1dff171a7'
+UPSTREAM_COMMIT = 'adc7f1241b42e322a6451854ab7e4b4c146bf78a'
+REQUIRED_PHASES = ('side_construction', 'checks_initialization', 'compile_roles', 'verify_map', 'verify_labels',
+                  'verify_role_frames', 'original_upstream_verify_sources', 'full_log_integer_bounds',
+                  'original_serializable', 'complete_original_cli')
+BASELINE_KEYS = ('new_source_custody', 'status', 'mode', 'lanes', 'bookkeeping', 'reference_driver_sha256',
+ 'science', 'base_commit', 'native_predecessor_pr', 'driver_sha256', 'source_pin_sha256', 'frozen_custody',
+ 'engine_custody', 'scientific_imports', 'build', 'finite_controls', 'private_root_permission', 'compiler_tmpdir',
+ 'native_calls', 'phases', 'process_wall_seconds_before_receipt', 'process_and_compiler_cpu_seconds_before_receipt',
+ 'environment', 'measurement', 'scope')
+CANDIDATE_KEYS = tuple(x for x in BASELINE_KEYS if x != 'process_wall_seconds_before_receipt') + (
+ 'data_handling', 'data_source_custody', 'initial_native_tcb', 'initial_native_tcb_restoration', 'native_packet',
+ 'driver_wall_seconds_after_initial_tcb_before_receipt')
+
+
+def _raw(state, path, limit):
+    pin = copying.inspect(path, limit, error_owner=state['errors'])
+    raw = copying.read_verified_complete_v3(pin, limit, error_owner=state['errors'])
+    return pin, raw
+
+
+def _typed(value, budget, depth=0):
+    budget[0] += 1
+    schema.need(budget[0] <= 200000 and depth <= 40 and _TYPE(value) is list and value and
+                _TYPE(value[0]) is str, 'original typed return node differs')
+    tag = value[0]
+    if tag == 'Fraction':
+        schema.need(_LEN(value) == 3 and _TYPE(value[1]) is int and _TYPE(value[2]) is int and
+                    value[2] > 0, 'original independent Fraction representation differs')
+        fraction = Fraction(value[1], value[2])
+        schema.need(fraction.numerator == value[1] and fraction.denominator == value[2], 'nonreduced Fraction node')
+        return
+    if tag == 'None':
+        schema.need(_LEN(value) == 1, 'None typed arity differs')
+        return
+    schema.need(_LEN(value) == 2, 'original typed arity differs')
+    data = value[1]
+    if tag == 'bool':
+        schema.need(_TYPE(data) is bool, 'typed bool differs')
+    elif tag == 'int':
+        schema.need(_TYPE(data) is str and 0 < _LEN(data) <= 1234 and str(int(data)) == data,
+                    'typed integer exact decimal differs')
+    elif tag == 'float':
+        schema.need(_TYPE(data) is str and _LEN(data) <= 64, 'typed float representation differs')
+        number = float.fromhex(data)
+        schema.need(math.isfinite(number) and number.hex() == data, 'typed float exact representation differs')
+    elif tag == 'str':
+        schema.need(_TYPE(data) is str, 'typed string differs')
+    else:
+        schema.need(tag in ('list', 'tuple', 'dict') and _TYPE(data) is list, 'typed native container differs')
+        for item in data:
+            if tag == 'dict':
+                schema.need(_TYPE(item) is list and _LEN(item) == 2, 'typed ordered map pair differs')
+                _typed(item[0], budget, depth + 1)
+                _typed(item[1], budget, depth + 1)
+            else:
+                _typed(item, budget, depth + 1)
+
+
+def take_full_observation(owner, joined):
+    """Consume one actual assertions-on full arm after both finite unions."""
+    state = owned._state(owner)
+    run = None
+    try:
+        state, run = owned._joined(owner, joined)
+        row, expected = run['plan'], run['plan']['evidence_plan']
+        schema.need(row['phase'] == 'full' and row['source_role'] in ('baseline-full', 'candidate-full'),
+                    'scientific receiver requires exact declared full role')
+        schema.exact(expected, ('schema', 'arm', 'anchor', 'reference', 'source_pins', 'engine_pins',
+            'output_files', 'output_directories', 'legacy_outcomes', 'static_receipt_fields',
+            'candidate_restoration', 'fraction_oracle_sources'))
+        arm = expected['arm']
+        schema.need(expected['schema'] == 'h25-full-caller-evidence-plan-v2' and arm in ('baseline', 'candidate') and
+                    row['source_role'] == arm + '-full', 'full plan source role differs')
+        schema.need('-O' not in row['command'] and '--finite-only' not in row['command'], 'full assertion-on route differs')
+        if arm == 'baseline':
+            schema.need(row['driver_sha256'] == BASELINE_DRIVER_SHA256, 'unchanged original baseline driver differs')
+        # Actual native objects and every raw return are retained before parsing/comparison.
+        run['actual_raw'] = {}
+        actual = run['actual_raw']
+        for name, path, limit in (
+            ('receipt', row['output'] + '/receipt.json', evidence.MAX_JSON_BYTES),
+            ('stdout', row['evidence_directory'] + '/stdout.raw', schema.LOG_BYTES),
+            ('stderr', row['evidence_directory'] + '/stderr.raw', schema.LOG_BYTES),
+            ('original_stdout', row['output'] + '/original-stdout.txt', 8192),
+            ('typed_return', row['output'] + '/full-return.lossless.json', schema.RAW_RESULT_BYTES),
+            ('complements', row['output'] + '/complement-transcript.json', schema.RECORD_BYTES),
+            ('certificate', row['output'] + '/runtime-root/certificates/complex-network.json', schema.RAW_RESULT_BYTES),
+            ('finite', row['output'] + '/finite-controls.json', evidence.MAX_JSON_BYTES)):
+            actual[name] = _raw(state, path, limit)
+        run['actual_receipt'] = evidence.decode(actual['receipt'][1])
+        receipt = run['actual_receipt']
+        schema.exact(receipt, BASELINE_KEYS if arm == 'baseline' else CANDIDATE_KEYS)
+        schema.need(actual['stderr'][1] == b'' and actual['original_stdout'][1] == EXPECTED_STDOUT,
+                    'exact original full stdout/stderr differs')
+        schema.need(receipt['status'] == 'FULL_NETWORK_COMPLETE_PASS' and receipt['mode'] == 'candidate' and
+                    receipt['lanes'] == 'all' and receipt['driver_sha256'] == row['driver_sha256'] and
+                    receipt['reference_driver_sha256'] == REFERENCE_DRIVER_SHA256 and
+                    receipt['base_commit'] == BASE_COMMIT and receipt['source_pin_sha256'] == SOURCE_PIN_SHA256 and
+                    _TYPE(receipt['native_predecessor_pr']) is int and receipt['native_predecessor_pr'] == 5995,
+                    'actual full original source/entry/status differs')
+        for key in ('anchor', 'reference', 'source_pins'):
+            schema.blob(expected[key], schema.RECORD_BYTES if key != 'reference' else schema.RAW_RESULT_BYTES)
+        anchor_raw = copying.read_verified_complete_v3(expected['anchor'], schema.RECORD_BYTES, error_owner=state['errors'])
+        schema.need(schema.sha(anchor_raw) == ANCHOR_SHA256, 'original frozen anchor image differs')
+        anchor = evidence.decode(anchor_raw)
+        schema.need(evidence.same_json(anchor, FROZEN_ANCHOR) and evidence.same_json(receipt['science'], anchor['science']),
+                    'complete original anchor/science differs')
+        reference_raw = copying.read_verified_complete_v3(expected['reference'], schema.RAW_RESULT_BYTES, error_owner=state['errors'])
+        schema.need(schema.sha(reference_raw) == anchor['science']['full_cli_certificate_sha256'] and
+                    actual['certificate'][1] == reference_raw, 'full certificate bytes differ')
+        schema.need(schema.sha(actual['typed_return'][1]) == anchor['science']['full_return_lossless_sha256'],
+                    'full typed ordered return bytes differ')
+        typed = json.loads(actual['typed_return'][1].decode('ascii'), object_pairs_hook=evidence._pairs,
+                           parse_constant=evidence._reject)
+        _typed(typed, [0])
+        schema.need(json.dumps(typed, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii') == actual['typed_return'][1],
+                    'original canonical typed serialization differs')
+        schema.need(evidence.same_json(evidence.decode(actual['complements'][1]), anchor['science']['ordered_complements']),
+                    'ordered complete complement stream receipt differs')
+        side = anchor['science']['side']
+        for relative, digest_key, size_key in (('result.json', 'result_sha256', 'result'),
+            ('witness.json', 'exact_witness_sha256', 'witness'), ('rank-trace.json', 'rank_trace_sha256', 'rank_trace')):
+            pin = copying.inspect(row['output'] + '/side-observations/' + relative, schema.FILE_BYTES,
+                                  error_owner=state['errors'])
+            schema.need(pin['sha256'] == side[digest_key] and pin['bytes'] == side['serialized_bytes'][size_key],
+                        'complete side/result/witness/rank bytes differ')
+            copying.verify(pin, error_owner=state['errors'])
+            actual[relative] = (pin, None)
+        # Explicit source/oracle inputs are independently pinned, not extracted from a PASS receipt.
+        schema.need(_TYPE(expected['fraction_oracle_sources']) is list and expected['fraction_oracle_sources'],
+                    'independent Fraction oracle source closure absent')
+        for pin in expected['fraction_oracle_sources']:
+            copying.verify(pin, error_owner=state['errors'])
+        pin_raw = copying.read_verified_complete_v3(expected['source_pins'], schema.RECORD_BYTES, error_owner=state['errors'])
+        schema.need(schema.sha(pin_raw) == SOURCE_PIN_SHA256, 'original 32-file source pin bytes differ')
+        pins = evidence.decode(pin_raw)
+        schema.need(_LEN(pins) == 32, 'complete original script/payload census differs')
+        for relative, item in pins.items():
+            schema.text(relative, 4096)
+            schema.need(not relative.startswith('/') and all(x not in ('', '.', '..') for x in relative.split('/')),
+                        'original scientific relative path differs')
+            expected_sha = item[0] if _TYPE(item) is list else item
+            observed = copying.inspect(row['output'] + '/runtime-root/' + relative, error_owner=state['errors'])
+            schema.need(observed['sha256'] == expected_sha and
+                        observed['identity']['mode'] & 0o7777 == receipt['frozen_custody'][relative]['mode'] and
+                        observed['bytes'] == receipt['frozen_custody'][relative]['bytes'], 'current copied scientific source differs')
+        schema.need(evidence.same_json(expected['engine_pins'], anchor['engine_pins']), 'original engine pin inventory differs')
+        for relative, expected_sha in expected['engine_pins'].items():
+            observed = copying.inspect(row['output'] + '/engine/' + relative, error_owner=state['errors'])
+            schema.need(observed['sha256'] == expected_sha, 'current copied engine/oracle changed')
+        files, directories = _output_tree(row['output'], state)
+        schema.need(files == expected['output_files'] and directories == expected['output_directories'],
+                    'complete full output side-effect inventory differs')
+        runtime_files = sorted(path[len('runtime-root/'):] for path in files if path.startswith('runtime-root/'))
+        schema.need(runtime_files == sorted(list(pins) + ['certificates/complex-network.json']),
+                    'unexpected full-caller scientific side effect')
+        schema.need(evidence.same_json(evidence.decode(actual['finite'][1]), receipt['finite_controls']),
+                    'full arm original finite artifact differs')
+        evidence._legacy_controls({'original_controls': receipt['finite_controls'],
+            'new_controls': receipt['bookkeeping']['new_controls']}, expected['legacy_outcomes'])
+        for key, expected_value in expected['static_receipt_fields'].items():
+            schema.text(key, 128)
+            schema.need(key in receipt and evidence.same_json({'v': receipt[key]}, {'v': expected_value}),
+                        'independently expected complete source/control receipt differs')
+        schema.need(set(expected['static_receipt_fields']) == {'new_source_custody', 'frozen_custody',
+            'engine_custody', 'scientific_imports', 'private_root_permission', 'compiler_tmpdir', 'environment'},
+                    'complete source/runtime receipt expectations missing')
+        schema.need(evidence.same_json(receipt['native_calls'], {'complement_native': 238685, 'complement_fallback': 0,
+            'gram_native': 59959, 'gram_fallback': 0}), 'original complete native call coverage differs')
+        for name in REQUIRED_PHASES:
+            phase = receipt['phases'][name]
+            schema.need(_TYPE(phase) is dict and _TYPE(phase.get('calls')) is int and phase['calls'] == 1,
+                        'original scientific phase omitted/repeated')
+        if arm == 'candidate':
+            data, packet = receipt['data_handling'], receipt['native_packet']
+            schema.need(data['full_caller_run'] is True and data['cache_teardown_stops'] == [] and
+                        evidence.same_json(data['native_packet'], packet), 'complete candidate/cleanup fields differ')
+            predicates.check_original_control_union({'controls': data['controls'], 'native_packet': packet}, 0, include_late=True)
+            schema.need(packet['late_started'] is True and packet['late_completed'] is True and
+                        packet['field_service_closed'] is True and packet['direct_close_stop'] is None and
+                        packet['field_group_stop'] is None and packet['field_restoration_receipt_checked'] is True,
+                        'candidate terminal native cleanup differs')
+            restoration = expected['candidate_restoration']
+            schema.exact(restoration, ('tcb_files', 'hashlib_origin'))
+            evidence._captured_call(state['original']['receivers'], 'restoration_contract_v1', 'validate_restoration',
+                receipt['initial_native_tcb'], data['controls']['native_initial_tcb'], receipt['initial_native_tcb_restoration'],
+                tuple(tuple(x) for x in restoration['tcb_files']), restoration['hashlib_origin'],
+                row['launch_binding']['root_sha256'], len(restoration['tcb_files']))
+            schema.need(receipt['initial_native_tcb']['pid'] == run['root'][0] and
+                        receipt['initial_native_tcb_restoration']['pid'] == run['root'][0], 'TCB receipt process differs')
+            for name, key in (('initial-native-tcb.json', 'initial_native_tcb'),
+                              ('initial-native-tcb-restoration.json', 'initial_native_tcb_restoration')):
+                actual[name] = _raw(state, row['output'] + '/' + name, evidence.MAX_JSON_BYTES)
+                schema.need(evidence.same_json(evidence.decode(actual[name][1]), receipt[key]), 'TCB raw/receipt differs')
+            actual['initial-controls'] = _raw(state, row['output'] + '/initial-tcb-controls/receipt.json', evidence.MAX_JSON_BYTES)
+            schema.need(evidence.same_json(evidence.decode(actual['initial-controls'][1]), data['controls']['native_initial_tcb']),
+                        'all five original initial control raw differs')
+        else:
+            schema.need(expected['candidate_restoration'] is None, 'baseline cannot acquire candidate-only controls')
+        stdout = actual['stdout'][1]
+        schema.need(stdout.startswith(EXPECTED_STDOUT), 'root stdout lacks exact original CLI prefix')
+        summary = evidence.decode(stdout[len(EXPECTED_STDOUT):])
+        schema.exact(summary, ('status', 'mode', 'science', 'wall_seconds', 'cpu_seconds_with_compiler', 'phases'))
+        wall_key = 'process_wall_seconds_before_receipt' if arm == 'baseline' else 'driver_wall_seconds_after_initial_tcb_before_receipt'
+        schema.need(evidence.same_json(summary, {'status': receipt['status'], 'mode': receipt['mode'], 'science': receipt['science'],
+            'wall_seconds': receipt[wall_key], 'cpu_seconds_with_compiler': receipt['process_and_compiler_cpu_seconds_before_receipt'],
+            'phases': receipt['phases']}), 'complete stdout/receipt cross-binding differs')
+        for pin, raw in actual.values():
+            copying.verify(pin, error_owner=state['errors'])
+        for key in ('anchor', 'reference', 'source_pins'):
+            copying.verify(expected[key], error_owner=state['errors'])
+        schema.need(domain.terminal_facts(run['domain']) == run['terminal'], 'owned full arm terminal/freshness differs')
+        owned._accepted(state, run)
+        return {'schema': 'h25-owned-full-caller-observation-v2', 'arm': arm,
+            'action_id': row['action_id'], 'generation': row['generation'], 'binding_sha256': row['binding_sha256'],
+            'root': run['root'], 'terminal': run['terminal'], 'launch': run['launch'],
+            'raw_pins': tuple(pin for pin, unused in actual.values()), 'science': anchor['science'],
+            'assertions_on': True, 'runtime_authority': False, 'saved_PASS': False,
+            'measured_gain': False, 'conditional_scientific_certificate_only': True}
+    except BaseException as error:
+        if state['unknown_owner']['primary'][0] is None:
+            state['unknown_owner']['primary'][0] = error
+        state['unknown_owner']['quarantine'][0] = True
+        if run is not None:
+            run['primary'][0] = error
+        state['phase'] = 'STOP'
+        raise
+
+
+def _output_tree(root, state):
+    """Bounded exact stage census; all actual file contents are separately read."""
+    schema.path(root)
+    pending, files, directories = [('', root)], [], []
+    count = 0
+    while pending:
+        schema.need(state['io_quarantine'][0] is False and state['unknown_owner']['pending'][0] is False and
+                    state['unknown_owner']['iterator_uncertain'][0] is False,
+                    'stage census cannot acquire after uncertain ownership')
+        relative, current = pending.pop()
+        before = _STAT(current, follow_symlinks=False)
+        schema.need(stat.S_ISDIR(before.st_mode),
+                    'immutable stage directory kind/mode differs')
+        entries, primary = None, None
+        state['unknown_owner']['pending'][0] = True
+        try:
+            entries = _SCANDIR(current)
+            state['unknown_owner']['pending'][0] = False
+            for entry in entries:
+                count += 1
+                schema.need(count <= MAX_STAGE_ENTRIES, 'stage census bound exceeded')
+                name = entry.name
+                schema.need(_TYPE(name) is str and name not in ('.', '..') and '/' not in name,
+                            'stage entry name differs')
+                child = name if not relative else relative + '/' + name
+                info = entry.stat(follow_symlinks=False)
+                if stat.S_ISREG(info.st_mode):
+                    files.append(child)
+                elif stat.S_ISDIR(info.st_mode):
+                    directories.append(child)
+                    pending.append((child, current + '/' + name))
+                else:
+                    raise schema.EpochStop('stage has symlink or special file')
+        except BaseException as error:
+            primary = error
+            if state['unknown_owner']['primary'][0] is None:
+                state['unknown_owner']['primary'][0] = error
+            state['io_quarantine'][0] = True
+            state['unknown_owner']['iterator_uncertain'][0] = True
+            state['primary'][0] = error if state['primary'][0] is None else state['primary'][0]
+            raise
+        finally:
+            if entries is not None:
+                owned = entries
+                entries = None
+                try:
+                    owned.close()
+                except BaseException as error:
+                    if state['unknown_owner']['primary'][0] is None:
+                        state['unknown_owner']['primary'][0] = error
+                    state['io_quarantine'][0] = True
+                    state['unknown_owner']['iterator_uncertain'][0] = True
+                    state['primary'][0] = error if state['primary'][0] is None else state['primary'][0]
+                    if primary is None:
+                        raise
+        after = _STAT(current, follow_symlinks=False)
+        schema.need((before.st_dev, before.st_ino, before.st_mode, before.st_mtime_ns, before.st_ctime_ns) ==
+                    (after.st_dev, after.st_ino, after.st_mode, after.st_mtime_ns, after.st_ctime_ns),
+                    'stage directory changed during census')
+    return sorted(files), sorted(directories)
+
+
+
+ANCHOR_SHA256 = 'bbe53360088e1d7183a9801d3954bd723f580cb283d2f8dd0bb7a54ebb80c298'
+FROZEN_ANCHOR = {'base_commit': '19fdb086ea96af9a9f87936a2b888e10af4ed810', 'driver_sha256': '0d976d2eb6b845f20d4a3396591a806f966688b88693cd6a5f8a0c9e48925e36', 'engine_pins': {'compare_side_verifier.py': '6e507bb0c7e00d090a60289fddb6c55e90c946d0850c42c3c5e3e15c27604a68', 'finite_controls.py': 'df989a831aac43cc1af95169dad8c64a7548760e6e1f96976da996703f2c8f7a', 'native_backend.py': 'e473c38245c3668715b5a78dfe980b2fe3ed0d0c9b8c97c666fbae6ecf1fffd5', 'native_gf2.c': 'e9c3c9194a08718bd1575c1cf08c6c6772d3b644c2e274c25a84a1f9249d06cc', 'profile_side_verifier.py': '9c994378171c20a91539418d93cb8387e1daa93465d6862beefea90e12999c2a', 'source/complex_circuit.py': 'd623617f7c5cb3189580883a8ab30c0bd3832688ae3f1f0c1f881bbbbff8e0c1', 'source/complex_network.py': '0da395e67ac04fa213494e71012c1b19b544596d34cdce5a3b172b1fb6af5f1b'}, 'schema': 'gf2-full-network-anchor-v1', 'science': {'full_cli_certificate_sha256': '1f763d95c7ff163aa71d13cd82784f16665be8afb21f75e76941e2119562098f', 'full_cli_stdout_sha256': '8f77b724810ec05fb19b35d75d8002d31a6e22ed342a36ee28a5caef8d643015', 'full_return_lossless_sha256': '542e4fd73d38b88122d1bf0fffa5f3b092cc4681a14012162daef47e89363cfd', 'ordered_complements': {'calls': 238685, 'canonical_stream_bytes': 55839507, 'schema': 'v2-jsonl:call,us,vs,result(type=list+values or type=None); ordered exact integer vectors', 'sha256': '7dec2bf33303c37e1c699609e83768d61df7e19104d34a26a148f66d5ccc4838'}, 'side': {'exact_witness_sha256': '4b170c1dbfc33c7cb141a2284c6fd69eac7b6d100971d3e9ee625502b5893f82', 'rank_call_count': 59959, 'rank_distinct_matrix_count': 252, 'rank_trace_sha256': '85006ca332bbc57c2ba9fd06f61a0281d4cee600c9f3b449342379bf2aedec8f', 'result_sha256': '342e99212b12e518902ae9598613f5484113bacee8747c27a13b58a4b1d3986c', 'serialized_bytes': {'rank_trace': 2674272, 'result': 527, 'witness': 58143622}}, 'upstream_commit': 'adc7f1241b42e322a6451854ab7e4b4c146bf78a'}, 'source_pin_sha256': '88bba3caf5975f30fa7abceaea9454110cf3b069233e8241a2ca13d1dff171a7'}

@@ -1,0 +1,9 @@
+list_ass_subscript(PyListObject* self, PyObject* item, PyObject* value)
+{
+    if (_PyIndex_Check(item)) {
+        Py_ssize_t i = PyNumber_AsSsize_t(item, PyExc_IndexError);
+        if (i == -1 && PyErr_Occurred())
+            return -1;
+        if (i < 0)
+            i += PyList_GET_SIZE(self);
+        return list_ass_item(self, i, value);

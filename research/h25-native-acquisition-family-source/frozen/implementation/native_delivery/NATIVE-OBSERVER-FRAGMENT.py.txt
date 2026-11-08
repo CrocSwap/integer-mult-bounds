@@ -1,0 +1,114 @@
+def _native_before(owner, mode, case):
+    """Register actual original slots before the fixed native operation.
+
+    This function belongs to the same source-authenticated fixed root as the
+    delivery body. The actual _native_prepare call constructs owner through
+    schema.make_error_owner; a copied dictionary is not an input to this API.
+    The opaque token never crosses the process boundary or becomes a receipt.
+    """
+    state = _STATE[0]
+    record = state['native_case']
+    _need(record['phase'] == 'PREPARED' and record['setup_status'] == ['SETUP_SUCCEEDED'] and
+          record['setup_pending'] == [False] and record['setup_error'] == [None] and
+          record['owner'] is owner and
+          record['mode'] == mode == state['mode'] and record['case'] == case == state['unit'],
+          'native observer original construction/context differs')
+    _need(case in ('epoch-v4/C03/native-enoent', 'epoch-v4/C03/native-eexist',
+                   'epoch-v4/C03/native-eloop'), 'unimplemented native observer case')
+    _need(sys.flags.optimize == (0 if mode == 'normal' else 1),
+          'native observer actual Python mode differs')
+    original = schema.owner_state(owner)
+    _need(original[0] == [None, None, None] and original[4] == [0, 0, 0, 0] and
+          original[5] == [None, False] and all(x is None for x in original[1]) and
+          all(x is None for x in original[2]) and all(x is None for x in original[3]),
+          'native observer requires the fresh original owner')
+    io = original[7]
+    _need(all(io[i] is False for i in (0, 1, 2, 4, 6, 9, 10, 11)) and
+          io[3] is None and io[5] is None and io[12] is None and
+          io[7] == [0, 0, 0, 0, 0] and io[8] == [0, 0, 0, 0, 0],
+          'native observer owner already has custody history')
+    _need(type(record['caught']) is list and record['caught'] == [None] and
+          type(record['returned']) is list and record['returned'] == [None],
+          'native observer outcome slots already occupied')
+    # Capture the actual original native descriptors before any target I/O.
+    # They are used only after an exact whitelisted native exception type test.
+    errno_get = OSError.__dict__['errno'].__get__
+    filename_get = OSError.__dict__['filename'].__get__
+    token = object()
+    record['observer'] = [token, False, original, original[0], original[1],
+                          original[2], original[3], original[4], original[5], io,
+                          record['caught'], record['returned'], errno_get, filename_get]
+    record['phase'] = 'REGISTERED'
+    return token
+
+
+def _native_observe(token, caught_slot):
+    """Read actual held operands; return observations without a PASS marker.
+
+    Original operation cleanup has completed before this function is entered.
+    Its possibly allocating work cannot precede or replace known-FD cleanup.
+    No source reread, native acquisition, retry, target call, or error protocol
+    of an arbitrary object occurs here. All opaque objects stay strongly held.
+    """
+    state = _STATE[0]
+    record = state['native_case']
+    saved = record['observer']
+    _need(record['phase'] == 'RETURNED' and saved[0] is token and saved[1] is False and
+          caught_slot is saved[10] is record['caught'],
+          'native observation stale/foreign/replayed/early token')
+    saved[1] = True  # Consume before fallible observation; never restore.
+    original = schema._OWNER_GET(record['owner'], schema.ErrorOwner)
+    _need(original is saved[2] and all(original[i] is saved[j] for i, j in
+          ((0, 3), (1, 4), (2, 5), (3, 6), (4, 7), (5, 8), (7, 9))),
+          'actual original owner slots were replaced')
+    error = caught_slot[0]
+    io = saved[9]
+    primary, secondary, phases, uncertain = saved[3], saved[4], saved[5], saved[6]
+    counts, overflow = saved[7], saved[8]
+    kind = type(error)
+    label = 'UNSUPPORTED_OR_NO_NATIVE_ERROR'
+    actual_errno = actual_filename = None
+    if kind is FileNotFoundError:
+        label = 'builtins.FileNotFoundError'
+    elif kind is FileExistsError:
+        label = 'builtins.FileExistsError'
+    elif kind is OSError:
+        label = 'builtins.OSError'
+    if label != 'UNSUPPORTED_OR_NO_NATIVE_ERROR':
+        actual_errno = saved[12](error, OSError)
+        actual_filename = saved[13](error, OSError)
+    attempts = io[7][0] + (io[7][1] << 8) + (io[7][2] << 16) + (io[7][3] << 24) + (io[7][4] << 32)
+    confirmed = io[8][0] + (io[8][1] << 8) + (io[8][2] << 16) + (io[8][3] << 24) + (io[8][4] << 32)
+    # Each field below is a read from an actual retained object or source-owned
+    # control transition. No expected value is copied into an observed slot.
+    facts = {
+        'schema': 'h25-native-acquisition-observation-v1',
+        'case_id': record['case'], 'mode': record['mode'], 'path': record['path'],
+        'site': 'epoch_copy_v5.final_native_open', 'occurrence': 1, 'role': 'NO_ROLE',
+        'native_error_type': label, 'native_errno': actual_errno,
+        'native_filename': actual_filename, 'primary_phase': primary[1],
+        'first_primary_is_outward': primary[0] is error and error is not None,
+        'first_acquisition_is_outward': io[3] is error and error is not None,
+        'outward_is_older_ambient': error is record['ambient'],
+        'secondary_count': counts[0],
+        'secondary_occupied': [x is not None for x in secondary],
+        'secondary_phases': list(phases), 'uncertain_fd_slots': list(uncertain),
+        'primary_uncertain_fd': primary[2],
+        'close_attempts': attempts, 'close_confirmed_returns': confirmed,
+        'quarantine': io[0], 'pending_acquisition': io[1],
+        'possible_unreturned_fd': io[2], 'parent_kernel_teardown_required': io[4],
+        'retained_iterator_present': io[5] is not None,
+        'close_counter_overflow': io[6], 'historical_release_premise': io[9],
+        'external_guard_acquisition_pending': io[10], 'external_guard_fd_count_unavailable': io[11],
+        'error_overflow': overflow[1], 'overflow_error_present': overflow[0] is not None,
+        'operation_returned_value': record['returned'][0] is not None,
+        'delivery_phase': record['phase'],
+        'observer_token_consumed': saved[1],
+        'injected_before_native_call': False,
+        'kernel_release_observed': False,
+        'post_acquisition_boxing_covered': False,
+        'full_family_completion': False,
+    }
+    record['observation'] = facts
+    record['phase'] = 'OBSERVED'
+    return facts

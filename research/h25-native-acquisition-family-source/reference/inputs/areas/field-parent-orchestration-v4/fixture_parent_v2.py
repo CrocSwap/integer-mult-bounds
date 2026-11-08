@@ -1,0 +1,640 @@
+"""Separate nine-fixture producer/exports/claims; original ParentEpoch unchanged.
+
+No original producer role, closure slot, epoch key or41-copy cap is extended.
+The fixture owner derives completion from actual original process/terminal
+state, exact helper records and independently source-bound ELF data checks.
+"""
+import os
+import stat
+import epoch_schema_v5 as schema
+import epoch_copy_v5 as copying
+import epoch_parent_v5 as epoch
+import parent_completion_v1 as parent
+import parent_domain_v1 as domain
+import original_build_provenance_v5 as original_build
+import variant_validation_v1 as variant
+import group01_evidence_v1 as evidence
+import owned_root_v2 as owned
+import fixture_elf_v2 as fixture_elf
+import configured_inverse_v2 as configured
+
+CONFIGURATION = None
+SOURCE_REVIEW = None
+FIXTURE_PROFILE_CONFIGURATION = None
+SONAME_CONSUMER_CONFIGURATION = None
+STAGE_APPROVAL = None
+COMMAND_APPROVAL = None
+FUNDING = None
+EXECUTION_APPROVAL = None
+_FIXTURE_PARENTS = []
+_TYPE, _LEN = type, len
+_OPEN, _CLOSE, _FSTAT, _FCHMOD, _FSYNC, _MKDIR, _STAT, _SCANDIR = (
+    os.open, os.close, os.fstat, os.fchmod, os.fsync, os.mkdir, os.stat, os.scandir)
+GROUPS = ('09', '10', '11', '09-soname')
+ROLE_GROUPS = {'09': ('09-procfd-alias',), '09-soname': ('09-soname-leaf', '09-soname-middle'),
+ '10': ('10-global-definition', '10-global-leaf', '10-global-middle'),
+ '11': ('11-dependency-leaf', '11-dependency-middle', '11-dependency-root')}
+PRODUCER_SHA256 = '675dfb8636a44424d06c4f7df448dc722c7bd7c8cf85b197d473af59f251ccaf'
+HELPER_SHA256 = 'aa0a315110e031e19291970c9611fe5e0f91465fa20eaec51e81186099563f78'
+
+
+def _gate():
+    schema.exact(CONFIGURATION, ('normal', 'optimized'))
+    for pin in CONFIGURATION.values():
+        schema.blob(pin, schema.RECORD_BYTES)
+    for value, key in ((SOURCE_REVIEW, 'SOURCE_REVIEW'), (FIXTURE_PROFILE_CONFIGURATION, 'FIXTURE_PROFILE_CONFIGURATION'),
+        (SONAME_CONSUMER_CONFIGURATION, 'SONAME_CONSUMER_CONFIGURATION'), (STAGE_APPROVAL, 'STAGE_APPROVAL'),
+        (COMMAND_APPROVAL, 'COMMAND_APPROVAL'), (FUNDING, 'FUNDING'), (EXECUTION_APPROVAL, 'EXECUTION_APPROVAL')):
+        schema.need(_TYPE(value) is tuple and _LEN(value) == 2 and _TYPE(value[0]) is str and value[0] == key,
+                    'fixture independent gate absent')
+        schema.digest(value[1])
+
+
+def _state(owner):
+    schema.need(_TYPE(owner) is object, 'exact fixture owner required')
+    for token, state in _FIXTURE_PARENTS:
+        if token is owner:
+            return state
+    raise schema.EpochStop('unknown fixture owner; no restored receipt authority')
+
+
+def _guard(state):
+    _gate()
+    parent._guard(state['parent'])
+    schema.need(state['phase'] != 'STOP' and CONFIGURATION[state['mode']] == state['plan_pin'] and
+                evidence.encode(state['plan']) == state['plan_raw'], 'fixture owner/plan differs')
+    schema.need((_OPEN, _CLOSE, _FSTAT, _FCHMOD, _FSYNC, _MKDIR, _STAT, _SCANDIR) ==
+                (os.open, os.close, os.fstat, os.fchmod, os.fsync, os.mkdir, os.stat, os.scandir), 'fixture primitive binding changed')
+    copying.verify(state['plan_pin'], error_owner=state['parent']['errors'])
+    for pin in state['pins']:
+        copying.verify(pin, error_owner=state['parent']['errors'])
+
+
+def _stop(state, error):
+    if state['parent']['unknown_owner']['primary'][0] is None:
+        state['parent']['unknown_owner']['primary'][0] = error
+    state['parent']['unknown_owner']['quarantine'][0] = True
+    if state['primary'][0] is None:
+        state['primary'][0] = error
+    state['phase'] = 'STOP'
+
+
+def make_fixture_parent(original_parent):
+    original = parent._state(original_parent)
+    state = None
+    try:
+        _gate(); parent._guard(original)
+        mode = original['plan']['mode']
+        schema.need(len(_FIXTURE_PARENTS) < 2 and not any(s['mode'] == mode for _, s in _FIXTURE_PARENTS),
+                    'fixture mode owner reused')
+        pin = CONFIGURATION[mode]
+        raw = copying.read_verified_complete_v3(pin, schema.RECORD_BYTES, error_owner=original['errors'])
+        plan = evidence.decode(raw)
+        schema.exact(plan, ('schema', 'mode', 'epoch_id', 'parent_plan_sha256', 'producer_action_id', 'producer_generation',
+            'producer_source', 'producer_inverse', 'producer_driver', 'export_directory', 'children', 'fixture_profile_admission_sha256', 'elf_source',
+            'source_rows', 'expected_preflight', 'expected_dependencies', 'initial_expected_files', 'hashlib_origin',
+            'preexec_code_sha256', 'expected_builds', 'output_files', 'output_directories'))
+        schema.need(plan['schema'] == 'h25-native-history-parent-plan-v2' and plan['mode'] == mode and
+            plan['epoch_id'] == original['plan']['epoch_id'] and
+            plan['parent_plan_sha256'] == original['configuration']['plan']['sha256'], 'actual fixture parent binding differs')
+        schema.blob(plan['producer_source']); schema.blob(plan['elf_source'])
+        schema.need(plan['producer_source']['sha256'] == plan['producer_inverse']['configured_sha256'] and
+                    plan['producer_inverse']['template_sha256'] == PRODUCER_SHA256, 'actual fixture producer/template binding differs')
+        configured.verify_configured_source(copying.read_verified_complete_v3(plan['producer_source'], schema.FILE_BYTES, error_owner=original['errors']),
+                                            plan['producer_inverse'])
+        schema.exact(plan['producer_driver'], ('path', 'sha256'))
+        schema.path(plan['producer_driver']['path']); schema.digest(plan['producer_driver']['sha256'])
+        schema.need(plan['producer_driver'] == {k: plan['producer_source'][k] for k in ('path', 'sha256')},
+                    'fixture configured driver must equal inverse-authenticated producer source')
+        schema.need(fixture_elf.__file__ == plan['elf_source']['path'] and
+            plan['elf_source']['sha256'] == '2ea014aedce3d4b620ae63794098e425cefbbb0f5d67f1e553dd055aa232d2b2',
+            'fixture ELF V2 exact reviewed source differs')
+        copying.verify(plan['elf_source'], error_owner=original['errors'])
+        schema.path(plan['export_directory']); schema.digest(plan['fixture_profile_admission_sha256'])
+        schema.digest(plan['preexec_code_sha256']); schema.label(plan['producer_generation'])
+        schema.exact(plan['children'], GROUPS)
+        generations, paths = set(), set()
+        for group in GROUPS:
+            child = plan['children'][group]
+            schema.exact(child, ('generation', 'private_directory', 'launch_binding', 'fixture_roles'))
+            schema.label(child['generation']); schema.path(child['private_directory']); schema.launch(child['launch_binding'])
+            schema.need(child['fixture_roles'] == list(ROLE_GROUPS[group]) and child['generation'] not in generations and
+                        child['private_directory'] not in paths, 'exact source-fixed fixture consumer differs/reused')
+            generations.add(child['generation']); paths.add(child['private_directory'])
+        schema.exact(plan['expected_builds'], ROLES)
+        token = object()
+        state = {'parent': original, 'parent_token': original_parent, 'mode': mode, 'plan': plan,
+            'plan_pin': schema.plain_copy(pin), 'plan_raw': evidence.encode(plan), 'phase': 'READY', 'primary': [None],
+            'run': None, 'root_owner': None, 'completion': None, 'producer_native': None, 'builds': {},
+            'exports': {}, 'claims': {}, 'used_roles': set(), 'pins': [], 'inodes': set(), 'paths': set(),
+            'copies': 0, 'ordinary_copies': 0, 'raw_native': [], 'freeze_pending': [None], 'freeze_errors': []}
+        _FIXTURE_PARENTS.append((token, state))
+        _guard(state)
+        return token
+    except BaseException as error:
+        if original['unknown_owner']['primary'][0] is None:
+            original['unknown_owner']['primary'][0] = error
+        original['unknown_owner']['quarantine'][0] = True
+        if state is not None:
+            state['primary'][0] = error; state['phase'] = 'STOP'
+        raise
+
+
+def _freeze(state, pin):
+    """One known file token; raw before-custody retained, metadata change explicit."""
+    _guard(state)
+    unknown = state['parent']['unknown_owner']
+    errors = state['parent']['errors']
+    copying.verify(pin, error_owner=errors)
+    descriptor, primary = None, None
+    state['freeze_pending'][0] = pin
+    try:
+        unknown['pending'][0] = True
+        descriptor = _OPEN(pin['path'], os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        unknown['pending'][0] = False
+        schema.need(copying._identity(_FSTAT(descriptor)) == pin['identity'], 'fixture freeze file changed')
+        _FCHMOD(descriptor, 0o444)
+        _FSYNC(descriptor)
+        changed = copying._identity(_FSTAT(descriptor))
+        schema.need(changed['device'] == pin['identity']['device'] and changed['inode'] == pin['identity']['inode'] and
+                    changed['size'] == pin['bytes'] and changed['links'] == 1 and changed['mode'] & 0o7777 == 0o444,
+                    'fixture freeze identity/metadata differs')
+    except BaseException as error:
+        primary = error
+        if unknown['primary'][0] is None:
+            unknown['primary'][0] = error
+        unknown['quarantine'][0] = True
+        state['phase'] = 'STOP'
+        raise
+    finally:
+        if descriptor is not None:
+            owned_fd = descriptor; descriptor = None
+            try:
+                _CLOSE(owned_fd)
+            except BaseException as error:
+                if unknown['primary'][0] is None:
+                    unknown['primary'][0] = error
+                unknown['quarantine'][0] = True; state['phase'] = 'STOP'
+                state['freeze_errors'].append(error)
+                if primary is None:
+                    raise
+    result = copying.inspect(pin['path'], error_owner=errors)
+    schema.need(result['sha256'] == pin['sha256'] and result['identity'] == changed, 'frozen fixture final readback differs')
+    state['freeze_pending'][0] = None
+    return result
+
+
+def _fixture_context(value, expected, unused_role):
+    schema.exact(value, ('source', 'source_name', 'source_path', 'no_cached_binary', 'target', 'fixture_role',
+                        'fixture_profile_admission_sha256', 'system_header_count', 'project_header_count'))
+    original_build._source_row(value['source'])
+    schema.path(value['source_path']); schema.path(value['target'])
+    schema.text(value['source_name']); schema.label(value['fixture_role']); schema.digest(value['fixture_profile_admission_sha256'])
+    schema.need(value['no_cached_binary'] is True and _TYPE(value['system_header_count']) is int and
+                value['system_header_count'] == 0 and _TYPE(value['project_header_count']) is int and
+                value['project_header_count'] == 0 and evidence.same_json(value, expected), 'actual fixture compiler context differs')
+
+
+def _helper(state, run, role, raw_files, pin_files):
+    expected = dict(state['plan']['expected_builds'][role])
+    schema.exact(expected, ('command', 'context', 'preexec_code_sha256'))
+    expected.update(timeout_seconds=15, producer_process_id=run['root'][0], parent_file_limits=list(run['file_limits']))
+    build = evidence.decode(raw_files[role + '/build.json'])
+    schema.exact(build, ('schema', 'role', 'status', 'command', 'context', 'path', 'binary', 'original_helper_sha256', 'negative_only', 'loaded'))
+    schema.need(build['schema'] == 'h25-native-history-build-v1' and build['role'] == role and
+        build['status'] == 'RAW_BUILD_PENDING_PARENT_COMPLETION_AND_ELF' and build['original_helper_sha256'] == HELPER_SHA256 and
+        build['negative_only'] is True and build['loaded'] is False and evidence.same_json(build['command'], expected['command']) and
+        evidence.same_json(build['context'], expected['context']), 'literal source/command/role build differs')
+    row = {'role': role}
+    for name, relative in (('stdout', 'control.stdout.raw'), ('stderr', 'control.stderr.raw'),
+                           ('attempt', 'control.attempt.json'), ('journal', 'control.attempt.jsonl')):
+        row[name] = pin_files[role + '/' + relative]
+    attempt = original_build._decode_original(raw_files[role + '/control.attempt.json'], 65536)
+    compiler_pid = attempt['process_id']
+    _fixture_event(attempt, 'EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY', expected, row, expected['context'], compiler_pid)
+    returned = original_build._decode_original(raw_files[role + '/helper-return.raw.json'], schema.RECORD_BYTES)
+    schema.need(evidence.same_json(returned, attempt), 'actual fixture helper return differs from final attempted raw')
+    lines = raw_files[role + '/control.attempt.jsonl'].splitlines(keepends=True)
+    schema.need(len(lines) == 3 and all(line.endswith(b'\n') for line in lines), 'fixture original helper retry/truncated journal')
+    events = [original_build._decode_original(line, 65536) for line in lines]
+    for kind, item in zip(('PRELAUNCH_INTENT', 'STARTED', 'EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY'), events):
+        _fixture_event(item, kind, expected, row, expected['context'], compiler_pid)
+    schema.need(evidence.same_json(events[-1], attempt), 'fixture final attempt/journal differs')
+    schema.exact(attempt['logs'], ('stdout', 'stderr'))
+    for name in ('stdout', 'stderr'):
+        log = attempt['logs'][name]; raw = raw_files[role + '/control.' + name + '.raw']; pin = row[name]
+        schema.exact(log, ('path', 'bytes_before', 'bytes_after', 'prefix_bytes_hashed', 'prefix_sha256', 'preview_bytes',
+            'preview_utf8', 'stable_during_snapshot', 'complete_file_sha256', 'raw_finality', 'operational_threshold_bytes',
+            'child_inherited_hard_file_limit_bytes'))
+        preview = raw[:512]
+        schema.need(log['path'] == pin['path'] and log['bytes_before'] == log['bytes_after'] == log['prefix_bytes_hashed'] == pin['bytes'] and
+            log['prefix_sha256'] == log['complete_file_sha256'] == pin['sha256'] and log['stable_during_snapshot'] is True and
+            log['raw_finality'] == 'DIRECT_CHILD_EXIT0_AND_STABLE_COMPLETED_LOG' and log['preview_bytes'] == len(preview) and
+            log['preview_utf8'] == preview.decode('utf-8', errors='replace') and log['operational_threshold_bytes'] == schema.LOG_BYTES and
+            log['child_inherited_hard_file_limit_bytes'] == 16777216, 'fixture complete original compiler log differs')
+    return build, compiler_pid
+
+
+def _bind_producer_driver(fixture_owner, fixed_root_owner, action_id):
+    """Authenticate the actual configured command before launch or receipt reads."""
+    state = _state(fixture_owner)
+    _guard(state)
+    root_state = owned._state(fixed_root_owner)
+    owned._guard(root_state)
+    schema.label(action_id)
+    rows = [row for row in root_state['plan']['actions'] if row['action_id'] == action_id]
+    schema.need(len(rows) == 1, 'fixture driver action absent or repeated')
+    row = rows[0]
+    schema.need(root_state['original'] is state['parent'] and row['source_role'] == 'history_fixtures_v1' and
+        row['action_id'] == state['plan']['producer_action_id'] and
+        row['generation'] == state['plan']['producer_generation'], 'fixture selected source action differs')
+    command = row['command']
+    prefix = ['/usr/bin/python3.12', *parent.FLAGS] + (['-O'] if state['mode'] == 'optimized' else [])
+    schema.need(command[:len(prefix)] == prefix and len(command) > len(prefix), 'fixture command prefix differs')
+    schema.need(command.count('--driver') <= 1, 'fixture command repeats driver selector')
+    index = command.index('--driver') if '--driver' in command else None
+    schema.need(index is None or index + 2 < len(command), 'fixture driver selector truncated')
+    actual_path = command[index + 1] if index is not None else command[len(prefix)]
+    schema.path(actual_path)
+    schema.need(actual_path == row['driver_path'] == state['plan']['producer_driver']['path'] ==
+        state['plan']['producer_source']['path'] and row['driver_sha256'] ==
+        state['plan']['producer_driver']['sha256'] == state['plan']['producer_source']['sha256'],
+        'actual selected fixture driver differs from inverse-authenticated configured producer')
+    if index is not None:
+        schema.need(command[index + 2] == row['driver_sha256'], 'fixture bootstrap driver digest differs')
+    copying.verify(state['plan']['producer_source'], error_owner=state['parent']['errors'])
+    return {'path': actual_path, 'sha256': row['driver_sha256']}
+
+
+def bind_producer_driver(fixture_owner, fixed_root_owner, action_id):
+    state = _state(fixture_owner)
+    try:
+        return _bind_producer_driver(fixture_owner, fixed_root_owner, action_id)
+    except BaseException as error:
+        _stop(state, error)
+        raise
+
+
+def take_fixture_observation(fixture_owner, fixed_root_owner, joined):
+    state = _state(fixture_owner)
+    run = None
+    try:
+        _guard(state)
+        schema.need(state['phase'] == 'READY', 'fixture producer already consumed')
+        state['phase'] = 'PRODUCER_CONSUMED'
+        root_state, run = owned._joined(fixed_root_owner, joined)
+        schema.need(root_state['original'] is state['parent'] and run['role'] == 'history_fixtures_v1' and
+            run['plan']['action_id'] == state['plan']['producer_action_id'] and
+            run['plan']['generation'] == state['plan']['producer_generation'], 'actual fixed fixture producer differs')
+        selected_driver = bind_producer_driver(fixture_owner, fixed_root_owner, run['plan']['action_id'])
+        state['run'], state['root_owner'] = run, fixed_root_owner
+        row, errors = run['plan'], state['parent']['errors']
+        expected = state['plan']
+        files, directories = _output_tree(row['output'], root_state)
+        schema.need(files == expected['output_files'] and directories == expected['output_directories'] and
+                    set(PRODUCER_FILES) <= set(files), 'complete fixture raw/output census differs')
+        raw_files, pins = {}, {}
+        for relative in files:
+            limit = 8388608 if relative.endswith('.so') else schema.LOG_BYTES if relative.endswith('.raw') else schema.RECORD_BYTES
+            pin = copying.inspect(row['output'] + '/' + relative, limit, error_owner=errors)
+            pins[relative] = pin
+            raw_files[relative] = copying.read_verified_complete_v3(pin, limit, error_owner=errors)
+        for stream in ('stdout', 'stderr'):
+            pin = copying.inspect(row['evidence_directory'] + '/' + stream + '.raw', schema.LOG_BYTES, error_owner=errors)
+            pins[stream] = pin; raw_files[stream] = copying.read_verified_complete_v3(pin, schema.LOG_BYTES, error_owner=errors)
+        state['raw_native'].append(raw_files)
+        final = evidence.decode(raw_files['receipt.json']); state['producer_native'] = final
+        schema.need(raw_files['stderr'] == b'' and evidence.same_json(evidence.decode(raw_files['stdout']), final),
+                    'fixture actual stdout/terminal raw differs')
+        initial_expected = {'initial_expected_files': expected['initial_expected_files'],
+            'hashlib_origin': expected['hashlib_origin'], 'producer_process_id': run['root'][0]}
+        variant.initial(raw_files, initial_expected)
+        for name in ('root-before.raw.json', 'root-after.raw.json'):
+            counters = evidence.decode(raw_files[name])
+            schema.exact(counters, variant.COUNTERS)
+            schema.need(all(_TYPE(v) is int and v == 0 for v in counters.values()), 'fixture producer performed native image activity')
+        for name in ('preflight-before.raw.json', 'preflight-after.raw.json'):
+            schema.need(evidence.same_json(evidence.decode(raw_files[name]), expected['expected_preflight']), 'fixture runtime preflight differs')
+        before = evidence.decode(raw_files['custody-before.raw.json']); after = evidence.decode(raw_files['custody-after.raw.json'])
+        schema.need(evidence.same_json(before, after) and evidence.same_json(before['original_dependencies'], expected['expected_dependencies']),
+                    'fixture complete source/compiler custody changed')
+        current_sources = []
+        for declared in expected['source_rows']:
+            pin = copying.inspect(declared['path'], error_owner=errors)
+            schema.need(pin['sha256'] == declared['sha256'] and pin['bytes'] == declared['bytes'] and
+                        pin['identity']['mode'] & 0o7777 == declared['mode'], 'current fixture source differs')
+            current_sources.append({'path': pin['path'], 'sha256': pin['sha256'], 'bytes': pin['bytes'],
+                                    'mode': pin['identity']['mode'] & 0o7777, 'identity': pin['identity']})
+        terminal = domain.terminal_facts(run['domain'])
+        schema.need(terminal == run['terminal'], 'actual fixture owned terminal changed')
+        terminal_pin = copying.write_once(row['evidence_directory'] + '/TERMINAL-OWNED.json', evidence.encode({
+            'schema': 'h25-history-fixture-owned-terminal-v2', 'launch': run['launch'], 'actual': terminal,
+            'generation': row['generation']}), error_owner=errors)
+        binding = {'mode': state['mode'], 'generation': row['generation'],
+            'launch_nonce': final['binding']['launch_nonce'], 'process_id': run['root'][0], 'process_start_time': run['root'][4],
+            'root_source_sha256': row['launch_binding']['root_sha256'], 'producer_source_sha256': state['plan']['producer_source']['sha256'],
+            'producer_command_sha256': row['launch_binding']['command_sha256'], 'terminal_receipt_sha256': terminal_pin['sha256'],
+            'producer_output': row['output'], 'stage_root': row['stage_directory'],
+            'fixture_profile_admission_sha256': expected['fixture_profile_admission_sha256']}
+        schema.need(row['command'].count('--launch-nonce') == 1 and
+            row['command'][row['command'].index('--launch-nonce') + 1] == binding['launch_nonce'], 'actual fixture launch nonce differs')
+        compiler_pids = set()
+        for role, scenario, target in ROLE_OUTPUTS:
+            build, compiler_pid = _helper(state, run, role, raw_files, pins)
+            schema.need(compiler_pid not in compiler_pids, 'fixture compiler process repeated')
+            compiler_pids.add(compiler_pid)
+            relative = 'images/' + scenario + '/' + target
+            pin = pins[relative]; image = raw_files[relative]
+            current_binary = {'path': pin['path'], 'sha256': pin['sha256'], 'bytes': pin['bytes'],
+                              'mode': pin['identity']['mode'] & 0o7777, 'identity': pin['identity']}
+            # Both routines are concrete pure-data receivers from independently
+            # pinned fixture source. Neither result mints the live claim owner.
+            profile = fixture_elf.inspect_fixture(role, image)
+            comparison = fixture_elf.compare_fixture_receipts(role, image, raw_files[role + '/build.json'],
+                raw_files['receipt.json'], binding, tuple(current_sources), current_binary)
+            schema.need(profile['schema'] == 'h25-history-fixture-elf-profile-v2' and
+                comparison['schema'] == 'h25-history-fixture-receipt-consistency-v2', 'fixture V2 schema differs')
+            state['raw_native'].append((profile, comparison))
+            frozen = _freeze(state, pin)
+            pins[relative] = frozen
+            state['builds'][role] = {'source': frozen, 'pre_freeze': pin, 'profile': profile, 'comparison': comparison,
+                                    'build_receipt': pins[role + '/build.json']}
+            state['inodes'].add(schema.inode(frozen))
+        owned._accepted(root_state, run)
+        observation = {'schema': 'h25-owned-history-fixture-completion-v2', 'mode': state['mode'], 'epoch': expected['epoch_id'],
+            'producer_generation': row['generation'], 'producer_pid': run['root'][0], 'producer_start_time': run['root'][4],
+            'selected_producer_driver': selected_driver,
+            'producer_command_sha256': binding['producer_command_sha256'], 'producer_source_sha256': state['plan']['producer_source']['sha256'],
+            'terminal': terminal_pin, 'raw_result': pins['receipt.json'], 'launch': run['launch'],
+            'builds': [{'role': role, 'file': state['builds'][role]['source']} for role in ROLES],
+            'fixture_profile_admission_sha256': expected['fixture_profile_admission_sha256'],
+            'raw_pins': tuple(pins.values()), 'runtime_authority': False, 'saved_PASS': False}
+        completion = copying.write_once(row['evidence_directory'] + '/FIXTURE-COMPLETION.json', evidence.encode(dict(observation, raw_pins=list(observation['raw_pins']))), error_owner=errors)
+        state['completion'] = completion
+        # The completion file cannot contain its own hash. The returned wire
+        # adds that separately acquired file plus the actual terminal pin.
+        observation['completion'] = completion
+        observation['raw_pins'] = observation['raw_pins'] + (terminal_pin, completion)
+        state['pins'] = list(pins.values()) + [completion, terminal_pin]
+        state['phase'] = 'ACCEPTED'
+        _guard(state)
+        return observation
+    except BaseException as error:
+        if state['parent']['unknown_owner']['primary'][0] is None:
+            state['parent']['unknown_owner']['primary'][0] = error
+        state['parent']['unknown_owner']['quarantine'][0] = True
+        _stop(state, error)
+        raise
+
+
+def commit_fixture_exports(owner):
+    state = _state(owner)
+    try:
+        _guard(state)
+        schema.need(state['phase'] == 'ACCEPTED', 'fixture producer actual completion absent or exports reused')
+        state['phase'] = 'EXPORT_CONSUMED'
+        _MKDIR(state['plan']['export_directory'], 0o700)
+        errors = state['parent']['errors']
+        for role in ROLES:
+            original = state['builds'][role]['source']
+            copy = copying.copy_once(original, state['plan']['export_directory'] + '/' + role + '.artifact',
+                                     tuple(state['inodes']), error_owner=errors)
+            copy = _freeze(state, copy)
+            state['exports'][role] = copy; state['inodes'].add(schema.inode(copy)); state['paths'].add(copy['path'])
+        data = {'schema': 'h25-native-history-fixture-exports-v1', 'mode': state['mode'], 'epoch': state['plan']['epoch_id'],
+            'parent_completion': state['completion'], 'exports': [{'role': role, 'file': state['exports'][role]} for role in ROLES],
+            'original_epoch_modified': False, 'not_runtime_authority': True}
+        pin = copying.write_once(state['plan']['export_directory'] + '/FIXTURE-EXPORTS.json', schema.canonical(data), error_owner=errors)
+        state['pins'].extend(state['exports'].values()); state['pins'].append(pin)
+        state['manifest_pin'] = pin; state['phase'] = 'EXPORTED'
+        _guard(state)
+        return {'schema': 'h25-owned-fixture-export-observation-v2', 'manifest': pin, 'raw_pins': (pin,) + tuple(state['exports'].values()),
+                'exports': 9, 'saved_PASS': False}
+    except BaseException as error:
+        if state['parent']['unknown_owner']['primary'][0] is None:
+            state['parent']['unknown_owner']['primary'][0] = error
+        state['parent']['unknown_owner']['quarantine'][0] = True
+        _stop(state, error); raise
+
+
+def _claim(state, group, private_directory):
+    _guard(state)
+    schema.choice(group, GROUPS)
+    schema.need(state['phase'] == 'EXPORTED' and group not in state['claims'], 'fixture claim reused or producer incomplete')
+    child = state['plan']['children'][group]
+    # Consume before any path check or acquisition; a failed partial claim never rerolls.
+    state['claims'][group] = None
+    schema.path(private_directory)
+    schema.need(private_directory == child['private_directory'], 'actual fixture private path differs')
+    errors = state['parent']['errors']
+    directory = private_directory + '/history-fixtures'
+    _MKDIR(directory, 0o700)
+    copied, rows = [], []
+    for role in ROLE_GROUPS[group]:
+        schema.need(role not in state['used_roles'] and state['copies'] < 9, 'fixture role/copy replay')
+        state['used_roles'].add(role); state['copies'] += 1
+        target = next(target for r, scenario, target in ROLE_OUTPUTS if r == role)
+        path = directory + '/' + target
+        schema.need(path not in state['paths'], 'fixture private path reused')
+        copy = copying.copy_once(state['exports'][role], path, tuple(state['inodes']), error_owner=errors)
+        copy = _freeze(state, copy)
+        state['inodes'].add(schema.inode(copy)); state['paths'].add(path); copied.append(copy)
+        run = state['run']
+        rows.append({'schema': 'h25-native-history-fixture-claim-v1', 'mode': state['mode'], 'epoch': state['plan']['epoch_id'],
+            'producer_generation': state['plan']['producer_generation'], 'producer_pid': run['root'][0],
+            'producer_start_time': run['root'][4], 'producer_command_sha256': run['plan']['launch_binding']['command_sha256'],
+            'producer_source_sha256': state['plan']['producer_source']['sha256'], 'parent_completion_sha256': state['completion']['sha256'],
+            'consumer_group': group[:2], 'consumer_subcase': 'soname' if group == '09-soname' else 'original',
+            'consumer_generation': child['generation'], 'fixture_role': role, 'source_pin': state['builds'][role]['source'],
+            'export_pin': state['exports'][role], 'private_pin': copy,
+            'closure_profile_sha256': state['plan']['fixture_profile_admission_sha256']})
+    result = {'schema': 'h25-native-history-fixture-claim-set-v2', 'group': group[:2],
+        'subcase': 'soname' if group == '09-soname' else 'original', 'mode': state['mode'],
+        'generation': child['generation'], 'claims': rows, 'pins': copied,
+        'completion': state['completion'], 'export_manifest': state['manifest_pin'], 'not_runtime_authority': True}
+    published = copying.write_once(private_directory + '/FIXTURE-CLAIMS.json', schema.canonical(result), error_owner=errors)
+    state['claims'][group] = published; state['pins'].extend(copied); state['pins'].append(published)
+    _guard(state)
+    return result
+
+
+def claim_for_negative(owner, group, private_directory):
+    state = _state(owner)
+    try:
+        schema.choice(group, ('09', '10', '11'))
+        original = epoch._entry_state(state['parent']['epoch'], state['parent']['authority'])
+        schema.need(group in original['_children'] and original['_children'][group]['state'] == 'CLAIM_ISSUED' and
+                    original['_children'][group]['generation'] == state['plan']['children'][group]['generation'],
+                    'fixture claim must follow actual original ParentEpoch claim')
+        return _claim(state, group, private_directory)
+    except BaseException as error:
+        if state['parent']['unknown_owner']['primary'][0] is None:
+            state['parent']['unknown_owner']['primary'][0] = error
+        state['parent']['unknown_owner']['quarantine'][0] = True
+        _stop(state, error); raise
+
+
+def claim_for_soname(owner, original_parent, private_directory):
+    state = _state(owner)
+    try:
+        schema.need(parent._state(original_parent) is state['parent'], 'additive SONAME original owner differs')
+        _guard(state)
+        original = epoch._entry_state(state['parent']['epoch'], state['parent']['authority'])
+        schema.need(original['_state'] == 'COMMITTED' and state['ordinary_copies'] == 0 and
+                    private_directory == state['plan']['children']['09-soname']['private_directory'], 'additive SONAME claim replay')
+        state['ordinary_copies'] = 3
+        errors = state['parent']['errors']; copies = []
+        copying.verify(original['_manifest_file'], error_owner=errors)
+        for role in ('production', 'watcher', 'bounds'):
+            export = next(row for row in original['_manifest']['exports'] if row['role'] == role)
+            copy = copying.copy_once(export['file'], private_directory + '/' + role + '.artifact',
+                                     tuple(state['inodes']), error_owner=errors)
+            state['inodes'].add(schema.inode(copy)); state['pins'].append(copy)
+            copies.append({'role': role, 'build_sha256': export['build_sha256'], 'source': export['file'], 'destination': copy})
+        child = state['plan']['children']['09-soname']
+        claim = {'schema': 'h25-additive-soname-ordinary-claim-v2', 'epoch_id': state['plan']['epoch_id'], 'mode': state['mode'],
+            'group': '09', 'subcase': 'soname', 'generation': child['generation'],
+            'manifest_sha256': original['_manifest_file']['sha256'], 'launch': child['launch_binding'], 'copies': copies,
+            'local_compilations': 0, 'not_runtime_authority': True, 'original_epoch_claim_consumed': False}
+        pin = copying.write_once(private_directory + '/SONAME-ORDINARY-CLAIM.json', schema.canonical(claim), error_owner=errors)
+        state['pins'].append(pin)
+        fixtures = _claim(state, '09-soname', private_directory)
+        return {'claim': claim, 'claim_pin': pin, 'manifest': schema.plain_copy(original['_manifest_file']), 'fixture_claim': fixtures}
+    except BaseException as error:
+        if state['parent']['unknown_owner']['primary'][0] is None:
+            state['parent']['unknown_owner']['primary'][0] = error
+        state['parent']['unknown_owner']['quarantine'][0] = True
+        _stop(state, error); raise
+
+
+def verify_all_claims(owner):
+    state = _state(owner)
+    _guard(state)
+    schema.need(state['phase'] == 'EXPORTED' and set(state['claims']) == set(GROUPS) and
+                all(pin is not None for pin in state['claims'].values()) and state['copies'] == 9 and
+                state['ordinary_copies'] == 3 and set(state['used_roles']) == set(ROLES), 'whole actual fixture consumer inventory incomplete')
+    schema.need(domain.terminal_facts(state['run']['domain']) == state['run']['terminal'], 'fixture producer terminal freshness changed')
+    return None
+
+
+def stop_evidence(owner):
+    state = _state(owner)
+    return state['primary'], state['freeze_pending'], tuple(state['freeze_errors']), tuple(state['raw_native'])
+
+
+def _fixture_event(event, kind, expected, row, context, compiler_pid) -> None:
+    schema.choice(kind, ('PRELAUNCH_INTENT', 'STARTED', 'EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY'))
+    keys = original_build.PRELAUNCH_KEYS if kind == 'PRELAUNCH_INTENT' else original_build.STARTED_KEYS if kind == 'STARTED' else original_build.FINAL_KEYS
+    schema.exact(event, keys)
+    for key in ('schema', 'status', 'process_group_policy'):
+        schema.text(event[key], 128)
+    schema.need(event['schema'] == 'h25-cold-build-attempt-v1' and event['status'] == kind and
+                event['process_group_policy'] == 'INHERIT_OUTER_GROUP_NO_NEW_SESSION', 'original event tag differs')
+    schema.need(_TYPE(event['command']) is list and 1 <= _LEN(event['command']) <= 64, 'original argv shape differs')
+    for argument in event['command']:
+        schema.text(argument, 8192)
+    schema.need(event['command'] == expected['command'], 'original event command differs')
+    schema.integer(event['timeout_seconds'], 1, 15)
+    schema.need(event['timeout_seconds'] == expected['timeout_seconds'], 'original timeout differs')
+    _fixture_context(event['context'], context, row['role'])
+    for event_key, row_key in (('stdout_path', 'stdout'), ('stderr_path', 'stderr'),
+                               ('attempt_path', 'attempt'), ('journal_path', 'journal')):
+        schema.path(event[event_key])
+        schema.need(event[event_key] == row[row_key]['path'], 'original event origin differs')
+    schema.integer(event['operational_log_threshold_bytes'], schema.LOG_BYTES, schema.LOG_BYTES)
+    schema.integer(event['child_only_inherited_hard_file_limit_bytes'], 16 * 1024 * 1024, 16 * 1024 * 1024)
+    for key in ('spawn_entered', 'spawn_returned', 'descendant_termination_joined', 'failure_log_hashes_final'):
+        schema.boolean(event[key])
+    schema.need(event['descendant_termination_joined'] is False and event['failure_log_hashes_final'] is False,
+                'direct-child evidence cannot become outer-domain authority')
+    if kind == 'PRELAUNCH_INTENT':
+        schema.need(event['returncode'] is None and event['process_id'] is None and
+                    event['direct_child_reaped'] is None and event['spawn_entered'] is False and
+                    event['spawn_returned'] is False, 'original prelaunch fields differ')
+        return
+    schema.integer(event['process_id'], 1, (1 << 31) - 1)
+    schema.integer(compiler_pid, 1, (1 << 31) - 1)
+    schema.need(event['process_id'] == compiler_pid and event['spawn_entered'] is True and
+                event['spawn_returned'] is True, 'original started process differs')
+    original_build._limits(event['parent_file_limits_before'])
+    schema.need(event['parent_file_limits_before'] == expected['parent_file_limits'], 'independent inherited limits differ')
+    schema.digest(event['preexec_code_sha256'])
+    schema.need(event['preexec_code_sha256'] == expected['preexec_code_sha256'], 'independent preexec bytecode pin differs')
+    original_build._census(event['single_thread_before_spawn'], expected['producer_process_id'])
+    if kind == 'STARTED':
+        schema.need(event['returncode'] is None and event['direct_child_reaped'] is None, 'started event claims completion')
+    else:
+        schema.integer(event['returncode'], 0, 0)
+        schema.boolean(event['direct_child_reaped'])
+        schema.need(event['direct_child_reaped'] is True, 'direct compiler child not reaped')
+        original_build._limits(event['parent_file_limits_after'])
+        schema.need(event['parent_file_limits_after'] == expected['parent_file_limits'], 'parent limits changed')
+
+
+
+def _output_tree(root, state):
+    """Bounded exact stage census; all actual file contents are separately read."""
+    schema.path(root)
+    pending, files, directories = [('', root)], [], []
+    count = 0
+    while pending:
+        schema.need(state['io_quarantine'][0] is False and state['unknown_owner']['pending'][0] is False and
+                    state['unknown_owner']['iterator_uncertain'][0] is False,
+                    'stage census cannot acquire after uncertain ownership')
+        relative, current = pending.pop()
+        before = _STAT(current, follow_symlinks=False)
+        schema.need(stat.S_ISDIR(before.st_mode),
+                    'immutable stage directory kind/mode differs')
+        entries, primary = None, None
+        state['unknown_owner']['pending'][0] = True
+        try:
+            entries = _SCANDIR(current)
+            state['unknown_owner']['pending'][0] = False
+            for entry in entries:
+                count += 1
+                schema.need(count <= parent.MAX_STAGE_ENTRIES, 'stage census bound exceeded')
+                name = entry.name
+                schema.need(_TYPE(name) is str and name not in ('.', '..') and '/' not in name,
+                            'stage entry name differs')
+                child = name if not relative else relative + '/' + name
+                info = entry.stat(follow_symlinks=False)
+                if stat.S_ISREG(info.st_mode):
+                    files.append(child)
+                elif stat.S_ISDIR(info.st_mode):
+                    directories.append(child)
+                    pending.append((child, current + '/' + name))
+                else:
+                    raise schema.EpochStop('stage has symlink or special file')
+        except BaseException as error:
+            primary = error
+            if state['unknown_owner']['primary'][0] is None:
+                state['unknown_owner']['primary'][0] = error
+            state['io_quarantine'][0] = True
+            state['unknown_owner']['iterator_uncertain'][0] = True
+            state['primary'][0] = error if state['primary'][0] is None else state['primary'][0]
+            raise
+        finally:
+            if entries is not None:
+                owned = entries
+                entries = None
+                try:
+                    owned.close()
+                except BaseException as error:
+                    if state['unknown_owner']['primary'][0] is None:
+                        state['unknown_owner']['primary'][0] = error
+                    state['io_quarantine'][0] = True
+                    state['unknown_owner']['iterator_uncertain'][0] = True
+                    state['primary'][0] = error if state['primary'][0] is None else state['primary'][0]
+                    if primary is None:
+                        raise
+        after = _STAT(current, follow_symlinks=False)
+        schema.need((before.st_dev, before.st_ino, before.st_mode, before.st_mtime_ns, before.st_ctime_ns) ==
+                    (after.st_dev, after.st_ino, after.st_mode, after.st_mtime_ns, after.st_ctime_ns),
+                    'stage directory changed during census')
+    return sorted(files), sorted(directories)
+
+
+
+ROLES = ('09-procfd-alias', '09-soname-leaf', '09-soname-middle', '10-global-definition', '10-global-leaf', '10-global-middle', '11-dependency-leaf', '11-dependency-middle', '11-dependency-root')
+ROLE_OUTPUTS = (('09-procfd-alias', '09-procfd', 'history-alias-object.so'), ('09-soname-leaf', '09-soname', 'leaf-history-object.so'), ('09-soname-middle', '09-soname', 'libh25_history_middle_v1.so'), ('10-global-definition', '10-global', 'global-history-object.so'), ('10-global-leaf', '10-global', 'libh25_history_leaf_v1.so'), ('10-global-middle', '10-global', 'libh25_history_middle_v1.so'), ('11-dependency-leaf', '11-dependency', 'libh25_history_leaf_v1.so'), ('11-dependency-middle', '11-dependency', 'libh25_history_middle_v1.so'), ('11-dependency-root', '11-dependency', 'libh25_history_root_v1.so'))
+PRODUCER_FILES = ('initial-tcb.raw.json', 'initial-controls.raw.json', 'initial-restoration.raw.json', 'root-before.raw.json', 'preflight-before.raw.json', 'custody-before.raw.json', 'preflight-after.raw.json', 'custody-after.raw.json', 'root-after.raw.json', 'receipt.json', '09-procfd-alias/control.attempt.json', '09-procfd-alias/control.attempt.jsonl', '09-procfd-alias/control.stdout.raw', '09-procfd-alias/control.stderr.raw', '09-procfd-alias/helper-return.raw.json', '09-procfd-alias/build.json', 'images/09-procfd/history-alias-object.so', '09-soname-leaf/control.attempt.json', '09-soname-leaf/control.attempt.jsonl', '09-soname-leaf/control.stdout.raw', '09-soname-leaf/control.stderr.raw', '09-soname-leaf/helper-return.raw.json', '09-soname-leaf/build.json', 'images/09-soname/leaf-history-object.so', '09-soname-middle/control.attempt.json', '09-soname-middle/control.attempt.jsonl', '09-soname-middle/control.stdout.raw', '09-soname-middle/control.stderr.raw', '09-soname-middle/helper-return.raw.json', '09-soname-middle/build.json', 'images/09-soname/libh25_history_middle_v1.so', '10-global-definition/control.attempt.json', '10-global-definition/control.attempt.jsonl', '10-global-definition/control.stdout.raw', '10-global-definition/control.stderr.raw', '10-global-definition/helper-return.raw.json', '10-global-definition/build.json', 'images/10-global/global-history-object.so', '10-global-leaf/control.attempt.json', '10-global-leaf/control.attempt.jsonl', '10-global-leaf/control.stdout.raw', '10-global-leaf/control.stderr.raw', '10-global-leaf/helper-return.raw.json', '10-global-leaf/build.json', 'images/10-global/libh25_history_leaf_v1.so', '10-global-middle/control.attempt.json', '10-global-middle/control.attempt.jsonl', '10-global-middle/control.stdout.raw', '10-global-middle/control.stderr.raw', '10-global-middle/helper-return.raw.json', '10-global-middle/build.json', 'images/10-global/libh25_history_middle_v1.so', '11-dependency-leaf/control.attempt.json', '11-dependency-leaf/control.attempt.jsonl', '11-dependency-leaf/control.stdout.raw', '11-dependency-leaf/control.stderr.raw', '11-dependency-leaf/helper-return.raw.json', '11-dependency-leaf/build.json', 'images/11-dependency/libh25_history_leaf_v1.so', '11-dependency-middle/control.attempt.json', '11-dependency-middle/control.attempt.jsonl', '11-dependency-middle/control.stdout.raw', '11-dependency-middle/control.stderr.raw', '11-dependency-middle/helper-return.raw.json', '11-dependency-middle/build.json', 'images/11-dependency/libh25_history_middle_v1.so', '11-dependency-root/control.attempt.json', '11-dependency-root/control.attempt.jsonl', '11-dependency-root/control.stdout.raw', '11-dependency-root/control.stderr.raw', '11-dependency-root/helper-return.raw.json', '11-dependency-root/build.json', 'images/11-dependency/libh25_history_root_v1.so')
