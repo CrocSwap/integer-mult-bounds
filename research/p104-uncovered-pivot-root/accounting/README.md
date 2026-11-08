@@ -28,8 +28,8 @@ Git objects or run source modules.
 Reproduce with standard-library Python:
 
 ```sh
-python3 -I -B research/p104-pivot-caller-audit/verify.py
-python3 -I -O -B research/p104-pivot-caller-audit/verify.py
+python3 -I -B research/p104-uncovered-pivot-root/accounting/verify.py
+python3 -I -O -B research/p104-uncovered-pivot-root/accounting/verify.py
 ```
 
 Expected final line: `PASS_PIVOT_CALLER_AUDIT`.

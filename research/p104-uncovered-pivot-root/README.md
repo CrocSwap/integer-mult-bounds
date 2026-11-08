@@ -9,6 +9,11 @@ unchanged native profile, including carriers transported by the literal queries.
 The optimistic idle cover need not be physically attainable; its unfavorable
 price is already sufficient for this scoped exclusion.
 
+A separate finite extension also excludes 90 explicit opposite-arm mask
+enlargements. Its largest complete margin upper bound at kappa=.00337180 is
+**-0.210890121535325573**, and a uniform negative derivative excludes re-entry
+through .01. This is a raw caller exclusion; it supplies no improved BIT stock.
+
 The contribution combines an explicit integer-coordinate root, a no-cross-side
 transport theorem, a universal idle-cover majorization bound and independent
 complete accounting. The root has one thin query and exactly L independent
@@ -28,9 +33,10 @@ in this minimal family: at L18 the proxy itself loses 8.4803785672596... per por
 proof and exact scope. [accounting/PROOF.md](accounting/PROOF.md) gives the
 independent complete bill and universal cover bound;
 [accounting/RESULT.json](accounting/RESULT.json) records the exact histograms
-and rational interval certificate. Enlarged masks, dense y, repeated hosts,
-changed query words and different native/compiler contracts remain outside
-the exclusion.
+and rational interval certificate. [enlargement/PROOF.md](enlargement/PROOF.md)
+and its integer certificates cover the stated 90 enlarged-mask cases. Other
+enlarged masks, dense y, repeated hosts, changed query words and different
+native/compiler contracts remain outside the exclusion.
 
 ## Replay
 
@@ -46,7 +52,12 @@ wrong thin coefficients, deletion of the thin query and missing pivot scaling.
 A legal enlarged-mask positive control is accepted. The independent accounting checker tests 4,298 top-k cover bounds, 840
 transport systems, complete exact rational moment/derivative signs and its own
 negative controls. The registered replay runs both checkers normally and under
-optimized Python. Both stored result files are checked exactly.
+optimized Python. All stored result files are checked exactly. The enlargement replay checks
+1,986,278 positive-capacity relaxed job supports; independent reviewers audit
+all subsets at four selected masks and recompute every complete price and
+derivative bound. The independent price census covers 23,592,870 subset tariff
+inequalities. Optimized enlargement and independent reviews were also run
+separately; the bounded registered replay retains their normal checks.
 
 The finite checks supplement the proofs. No native phase, physical adapter,
 compiler or complete multiplication theorem is reverified here; a negative raw
@@ -63,6 +74,10 @@ Base: `7c49fe32c55de02c2c873655c804b16e4c3fef0a`.
   `51f54e3c31f2f3a3e056a483b3ed66ae916ad06a`: sign-Gram construction,
   stage-factor commutation and native/caller context.
 
+Pending #6858 (head `7d34bef131ad06edb833e481d53e3495576d5195`) is related
+whole-bridge carrier work on a different chain root; its 81-mask finite result
+does not cover the 90 uncovered-pivot enlargements here.
+
 Exact small source excerpts and their original notices are retained.
 `PROVENANCE.json` records original commits, paths, Git blob IDs and SHA256s;
 these are historical evidence, not admission of pending claims. The accounting
@@ -77,9 +92,9 @@ retained native/caller lineage; no source excerpt is edited.
 
 ## Open next questions
 
-1. Can changed masks or extra paid transport improve a complete invoice? First
-   provide one concrete changed interface with every target and payment; the
-   present obstruction fixes the literal minimal-mask root.
+1. Can other changed masks or extra paid transport improve a complete invoice?
+   Start outside the 90 tested enlargements and provide one concrete interface
+   with every target and payment; the query word remains fixed here.
 2. Can dense y or repeated hosts yield another uncovered-pivot family? First
    construct an arbitrary-D identity outside the singleton-host normal form;
    this package does not classify that larger space.
