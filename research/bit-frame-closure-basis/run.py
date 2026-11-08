@@ -17,7 +17,7 @@ CHECKER = "research/bit589-frame-optimum/frameopt.py"
 TUNED = "research/e8-bit-p111-tuned/tune/bitE8mut-p111-tuned.json.gz"
 BASE_WORD = "research/e8-bit-p111-tuned/data/bitE8mut-p111.json.gz"
 INPUTS = {
-    CHECKER, TUNED, BASE_WORD,
+    TUNED, BASE_WORD,
     "research/bit589-frame-optimum/verify.sh",
     "research/complex-k492-owner-repair/vendor/multicold/engines/base_two_moment.py",
 }
