@@ -1,0 +1,80 @@
+from pathlib import Path
+import ast,json,hashlib
+root=Path('/workspace/scratch/35c1441288db/h25-selected-child-construction-20261108T203610Z');out=root/'implementation';src=root/'inputs/files'
+p=out/'family_batching_v1.py';s=p.read_text()
+s=s.replace("'entry_source', 'entry_inverse', 'start_marker', 'requirement_source', 'context_configuration', 'guard'))", "'entry_source', 'entry_inverse', 'start_marker', 'requirement_source', 'context_configuration', 'guard', 'preparation'))")
+s=s.replace("if name == 'h25_parent_supervisor' and key in ('_GUARD_ATTEMPTS', '_PUBLICATION_BINDING'):","if name == 'h25_parent_supervisor' and key in ('_GUARD_ATTEMPTS', '_PUBLICATION_BINDING', '_SUPERVISION_CURRENT', '_SUPERVISION_HISTORY'):")
+s=s.replace("            context_values = configured.verify_configured_source(_read(state, child['context_source'], 8388608), child['context_inverse'])", "            schema.need(child['context_inverse']['assignments'] == {},\n                'selected context must retain source None and use reached before-capture installation')\n            context_values = configured.verify_configured_source(_read(state, child['context_source'], 8388608), child['context_inverse'])")
+s=s.replace("            guard = child['guard']", "            _validate_child_preparation(state, child)\n            guard = child['guard']",1)
+s=s.replace("    entry_values = configured.verify_configured_source(_read(state, child['entry_source']), child['entry_inverse'])", "    schema.need(child['entry_inverse']['assignments'] == {} and job.get('finite_only', False) is False,\n        'actual selected child needs fixed unconfigured entry and complete canonical Root tail')\n    _validate_child_preparation(state, child, job)\n    entry_values = configured.verify_configured_source(_read(state, child['entry_source']), child['entry_inverse'])")
+helper='''def _validate_child_preparation(state, child, job=None):
+    """Original same-operation parent authenticates actual late child inputs.
+
+    All checks run before Root birth. The genuine original plan supplies this
+    pin; a child report, source review marker, or caller hash grants nothing.
+    The fixed existing runner transports exactly the checked JOBS lane bytes.
+    """
+    schema.blob(child['preparation'], schema.RECORD_BYTES)
+    schema.need(not child['preparation']['identity']['mode'] & 0o222,
+                'immutable same-operation child preparation required')
+    plan = offline.decode(_read(state, child['preparation'], schema.RECORD_BYTES))
+    schema.exact(plan, ('schema', 'outer_context', 'entry_configuration', 'selection'))
+    schema.need(plan['schema'] == 'h25-selected-child-preparation-v1', 'child preparation schema differs')
+    unit = state['cases'][child['case_id']]['unit_id']
+    kind = 'NATIVE_PRODUCTION' if unit in anchor.NATIVE_ACQUISITION_EXTENSION['units'] else 'HISTORICAL_PORT'
+    schema.need(_equal(plan['selection'], {'unit_id': unit, 'mode': state['mode'], 'kind': kind}),
+                'original fixed unit cannot select another production/port image')
+    outer = offline.decode(_read(state, plan['outer_context'], schema.RECORD_BYTES))
+    schema.exact(outer, ('schema', 'source_manifest', 'binding_plan', 'source_review_sha256',
+        'bootstrap_review_sha256', 'command_review_sha256', 'root_source_sha256', 'runtime_premise_sha256'))
+    schema.need(outer['schema'] == 'h25-authenticated-pre-capture-context-v2' and
+        outer['root_source_sha256'] == anchor.SELECTED_ROOT_SHA256, 'actual original Root source differs')
+    for key in ('source_review_sha256','bootstrap_review_sha256','command_review_sha256','runtime_premise_sha256'):
+        schema.digest(outer[key])
+    manifest = offline.decode(_read(state, outer['source_manifest'], schema.RECORD_BYTES))
+    binding_plan = offline.decode(_read(state, outer['binding_plan'], schema.RECORD_BYTES))
+    schema.exact(manifest, ('schema', 'modules'))
+    schema.exact(binding_plan, ('schema', 'bindings'))
+    schema.need(manifest['schema'] == 'h25-bootstrap-module-manifest-v2' and
+        binding_plan['schema'] == 'h25-pre-capture-bindings-v2', 'actual original installer records differ')
+    expected = anchor.SELECTED_CHILD_TEMPLATES[kind]
+    schema.exact(manifest['modules'], tuple(expected))
+    by_path = {pin['path']: pin for pin in child['source_pins']}
+    for name, row in manifest['modules'].items():
+        schema.exact(row, ('source', 'template_inverse'))
+        pin, inverse = row['source'], row['template_inverse']
+        schema.need(pin['path'] in by_path and _equal(by_path[pin['path']], pin) and
+            inverse['module'] == name and inverse['template_sha256'] == expected[name] and
+            inverse['configured_sha256'] == pin['sha256'],
+            'actual child module/template/source inverse is absent or substituted')
+        configured.verify_configured_source(_read(state, pin, 8388608), inverse)
+    values = binding_plan['bindings']
+    schema.need(type(values) is dict and 'component_control_root_v1' in values and
+        type(values['component_control_root_v1']) is dict, 'actual fixed context installation omitted')
+    literal = values['component_control_root_v1'].get('CONTEXT_CONFIGURATION')
+    schema.need(type(literal) is str and _equal(bindings.ast.literal_eval(literal), child['context_configuration']),
+                'actual source None context is not installed with original complete values')
+    receiver = offline.decode(_read(state, child['context_configuration']['receiver_policy'], schema.RECORD_BYTES))
+    schema.need(_equal(receiver, {name: row['source'] for name,row in manifest['modules'].items()}),
+                'actual receiver policy differs from complete constructor source manifest')
+    expected_entry = {'marker_path': child['start_marker'], 'case_id': child['case_id'],
+        'context_id': child['context_id'], 'unit_id': unit, 'mode': state['mode'], 'guard': child['guard'],
+        'publication_admission': orchestration.CONFIGURATION['publication_admission'],
+        'publication_root': state['plan']['root']}
+    schema.need(_equal(plan['entry_configuration'], expected_entry), 'actual entry/guard/publication context differs')
+    # Every late dependency is already retained by the original complete source
+    # plan. The configured source bytes are frozen before these final inputs.
+    for pin in (child['preparation'], plan['outer_context'], outer['source_manifest'], outer['binding_plan'],
+                child['context_configuration']['receiver_policy']):
+        schema.need(pin['path'] in by_path and _equal(by_path[pin['path']], pin),
+                    'late input omitted from complete immutable child source custody')
+    transport = json.dumps({'schema':'h25-selected-child-argv-v1','plan':child['preparation']},
+                           sort_keys=True, separators=(',', ':'))
+    if job is not None:
+        schema.need(job['lanes'] == transport, 'actual original runner lane is not authenticated final input')
+    return None
+
+
+'''
+s=s.replace('def _validate_unit_stage(case):',helper+'def _validate_unit_stage(case):')
+p.write_text(s)

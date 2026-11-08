@@ -1,0 +1,59 @@
+# Authentic native fault delivery in the selected control subject
+
+This is a source finding from the fixed round beginning 2026-11-08T20:36:10Z. It is not an execution result, a native qualification, or an amendment of the original requirements. The final certificate records its actual byte identity and freeze time. AI authored and independently challenged source reasoning is not a proof-kernel or maintainer acceptance.
+
+## Exact subjects and preserved obligation
+
+The unchanged REQUIREMENTS-212.json is 244,932 bytes with SHA256 87373f414997ff2f84a02945d249dbabcd840a3c059f267afa8f898937ea5d9f. The supplied production epoch_copy_v5.py is 111,622 bytes with SHA256 b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69. Its schema is 30,668 bytes with SHA256 b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a. The 89,572-byte instrumented reference copy bcc465a7c61261b58e92c06f1cf7937b134256243f1a0ff84ad859965ad0134d is a different selected subject. Its pre-native fault ports do not become production native faults merely because the production copy is present elsewhere.
+
+The exact SOURCE-CONTRACT.json, SHA256 4927797027f4aa1f8b1204be2a7c321faa9c26b416dc3f43fe4b139df0f8c22a, begins with the first exception successfully delivered and bound to the handler. It does not require equality with an earlier underlying allocation error which was never delivered. REQUIRED-NATIVE-PREMISES.json, SHA256 161bd504c2f3d0e051f0e37c47e28ef287eef8a239456696ebd42ad96a8b7afb, retains the actual pinned interpreter/native semantics, protected preallocated state, sufficient native-call recursion headroom, and the absence of interfering asynchronous or concurrent mutation during the protected path. These conditions do not assume Python helper-frame allocation succeeds.
+
+Those original conditions support a conditional custody theorem about genuine failures. They do not implement an executor that selects each required failure. A new owner cannot supply a Boolean or callback saying a particular native site failed and treat that assertion as independent observation.
+
+## Actual reached acquisition and cleanup edges
+
+In the production copy, _parent writes the acquisition-pending state before each captured _OPEN. A returned descriptor reaches its caller-owned slot before the pending flag clears. On an acquisition exception, the inline handler retains the first delivered object and latches quarantine before any later acquisition. Known slots are individually consumed before their one native close attempt. The public inspect, copy_once, write_once, and require_entries operations retain separate local operation and cleanup state. An unrelated older handled exception is not their local-operation classifier.
+
+copy_once verifies the source before constructing its own descriptor slots. It subsequently calls _parent for the source and then for the target while it owns the source parent descriptor. Thus the second helper-entry site is an actual production obligation. A control that calls an equivalent helper from a new wrapper with its own descriptor would exercise that wrapper's cleanup, not this continuation.
+
+require_entries calls the captured _SCANDIR on the actual opened directory descriptor and immediately iterates the returned native iterator. On iteration failure its inline error path retains the actual iterator in io[5], marks uncertainty, and keeps the delivered exception primary before known-descriptor cleanup. Its explicit close cannot observe the return of the earlier native closedir. Normal Python close return therefore does not supply the omitted native release fact.
+
+The pinned CPython clinic wrapper calls os_open_impl and only afterwards PyLong_FromLong. For a returned descriptor outside the small-integer cache, the shown _PyLong_FromMedium path allocates a PyLongObject and can deliver MemoryError after descriptor acquisition. The wrapper's failure exit does not close that descriptor. This is distinct from a Python raise before open and from an open syscall failure. The actual PySys_Audit("open") call occurs before the syscall and can itself fail before acquisition. A generic delivered MemoryError alone does not identify which site was reached.
+
+## Actual audit registrations
+
+The supplied original native_field_controls_v1.py defines _hook and calls sys.addaudithook(audit). run_native_field_controls reaches that registration, and the transport and collector fixture controls reuse this owner. It is therefore incorrect to add an unqualified no-audit-hooks premise or to claim that no supplied source registers a hook.
+
+The actual audit closure first checks its source-owned armed flag. While armed it assigns an action label only for object.__getattr__ on its exact bound target or for builtins.id. For event open the label remains None and its action is not invoked. disarm first clears the armed flag and then removes the foreign cells. This concrete event dispatch, together with the actual fresh-exec selection, is the relevant source argument. An arbitrary inadmissible hook installed before Root is not an original counterexample. Conversely, entry into a genuine hook or allocation of audit arguments may fail before the syscall; the delivery/judgment path must retain that uncertainty rather than infer acquisition from the exception type.
+
+The bounded source search covered the supplied selected Python modules, the loader supplement, the new exact packet, and the supplied native source bodies. Its absence results are not a repository-wide proof. The provider and original fresh-Root premises still concern genuine selected source and native images, rather than a copied module dictionary.
+
+## Distinct delivery routes assessed
+
+| Route | Concrete site it can reach | Exact applicability decision |
+| --- | --- | --- |
+| Existing authentic absent-path, symlink, and exclusive-create collisions | Captured production open reaches the original native operation, with fixed independent expectations in the three existing units | Retained narrow acquisition construction. It does not cover successful-open return boxing, helper-frame entry, or native iteration failure. |
+| Lower the Python recursion limit uniformly before copy_once | A real Python recursion exception can arise without exhausting the independent native-call recursion budget | The earlier verify to inspect to _parent chain is deeper than the later target _parent call. This does not select the required later site with the production caller already holding the descriptor. No complete C01 construction follows. |
+| New control wrapper holding a descriptor before directly calling _parent at exhausted depth | A genuine frame-entry failure in the production helper can be induced in principle | The descriptor owner and cleanup continuation would be the new wrapper. The required production-caller relation has not been supplied. This is not a complete C01 substitute. |
+| Insert a source hook immediately before the selected helper call | Could select Python frame-entry or tuple failure | It changes the selected production source and introduces a fault delivery interface. The current no-monkeypatch/model-substitution requirement does not itself admit that transformation. No such amendment is adopted. |
+| Close the scandir-owned duplicate before its next readdir | Can in principle cause native EBADF, internal closedir with unobserved result, and a later no-op close | Production require_entries exposes no intervening source-owned borrower or hook. An asynchronous/concurrent close would contradict the protected-path premise. A driver operating its own iterator is a different cleanup subject. |
+| Allocator interposition, replacement Python, ptrace, or an additional seccomp filter | Could provide selected native failures under a different instrumented environment | These change selected runtime/native or process-profile facts. The actual policy owner compares command, environment, executable/cwd identity, Threads, NoNewPrivs, Seccomp, Seccomp_filters, and TracerPid. Their use cannot be silently transferred into the fixed profile. |
+| Uncontrolled memory exhaustion | May produce some genuine allocation failures or process death | It does not identify the required site, ensure delivered exception/unwind, or provide a finite no-reroll coverage construction. No completion is claimed. |
+| Filesystem or kernel error delivery without interposition | Could in principle cause native readdir or close errors while preserving the Python image | No actual original-compatible fixed delivery owner, request/response contract, and independent observer for these selected operations has been supplied or constructed here. This is an information/construction gap, not a theorem that no such environment exists. |
+| Small-descriptor no-boxing argument | Would avoid PyLong allocation if every returned descriptor is in the genuine cached range | The original alternative requires complete live-FD occupancy including inherited and transient populations, exact lowest-free kernel allocation, and the complete no-race proof. Owned-slot counts alone do not establish it. It cannot waive C03 or silently replace the original required scenario. |
+
+The selected environment may have genuinely supplied fault facts in a future run. Absence of live values is not a source impossibility. The missing element here is an actual source-owned delivery and independent judgment route which reaches the required production site and admits its fault profile under the unchanged original contracts. Declaring the desired failure as an input premise would not implement that route.
+
+## Remaining original native and older-handler obligations
+
+C01 still requires actual helper-entry or tuple/allocation failure at each required production caller while its descriptor slots are owned. C03 still includes a genuinely potentially post-acquisition failure, with no invented descriptor value or inferred non-acquisition. C04 and V5-C01/V5-C02 retain the actual iterator uncertainty, unobserved internal native release, and first-delivered error requirements. The ordinary three native acquisition units do not discharge these additional cases.
+
+O01 requires a successful raw writer/readback inside an older expected target handler with a genuine writer close failure. O02 adds the actual nested readback close failure. O03 and O04 require local body error with one or multiple distinct genuine close errors in order. O05 requires a successful local body whose first close failure becomes primary and whose later close failures remain secondary. The merged #6339 ambient sys.exc_info classifier and its #6346 successor cannot be reused unchanged for that older-handler distinction. Existing source-owned local primary state is retained. No new older-handler unit is labelled complete here without its actual delivery and independent capture path.
+
+The missing mechanisms are consequential original requirements, unlike the withdrawn unsupported expansion of legacy original24/R01-R10/C01-C10-G0 labels into additional semantic families. REQUIREMENTS-212 and all actual original/adopted controls remain unchanged.
+
+## Scope of this finding
+
+This document supplies concrete failed-route reasons and actual owner/source anchors. It does not prove that every compatible implementation is impossible, and it does not reinstate the earlier universal budget argument. The numerical minimum 6.000000013 seconds is below the recorded 23.109466521 seconds; actual complete workload fit, funding, and admission remain unproved. The 263 greater than 256 observation excludes only its original stated strategy.
+
+The current child, runner, and supervisor corrections can be reviewed as actual narrower source changes. They cannot by themselves close S05.03, S05.04, or S05.05 while these bodies and their complete execution map remain open. No original activity credit is asserted by this document.

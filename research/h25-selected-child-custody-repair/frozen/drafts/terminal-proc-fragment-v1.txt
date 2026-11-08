@@ -1,0 +1,80 @@
+def _plain_proc_read(path, cap):
+    """Pre-root metadata transport; the existing original caller owns errors."""
+    fd, primary, close_error = None, None, None
+    parts, count = [], 0
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC)
+        while True:
+            data = os.read(fd, min(CHUNK, cap + 1 - count))
+            if not data:
+                break
+            count += len(data)
+            need(count <= cap, 'complete bounded pre-root process metadata')
+            parts.append(data)
+        raw = b''.join(parts)
+    except BaseException as error:
+        primary = error
+    finally:
+        if fd is not None:
+            closing, fd = fd, None
+            try:
+                os.close(closing)
+            except BaseException as error:
+                close_error = error
+    if primary is not None:
+        raise primary
+    if close_error is not None:
+        raise close_error
+    return raw
+
+
+def proc(pid):
+    owner = _SUPERVISION_CURRENT[0]
+    if owner is not None:
+        return owner.proc(pid, pid != owner.pid)
+    try:
+        raw = _plain_proc_read('/proc/' + str(pid) + '/stat', 8192)
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    end = raw.rfind(b') ')
+    need(end >= 0, 'Malformed process stat')
+    fields = raw[end + 2:].split()
+    need(len(fields) > 21, 'Complete process identity/RSS fields')
+    return {'pid': int(pid), 'ppid': int(fields[1]), 'pgid': int(fields[2]),
+            'sid': int(fields[3]), 'start_ticks': int(fields[19]),
+            'state': fields[0].decode('ascii'),
+            'rss_bytes': int(fields[21]) * os.sysconf('SC_PAGE_SIZE')}
+
+
+def census():
+    owner = _SUPERVISION_CURRENT[0]
+    if owner is not None:
+        return owner.observe()[0]
+    found = {}
+    with os.scandir('/proc') as entries:
+        for entry in entries:
+            if entry.name.isdecimal():
+                row = proc(int(entry.name))
+                if row is not None:
+                    found[row['pid']] = row
+    return found
+
+
+def generation(row):
+    return row['pid'], row['start_ticks']
+
+
+def children_now():
+    owner = _SUPERVISION_CURRENT[0]
+    if owner is not None:
+        return owner.direct()
+    parent = os.getpid()
+    raw = _plain_proc_read('/proc/' + str(parent) + '/task/' + str(parent) + '/children', 32768)
+    pids = [int(word) for word in raw.split()]
+    need(len(pids) <= 128 and len(set(pids)) == len(pids), 'finite exact original child list')
+    rows = []
+    for pid in pids:
+        row = proc(pid)
+        need(row is not None and row['ppid'] == parent, 'actual direct child must remain readable')
+        rows.append(row)
+    return rows

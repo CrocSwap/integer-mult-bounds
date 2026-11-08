@@ -1,0 +1,238 @@
+def _guard_reserve(deadline):
+    need(len(_GUARD_ATTEMPTS) < 1024, 'Two-mode finite guard attempt registry exhausted')
+    guard = {'phase': 'CONSUMED', 'primary': [None], 'secondary': [], 'binding': None,
+             'request': None, 'request_pin': None, 'ack': None, 'ack_pin': None,
+             'consume_pin': None, 'live': None, 'root': None, 'deadline': deadline,
+             'checkpoint': 'BEFORE_SOURCE_BINDING', 'supervision_result': None}
+    _GUARD_ATTEMPTS.append(guard)
+    return guard
+
+
+def run_root(root, case, evidence, seconds, shared_deadline, as_bytes=201326592,
+             rss_bytes=201326592):
+    """Actual original caller with surviving domain and preowned capture custody."""
+    need(_SUPERVISION_CURRENT[0] is None, 'prior original root must be completely retired')
+    began = time.monotonic()
+    need(type(seconds) in (int, float) and 0 < seconds <= 190, 'Unadmitted root deadline')
+    need(type(as_bytes) is int and 0 < as_bytes <= 1024 ** 3, 'Unadmitted root address-space bound')
+    need(type(rss_bytes) is int and 0 < rss_bytes <= 1024 ** 3, 'Unadmitted aggregate RSS bound')
+    deadline = min(began + seconds, shared_deadline - CLEANUP_SECONDS)
+    guard = _guard_reserve(deadline)
+    domain = OwnedDomain(guard)
+    root_errors = [None] * 16
+    guard['root_errors'] = root_errors
+    guard['actual_process'] = None
+    guard['terminal_custody_version'] = 'actual-surviving-family-owner-v1'
+    _SUPERVISION_HISTORY.append(domain)
+    _SUPERVISION_CURRENT[0] = domain
+    process, captured, cleanup = None, None, None
+    peak, spawn_entered = 0, False
+    alarm_handler_entered = alarm_arm_entered = False
+    old_handler = None
+    timer_retired = False
+    failure, reconciled = None, None
+    result = None
+    try:
+        domain.install_stop_handlers()
+        launch_contract()
+        _guard_begin(case, deadline, guard)
+        need(stable_file(root / 'run_guarded_v3.py', META_CAP)['sha256'] == RUNNER_SHA,
+             'Actual root runner changed')
+        need(time.monotonic() + CLEANUP_SECONDS < shared_deadline, 'No reserved cleanup tail remains')
+        command = ['/usr/bin/python3.12', *FLAGS, str(root / 'run_guarded_v3.py'),
+                   case['stage'], case['job'], case['label']]
+        for value in (case['stage'], case['job'], case['label']):
+            need(type(value) is str and value and
+                 all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value),
+                 'Unsafe case identity')
+        evidence.mkdir()
+        domain.install(root)
+        domain.prepare_capture(evidence)
+        setter, limit_kind, limits = resource.setrlimit, resource.RLIMIT_AS, (as_bytes, as_bytes)
+        def child_limit():
+            setter(limit_kind, limits)
+        old_handler = signal.getsignal(signal.SIGALRM)
+        need(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), 'Parent already has an execution alarm')
+        write_new(evidence / 'LAUNCH.json', {'command': command, 'parent_pid': os.getpid(),
+                  'parent_pgid': os.getpgrp(), 'parent_sid': os.getsid(0),
+                  'root_execution_seconds': seconds, 'address_space_bytes': as_bytes,
+                  'rss_sum_bytes': rss_bytes, 'new_session': True,
+                  'cleanup_reserved_seconds': CLEANUP_SECONDS,
+                  'same_original_operation': True, 'preowned_capture_readers': True})
+        alarm_handler_entered = True
+        signal.signal(signal.SIGALRM, deadline_handler)
+        alarm_arm_entered = True
+        signal.setitimer(signal.ITIMER_REAL, max(0.000001, deadline - time.monotonic()))
+        domain.birth_pending()
+        spawn_entered = True
+        try:
+            process = subprocess.Popen(command, cwd=root, env=dict(ENV),
+                                       stdout=domain.capture[0]['writer']['fd'],
+                                       stderr=domain.capture[1]['writer']['fd'],
+                                       start_new_session=True, preexec_fn=child_limit)
+        except BaseException as error:
+            # The exception and traceback retain the actual failed constructor.
+            root_errors[0] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain.birth = 'POPEN_UNKNOWN'
+            domain._remember(error, 'Popen-return')
+            raise
+        # Store actual returned object before the first fallible observation.
+        domain.process = process
+        guard['actual_process'] = process
+        domain.birth = 'POPEN_RETURNED'
+        captured = domain.retain_process(process)
+        write_new(evidence / 'ROOT-PROCESS.json', captured)
+        while True:
+            need(domain.stop_signal is None, 'Original parent received termination request')
+            all_rows, current = domain.observe()
+            _guard_step(guard, domain, all_rows, current, captured)
+            peak = max(peak, sum(row['rss_bytes'] for row in current))
+            need(peak <= rss_bytes, 'Owned process RSS sum exceeded')
+            need(max(os.fstat(item['reader']['fd']).st_size for item in domain.capture) <= LOG_CAP,
+                 'Outer raw log cap exceeded')
+            if domain.root_exit_observed():
+                need(guard['phase'] == 'CONSUMED_RELEASE',
+                     'Root exited without actual before-target release consumption')
+                break
+            time.sleep(0.01)
+    except BaseException as error:
+        root_errors[1] = error
+        domain.last_error = error
+        if domain.first_error is None:
+            domain.first_error = error
+        if guard['primary'][0] is None:
+            guard['primary'][0] = error
+        if guard['phase'] != 'CONSUMED_RELEASE':
+            guard['phase'] = 'STOP'
+        domain._remember(error, 'root-working')
+    finally:
+        # Cancellation is entered once and cannot bypass actual domain cleanup.
+        if alarm_arm_entered or alarm_handler_entered:
+            try:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                timer_retired = True
+            except BaseException as error:
+                root_errors[2] = error
+                domain.last_error = error
+                if domain.first_error is None:
+                    domain.first_error = error
+                if guard['primary'][0] is None:
+                    guard['primary'][0] = error
+                domain._remember(error, 'timer-cancel')
+        else:
+            timer_retired = True
+        # A potentially still-active timer keeps its known Python handler.
+        # Domain cleanup remains reachable independently of cancellation failure.
+        try:
+            domain.close_capture_writers()
+        except BaseException as error:
+            root_errors[3] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain._remember(error, 'capture-writer-cleanup-entry')
+        # Publication's own real close/pending tokens join this same owner. They
+        # are never converted into a successful physical-retirement observation.
+        for token in guard.get('io', ()):
+            if (token.get('entered') and token.get('fd') is None) or not token.get('closed') or token['primary'][0] is not None:
+                domain.unknown = True
+        try:
+            if domain.birth == 'UNENTERED':
+                # The reached caller has not entered Popen. No controlled child
+                # or native child holder was created by this operation.
+                domain.empty_observed = True
+                domain.retired = not domain.unknown
+                domain.phase = 'RETIRED' if domain.retired else 'CUSTODY_PENDING'
+                cleanup = domain.observation(time.monotonic())
+            else:
+                cleanup = domain.cleanup(process, shared_deadline)
+        except BaseException as error:
+            root_errors[4] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain._remember(error, 'domain-cleanup-entry')
+            domain.phase = 'CUSTODY_PENDING'
+        # Full known-reader attempts precede error formatting and receipt/report
+        # acquisition, including when a working or writer-close error exists.
+        try:
+            domain.capture_after_retirement()
+        except BaseException as error:
+            root_errors[5] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain._remember(error, 'capture-readback-entry')
+        if not timer_retired:
+            domain.unknown = True
+        if not domain.retired or domain.unknown or any(slot['phase'] not in ('FREE', 'CLOSED') for slot in domain.io):
+            domain.hold_pending()
+        if alarm_handler_entered and old_handler is not None:
+            try:
+                signal.signal(signal.SIGALRM, old_handler)
+            except BaseException as error:
+                root_errors[6] = error
+                domain.last_error = error
+                if domain.first_error is None:
+                    domain.first_error = error
+                if guard['primary'][0] is None:
+                    guard['primary'][0] = error
+                domain._remember(error, 'alarm-handler-restore')
+        domain.restore_stop_handlers()
+    # All children and known holders are retired before any formatting, new
+    # canonical receipt, or normal return/raise can escape this actual owner.
+    try:
+        if guard['primary'][0] is not None:
+            primary = guard['primary'][0]
+            failure = {'type': type(primary).__name__, 'message': str(primary)[:2048]}
+        if time.monotonic() > shared_deadline:
+            failure = failure or {'type': 'SharedDeadline', 'message': 'Shared cap crossed; all actual custody cost remains charged'}
+        reconciled = reconcile_missing_receipt(root, case['label'], began,
+                      failure or {'type': 'MissingRootReceipt', 'message': 'Root exited without receipt'}, cleanup)
+        if reconciled is not None:
+            failure = failure or {'type': 'MissingRootReceipt', 'message': 'New reconciled STOP receipt; no retry'}
+        logs = {}
+        for item in domain.capture:
+            logs[item['name']] = item['observation'] or {
+                'path': str(evidence / item['name']), 'sha256': None, 'bytes': None,
+                'stable': False, 'full_read': False, 'eof': False,
+                'raw_error_retained': item['read_error'] is not None}
+            if item['observation'] is None:
+                failure = failure or {'type': 'CaptureUnavailable', 'message': 'Actual complete raw capture was not obtained'}
+        result = {'schema': 'h25-parent-root-supervision-v1', 'label': case['label'],
+                  'status': 'STOP' if failure else 'ROOT_COMPLETED_AND_OWNED_DOMAIN_EMPTY',
+                  'failure': failure, 'spawn_entered': spawn_entered,
+                  'spawn_returned': process is not None, 'captured_root': captured,
+                  'returncode': None if process is None else process.returncode,
+                  'cleanup': cleanup, 'outer_logs': logs, 'sampled_owned_rss_bytes': peak,
+                  'execution_and_cleanup_seconds': time.monotonic() - began,
+                  'root_receipt_reconciled': reconciled is not None,
+                  'no_hostile_fork_or_concurrent_children_claim': True,
+                  'before_target_guard': guard_evidence(guard)}
+        guard['supervision_result'] = result
+        write_new(evidence / 'SUPERVISION.json', result)
+    except BaseException as error:
+        root_errors[7] = error
+        domain.last_error = error
+        if domain.first_error is None:
+            domain.first_error = error
+        if guard['primary'][0] is None:
+            guard['primary'][0] = error
+        domain._remember(error, 'terminal-report')
+    if domain.unknown or any(slot['phase'] not in ('FREE', 'CLOSED') for slot in domain.io):
+        domain.hold_pending()
+    _SUPERVISION_CURRENT[0] = None
+    if guard['primary'][0] is not None:
+        raise guard['primary'][0]
+    return result

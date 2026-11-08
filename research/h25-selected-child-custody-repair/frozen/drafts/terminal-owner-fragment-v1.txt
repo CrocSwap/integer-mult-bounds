@@ -1,0 +1,544 @@
+# AI-authored adaptation of the original selected supervision and #6873 owner.
+# Mutable lists are sealed by actual object identity in the source receiver.
+_SUPERVISION_CURRENT = [None]
+_SUPERVISION_HISTORY = []
+
+
+class CustodyPending(RuntimeError):
+    """A live actual owner remains responsible; this is never retirement."""
+    pass
+
+
+class OwnedDomain:
+    """One source-owned birth, retained generations, and exact terminal custody.
+
+    The first caught exception is stored in its preallocated operation slot
+    before any reporting helper is entered. A normal Python memory allocation
+    is not represented as a guarantee of arbitrary allocation-failure recovery.
+    """
+    def __init__(self, guard):
+        self.guard = guard
+        self.pid = os.getpid()
+        self.rows, self.fds, self.groups, self.reaped = {}, {}, set(), []
+        self.root = None
+        self.process = None
+        self.parent_group, self.parent_session = os.getpgrp(), os.getsid(0)
+        self.phase, self.birth = 'ALLOCATED', 'UNENTERED'
+        self.native, self.native_evidence = None, None
+        self.native_types, self.native_addressof, self.ctypes = None, None, None
+        self.unknown = False
+        self.retire_entered = self.empty_observed = self.retired = False
+        self.retire_deadline = None
+        self.close_entered = False
+        self.pending_error = CustodyPending('actual family custody remains pending')
+        self.pending_reason = None
+        self.last_error = None
+        self.first_error = None
+        self.error_events = [None] * 1024
+        self.error_count = 0
+        self.stop_signal = None
+        self.stop_handlers = [None, None, None]
+        self.stop_handler_changed = [False, False, False]
+        self.handler_errors = [None, None, None, None, None, None]
+        self.pause_errors = [None] * 16
+        self.io = [dict(phase='FREE', fd=None, path=None, working=None,
+                        close_error=None, sequence=None) for unused in range(32)]
+        self.tickets = [dict(phase='FREE', fd=None, key=None, pid=None,
+                            signal_entered=False, signal_returned=False,
+                            wait_entered=False, wait_returned=False,
+                            exit_observation=None, wait_status=None,
+                            errors=[None, None, None, None, None])
+                        for unused in range(128)]
+        self.capture = [dict(name=name, writer=None, reader=None, read_error=None,
+                             observation=None, initial=None)
+                        for name in ('root.stdout.raw', 'root.stderr.raw')]
+        self.cleanup_errors = [None] * 6
+        self.after_root = set()
+        self.guard['owned_domain'] = self
+
+    def _remember(self, error, operation):
+        # Every native/body catcher has already assigned its own fixed raw slot.
+        self.last_error = error
+        if self.first_error is None:
+            self.first_error = error
+        if self.guard['primary'][0] is None:
+            self.guard['primary'][0] = error
+        if self.error_count < len(self.error_events):
+            self.error_events[self.error_count] = (operation, error)
+            self.error_count += 1
+        else:
+            self.unknown = True
+
+    def _actual(self):
+        need(_SUPERVISION_CURRENT[0] is self and self.pid == os.getpid() and
+             self.guard['owned_domain'] is self and
+             any(owner is self for owner in _SUPERVISION_HISTORY),
+             'actual same-process selected family custodian')
+
+    def _check(self):
+        self._actual()
+        if self.retire_entered and time.monotonic() >= self.retire_deadline:
+            self.pending_reason = 'original bounded retirement tail exhausted'
+            raise self.pending_error
+
+    def _io_slot(self, path):
+        self._actual()
+        need(not self.unknown, 'uncertain custody blocks fresh descriptor acquisition')
+        slot = next((item for item in self.io if item['phase'] in ('FREE', 'CLOSED')), None)
+        need(slot is not None, 'finite preallocated metadata/capture holders')
+        # All potentially allocating preparation precedes OPEN_PENDING.
+        name = str(path)
+        slot.update(path=name, working=None, close_error=None, sequence=None)
+        slot['fd'], slot['phase'] = None, 'OPEN_PENDING'
+        return slot
+
+    def open_fd(self, path, flags, mode=0o600):
+        slot = self._io_slot(path)
+        try:
+            slot['fd'] = os.open(path, flags, mode)
+            slot['phase'] = 'OWNED'
+        except BaseException as error:
+            slot['working'] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            # The original first-delivered native contract does not identify an
+            # earlier possible acquire/boxing failure from arbitrary exceptions.
+            # Genuine pathname errno failures precede successful acquisition.
+            if type(error) in (FileNotFoundError, NotADirectoryError,
+                               PermissionError, FileExistsError):
+                slot['phase'] = 'CLOSED'
+            else:
+                slot['phase'], self.unknown = 'OPEN_UNKNOWN', True
+            self._remember(error, 'open')
+            raise
+        return slot
+
+    def close_fd(self, slot):
+        if slot is None or slot['phase'] != 'OWNED':
+            return
+        fd = slot['fd']
+        slot['fd'], slot['phase'] = None, 'CLOSE_ENTERED'
+        try:
+            os.close(fd)
+            slot['phase'] = 'CLOSED'
+        except BaseException as error:
+            slot['close_error'] = error
+            slot['phase'], self.unknown = 'CLOSE_UNKNOWN', True
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self._remember(error, 'close')
+            raise
+
+    def read_metadata(self, path, cap, absent_ok=False):
+        self._check()
+        slot = None
+        primary = None
+        parts, total = [], 0
+        try:
+            slot = self.open_fd(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC)
+            while True:
+                data = os.read(slot['fd'], min(CHUNK, cap + 1 - total))
+                if not data:
+                    break
+                total += len(data)
+                need(total <= cap, 'bounded complete kernel metadata')
+                parts.append(data)
+            result = b''.join(parts)
+        except FileNotFoundError as error:
+            primary = error
+            if slot is not None:
+                slot['working'] = error
+            if absent_ok and slot is None and not self.unknown:
+                # Only the observation of a non-direct descendant may vanish.
+                # This absence never proves terminal domain emptiness.
+                primary = None
+                result = None
+            else:
+                self._remember(error, 'metadata-read')
+        except BaseException as error:
+            primary = error
+            if slot is not None:
+                slot['working'] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self._remember(error, 'metadata-read')
+        finally:
+            if slot is not None:
+                try:
+                    self.close_fd(slot)
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+        if primary is not None:
+            raise primary
+        return result
+
+    def proc(self, pid, absent_ok=False):
+        raw = self.read_metadata('/proc/' + str(pid) + '/stat', 8192, absent_ok)
+        if raw is None:
+            return None
+        end = raw.rfind(b') ')
+        need(end >= 0, 'complete actual process-stat grammar')
+        fields = raw[end + 2:].split()
+        need(len(fields) > 21, 'complete process identity/RSS fields')
+        return dict(pid=pid, ppid=int(fields[1]), pgid=int(fields[2]),
+                    sid=int(fields[3]), start_ticks=int(fields[19]),
+                    state=fields[0].decode('ascii'),
+                    rss_bytes=int(fields[21]) * os.sysconf('SC_PAGE_SIZE'))
+
+    def child_pids(self, pid, absent_ok=False):
+        raw = self.read_metadata('/proc/' + str(pid) + '/task/' + str(pid) + '/children',
+                                 32768, absent_ok)
+        if raw is None:
+            return None
+        pids = [int(word) for word in raw.split()]
+        need(len(pids) <= 128 and len(set(pids)) == len(pids) and
+             all(0 < item <= 2147483647 for item in pids),
+             'original finite distinct child identities')
+        return pids
+
+    def direct(self):
+        rows = []
+        for pid in self.child_pids(self.pid):
+            row = self.proc(pid)
+            need(row['ppid'] == self.pid, 'unreaped actual direct child')
+            rows.append(row)
+        return rows
+
+    def install(self, root):
+        self._actual()
+        need(signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL,
+             'fresh-exec SIGCHLD default; exclusive consuming-wait source')
+        need(not self.direct(), 'no unrelated child before this original operation')
+        self.phase = 'SUBREAPER_INSTALL_PENDING'
+        evidence, native = install_subreaper(root)
+        self.native_evidence, self.native = evidence, native
+        self.ctypes = sys.modules['ctypes']
+        self.native_types = (self.ctypes.c_int, self.ctypes.c_ulong)
+        self.native_addressof = self.ctypes.addressof
+        need(type(native) is tuple and len(native) == 2 and
+             evidence['pid'] == self.pid and evidence['actual'] == 1,
+             'actual original installer/native association')
+        self.verify_native()
+        need(not self.direct(), 'exact pre-birth empty same-operation domain')
+        self.phase = 'READY'
+
+    def verify_native(self):
+        self._check()
+        ctypes = self.ctypes
+        need(sys.modules.get('ctypes') is ctypes and
+             ctypes.c_int is self.native_types[0] and
+             ctypes.c_ulong is self.native_types[1] and
+             ctypes.addressof is self.native_addressof,
+             'retained original ctypes/native identities')
+        call = self.native[1]
+        need(call.argtypes == [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
+                              ctypes.c_ulong, ctypes.c_ulong] and
+             call.restype is ctypes.c_int, 'original prctl ABI unchanged')
+        current = ctypes.c_int()
+        need(call(37, ctypes.addressof(current), 0, 0, 0) == 0 and current.value == 1,
+             'actual surviving same-process subreaper')
+
+    def birth_pending(self):
+        self._actual()
+        need(self.phase == 'READY' and self.birth == 'UNENTERED',
+             'one original selected Popen entry')
+        self.verify_native()
+        need(not self.direct(), 'no unrelated child at controlled birth boundary')
+        self.birth, self.phase = 'POPEN_PENDING', 'ACTIVE'
+
+    def retain_process(self, process):
+        self.process = process
+        self.guard['actual_process'] = process
+        self.birth = 'POPEN_RETURNED'
+        row = self.proc(process.pid)
+        need(row['ppid'] == self.pid and row['pgid'] == row['sid'] == process.pid,
+             'actual unreaped new-session direct root')
+        self.root = generation(row)
+        self.add(row)
+        return row
+
+    def add(self, row):
+        key = generation(row)
+        old = next((item for item in self.tickets if item['key'] == key), None)
+        if old is not None:
+            need(not old['wait_entered'], 'consumed generation never re-enters custody')
+            return old
+        need(not self.unknown and row['pid'] != self.pid,
+             'no new native child holder after uncertain custody')
+        ticket = next((item for item in self.tickets if item['phase'] == 'FREE'), None)
+        need(ticket is not None, 'original 128 observed-generation bound')
+        ticket['pid'], ticket['key'], ticket['phase'] = row['pid'], key, 'PIDFD_PENDING'
+        try:
+            ticket['fd'] = os.pidfd_open(row['pid'], 0)
+            ticket['phase'] = 'OWNED'
+            current = self.proc(row['pid'], row['ppid'] != self.pid)
+            if current is None or generation(current) != key:
+                # A non-direct child may be reaped by its actual parent. The
+                # acquired pidfd remains owned until whole-domain retirement.
+                ticket['phase'] = 'STALE_OWNED'
+                return ticket
+            self.rows[key] = dict(current)
+            self.fds[key] = ticket['fd']
+            if current['pgid'] != self.parent_group:
+                self.groups.add((current['pgid'], current['sid']))
+        except ProcessLookupError as error:
+            ticket['errors'][0] = error
+            if ticket['phase'] == 'PIDFD_PENDING' and row['ppid'] != self.pid:
+                # Genuine ESRCH from pidfd_open returns no acquired pidfd.
+                ticket['phase'] = 'ABSENT'
+                return ticket
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self.unknown = ticket['phase'] == 'PIDFD_PENDING' or self.unknown
+            self._remember(error, 'pidfd-open')
+            raise
+        except BaseException as error:
+            ticket['errors'][0] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if ticket['phase'] == 'PIDFD_PENDING':
+                ticket['phase'], self.unknown = 'PIDFD_UNKNOWN', True
+            self._remember(error, 'pidfd-open')
+            raise
+        return ticket
+
+    def observe(self):
+        # Exact parent-to-child traversal replaces a broad census whose omitted
+        # unreadable direct child could previously masquerade as an empty domain.
+        self.verify_native()
+        rows = self.direct()
+        queue = list(rows)
+        all_rows = {}
+        while queue:
+            row = queue.pop(0)
+            key = generation(row)
+            if row['pid'] in all_rows:
+                need(generation(all_rows[row['pid']]) == key, 'one current process generation')
+                continue
+            need(len(all_rows) < 128, 'original current descendant bound')
+            self.add(row)
+            all_rows[row['pid']] = row
+            children = self.child_pids(row['pid'], row['ppid'] != self.pid)
+            if children is None:
+                continue
+            for pid in children:
+                child = self.proc(pid, True)
+                if child is not None and child['ppid'] == row['pid']:
+                    queue.append(child)
+        return all_rows, list(all_rows.values())
+
+    def _exit_observation(self, ticket):
+        self._check()
+        need(ticket['phase'] == 'OWNED' and not ticket['wait_entered'],
+             'held unreaped direct generation')
+        observed = os.waitid(os.P_PID, ticket['pid'], os.WEXITED | os.WNOWAIT | os.WNOHANG)
+        if observed is not None:
+            need(observed.si_pid == ticket['pid'], 'same retained direct exit')
+            ticket['exit_observation'] = observed
+        return observed
+
+    def root_exit_observed(self):
+        ticket = next(item for item in self.tickets if item['key'] == self.root)
+        return self._exit_observation(ticket) is not None
+
+    def _signal_once(self, ticket):
+        if ticket['signal_entered'] or ticket['wait_entered']:
+            return
+        self._check()
+        ticket['signal_entered'] = True
+        try:
+            signal.pidfd_send_signal(ticket['fd'], signal.SIGKILL, None, 0)
+            ticket['signal_returned'] = True
+        except BaseException as error:
+            ticket['errors'][1] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self._remember(error, 'pidfd-signal')
+
+    def _consume_once(self, ticket):
+        self._check()
+        need(ticket['exit_observation'] is not None and not ticket['wait_entered'],
+             'observed exit before one consuming wait')
+        ticket['wait_entered'] = True
+        try:
+            pid, status = os.waitpid(ticket['pid'], os.WNOHANG)
+            need(pid == ticket['pid'], 'exclusive same-generation consuming wait')
+            ticket['wait_returned'], ticket['wait_status'] = True, status
+            if ticket['key'] == self.root and self.process is not None:
+                # Retain consumed status before any append/report operation.
+                self.process.returncode = os.waitstatus_to_exitcode(status)
+            else:
+                self.reaped.append(dict(pid=pid, start_ticks=ticket['key'][1], wait_status=status))
+        except BaseException as error:
+            ticket['errors'][2] = error
+            self.unknown = True
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self._remember(error, 'consuming-wait')
+
+    def _empty_exact(self):
+        self._check()
+        if self.direct():
+            return False
+        try:
+            os.waitid(os.P_ALL, 0, os.WEXITED | os.WNOWAIT | os.WNOHANG)
+        except ChildProcessError:
+            return not self.direct()
+        return False
+
+    def _close_holders_once(self):
+        need(self.empty_observed and not self.close_entered,
+             'actual domain emptiness precedes native-holder release')
+        self.close_entered = True
+        for ticket in self.tickets:
+            if ticket['phase'] not in ('OWNED', 'STALE_OWNED'):
+                continue
+            fd = ticket['fd']
+            ticket['fd'], ticket['phase'] = None, 'CLOSE_ENTERED'
+            try:
+                os.close(fd)
+                ticket['phase'] = 'CLOSED'
+            except BaseException as error:
+                ticket['phase'], ticket['errors'][3] = 'CLOSE_UNKNOWN', error
+                self.unknown = True
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                self._remember(error, 'pidfd-close')
+        # Keep historical key->fd identities for evidence. Closed numeric values
+        # are never used again, and rows/tickets remain retained by this owner.
+
+    def cleanup(self, process, absolute_deadline):
+        self._actual()
+        need(not self.retire_entered, 'one actual bounded retirement entry')
+        self.retire_entered = True
+        start = time.monotonic()
+        self.retire_deadline = min(absolute_deadline, start + CLEANUP_SECONDS)
+        self.phase = 'RETIRING'
+        try:
+            while True:
+                self._check()
+                if self.unknown or self.birth == 'POPEN_UNKNOWN':
+                    # Popen may have acquired private native holders before its
+                    # result failed to reach us. Retain the actual exception and
+                    # its frames. Never infer absence from no returned object.
+                    for ticket in self.tickets:
+                        if ticket['phase'] == 'OWNED' and not ticket['wait_entered']:
+                            self._signal_once(ticket)
+                    self.pending_reason = 'uncertain acquisition/wait/close or Popen return'
+                    raise self.pending_error
+                self.verify_native()
+                direct = self.direct()
+                for row in direct:
+                    ticket = self.add(row)
+                    if self.process is not None and self.process.returncode is not None and row['pid'] != self.process.pid:
+                        self.after_root.add(generation(row))
+                    if self._exit_observation(ticket) is None:
+                        self._signal_once(ticket)
+                    if self._exit_observation(ticket) is not None:
+                        self._consume_once(ticket)
+                if self.unknown:
+                    continue
+                if self._empty_exact():
+                    self.empty_observed = True
+                    self._close_holders_once()
+                    if self.unknown:
+                        self.pending_reason = 'empty domain but native holder close is uncertain'
+                        raise self.pending_error
+                    self.retired, self.phase = True, 'RETIRED'
+                    break
+                time.sleep(0.01)
+        except BaseException as error:
+            self.cleanup_errors[0] = error
+            self.last_error = error
+            if error is not self.pending_error:
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                self._remember(error, 'domain-retirement')
+            self.phase = 'CUSTODY_PENDING'
+        return self.observation(start)
+
+    def observation(self, start):
+        return dict(complete=self.retired and not self.unknown,
+                    owned_generations=list(self.rows.values()),
+                    groups=[dict(pgid=g, sid=s) for g, s in sorted(self.groups)],
+                    reaped_adopted=self.reaped,
+                    observed_after_root_exit=[list(key) for key in sorted(self.after_root)],
+                    remaining=[] if self.empty_observed else 'UNKNOWN_UNRETIRED_DOMAIN',
+                    cleanup_seconds=time.monotonic() - start,
+                    cleanup_tail_limit_seconds=CLEANUP_SECONDS,
+                    group_empty_proved=self.empty_observed,
+                    kernel_echild_and_direct_empty=self.empty_observed,
+                    holders_retired=self.retired and not self.unknown,
+                    phase=self.phase, birth=self.birth,
+                    signal_method='one SIGKILL through retained pidfd before one WNOWAIT-authorised consuming wait; no killpg')
+
+    def stop_handler(self, signum, frame):
+        self.stop_signal = signum
+
+    def install_stop_handlers(self):
+        for index, signum in enumerate((signal.SIGINT, signal.SIGTERM, signal.SIGHUP)):
+            self.stop_handlers[index] = signal.getsignal(signum)
+            signal.signal(signum, self.stop_handler)
+            self.stop_handler_changed[index] = True
+
+    def restore_stop_handlers(self):
+        need(self.retired and not self.unknown, 'known retirement before ordinary handler restoration')
+        for index, signum in enumerate((signal.SIGINT, signal.SIGTERM, signal.SIGHUP)):
+            if not self.stop_handler_changed[index]:
+                continue
+            self.stop_handler_changed[index] = False
+            try:
+                signal.signal(signum, self.stop_handlers[index])
+            except BaseException as error:
+                self.handler_errors[index + 3] = error
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                self._remember(error, 'restore-stop-handler')
+
+    def hold_pending(self):
+        # Reached by run_root whenever retirement/holder knowledge is incomplete.
+        # This is the very same original parent and original unclosed operation.
+        # No return, exception unwind, replacement owner, new attempt, retry,
+        # grant, or budget is created. Continuing physical cost stays OPEN.
+        self.phase = 'ACTUAL_SURVIVING_CUSTODY_PENDING'
+        self.guard['surviving_pending_owner'] = self
+        while True:
+            try:
+                signal.pause()
+            except BaseException as error:
+                self.pause_errors[0] = error
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error

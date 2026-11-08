@@ -1,0 +1,2040 @@
+"""Parent-only bounded process supervision; imports no candidate implementation.
+
+The runtime caller must establish the trusted clean launcher before calling us.
+This source was prepared without loading ctypes or running any control.  The
+closed single-threaded child domain is an explicit premise, not a hostile-fork
+sandbox.  Numeric process IDs are never used as signal destinations.
+"""
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+RUNNER_SHA = '7e8c678cfd7773780a2eb6f0e70f53ae251dc121d05df9d13879dd70d9d79292'
+QUEUE_SHA = '1348a7b4d7cc1f9fef556f5e0abdaf04411a998afdcd574d7812c76ab37dcf68'
+TCB_SHA = '610492b3fc06baa0560175edc3ba27057de00d00b8fd3d58dbe55e5a371c042a'
+LIBC = '/usr/lib/x86_64-linux-gnu/libc.so.6'
+NATIVE_PINS = {
+    LIBC: '3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf',
+    '/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so': 'aad3e24f186e6c0a1c7efa8f16004f951f527db86f6451d30118657384a456c1',
+    '/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4': '00f593fe192f2851b8ce23b25cec2488d769beb5a8f63e8c9e563071e1075153',
+    '/usr/lib/python3.12/ctypes/__init__.py': '0782592567ad71097198a3afe985ac3e2ea0b9b5e75452402c9460c89a86318a',
+    '/usr/lib/python3.12/ctypes/_endian.py': 'c5d692bdce10dfee242752620061bab684633bc72445a3def484961ef1bdbf3a',
+}
+CHUNK = 65536
+LOG_CAP = 2 * 1024 * 1024
+META_CAP = 256 * 1024
+CLEANUP_SECONDS = 2.0
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def launch_contract():
+    need(sys.executable == '/usr/bin/python3.12', 'Pinned interpreter required')
+    need(sys.flags.no_site == sys.flags.no_user_site == sys.flags.dont_write_bytecode == 1 and
+         sys.flags.safe_path and sys.flags.ignore_environment == sys.flags.isolated ==
+         sys.flags.hash_randomization == 0, 'Trusted no-site safe-path fixed-seed flags required')
+    need(dict(os.environ) == ENV, 'Exact clean environment required')
+    need(tuple(sys.path) == ('/usr/lib/python312.zip', '/usr/lib/python3.12',
+                            '/usr/lib/python3.12/lib-dynload'), 'Initial system stdlib path changed')
+    need(list(Path('/proc/self/task').iterdir()) == [Path('/proc/self/task') / str(os.getpid())],
+         'Exactly one parent task required')
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def stable_file(path, limit, keep=False):
+    """Full bounded snapshot with local raw primary and close-once custody."""
+    path = Path(path)
+    owner = _SUPERVISION_CURRENT[0]
+    before = path.stat(follow_symlinks=False)
+    need(stat.S_ISREG(before.st_mode) and before.st_size <= limit, 'File type/size bound: ' + str(path))
+    slot = None
+    fd = None
+    primary = close_error = None
+    h, count, blocks = hashlib.sha256(), 0, []
+    try:
+        if owner is not None:
+            slot = owner.open_fd(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+            fd = slot['fd']
+        else:
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        opened = os.fstat(fd)
+        need(identity(before) == identity(opened), 'File changed while opening')
+        while count < opened.st_size:
+            block = os.read(fd, min(CHUNK, opened.st_size - count))
+            need(bool(block), 'Short retained-file read')
+            count += len(block)
+            h.update(block)
+            if keep:
+                blocks.append(block)
+        need(os.read(fd, 1) == b'', 'Complete retained-file EOF')
+        after_fd = os.fstat(fd)
+    except BaseException as error:
+        primary = error
+        if slot is not None:
+            slot['working'] = error
+        if owner is not None:
+            owner.last_error = error
+            if owner.first_error is None:
+                owner.first_error = error
+            if owner.guard['primary'][0] is None:
+                owner.guard['primary'][0] = error
+            owner.last_error = error
+            if owner.first_error is None:
+                owner.first_error = error
+            if owner.guard['primary'][0] is None:
+                owner.guard['primary'][0] = error
+            if owner.error_count < 1024:
+                owner.error_events[owner.error_count][0] = 'stable-file-read'
+                owner.error_events[owner.error_count][1] = error
+                owner.error_count = owner.error_next[owner.error_count]
+            else:
+                owner.unknown = True
+    finally:
+        if fd is not None:
+            if slot is not None:
+                try:
+                    owner.close_fd(slot)
+                except BaseException as error:
+                    close_error = error
+            else:
+                closing, fd = fd, None
+                try:
+                    os.close(closing)
+                except BaseException as error:
+                    close_error = error
+    if primary is not None:
+        raise primary
+    if close_error is not None:
+        raise close_error
+    after = path.stat(follow_symlinks=False)
+    need(identity(before) == identity(after_fd) == identity(after), 'File drift during retained snapshot')
+    row = {'path': str(path), 'sha256': h.hexdigest(), 'bytes': count,
+           'identity': list(identity(after)), 'stable': True, 'read_chunk_bytes': CHUNK}
+    return (row, b''.join(blocks)) if keep else row
+
+
+def read_json(path, limit=META_CAP):
+    row, raw = stable_file(path, limit, True)
+    return json.loads(raw), row
+
+
+def write_new(path, row):
+    raw = json.dumps(row, sort_keys=True, indent=2).encode('ascii') + b'\n'
+    need(len(raw) <= META_CAP, 'Bounded metadata record exceeded')
+    owner = _SUPERVISION_CURRENT[0]
+    slot = None
+    fd = None
+    primary = close_error = None
+    try:
+        if owner is not None:
+            slot = owner.open_fd(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW)
+            fd = slot['fd']
+        else:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+        view = memoryview(raw)
+        while view:
+            written = os.write(fd, view)
+            need(written > 0, 'Metadata write made no progress')
+            view = view[written:]
+        os.fsync(fd)
+    except BaseException as error:
+        primary = error
+        if slot is not None:
+            slot['working'] = error
+        if owner is not None:
+            owner.last_error = error
+            if owner.first_error is None:
+                owner.first_error = error
+            if owner.guard['primary'][0] is None:
+                owner.guard['primary'][0] = error
+            owner.last_error = error
+            if owner.first_error is None:
+                owner.first_error = error
+            if owner.guard['primary'][0] is None:
+                owner.guard['primary'][0] = error
+            if owner.error_count < 1024:
+                owner.error_events[owner.error_count][0] = 'metadata-write'
+                owner.error_events[owner.error_count][1] = error
+                owner.error_count = owner.error_next[owner.error_count]
+            else:
+                owner.unknown = True
+    finally:
+        if fd is not None:
+            if slot is not None:
+                try:
+                    owner.close_fd(slot)
+                except BaseException as error:
+                    close_error = error
+            else:
+                closing, fd = fd, None
+                try:
+                    os.close(closing)
+                except BaseException as error:
+                    close_error = error
+    if primary is not None:
+        raise primary
+    if close_error is not None:
+        raise close_error
+
+
+def _plain_proc_read(path, cap):
+    """Pre-root metadata transport; the existing original caller owns errors."""
+    fd, primary, close_error = None, None, None
+    parts, count = [], 0
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC)
+        while True:
+            data = os.read(fd, min(CHUNK, cap + 1 - count))
+            if not data:
+                break
+            count += len(data)
+            need(count <= cap, 'complete bounded pre-root process metadata')
+            parts.append(data)
+        raw = b''.join(parts)
+    except BaseException as error:
+        primary = error
+    finally:
+        if fd is not None:
+            closing, fd = fd, None
+            try:
+                os.close(closing)
+            except BaseException as error:
+                close_error = error
+    if primary is not None:
+        raise primary
+    if close_error is not None:
+        raise close_error
+    return raw
+
+
+def proc(pid):
+    owner = _SUPERVISION_CURRENT[0]
+    if owner is not None:
+        return owner.proc(pid, pid != owner.pid)
+    try:
+        raw = _plain_proc_read('/proc/' + str(pid) + '/stat', 8192)
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    end = raw.rfind(b') ')
+    need(end >= 0, 'Malformed process stat')
+    fields = raw[end + 2:].split()
+    need(len(fields) > 21, 'Complete process identity/RSS fields')
+    return {'pid': int(pid), 'ppid': int(fields[1]), 'pgid': int(fields[2]),
+            'sid': int(fields[3]), 'start_ticks': int(fields[19]),
+            'state': fields[0].decode('ascii'),
+            'rss_bytes': int(fields[21]) * os.sysconf('SC_PAGE_SIZE')}
+
+
+def census():
+    owner = _SUPERVISION_CURRENT[0]
+    if owner is not None:
+        return owner.observe()[0]
+    found = {}
+    with os.scandir('/proc') as entries:
+        for entry in entries:
+            if entry.name.isdecimal():
+                row = proc(int(entry.name))
+                if row is not None:
+                    found[row['pid']] = row
+    return found
+
+
+def generation(row):
+    return row['pid'], row['start_ticks']
+
+
+def children_now():
+    owner = _SUPERVISION_CURRENT[0]
+    if owner is not None:
+        return owner.direct()
+    parent = os.getpid()
+    raw = _plain_proc_read('/proc/' + str(parent) + '/task/' + str(parent) + '/children', 32768)
+    pids = [int(word) for word in raw.split()]
+    need(len(pids) <= 128 and len(set(pids)) == len(pids), 'finite exact original child list')
+    rows = []
+    for pid in pids:
+        row = proc(pid)
+        need(row is not None and row['ppid'] == parent, 'actual direct child must remain readable')
+        rows.append(row)
+    return rows
+
+
+def install_subreaper(root):
+    """Called only by the future parent, before any controlled root exists."""
+    launch_contract()
+    need(not children_now(), 'Parent must own no preexisting child processes')
+    tcb, tcb_row = read_json(root / 'control/NATIVE-INITIAL-TCB-v1.json')
+    need(tcb_row['sha256'] == TCB_SHA, 'Accepted initial TCB changed')
+    need(any(row['path'] == LIBC and row['sha256'] == NATIVE_PINS[LIBC]
+             for row in tcb['files']), 'Pinned libc absent from accepted TCB')
+    evidence = {path: stable_file(path, 16 * 1024 * 1024) for path in NATIVE_PINS}
+    need(all(evidence[path]['sha256'] == expected for path, expected in NATIVE_PINS.items()),
+         'Subreaper native/stdlib source supplement changed')
+    # This import and native call have NOT been performed during source authoring.
+    need(Path('/usr/lib/x86_64-linux-gnu/libffi.so.8').resolve() ==
+         Path('/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4'), 'Foreign libffi SONAME resolution')
+    import ctypes
+    need(sys.modules['_ctypes'].__file__ ==
+         '/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so', 'Foreign _ctypes owner')
+    need(ctypes.__file__ == '/usr/lib/python3.12/ctypes/__init__.py', 'Foreign ctypes owner')
+    library = ctypes.CDLL(LIBC, use_errno=True)
+    call = library.prctl
+    call.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+    call.restype = ctypes.c_int
+    prior, actual = ctypes.c_int(), ctypes.c_int()
+    need(call(37, ctypes.addressof(prior), 0, 0, 0) == 0, 'PR_GET_CHILD_SUBREAPER failed')
+    need(call(36, 1, 0, 0, 0) == 0, 'PR_SET_CHILD_SUBREAPER failed')
+    need(call(37, ctypes.addressof(actual), 0, 0, 0) == 0 and actual.value == 1,
+         'Same-process subreaper readback failed')
+    for path, expected in NATIVE_PINS.items():
+        need(stable_file(path, 16 * 1024 * 1024)['sha256'] == expected, 'TCB bytes changed across load')
+    # Retain the CDLL and typed function in the owning parent for its whole queue.
+    return {'pid': os.getpid(), 'prior': prior.value, 'actual': actual.value,
+            'tcb_sha256': TCB_SHA, 'native_source_evidence': evidence,
+            'trust': 'Trusted OS/loader/initial system stdlib; file pins do not authenticate native memory'}, (library, call)
+
+
+def ledger(root, allow_unclosed=False):
+    result = {}
+    runs = root / 'runtime/runs'
+    for folder in sorted(runs.iterdir()):
+        need(folder.is_dir() and not folder.is_symlink(), 'Unexpected round run entry')
+        if allow_unclosed and not (folder / 'receipt.json').exists():
+            continue
+        receipt, _ = read_json(folder / 'receipt.json', 4 * 1024 * 1024)
+        amount = receipt.get('runner_wall_seconds', receipt.get('wall_seconds'))
+        need(type(amount) in (int, float) and amount >= 0, 'Invalid ledger amount')
+        result[folder.name] = float(amount)
+    return result
+
+
+def budget(root):
+    phase, _ = read_json(root / 'control/EXECUTION-PHASE.json')
+    cap = phase['aggregate_cap_seconds']
+    need(type(cap) is int and cap in (600, 2400), 'Unrecognized budget phase')
+    current = ledger(root)
+    need(sum(current.values()) < cap, 'Round budget consumed')
+    return cap, current
+
+
+def parent_lock(root):
+    lock = (root / 'runtime/parent-queue.lock').open('a')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BaseException:
+        lock.close()
+        raise
+    return lock
+
+
+class ExecutionDeadline(RuntimeError):
+    pass
+
+
+def deadline_handler(signum, frame):
+    raise ExecutionDeadline('Outer execution deadline reached, including Popen/preexec')
+
+
+# AI-authored adaptation of the original selected supervision and #6873 owner.
+# Mutable lists are sealed by actual object identity in the source receiver.
+_SUPERVISION_CURRENT = [None]
+_SUPERVISION_HISTORY = []
+
+
+class CustodyPending(RuntimeError):
+    """A live actual owner remains responsible; this is never retirement."""
+    pass
+
+
+class OwnedDomain:
+    """One source-owned birth, retained generations, and exact terminal custody.
+
+    The first caught exception is stored in its preallocated operation slot
+    before any reporting helper is entered. A normal Python memory allocation
+    is not represented as a guarantee of arbitrary allocation-failure recovery.
+    """
+    def __init__(self, guard):
+        need(any(prior is guard for prior in _GUARD_ATTEMPTS), 'genuine reserved original guard')
+        self.guard = guard
+        self.pid = os.getpid()
+        self.rows, self.fds, self.groups, self.reaped = {}, {}, set(), []
+        self.root = None
+        self.process = None
+        self.parent_group, self.parent_session = os.getpgrp(), os.getsid(0)
+        self.phase, self.birth = 'ALLOCATED', 'UNENTERED'
+        self.native, self.native_evidence = None, None
+        self.native_types, self.native_addressof, self.ctypes = None, None, None
+        self.native_handle, self.native_flags, self.native_call = None, None, None
+        self.unknown = False
+        self.retire_entered = self.empty_observed = self.retired = False
+        self.retire_deadline = None
+        self.close_entered = False
+        self.pending_error = CustodyPending('actual family custody remains pending')
+        self.pending_reason = None
+        self.last_error = None
+        self.first_error = None
+        self.error_events = [[None, None] for unused in range(1024)]
+        self.error_next = list(range(1, 1025))
+        self.error_count = 0
+        self.stop_signal = None
+        self.stop_handlers = [None, None, None]
+        self.stop_handler_changed = [False, False, False]
+        self.handler_errors = [None, None, None, None, None, None]
+        self.pause_errors = [None] * 16
+        self.io = [dict(phase='FREE', fd=None, path=None, working=None,
+                        close_error=None, sequence=None) for unused in range(32)]
+        self.tickets = [dict(phase='FREE', fd=None, key=None, pid=None,
+                            signal_entered=False, signal_returned=False,
+                            wait_entered=False, wait_returned=False,
+                            exit_observation=None, wait_status=None,
+                            errors=[None, None, None, None, None])
+                        for unused in range(128)]
+        self.capture = [dict(name=name, writer=None, reader=None, read_error=None,
+                             close_entry_error=None, observation=None, initial=None,
+                             acquisition_boundary='BEFORE_ROOT_BIRTH')
+                        for name in ('root.stdout.raw', 'root.stderr.raw')]
+        self.inner_capture = [dict(name=name, writer=None, reader=None, read_error=None,
+                                   acquire_error=None, close_entry_error=None, observation=None,
+                                   initial=None, path=None, attempted=False, absence_observed=False,
+                                   acquisition_boundary=None)
+                              for name in ('stdout.txt', 'stderr.txt')]
+        self.all_capture = self.capture + self.inner_capture
+        self.round_root = self.label = None
+        self.inner_release_prepared = False
+        self.cleanup_errors = [None] * 8
+        self.after_root = set()
+        self.guard['owned_domain'] = self
+
+    def _actual(self):
+        need(_SUPERVISION_CURRENT[0] is self and self.pid == os.getpid() and
+             self.guard['owned_domain'] is self and
+             any(owner is self for owner in _SUPERVISION_HISTORY),
+             'actual same-process selected family custodian')
+
+    def _check(self):
+        self._actual()
+        if self.retire_entered and time.monotonic() >= self.retire_deadline:
+            self.pending_reason = 'original bounded retirement tail exhausted'
+            raise self.pending_error
+
+    def _io_slot(self, path):
+        self._actual()
+        need(not self.unknown, 'uncertain custody blocks fresh descriptor acquisition')
+        slot = next((item for item in self.io if item['phase'] in ('FREE', 'CLOSED')), None)
+        need(slot is not None, 'finite preallocated metadata/capture holders')
+        # All potentially allocating preparation precedes OPEN_PENDING.
+        name = str(path)
+        slot.update(path=name, working=None, close_error=None, sequence=None)
+        slot['fd'], slot['phase'] = None, 'OPEN_PENDING'
+        return slot
+
+    def open_fd(self, path, flags, mode=0o600, absent_ok=False):
+        slot = self._io_slot(path)
+        try:
+            slot['fd'] = os.open(path, flags, mode)
+            slot['phase'] = 'OWNED'
+        except BaseException as error:
+            slot['working'] = error
+            if absent_ok and type(error) is FileNotFoundError:
+                slot['phase'] = 'CLOSED'
+                raise
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            # The original first-delivered native contract does not identify an
+            # earlier possible acquire/boxing failure from arbitrary exceptions.
+            # Genuine pathname errno failures precede successful acquisition.
+            if type(error) in (FileNotFoundError, NotADirectoryError,
+                               PermissionError, FileExistsError):
+                slot['phase'] = 'CLOSED'
+            else:
+                slot['phase'], self.unknown = 'OPEN_UNKNOWN', True
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if self.error_count < 1024:
+                self.error_events[self.error_count][0] = 'open'
+                self.error_events[self.error_count][1] = error
+                self.error_count = self.error_next[self.error_count]
+            else:
+                self.unknown = True
+            raise
+        return slot
+
+    def close_fd(self, slot):
+        if slot is None or slot['phase'] != 'OWNED':
+            return
+        fd = slot['fd']
+        slot['attempted_close_fd'] = fd
+        slot['fd'], slot['phase'] = None, 'CLOSE_ENTERED'
+        try:
+            os.close(fd)
+            slot['phase'] = 'CLOSED'
+        except BaseException as error:
+            slot['close_error'] = error
+            slot['phase'], self.unknown = 'CLOSE_UNKNOWN', True
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if self.error_count < 1024:
+                self.error_events[self.error_count][0] = 'close'
+                self.error_events[self.error_count][1] = error
+                self.error_count = self.error_next[self.error_count]
+            else:
+                self.unknown = True
+            raise
+
+    def read_metadata(self, path, cap, absent_ok=False):
+        self._check()
+        slot = None
+        primary = None
+        parts, total = [], 0
+        try:
+            slot = self.open_fd(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC, absent_ok=absent_ok)
+            while True:
+                data = os.read(slot['fd'], min(CHUNK, cap + 1 - total))
+                if not data:
+                    break
+                total += len(data)
+                need(total <= cap, 'bounded complete kernel metadata')
+                parts.append(data)
+            result = b''.join(parts)
+        except FileNotFoundError as error:
+            primary = error
+            if slot is not None:
+                slot['working'] = error
+            if absent_ok and slot is None and not self.unknown:
+                # Only the observation of a non-direct descendant may vanish.
+                # This absence never proves terminal domain emptiness.
+                primary = None
+                result = None
+            else:
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                if self.error_count < 1024:
+                    self.error_events[self.error_count][0] = 'metadata-read'
+                    self.error_events[self.error_count][1] = error
+                    self.error_count = self.error_next[self.error_count]
+                else:
+                    self.unknown = True
+        except BaseException as error:
+            primary = error
+            if slot is not None:
+                slot['working'] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if self.error_count < 1024:
+                self.error_events[self.error_count][0] = 'metadata-read'
+                self.error_events[self.error_count][1] = error
+                self.error_count = self.error_next[self.error_count]
+            else:
+                self.unknown = True
+        finally:
+            if slot is not None:
+                try:
+                    self.close_fd(slot)
+                except BaseException as error:
+                    if primary is None:
+                        primary = error
+        if primary is not None:
+            raise primary
+        return result
+
+    def proc(self, pid, absent_ok=False):
+        raw = self.read_metadata('/proc/' + str(pid) + '/stat', 8192, absent_ok)
+        if raw is None:
+            return None
+        end = raw.rfind(b') ')
+        need(end >= 0, 'complete actual process-stat grammar')
+        fields = raw[end + 2:].split()
+        need(len(fields) > 21, 'complete process identity/RSS fields')
+        return dict(pid=pid, ppid=int(fields[1]), pgid=int(fields[2]),
+                    sid=int(fields[3]), start_ticks=int(fields[19]),
+                    state=fields[0].decode('ascii'),
+                    rss_bytes=int(fields[21]) * os.sysconf('SC_PAGE_SIZE'))
+
+    def child_pids(self, pid, absent_ok=False):
+        raw = self.read_metadata('/proc/' + str(pid) + '/task/' + str(pid) + '/children',
+                                 32768, absent_ok)
+        if raw is None:
+            return None
+        pids = [int(word) for word in raw.split()]
+        need(len(pids) <= 128 and len(set(pids)) == len(pids) and
+             all(0 < item <= 2147483647 for item in pids),
+             'original finite distinct child identities')
+        return pids
+
+    def direct(self):
+        rows = []
+        for pid in self.child_pids(self.pid):
+            row = self.proc(pid)
+            need(row['ppid'] == self.pid, 'unreaped actual direct child')
+            rows.append(row)
+        return rows
+
+    def install(self, root):
+        self._actual()
+        need(signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL,
+             'fresh-exec SIGCHLD default; exclusive consuming-wait source')
+        need(not self.direct(), 'no unrelated child before this original operation')
+        self.phase = 'SUBREAPER_INSTALL_PENDING'
+        evidence, native = install_subreaper(root)
+        self.native_evidence, self.native = evidence, native
+        self.native_call = native[1]
+        self.native_handle, self.native_flags = native[0]._handle, native[1]._flags_
+        self.ctypes = sys.modules['ctypes']
+        self.native_types = (self.ctypes.c_int, self.ctypes.c_ulong)
+        self.native_addressof = self.ctypes.addressof
+        need(type(native) is tuple and len(native) == 2 and
+             evidence['pid'] == self.pid and evidence['actual'] == 1,
+             'actual original installer/native association')
+        self.verify_native()
+        need(not self.direct(), 'exact pre-birth empty same-operation domain')
+        self.phase = 'READY'
+
+    def verify_native(self):
+        self._check()
+        ctypes = self.ctypes
+        need(sys.modules.get('ctypes') is ctypes and
+             ctypes.c_int is self.native_types[0] and
+             ctypes.c_ulong is self.native_types[1] and
+             ctypes.addressof is self.native_addressof,
+             'retained original ctypes/native identities')
+        call = self.native[1]
+        need(call is self.native_call and self.native[0].prctl is call and
+             self.native[0]._name == LIBC and self.native[0]._handle == self.native_handle and
+             call._flags_ == self.native_flags and call.errcheck is None,
+             'actual retained libc/prctl association without an added callback')
+        need(call.argtypes == [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
+                              ctypes.c_ulong, ctypes.c_ulong] and
+             call.restype is ctypes.c_int, 'original prctl ABI unchanged')
+        current = ctypes.c_int()
+        need(call(37, ctypes.addressof(current), 0, 0, 0) == 0 and current.value == 1,
+             'actual surviving same-process subreaper')
+
+    def birth_pending(self):
+        self._actual()
+        need(self.phase == 'READY' and self.birth == 'UNENTERED',
+             'one original selected Popen entry')
+        self.verify_native()
+        need(not self.direct(), 'no unrelated child at controlled birth boundary')
+        self.birth, self.phase = 'POPEN_PENDING', 'ACTIVE'
+
+    def retain_process(self, process):
+        self.process = process
+        self.guard['actual_process'] = process
+        self.birth = 'POPEN_RETURNED'
+        row = self.proc(process.pid)
+        need(row['ppid'] == self.pid and row['pgid'] == row['sid'] == process.pid,
+             'actual unreaped new-session direct root')
+        self.root = generation(row)
+        self.add(row)
+        return row
+
+    def add(self, row):
+        key = generation(row)
+        old = next((item for item in self.tickets if item['key'] == key), None)
+        if old is not None:
+            need(not old['wait_entered'], 'consumed generation never re-enters custody')
+            return old
+        need(not self.unknown and row['pid'] != self.pid,
+             'no new native child holder after uncertain custody')
+        ticket = next((item for item in self.tickets if item['phase'] == 'FREE'), None)
+        need(ticket is not None, 'original 128 observed-generation bound')
+        ticket['pid'], ticket['key'], ticket['phase'] = row['pid'], key, 'PIDFD_PENDING'
+        try:
+            ticket['fd'] = os.pidfd_open(row['pid'], 0)
+            ticket['phase'] = 'OWNED'
+            current = self.proc(row['pid'], row['ppid'] != self.pid)
+            if current is None or generation(current) != key:
+                # A non-direct child may be reaped by its actual parent. The
+                # acquired pidfd remains owned until whole-domain retirement.
+                ticket['phase'] = 'STALE_OWNED'
+                return ticket
+            self.rows[key] = dict(current)
+            self.fds[key] = ticket['fd']
+            if current['pgid'] != self.parent_group:
+                self.groups.add((current['pgid'], current['sid']))
+        except ProcessLookupError as error:
+            ticket['errors'][0] = error
+            if ticket['phase'] == 'PIDFD_PENDING' and row['ppid'] != self.pid:
+                # Genuine ESRCH from pidfd_open returns no acquired pidfd.
+                ticket['phase'] = 'ABSENT'
+                return ticket
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self.unknown = ticket['phase'] == 'PIDFD_PENDING' or self.unknown
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if self.error_count < 1024:
+                self.error_events[self.error_count][0] = 'pidfd-open'
+                self.error_events[self.error_count][1] = error
+                self.error_count = self.error_next[self.error_count]
+            else:
+                self.unknown = True
+            raise
+        except BaseException as error:
+            ticket['errors'][0] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if ticket['phase'] == 'PIDFD_PENDING':
+                ticket['phase'], self.unknown = 'PIDFD_UNKNOWN', True
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if self.error_count < 1024:
+                self.error_events[self.error_count][0] = 'pidfd-open'
+                self.error_events[self.error_count][1] = error
+                self.error_count = self.error_next[self.error_count]
+            else:
+                self.unknown = True
+            raise
+        return ticket
+
+    def observe(self):
+        # Exact parent-to-child traversal replaces a broad census whose omitted
+        # unreadable direct child could previously masquerade as an empty domain.
+        self.verify_native()
+        rows = self.direct()
+        queue = list(rows)
+        all_rows = {}
+        while queue:
+            row = queue.pop(0)
+            key = generation(row)
+            if row['pid'] in all_rows:
+                need(generation(all_rows[row['pid']]) == key, 'one current process generation')
+                continue
+            need(len(all_rows) < 128, 'original current descendant bound')
+            self.add(row)
+            all_rows[row['pid']] = row
+            children = self.child_pids(row['pid'], row['ppid'] != self.pid)
+            if children is None:
+                continue
+            for pid in children:
+                child = self.proc(pid, True)
+                if child is not None and child['ppid'] == row['pid']:
+                    queue.append(child)
+        return all_rows, list(all_rows.values())
+
+    def _exit_observation(self, ticket):
+        self._check()
+        need(ticket['phase'] == 'OWNED' and not ticket['wait_entered'],
+             'held unreaped direct generation')
+        observed = os.waitid(os.P_PID, ticket['pid'], os.WEXITED | os.WNOWAIT | os.WNOHANG)
+        if observed is not None:
+            need(observed.si_pid == ticket['pid'], 'same retained direct exit')
+            ticket['exit_observation'] = observed
+        return observed
+
+    def root_exit_observed(self):
+        ticket = next(item for item in self.tickets if item['key'] == self.root)
+        return self._exit_observation(ticket) is not None
+
+    def _signal_once(self, ticket):
+        if ticket['signal_entered'] or ticket['wait_entered']:
+            return
+        self._check()
+        ticket['signal_entered'] = True
+        try:
+            signal.pidfd_send_signal(ticket['fd'], signal.SIGKILL, None, 0)
+            ticket['signal_returned'] = True
+        except BaseException as error:
+            ticket['errors'][1] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if self.error_count < 1024:
+                self.error_events[self.error_count][0] = 'pidfd-signal'
+                self.error_events[self.error_count][1] = error
+                self.error_count = self.error_next[self.error_count]
+            else:
+                self.unknown = True
+
+    def _consume_once(self, ticket):
+        self._check()
+        need(ticket['exit_observation'] is not None and not ticket['wait_entered'],
+             'observed exit before one consuming wait')
+        ticket['wait_entered'] = True
+        try:
+            pid, status = os.waitpid(ticket['pid'], os.WNOHANG)
+            need(pid == ticket['pid'], 'exclusive same-generation consuming wait')
+            ticket['wait_returned'], ticket['wait_status'] = True, status
+            if ticket['key'] == self.root and self.process is not None:
+                # Retain consumed status before any append/report operation.
+                self.process.returncode = os.waitstatus_to_exitcode(status)
+            else:
+                self.reaped.append(dict(pid=pid, start_ticks=ticket['key'][1], wait_status=status))
+        except BaseException as error:
+            ticket['errors'][2] = error
+            self.unknown = True
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            self.last_error = error
+            if self.first_error is None:
+                self.first_error = error
+            if self.guard['primary'][0] is None:
+                self.guard['primary'][0] = error
+            if self.error_count < 1024:
+                self.error_events[self.error_count][0] = 'consuming-wait'
+                self.error_events[self.error_count][1] = error
+                self.error_count = self.error_next[self.error_count]
+            else:
+                self.unknown = True
+
+    def _empty_exact(self):
+        self._check()
+        if self.direct():
+            return False
+        try:
+            os.waitid(os.P_ALL, 0, os.WEXITED | os.WNOWAIT | os.WNOHANG)
+        except ChildProcessError:
+            return not self.direct()
+        return False
+
+    def _close_holders_once(self):
+        need(self.empty_observed and not self.close_entered,
+             'actual domain emptiness precedes native-holder release')
+        self.close_entered = True
+        for ticket in self.tickets:
+            if ticket['phase'] not in ('OWNED', 'STALE_OWNED'):
+                continue
+            self._check()
+            fd = ticket['fd']
+            ticket['attempted_close_fd'] = fd
+            ticket['fd'], ticket['phase'] = None, 'CLOSE_ENTERED'
+            try:
+                os.close(fd)
+                ticket['phase'] = 'CLOSED'
+            except BaseException as error:
+                ticket['phase'], ticket['errors'][3] = 'CLOSE_UNKNOWN', error
+                self.unknown = True
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                if self.error_count < 1024:
+                    self.error_events[self.error_count][0] = 'pidfd-close'
+                    self.error_events[self.error_count][1] = error
+                    self.error_count = self.error_next[self.error_count]
+                else:
+                    self.unknown = True
+        # Keep historical key->fd identities for evidence. Closed numeric values
+        # are never used again, and rows/tickets remain retained by this owner.
+
+    def cleanup(self, process, absolute_deadline):
+        self._actual()
+        need(not self.retire_entered, 'one actual bounded retirement entry')
+        self.retire_entered = True
+        start = time.monotonic()
+        self.retire_deadline = min(absolute_deadline, start + CLEANUP_SECONDS)
+        self.phase = 'RETIRING'
+        try:
+            while True:
+                self._check()
+                if self.unknown or self.birth == 'POPEN_UNKNOWN':
+                    # Popen may have acquired private native holders before its
+                    # result failed to reach us. Retain the actual exception and
+                    # its frames. Never infer absence from no returned object.
+                    for ticket in self.tickets:
+                        if ticket['phase'] == 'OWNED' and not ticket['wait_entered']:
+                            self._signal_once(ticket)
+                    self.pending_reason = 'uncertain acquisition/wait/close or Popen return'
+                    raise self.pending_error
+                self.verify_native()
+                direct = self.direct()
+                for row in direct:
+                    if self.process is not None and row['pid'] == self.process.pid and self.root is None:
+                        self.root = generation(row)
+                    ticket = self.add(row)
+                    if self.process is not None and self.process.returncode is not None and row['pid'] != self.process.pid:
+                        self.after_root.add(generation(row))
+                    if self._exit_observation(ticket) is None:
+                        self._signal_once(ticket)
+                    if self._exit_observation(ticket) is not None:
+                        self._consume_once(ticket)
+                if self.unknown:
+                    continue
+                if self._empty_exact():
+                    self.empty_observed = True
+                    self._close_holders_once()
+                    if self.unknown:
+                        self.pending_reason = 'empty domain but native holder close is uncertain'
+                        raise self.pending_error
+                    self.retired, self.phase = True, 'RETIRED'
+                    break
+                time.sleep(0.01)
+        except BaseException as error:
+            self.cleanup_errors[0] = error
+            self.last_error = error
+            if error is not self.pending_error:
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                if self.error_count < 1024:
+                    self.error_events[self.error_count][0] = 'domain-retirement'
+                    self.error_events[self.error_count][1] = error
+                    self.error_count = self.error_next[self.error_count]
+                else:
+                    self.unknown = True
+            self.phase = 'CUSTODY_PENDING'
+        return self.observation(start)
+
+    def observation(self, start):
+        return dict(complete=self.retired and not self.unknown,
+                    owned_generations=list(self.rows.values()),
+                    groups=[dict(pgid=g, sid=s) for g, s in sorted(self.groups)],
+                    reaped_adopted=self.reaped,
+                    observed_after_root_exit=[list(key) for key in sorted(self.after_root)],
+                    remaining=[] if self.empty_observed else 'UNKNOWN_UNRETIRED_DOMAIN',
+                    cleanup_seconds=time.monotonic() - start,
+                    cleanup_tail_limit_seconds=CLEANUP_SECONDS,
+                    group_empty_proved=self.empty_observed,
+                    kernel_echild_and_direct_empty=self.empty_observed,
+                    holders_retired=self.retired and not self.unknown,
+                    phase=self.phase, birth=self.birth,
+                    signal_method='one SIGKILL through retained pidfd before one WNOWAIT-authorised consuming wait; no killpg')
+
+    def stop_handler(self, signum, frame):
+        self.stop_signal = signum
+
+    def install_stop_handlers(self):
+        for index, signum in enumerate((signal.SIGINT, signal.SIGTERM, signal.SIGHUP)):
+            self.stop_handlers[index] = signal.getsignal(signum)
+            self.stop_handler_changed[index] = True
+            signal.signal(signum, self.stop_handler)
+
+    def restore_stop_handlers(self):
+        need(self.retired and not self.unknown, 'known retirement before ordinary handler restoration')
+        for index, signum in enumerate((signal.SIGINT, signal.SIGTERM, signal.SIGHUP)):
+            if not self.stop_handler_changed[index]:
+                continue
+            self.stop_handler_changed[index] = False
+            try:
+                signal.signal(signum, self.stop_handlers[index])
+            except BaseException as error:
+                self.handler_errors[index + 3] = error
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+                if self.error_count < 1024:
+                    self.error_events[self.error_count][0] = 'restore-stop-handler'
+                    self.error_events[self.error_count][1] = error
+                    self.error_count = self.error_next[self.error_count]
+                else:
+                    self.unknown = True
+
+    def hold_pending(self):
+        # Reached by run_root whenever retirement/holder knowledge is incomplete.
+        # This is the very same original parent and original unclosed operation.
+        # No return, exception unwind, replacement owner, new attempt, retry,
+        # grant, or budget is created. Continuing physical cost stays OPEN.
+        self.phase = 'ACTUAL_SURVIVING_CUSTODY_PENDING'
+        self.guard['surviving_pending_owner'] = self
+        while True:
+            try:
+                signal.pause()
+            except BaseException as error:
+                self.pause_errors[0] = error
+                self.last_error = error
+                if self.first_error is None:
+                    self.first_error = error
+                if self.guard['primary'][0] is None:
+                    self.guard['primary'][0] = error
+
+    def prepare_capture(self, evidence):
+        # Both immutable reader identities are acquired before the only birth.
+        for item in self.capture:
+            path = evidence / item['name']
+            item['path'] = path
+            item['writer'] = self.open_fd(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                                           os.O_CLOEXEC | os.O_NOFOLLOW)
+            item['reader'] = self.open_fd(path, os.O_RDONLY | os.O_NONBLOCK |
+                                           os.O_CLOEXEC | os.O_NOFOLLOW)
+            a, b = os.fstat(item['writer']['fd']), os.fstat(item['reader']['fd'])
+            need(stat.S_ISREG(a.st_mode) and stat.S_IMODE(a.st_mode) == 0o600 and
+                 a.st_uid == os.getuid() and a.st_nlink == 1 and
+                 identity(a) == identity(b) == identity(path.lstat()),
+                 'same exclusive parent capture writer/preowned reader')
+            item['initial'] = (a.st_dev, a.st_ino, a.st_mode, a.st_uid, a.st_nlink)
+
+    def read_capture_known(self, item):
+        """No descriptor acquisition and no exception formatting occurs here."""
+        reader = item['reader']
+        need(reader is not None and reader['phase'] == 'OWNED', 'actual pre-birth capture reader')
+        fd, path = reader['fd'], item['path']
+        before = os.fstat(fd)
+        current = path.lstat()
+        need((before.st_dev, before.st_ino, before.st_mode, before.st_uid, before.st_nlink) ==
+             item['initial'] and identity(before) == identity(current) and
+             stat.S_ISREG(before.st_mode) and before.st_size <= LOG_CAP,
+             'actual complete available capture identity and bound')
+        need(os.lseek(fd, 0, os.SEEK_SET) == 0, 'retained capture reader starts at zero')
+        digest, total = hashlib.sha256(), 0
+        while total < before.st_size:
+            data = os.read(fd, min(CHUNK, before.st_size - total))
+            need(bool(data), 'complete available bounded capture')
+            total += len(data)
+            digest.update(data)
+        eof = os.read(fd, 1)
+        after = os.fstat(fd)
+        need(eof == b'' and identity(before) == identity(after) == identity(path.lstat()),
+             'stable complete capture EOF after actual domain emptiness')
+        item['observation'] = dict(path=str(path), sha256=digest.hexdigest(), bytes=total,
+                                   identity=list(identity(after)), stable=True,
+                                   full_read=True, eof=True,
+                                   reader_acquisition_boundary=item['acquisition_boundary'],
+                                   read_chunk_bytes=CHUNK)
+        return item['observation']
+
+    def prepare_inner_capture(self, guard, captured):
+        self._actual()
+        need(guard is self.guard and guard['phase'] == 'WAITING_REQUEST' and
+             generation(captured) == self.root and self.birth == 'POPEN_RETURNED' and
+             not self.inner_release_prepared and self.round_root is not None,
+             'actual source-authenticated original runner before target release')
+        for item in self.inner_capture:
+            need(not item['attempted'] and item['reader'] is None and
+                 item['path'] == self.round_root / 'runtime/runs' / self.label / item['name'],
+                 'one actual original label/folder capture acquisition')
+            item['attempted'] = True
+            item['reader'] = self.open_fd(item['path'], os.O_RDONLY | os.O_NONBLOCK |
+                                          os.O_NOFOLLOW | os.O_CLOEXEC)
+            info = os.fstat(item['reader']['fd'])
+            need(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and
+                 info.st_nlink == 1 and not info.st_mode & 0o022 and
+                 identity(info) == identity(item['path'].lstat()),
+                 'actual exclusive original runner inner capture inode')
+            item['initial'] = (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink)
+            item['acquisition_boundary'] = 'AUTHENTICATED_BEFORE_TARGET_ACK'
+        self.inner_release_prepared = True
+
+    def acquire_retired_inner(self, item):
+        # Only a pre-ACK failure can reach this fallback. A working error alone
+        # does not prohibit a safe read acquisition after proved retirement.
+        self._actual()
+        need(self.empty_observed and self.retired and not self.unknown and
+             item in self.inner_capture and item['reader'] is None and
+             not item['attempted'] and self.round_root is not None and
+             item['path'] == self.round_root / 'runtime/runs' / self.label / item['name'],
+             'known retirement and exact original label before fallback read')
+        try:
+            before = item['path'].lstat()
+        except FileNotFoundError:
+            item['absence_observed'] = True
+            item['acquisition_boundary'] = 'NOT_CREATED_BEFORE_KNOWN_RETIREMENT'
+            return
+        need(stat.S_ISREG(before.st_mode) and before.st_uid == os.getuid() and
+             before.st_nlink == 1 and not before.st_mode & 0o022,
+             'original source-owned retained inner capture')
+        item['attempted'] = True
+        item['reader'] = self.open_fd(item['path'], os.O_RDONLY | os.O_NONBLOCK |
+                                      os.O_NOFOLLOW | os.O_CLOEXEC)
+        opened = os.fstat(item['reader']['fd'])
+        need(identity(before) == identity(opened) == identity(item['path'].lstat()),
+             'complete actual original inner-capture open join')
+        item['initial'] = (opened.st_dev, opened.st_ino, opened.st_mode, opened.st_uid, opened.st_nlink)
+        item['acquisition_boundary'] = 'AFTER_PROVED_RETIREMENT_WITH_CERTAIN_CUSTODY'
+
+    def capture_after_retirement(self):
+        # Four preallocated stream records, with independent read/close attempts.
+        # No optional reporting helper is entered between these attempts.
+        for item in self.all_capture:
+            if (self.empty_observed and self.retired and not self.unknown and
+                    item in self.inner_capture and item['reader'] is None and
+                    not item['attempted'] and self.round_root is not None):
+                try:
+                    self.acquire_retired_inner(item)
+                except BaseException as error:
+                    item['acquire_error'] = error
+                    self.last_error = error
+                    if self.first_error is None:
+                        self.first_error = error
+                    if self.guard['primary'][0] is None:
+                        self.guard['primary'][0] = error
+                    if self.error_count < 1024:
+                        self.error_events[self.error_count][0] = 'inner-capture-acquire'
+                        self.error_events[self.error_count][1] = error
+                        self.error_count = self.error_next[self.error_count]
+                    else:
+                        self.unknown = True
+            if self.empty_observed and item['reader'] is not None and item['reader']['phase'] == 'OWNED':
+                try:
+                    self.read_capture_known(item)
+                except BaseException as error:
+                    item['read_error'] = error
+                    self.last_error = error
+                    if self.first_error is None:
+                        self.first_error = error
+                    if self.guard['primary'][0] is None:
+                        self.guard['primary'][0] = error
+                    if self.error_count < 1024:
+                        self.error_events[self.error_count][0] = 'capture-full-read'
+                        self.error_events[self.error_count][1] = error
+                        self.error_count = self.error_next[self.error_count]
+                    else:
+                        self.unknown = True
+            if self.empty_observed and item['reader'] is not None:
+                try:
+                    self.close_fd(item['reader'])
+                except BaseException as error:
+                    item['close_entry_error'] = error
+                    self.last_error = error
+                    if self.first_error is None:
+                        self.first_error = error
+                    if self.guard['primary'][0] is None:
+                        self.guard['primary'][0] = error
+                    if self.error_count < 1024:
+                        self.error_events[self.error_count][0] = 'capture-reader-close'
+                        self.error_events[self.error_count][1] = error
+                        self.error_count = self.error_next[self.error_count]
+                    else:
+                        self.unknown = True
+
+    def close_capture_writers(self):
+        for item in self.capture:
+            if item['writer'] is not None:
+                try:
+                    self.close_fd(item['writer'])
+                except BaseException as error:
+                    self.cleanup_errors[4 if item['name'] == 'root.stdout.raw' else 5] = error
+                    if self.first_error is None:
+                        self.first_error = error
+                    if self.guard['primary'][0] is None:
+                        self.guard['primary'][0] = error
+
+
+def reconcile_missing_receipt(root, label, began, cause, cleanup):
+    folder = root / 'runtime/runs' / label
+    folder.mkdir(exist_ok=True)
+    if not cleanup['complete'] and not (folder / 'receipt.json').exists():
+        # A surviving root must never race a replacement canonical receipt.
+        # Leave its attempt unclosed, blocking the unchanged runner, and add a
+        # distinct charged STOP record for the parent to reconcile manually.
+        folder = root / 'runtime/runs' / (label + '-outer-unclosed-stop')
+        folder.mkdir()
+    path = folder / 'receipt.json'
+    if path.exists():
+        return None
+    start = {}
+    if (folder / 'START.json').exists():
+        start, _ = read_json(folder / 'START.json')
+    row = dict(start, schema='h25-outer-reconciled-stop-v1', status='STOP', label=label,
+               kind='outer_reconciled_incomplete_root', termination=cause, attempt_label=label,
+               wall_seconds=time.monotonic() - began, original_root_receipt_absent=True,
+               original_root_completion_claimed=False, cleanup_complete=cleanup['complete'],
+               all_prior_files_preserved=True)
+    row['label'] = folder.name
+    row['runner_wall_seconds'] = row['wall_seconds']
+    if not (folder / 'START.json').exists():
+        write_new(folder / 'START.json', {'kind': row['kind'], 'label': label})
+    write_new(path, row)
+    return row
+
+
+# Additive V2 before-target guard. The admitted single-writer/no-mutator startup
+# premise is inherited; these files are not a hostile-child authentication claim.
+GUARD_CAP = 1048576
+MARKER_CAP = 1048576
+_GUARD_ATTEMPTS = []
+
+
+def _guard_exact(value, keys):
+    need(type(value) is dict and all(type(k) is str for k in value) and
+         set(value) == set(keys), 'Guard exact native keys differ')
+
+
+def _guard_bytes(value):
+    raw = json.dumps(value, sort_keys=True, indent=2, ensure_ascii=True, allow_nan=False).encode('ascii') + b'\n'
+    need(len(raw) <= GUARD_CAP, 'Guard complete packet exceeds bounded channel')
+    return raw
+
+
+def _guard_digest(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'Guard exact digest differs')
+
+
+def _guard_path(value):
+    need(type(value) is str and value.startswith('/') and len(value) <= 4096 and
+         all(c not in ('', '.', '..') for c in value.split('/')[1:]), 'Guard absolute path differs')
+    cursor = Path('/')
+    for component in Path(value).parts[1:-1]:
+        cursor = cursor / component
+        info = cursor.stat(follow_symlinks=False)
+        need(stat.S_ISDIR(info.st_mode), 'Guard parent path is not a genuine directory')
+
+
+def _guard_generation(row):
+    _guard_exact(row, ('pid', 'start_ticks'))
+    need(all(type(row[k]) is int and 0 < row[k] and row[k].bit_length() <= 128 for k in row), 'Guard generation exact integers required')
+
+
+def _guard_leaf(row):
+    _guard_exact(row, ('pid', 'ppid', 'pgid', 'sid', 'start_ticks'))
+    need(all(type(row[k]) is int and 0 < row[k] and row[k].bit_length() <= 128 for k in row), 'Guard leaf exact integers required')
+
+
+def _guard_source(pin):
+    _guard_exact(pin, ('path', 'sha256', 'bytes'))
+    _guard_path(pin['path']); _guard_digest(pin['sha256'])
+    need(type(pin['bytes']) is int and 0 <= pin['bytes'] <= 8388608, 'Guard complete source bound')
+    row = stable_file(pin['path'], 8388608)
+    need(row['sha256'] == pin['sha256'] and row['bytes'] == pin['bytes'] and
+         not row['identity'][2] & 0o222, 'Guard immutable exact source changed')
+
+
+def _guard_binding(binding):
+    _guard_exact(binding, ('case_id', 'context_id', 'unit_id', 'mode', 'action_id', 'generation',
+        'nonce', 'parent_generation', 'component_source', 'entry_source', 'supervisor_source',
+        'context_sha256', 'marker_path', 'request_path', 'ack_path', 'consume_path', 'timeout_milliseconds'))
+    for key in ('case_id', 'context_id', 'unit_id', 'action_id', 'generation'):
+        need(type(binding[key]) is str and 0 < len(binding[key]) <= 256, 'Guard declared identity differs')
+    need(type(binding['mode']) is str and binding['mode'] in ('normal', 'optimized'), 'Guard declared mode differs')
+    for key in ('nonce', 'context_sha256'):
+        _guard_digest(binding[key])
+    _guard_generation(binding['parent_generation'])
+    need(type(binding['timeout_milliseconds']) is int and 1 <= binding['timeout_milliseconds'] <= 180000,
+         'Guard deadline allocation differs')
+    for key in ('marker_path', 'request_path', 'ack_path', 'consume_path'):
+        _guard_path(binding[key])
+    paths = [binding[k] for k in ('marker_path','request_path','ack_path','consume_path')]
+    paths += [binding[k] + '.pending' for k in ('request_path','ack_path','consume_path')]
+    need(len(set(paths)) == len(paths), 'Guard channel/marker path reused')
+    for key in ('component_source','entry_source','supervisor_source'):
+        _guard_source(binding[key])
+    need(binding['supervisor_source']['path'] == __file__, 'Actual guard supervisor source origin differs')
+    _guard_bytes(binding)
+
+
+def _guard_read(path):
+    before=os.stat(path,follow_symlinks=False)
+    need(before.st_nlink==1,'Guard final custody requires one link')
+    pin, raw = stable_file(path, GUARD_CAP, True)
+    after=os.stat(path,follow_symlinks=False)
+    need(after.st_nlink==1 and identity(before)==identity(after),'Guard single-link custody changed during read')
+    value = json.loads(raw)
+    need(_guard_bytes(value) == raw and not pin['identity'][2] & 0o222,
+         'Guard complete canonical immutable packet required')
+    return value, pin
+
+
+_PUBLICATION_BINDING = [None]
+
+
+def prepare_atomic_publication(root, admission):
+    """Before-capture initialization by the externally authenticated caller.
+
+    Input digests do not create authority. The actual caller must bind this
+    exact source/ABI/native profile and grant the operation before invoking it.
+    No native call or import occurred while authoring this source.
+    """
+    need(_PUBLICATION_BINDING[0] is None, 'Atomic publication initializer already consumed')
+    state={'phase':'PREPARING','primary':[None],'secondary':[],'pid':os.getpid(),
+           'library':None,'library_entered':False,'library_returned':False,
+           'call':None,'call_binding_entered':False,'call_binding_returned':False}
+    _PUBLICATION_BINDING[0]=state  # no retry after any partial load/binding
+    try:
+        launch_contract()
+        need(not _GUARD_ATTEMPTS,'Publication binding must precede every guard attempt')
+        _guard_exact(admission, ('schema','source_sha256','source_review_sha256','primitive_review_sha256',
+            'kernel_profile_sha256','runtime_premise_sha256','command_approval_sha256','funding_sha256'))
+        need(admission['schema']=='h25-exclusive-single-link-publication-admission-v1', 'Publication admission shape differs')
+        for name in admission:
+            if name!='schema':
+                _guard_digest(admission[name])
+        need(stable_file(__file__,8388608)['sha256']==admission['source_sha256'], 'Actual publication source differs')
+        tcb,tcb_pin=read_json(Path(root)/'control/NATIVE-INITIAL-TCB-v1.json')
+        need(tcb_pin['sha256']==TCB_SHA and any(r['path']==LIBC and r['sha256']==NATIVE_PINS[LIBC]
+             for r in tcb['files']), 'Publication original native premise differs')
+        source_evidence={name:stable_file(name,16*1024*1024) for name in NATIVE_PINS}
+        need(all(source_evidence[name]['sha256']==expected for name,expected in NATIVE_PINS.items()),
+             'Publication libc/ctypes/libffi source supplement differs')
+        need(Path('/usr/lib/x86_64-linux-gnu/libffi.so.8').resolve()==
+             Path('/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4'), 'Publication libffi SONAME differs')
+        import ctypes
+        need(ctypes.__file__=='/usr/lib/python3.12/ctypes/__init__.py' and
+             sys.modules['_ctypes'].__file__=='/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so',
+             'Publication ctypes owners differ')
+        state['module']=ctypes;state['source_evidence']=source_evidence;state['admission']=admission
+        state['library_entered']=True
+        library=ctypes.CDLL(LIBC,use_errno=True)
+        state['library']=library;state['library_returned']=True
+        state['call_binding_entered']=True
+        call=library.renameat2  # existing glibc symbol; absence stops, no fallback
+        state['call']=call;state['call_binding_returned']=True
+        signature=(ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint)
+        call.argtypes=list(signature);call.restype=ctypes.c_int
+        state.update({'module':ctypes,'library':library,'library_type':type(library),'call':call,
+            'call_type':type(call),'call_flags':call._flags_,'library_handle':library._handle,
+            'signature':signature,'get_errno':ctypes.get_errno,
+            'set_errno':ctypes.set_errno,'source_evidence':source_evidence,'admission':admission,
+            'admission_raw':_guard_bytes(admission),'source_path':__file__})
+        for name,expected in NATIVE_PINS.items():
+            need(stable_file(name,16*1024*1024)['sha256']==expected, 'Publication TCB drift across binding')
+        state['phase']='SEALED'
+        _publication_binding()
+        return None
+    except BaseException as error:
+        state['primary'][0]=error;state['phase']='STOP'
+        raise
+
+
+def _publication_binding():
+    state=_PUBLICATION_BINDING[0]
+    need(state is not None and state['phase']=='SEALED' and state['pid']==os.getpid() and
+         state['primary'][0] is None, 'Actual before-capture publication binding required')
+    module=state['module'];call=state['call']
+    need(sys.modules.get('ctypes') is module and type(state['library']) is state['library_type'] and
+         state['library_type'] is module.CDLL and type(call) is state['call_type'] and
+         state['library'].renameat2 is call and module.get_errno is state['get_errno'] and
+         module.set_errno is state['set_errno'], 'Publication native function/owner binding changed')
+    actual=(module.c_int,module.c_char_p,module.c_int,module.c_char_p,module.c_uint)
+    need(all(a is z for a,z in zip(actual,state['signature'])) and
+         type(call.argtypes) is list and len(call.argtypes)==5 and
+         all(a is z for a,z in zip(call.argtypes,state['signature'])) and call.restype is module.c_int,
+         'Publication exact renameat2 ABI changed')
+    need(type(state['library']._name) is str and state['library']._name==LIBC and
+         type(state['library']._handle) is int and state['library']._handle>0 and
+         state['library']._handle==state['library_handle'] and
+         type(call._flags_) is int and call._flags_==state['call_flags'] and call.errcheck is None,
+         'Publication library handle/flags or hidden native callback changed')
+    need(_guard_bytes(state['admission'])==state['admission_raw'] and
+         stable_file(state['source_path'],8388608)['sha256']==state['admission']['source_sha256'],
+         'Publication source/admission drifted')
+    for name,expected in NATIVE_PINS.items():
+        need(stable_file(name,16*1024*1024)['sha256']==expected, 'Publication TCB current source drifted')
+    return state
+
+
+def _publication_stat(path):
+    try:
+        info=os.stat(path,follow_symlinks=False)
+    except FileNotFoundError:
+        return {'path':str(path),'exists':False}
+    return {'path':str(path),'exists':True,'device':info.st_dev,'inode':info.st_ino,'mode':info.st_mode,
+            'links':info.st_nlink,'bytes':info.st_size,'uid':info.st_uid,'gid':info.st_gid,
+            'mtime_ns':info.st_mtime_ns,'ctime_ns':info.st_ctime_ns}
+
+
+def _publication_close(token,custody):
+    if token['fd'] is None or token['closed']:
+        return
+    token['closed']=True  # close entered once; ambiguity never causes retry
+    try:
+        os.close(token['fd'])
+    except BaseException as error:
+        if token['primary'][0] is None:
+            token['primary'][0]=error
+        else:
+            token['secondary'].append(error);custody['secondary'].append(error)
+
+
+def _guard_publish(path, value, custody):
+    # The only publication operation moves a complete immutable staging inode
+    # with renameat2(RENAME_NOREPLACE). No hardlink alias ever becomes visible.
+    _guard_path(path)
+    native=_publication_binding()  # authenticated before any packet acquisition
+    raw=_guard_bytes(value);pending=Path(path+'.pending')
+    record={'stage':str(pending),'final':path,'raw':raw,'before_stage':None,'before_final':None,
+            'after_stage':None,'after_final':None,'directory_identity':None,'entered':False,'returned':False,'result':None,
+            'errno':None,'committed':False,'uncertain':True,'primary':[None],'secondary':[],'tokens':[]}
+    custody.setdefault('publications',[]).append(record)
+    token={'fd':None,'entered':True,'closed':False,'primary':[None],'secondary':[]}
+    directory={'fd':None,'entered':True,'closed':False,'primary':[None],'secondary':[]}
+    custody.setdefault('io',[]).extend((token,directory));record['tokens']=[token,directory]
+    try:
+        token['fd']=os.open(pending,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_CLOEXEC|os.O_NOFOLLOW,0o600)
+        view=memoryview(raw)
+        while view:
+            count=os.write(token['fd'],view);need(count>0,'Guard complete write made no progress')
+            view=view[count:]
+        os.fsync(token['fd'])
+        os.fchmod(token['fd'],0o400)
+        os.fsync(token['fd'])
+        _publication_close(token,custody)
+        if token['primary'][0] is not None:
+            raise token['primary'][0]
+        before,retained=stable_file(pending,GUARD_CAP,True)
+        record['before_stage']=_publication_stat(pending);record['before_final']=_publication_stat(path)
+        need(retained==raw and record['before_stage']['links']==1 and
+             not record['before_stage']['mode'] & 0o222 and
+             before['identity']==[record['before_stage'][k] for k in
+                 ('device','inode','mode','bytes','mtime_ns','ctime_ns')],
+             'Complete immutable single-link staging custody differs')
+        directory['fd']=os.open(str(Path(path).parent),os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        source_parent=Path(pending).parent;final_parent=Path(path).parent
+        held=os.fstat(directory['fd']);named=os.stat(final_parent,follow_symlinks=False)
+        record['directory_identity']={'device':held.st_dev,'inode':held.st_ino,'mode':held.st_mode}
+        relative_stage=os.stat(pending.name,dir_fd=directory['fd'],follow_symlinks=False)
+        need(source_parent==final_parent and stat.S_ISDIR(held.st_mode) and
+             (held.st_dev,held.st_ino)==(named.st_dev,named.st_ino) and
+             (relative_stage.st_dev,relative_stage.st_ino)==
+             (record['before_stage']['device'],record['before_stage']['inode']),
+             'Publication source and target do not share the authenticated held parent')
+        # Both names are relative to the same held directory. No pre-check is
+        # trusted for destination exclusivity: the primitive enforces it atomically.
+        native['set_errno'](0)
+        record['entered']=True;record['uncertain']=True
+        result=native['call'](directory['fd'],os.fsencode(pending.name),
+                              directory['fd'],os.fsencode(Path(path).name),1)
+        record['returned']=True;record['result']=result
+        need(type(result) is int and result in (0,-1),'Publication native return outside exact ABI')
+        if result!=0:
+            record['errno']=native['get_errno']()
+            need(type(record['errno']) is int and record['errno']>0,'Publication failure errno unavailable')
+            raise OSError(record['errno'],'Exclusive atomic single-link publication failed',path)
+        record['committed']=True
+        os.fsync(directory['fd'])
+        record['after_stage']=_publication_stat(pending);record['after_final']=_publication_stat(path)
+        need(record['after_stage']['exists'] is False and record['after_final']['exists'] is True and
+             record['after_final']['links']==1 and
+             all(record['after_final'][k]==record['before_stage'][k] for k in
+                 ('device','inode','mode','bytes','uid','gid','mtime_ns')),
+             'Atomic single-link move custody differs')
+        observed,pin=_guard_read(path)
+        need(_guard_bytes(observed)==raw,'Guard atomic publication complete readback differs')
+        _publication_close(directory,custody)
+        if directory['primary'][0] is not None:
+            raise directory['primary'][0]
+        record['uncertain']=False
+        return pin
+    except BaseException as error:
+        record['primary'][0]=error
+        if custody['primary'][0] is None:
+            custody['primary'][0]=error
+        elif custody['primary'][0] is not error:
+            custody['secondary'].append(error)
+        # Metadata only; never remove, overwrite, finish, or retry an uncertain
+        # stage/final. Exact raw and all known tokens remain in same-process custody.
+        for key,name in [('after_stage',pending),('after_final',path)]:
+            try:
+                record[key]=_publication_stat(name)
+            except BaseException as secondary:
+                record['secondary'].append(secondary);custody['secondary'].append(secondary)
+        raise
+    finally:
+        _publication_close(token,custody);_publication_close(directory,custody)
+        if record['primary'][0] is not None:
+            for item in (token,directory):
+                if item['primary'][0] is not None and item['primary'][0] is not record['primary'][0]:
+                    record['secondary'].append(item['primary'][0]);custody['secondary'].append(item['primary'][0])
+
+
+def _guard_fail(guard, error):
+    if guard['primary'][0] is None:
+        guard['primary'][0] = error
+    elif guard['primary'][0] is not error:
+        guard['secondary'].append(error)
+    guard['phase'] = 'STOP'
+
+
+def _guard_begin(case, deadline, guard=None):
+    if guard is None:
+        guard = _guard_reserve(deadline)
+    need(any(prior is guard for prior in _GUARD_ATTEMPTS), 'actual source-reserved guard')
+    try:
+        binding = case['family_guard']
+        _guard_binding(binding)
+        need(binding['action_id'] == case['family_action_id'] and binding['generation'] == case['family_generation'],
+             'Guard original action/generation source binding differs')
+        current = proc(os.getpid())
+        need(current is not None and binding['parent_generation'] ==
+             {'pid': current['pid'], 'start_ticks': current['start_ticks']}, 'Guard actual owning parent differs')
+        for old in _GUARD_ATTEMPTS[:-1]:
+            prior = old['binding']
+            if prior is not None:
+                need(prior['nonce'] != binding['nonce'] and prior['generation'] != binding['generation'],
+                     'Guard release generation/nonce already consumed')
+        guard['binding'] = binding
+        for key in ('marker_path','request_path','ack_path','consume_path'):
+            path = Path(binding[key])
+            need(not path.exists() and not path.is_symlink(), 'Stale/reused guard channel or marker')
+            if key != 'marker_path':
+                need(not Path(str(path) + '.pending').exists() and not Path(str(path) + '.pending').is_symlink(),
+                     'Stale/reused guard publication')
+        guard['deadline'] = min(deadline, time.monotonic() + binding['timeout_milliseconds'] / 1000)
+        guard['checkpoint'] = 'WAITING_REQUEST'
+        guard['phase'] = 'WAITING_REQUEST'
+        return guard
+    except BaseException as error:
+        if guard['primary'][0] is None:
+            guard['primary'][0] = error
+        _guard_fail(guard, error)
+        raise
+
+
+def _guard_step(guard, domain, all_rows, current, captured):
+    try:
+        binding = guard['binding']
+        if guard['phase'] == 'CONSUMED_RELEASE':
+            # The published request/release/consumption remain immutable through
+            # the entire child lifetime; final outer validation repeats this.
+            for key,pin in [('request_path',guard['request_pin']),('ack_path',guard['ack_pin']),
+                            ('consume_path',guard['consume_pin'])]:
+                _, actual = _guard_read(binding[key])
+                need(actual == pin, 'Guard retained packet drifted after release')
+            return
+        need(time.monotonic() <= guard['deadline'], 'Before-target parent guard deadline expired')
+        if guard['phase'] == 'WAITING_REQUEST':
+            request_path = Path(binding['request_path'])
+            if not request_path.exists():
+                return
+            request, request_pin = _guard_read(request_path)
+            _guard_exact(request, ('schema','binding','process','marker'))
+            need(type(request['schema']) is str and request['schema'] == 'h25-family-guard-request-v2' and
+                 _guard_bytes(request['binding']) == _guard_bytes(binding), 'Guard request expected source/context differs')
+            leaf = request['process']; _guard_leaf(leaf)
+            marker = request['marker']; _guard_exact(marker, ('path','sha256','bytes'))
+            need(type(marker['path']) is str and marker['path'] == binding['marker_path'] and
+                 type(marker['bytes']) is int and 0 <= marker['bytes'] <= MARKER_CAP, 'Guard marker bound differs')
+            _guard_digest(marker['sha256'])
+            marker_pin, marker_raw = stable_file(marker['path'], MARKER_CAP, True)
+            need(marker_pin['sha256'] == marker['sha256'] and marker_pin['bytes'] == marker['bytes'],
+                 'Guard complete source/context marker changed')
+            marked = json.loads(marker_raw)
+            need(type(marked) is dict and type(marked.get('actual_context')) is dict and
+                 marked.get('schema') == 'h25-component-pretarget-identity-v1' and
+                 all(type(marked.get(k)) is str and marked[k] == binding[k] for k in
+                     ('case_id','context_id','unit_id','mode')) and
+                 marked.get('component_source_path') == binding['component_source']['path'],
+                 'Guard actual case/context/unit/mode/source marker differs')
+            context_raw = json.dumps(marked['actual_context'], sort_keys=True, separators=(',', ':'),
+                                     ensure_ascii=True, allow_nan=False).encode('ascii') + b'\n'
+            need(hashlib.sha256(context_raw).hexdigest() == binding['context_sha256'] and
+                 all(type(marked['process'][k]) is int and marked['process'][k] == leaf[k] for k in leaf),
+                 'Guard actual context or process differs')
+            _guard_binding(binding)  # complete immutable sources again before ACK
+            key = generation(leaf)
+            live = proc(leaf['pid']); root_live = proc(captured['pid'])
+            need(live is not None and root_live is not None and live['state'] != 'Z' and root_live['state'] != 'Z' and
+                 generation(root_live) == domain.root and key in domain.rows and key in domain.fds and
+                 all(type(live[k]) is int and live[k] == leaf[k] for k in leaf) and
+                 any(generation(r) == key for r in current), 'Guard leaf is not a live generation-owned child')
+            cursor = leaf['pid']; seen = set()
+            while cursor != captured['pid']:
+                need(cursor not in seen and len(seen) < 128 and cursor in all_rows,
+                     'Guard live ancestor chain to captured Root absent')
+                seen.add(cursor); cursor = all_rows[cursor]['ppid']
+            need(generation(all_rows[captured['pid']]) == domain.root,
+                 'Guard captured Root generation no longer current')
+            # The actual pinned runner created its two inner files before
+            # launching this waiting child. Hold their read descriptors before
+            # authenticating release of the selected component body.
+            domain.prepare_inner_capture(guard, captured)
+            guard['checkpoint'] = 'LIVE_GENERATION_SOURCE_CONTEXT_VALIDATED'
+            guard['request'], guard['request_pin'], guard['live'], guard['root'] = request, request_pin, dict(live), dict(root_live)
+            ack = {'schema':'h25-family-guard-release-v2','binding':binding,
+                   'request_sha256':request_pin['sha256'],'process':leaf,
+                   'parent_generation':binding['parent_generation'],
+                   'root_generation':{'pid':captured['pid'],'start_ticks':captured['start_ticks']},
+                   'expires_monotonic':guard['deadline']}
+            guard['phase'] = 'RELEASE_CONSUMED'  # once before publication, even if it fails
+            guard['ack'], guard['ack_pin'] = ack, _guard_publish(binding['ack_path'], ack, guard)
+            guard['checkpoint'] = 'ACK_DURABLY_PUBLISHED'
+            guard['phase'] = 'WAITING_CONSUME'
+        if guard['phase'] == 'WAITING_CONSUME' and Path(binding['consume_path']).exists():
+            consumed, consumed_pin = _guard_read(binding['consume_path'])
+            _guard_exact(consumed, ('schema','request_sha256','ack_sha256','process'))
+            need(consumed['schema'] == 'h25-family-guard-consumed-v2' and
+                 type(consumed['request_sha256']) is str and consumed['request_sha256'] == guard['request_pin']['sha256'] and
+                 type(consumed['ack_sha256']) is str and consumed['ack_sha256'] == guard['ack_pin']['sha256'] and
+                 _guard_bytes(consumed['process']) == _guard_bytes(guard['request']['process']),
+                 'Guard release consumption differs')
+            guard['consume_pin'] = consumed_pin; guard['phase'] = 'CONSUMED_RELEASE'
+            guard['checkpoint'] = 'CHILD_CONSUMED_RELEASE'
+    except BaseException as error:
+        if guard['primary'][0] is None:
+            guard['primary'][0] = error
+        _guard_fail(guard, error)
+        raise
+
+
+def child_guard_wait(binding, marker_pin, process, state):
+    """Fixed child wait; no target callback until matching one-shot ACK consumed."""
+    need(type(state) is dict and state['phase'] == 'PRETARGET' and state['primary'][0] is None,
+         'Before-target child guard already consumed/stopped')
+    state['phase'] = 'WAITING_RELEASE'  # burn before any acquisition
+    try:
+        _guard_binding(binding)
+        leaf = {k:process[k] for k in ('pid','ppid','pgid','sid','start_ticks')}; _guard_leaf(leaf)
+        need(leaf['pid'] == os.getpid(), 'Guard child process identity differs')
+        request = {'schema':'h25-family-guard-request-v2','binding':binding,'process':leaf,
+                   'marker':{k:marker_pin[k] for k in ('path','sha256','bytes')}}
+        request_pin = _guard_publish(binding['request_path'], request, state)
+        state['request'],state['request_pin'] = request,request_pin
+        deadline = time.monotonic() + binding['timeout_milliseconds'] / 1000
+        while not Path(binding['ack_path']).exists():
+            need(time.monotonic() < deadline, 'Before-target child ACK wait expired')
+            owner = proc(binding['parent_generation']['pid'])
+            need(owner is not None and owner['state'] != 'Z' and
+                 generation(owner) == (binding['parent_generation']['pid'],binding['parent_generation']['start_ticks']),
+                 'Before-target owning parent is no longer live')
+            time.sleep(min(0.01,max(0.0,deadline-time.monotonic())))
+        ack, ack_pin = _guard_read(binding['ack_path'])
+        _guard_exact(ack, ('schema','binding','request_sha256','process','parent_generation','root_generation','expires_monotonic'))
+        need(type(ack['schema']) is str and ack['schema'] == 'h25-family-guard-release-v2' and
+             _guard_bytes(ack['binding']) == _guard_bytes(binding) and
+             type(ack['request_sha256']) is str and ack['request_sha256'] == request_pin['sha256'] and
+             _guard_bytes(ack['process']) == _guard_bytes(leaf) and
+             _guard_bytes(ack['parent_generation']) == _guard_bytes(binding['parent_generation']) and
+             type(ack['expires_monotonic']) is float and
+             time.monotonic() <= min(deadline,ack['expires_monotonic']), 'Missing/wrong/stale/timedout parent ACK')
+        _guard_generation(ack['root_generation'])
+        owner = proc(binding['parent_generation']['pid']); own = proc(os.getpid())
+        need(owner is not None and owner['state'] != 'Z' and own is not None and own['state'] != 'Z' and
+             generation(owner) == (binding['parent_generation']['pid'],binding['parent_generation']['start_ticks']) and
+             all(type(own[k]) is int and own[k] == leaf[k] for k in leaf), 'ACK owner/child generation no longer live')
+        need(_guard_read(binding['request_path'])[1] == request_pin, 'Own request changed before ACK consumption')
+        state['ack'],state['ack_pin'] = ack,ack_pin
+        state['phase'] = 'RELEASE_CONSUMED'  # never retry even if publication fails
+        consumed = {'schema':'h25-family-guard-consumed-v2','request_sha256':request_pin['sha256'],
+                    'ack_sha256':ack_pin['sha256'],'process':leaf}
+        state['consume_pin'] = _guard_publish(binding['consume_path'],consumed,state)
+        need(time.monotonic() <= min(deadline,ack['expires_monotonic']), 'ACK expired during complete consume publication')
+        state['phase'] = 'TARGET_RELEASED'
+        return None
+    except BaseException as error:
+        _guard_fail(state,error)
+        raise
+
+
+def guard_evidence(guard):
+    return {'schema':'h25-family-live-parent-guard-v2','phase':guard['phase'],
+            'request':guard['request_pin'],'ack':guard['ack_pin'],'consume':guard['consume_pin'],
+            'live_generation_before_release':guard['live'],'captured_root_before_release':guard['root'],
+            'parent_generation':None if guard['binding'] is None else guard['binding']['parent_generation'],
+            'actual_error_retained':guard['primary'][0] is not None,
+            'no_post_exit_substitute':True,'no_retry':True}
+
+def _guard_reserve(deadline):
+    need(len(_GUARD_ATTEMPTS) < 1024, 'Two-mode finite guard attempt registry exhausted')
+    guard = {'phase': 'CONSUMED', 'primary': [None], 'secondary': [], 'binding': None,
+             'request': None, 'request_pin': None, 'ack': None, 'ack_pin': None,
+             'consume_pin': None, 'live': None, 'root': None, 'deadline': deadline,
+             'checkpoint': 'BEFORE_SOURCE_BINDING', 'supervision_result': None}
+    _GUARD_ATTEMPTS.append(guard)
+    return guard
+
+
+def run_root(root, case, evidence, seconds, shared_deadline, as_bytes=201326592,
+             rss_bytes=201326592):
+    """Actual original caller with surviving domain and preowned capture custody."""
+    need(_SUPERVISION_CURRENT[0] is None, 'prior original root must be completely retired')
+    began = time.monotonic()
+    need(type(seconds) in (int, float) and 0 < seconds <= 190, 'Unadmitted root deadline')
+    need(type(as_bytes) is int and 0 < as_bytes <= 1024 ** 3, 'Unadmitted root address-space bound')
+    need(type(rss_bytes) is int and 0 < rss_bytes <= 1024 ** 3, 'Unadmitted aggregate RSS bound')
+    deadline = min(began + seconds, shared_deadline - CLEANUP_SECONDS)
+    guard = _guard_reserve(deadline)
+    domain = OwnedDomain(guard)
+    root_errors = [None] * 16
+    guard['root_errors'] = root_errors
+    guard['actual_process'] = None
+    guard['terminal_custody_version'] = 'actual-surviving-family-owner-v1'
+    _SUPERVISION_HISTORY.append(domain)
+    _SUPERVISION_CURRENT[0] = domain
+    process, captured, cleanup = None, None, None
+    peak, spawn_entered = 0, False
+    alarm_handler_entered = alarm_arm_entered = False
+    old_handler = None
+    timer_retired = False
+    failure, reconciled = None, None
+    result = None
+    try:
+        domain.install_stop_handlers()
+        launch_contract()
+        _guard_begin(case, deadline, guard)
+        need(stable_file(root / 'run_guarded_v3.py', META_CAP)['sha256'] == RUNNER_SHA,
+             'Actual root runner changed')
+        need(time.monotonic() + CLEANUP_SECONDS < shared_deadline, 'No reserved cleanup tail remains')
+        command = ['/usr/bin/python3.12', *FLAGS, str(root / 'run_guarded_v3.py'),
+                   case['stage'], case['job'], case['label']]
+        for value in (case['stage'], case['job'], case['label']):
+            need(type(value) is str and value and
+                 all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value),
+                 'Unsafe case identity')
+        evidence.mkdir()
+        domain.round_root, domain.label = root, case['label']
+        for item in domain.inner_capture:
+            item['path'] = root / 'runtime/runs' / case['label'] / item['name']
+        domain.install(root)
+        domain.prepare_capture(evidence)
+        setter, limit_kind, limits = resource.setrlimit, resource.RLIMIT_AS, (as_bytes, as_bytes)
+        def child_limit():
+            setter(limit_kind, limits)
+        old_handler = signal.getsignal(signal.SIGALRM)
+        need(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), 'Parent already has an execution alarm')
+        write_new(evidence / 'LAUNCH.json', {'command': command, 'parent_pid': os.getpid(),
+                  'parent_pgid': os.getpgrp(), 'parent_sid': os.getsid(0),
+                  'root_execution_seconds': seconds, 'address_space_bytes': as_bytes,
+                  'rss_sum_bytes': rss_bytes, 'new_session': True,
+                  'cleanup_reserved_seconds': CLEANUP_SECONDS,
+                  'same_original_operation': True, 'preowned_capture_readers': True})
+        alarm_handler_entered = True
+        signal.signal(signal.SIGALRM, deadline_handler)
+        alarm_arm_entered = True
+        signal.setitimer(signal.ITIMER_REAL, max(0.000001, deadline - time.monotonic()))
+        domain.birth_pending()
+        spawn_entered = True
+        try:
+            process = subprocess.Popen(command, cwd=root, env=dict(ENV),
+                                       stdout=domain.capture[0]['writer']['fd'],
+                                       stderr=domain.capture[1]['writer']['fd'],
+                                       start_new_session=True, preexec_fn=child_limit)
+        except BaseException as error:
+            # The exception and traceback retain the actual failed constructor.
+            root_errors[0] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain.birth = 'POPEN_UNKNOWN'
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if domain.guard['primary'][0] is None:
+                domain.guard['primary'][0] = error
+            if domain.error_count < 1024:
+                domain.error_events[domain.error_count][0] = 'Popen-return'
+                domain.error_events[domain.error_count][1] = error
+                domain.error_count = domain.error_next[domain.error_count]
+            else:
+                domain.unknown = True
+            raise
+        # Store actual returned object before the first fallible observation.
+        domain.process = process
+        guard['actual_process'] = process
+        domain.birth = 'POPEN_RETURNED'
+        captured = domain.retain_process(process)
+        write_new(evidence / 'ROOT-PROCESS.json', captured)
+        while True:
+            need(domain.stop_signal is None, 'Original parent received termination request')
+            all_rows, current = domain.observe()
+            _guard_step(guard, domain, all_rows, current, captured)
+            peak = max(peak, sum(row['rss_bytes'] for row in current))
+            need(peak <= rss_bytes, 'Owned process RSS sum exceeded')
+            need(max(os.fstat(item['reader']['fd']).st_size for item in domain.capture) <= LOG_CAP,
+                 'Outer raw log cap exceeded')
+            if domain.root_exit_observed():
+                need(guard['phase'] == 'CONSUMED_RELEASE',
+                     'Root exited without actual before-target release consumption')
+                break
+            time.sleep(0.01)
+    except BaseException as error:
+        root_errors[1] = error
+        domain.last_error = error
+        if domain.first_error is None:
+            domain.first_error = error
+        if guard['primary'][0] is None:
+            guard['primary'][0] = error
+        if guard['phase'] != 'CONSUMED_RELEASE':
+            guard['phase'] = 'STOP'
+        domain.last_error = error
+        if domain.first_error is None:
+            domain.first_error = error
+        if domain.guard['primary'][0] is None:
+            domain.guard['primary'][0] = error
+        if domain.error_count < 1024:
+            domain.error_events[domain.error_count][0] = 'root-working'
+            domain.error_events[domain.error_count][1] = error
+            domain.error_count = domain.error_next[domain.error_count]
+        else:
+            domain.unknown = True
+    finally:
+        # Cancellation is entered once and cannot bypass actual domain cleanup.
+        if alarm_arm_entered or alarm_handler_entered:
+            try:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                timer_retired = True
+            except BaseException as error:
+                root_errors[2] = error
+                domain.last_error = error
+                if domain.first_error is None:
+                    domain.first_error = error
+                if guard['primary'][0] is None:
+                    guard['primary'][0] = error
+                domain.last_error = error
+                if domain.first_error is None:
+                    domain.first_error = error
+                if domain.guard['primary'][0] is None:
+                    domain.guard['primary'][0] = error
+                if domain.error_count < 1024:
+                    domain.error_events[domain.error_count][0] = 'timer-cancel'
+                    domain.error_events[domain.error_count][1] = error
+                    domain.error_count = domain.error_next[domain.error_count]
+                else:
+                    domain.unknown = True
+        else:
+            timer_retired = True
+        # A potentially still-active timer keeps its known Python handler.
+        # Domain cleanup remains reachable independently of cancellation failure.
+        try:
+            domain.close_capture_writers()
+        except BaseException as error:
+            root_errors[3] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if domain.guard['primary'][0] is None:
+                domain.guard['primary'][0] = error
+            if domain.error_count < 1024:
+                domain.error_events[domain.error_count][0] = 'capture-writer-cleanup-entry'
+                domain.error_events[domain.error_count][1] = error
+                domain.error_count = domain.error_next[domain.error_count]
+            else:
+                domain.unknown = True
+        if process is not None and domain.process is None:
+            domain.process = process
+            guard['actual_process'] = process
+            domain.birth = 'POPEN_RETURNED'
+        # Publication's own real close/pending tokens join this same owner. They
+        # are never converted into a successful physical-retirement observation.
+        for token in guard.get('io', ()):
+            if (token.get('entered') and token.get('fd') is None) or not token.get('closed') or token['primary'][0] is not None:
+                domain.unknown = True
+        try:
+            if domain.birth == 'UNENTERED':
+                # The reached caller has not entered Popen. No controlled child
+                # or native child holder was created by this operation.
+                domain.empty_observed = True
+                domain.retired = not domain.unknown
+                domain.phase = 'RETIRED' if domain.retired else 'CUSTODY_PENDING'
+                cleanup = domain.observation(time.monotonic())
+            else:
+                cleanup = domain.cleanup(process, shared_deadline)
+        except BaseException as error:
+            root_errors[4] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if domain.guard['primary'][0] is None:
+                domain.guard['primary'][0] = error
+            if domain.error_count < 1024:
+                domain.error_events[domain.error_count][0] = 'domain-cleanup-entry'
+                domain.error_events[domain.error_count][1] = error
+                domain.error_count = domain.error_next[domain.error_count]
+            else:
+                domain.unknown = True
+            domain.phase = 'CUSTODY_PENDING'
+        # Full known-reader attempts precede error formatting and receipt/report
+        # acquisition, including when a working or writer-close error exists.
+        try:
+            domain.capture_after_retirement()
+        except BaseException as error:
+            root_errors[5] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if guard['primary'][0] is None:
+                guard['primary'][0] = error
+            domain.last_error = error
+            if domain.first_error is None:
+                domain.first_error = error
+            if domain.guard['primary'][0] is None:
+                domain.guard['primary'][0] = error
+            if domain.error_count < 1024:
+                domain.error_events[domain.error_count][0] = 'capture-readback-entry'
+                domain.error_events[domain.error_count][1] = error
+                domain.error_count = domain.error_next[domain.error_count]
+            else:
+                domain.unknown = True
+        if not timer_retired:
+            domain.unknown = True
+        if not domain.retired or domain.unknown or any(slot['phase'] not in ('FREE', 'CLOSED') for slot in domain.io):
+            domain.hold_pending()
+        if alarm_handler_entered and old_handler is not None:
+            try:
+                signal.signal(signal.SIGALRM, old_handler)
+            except BaseException as error:
+                root_errors[6] = error
+                domain.last_error = error
+                if domain.first_error is None:
+                    domain.first_error = error
+                if guard['primary'][0] is None:
+                    guard['primary'][0] = error
+                domain.last_error = error
+                if domain.first_error is None:
+                    domain.first_error = error
+                if domain.guard['primary'][0] is None:
+                    domain.guard['primary'][0] = error
+                if domain.error_count < 1024:
+                    domain.error_events[domain.error_count][0] = 'alarm-handler-restore'
+                    domain.error_events[domain.error_count][1] = error
+                    domain.error_count = domain.error_next[domain.error_count]
+                else:
+                    domain.unknown = True
+    # All children and known holders are retired before any formatting, new
+    # canonical receipt, or normal return/raise can escape this actual owner.
+    try:
+        if guard['primary'][0] is not None:
+            primary = guard['primary'][0]
+            failure = {'type': type(primary).__name__, 'message': str(primary)[:2048]}
+        if time.monotonic() > shared_deadline:
+            failure = failure or {'type': 'SharedDeadline', 'message': 'Shared cap crossed; all actual custody cost remains charged'}
+        reconciled = reconcile_missing_receipt(root, case['label'], began,
+                      failure or {'type': 'MissingRootReceipt', 'message': 'Root exited without receipt'}, cleanup)
+        if reconciled is not None:
+            failure = failure or {'type': 'MissingRootReceipt', 'message': 'New reconciled STOP receipt; no retry'}
+        logs, inner_logs = {}, {}
+        for item in domain.all_capture:
+            destination = logs if item in domain.capture else inner_logs
+            destination[item['name']] = item['observation'] or {
+                'path': str(item.get('path')), 'sha256': None, 'bytes': None,
+                'stable': False, 'full_read': False, 'eof': False,
+                'raw_error_retained': item['read_error'] is not None or item.get('acquire_error') is not None,
+                'absence_observed': item.get('absence_observed', False),
+                'reader_acquisition_boundary': item.get('acquisition_boundary')}
+            if item['observation'] is None:
+                failure = failure or {'type': 'CaptureUnavailable', 'message': 'Actual complete raw capture was not obtained'}
+        result = {'schema': 'h25-parent-root-supervision-v1', 'label': case['label'],
+                  'status': 'STOP' if failure else 'ROOT_COMPLETED_AND_OWNED_DOMAIN_EMPTY',
+                  'failure': failure, 'spawn_entered': spawn_entered,
+                  'spawn_returned': process is not None, 'captured_root': captured,
+                  'returncode': None if process is None else process.returncode,
+                  'cleanup': cleanup, 'outer_logs': logs, 'inner_target_logs': inner_logs,
+                  'sampled_owned_rss_bytes': peak,
+                  'execution_and_cleanup_seconds': time.monotonic() - began,
+                  'root_receipt_reconciled': reconciled is not None,
+                  'no_hostile_fork_or_concurrent_children_claim': True,
+                  'before_target_guard': guard_evidence(guard)}
+        guard['supervision_result'] = result
+        write_new(evidence / 'SUPERVISION.json', result)
+    except BaseException as error:
+        root_errors[7] = error
+        domain.last_error = error
+        if domain.first_error is None:
+            domain.first_error = error
+        if guard['primary'][0] is None:
+            guard['primary'][0] = error
+        domain.last_error = error
+        if domain.first_error is None:
+            domain.first_error = error
+        if domain.guard['primary'][0] is None:
+            domain.guard['primary'][0] = error
+        if domain.error_count < 1024:
+            domain.error_events[domain.error_count][0] = 'terminal-report'
+            domain.error_events[domain.error_count][1] = error
+            domain.error_count = domain.error_next[domain.error_count]
+        else:
+            domain.unknown = True
+    if domain.unknown or any(slot['phase'] not in ('FREE', 'CLOSED') for slot in domain.io):
+        domain.hold_pending()
+    try:
+        domain.restore_stop_handlers()
+    except BaseException as error:
+        root_errors[8] = error
+        if guard['primary'][0] is None:
+            guard['primary'][0] = error
+    _SUPERVISION_CURRENT[0] = None
+    if guard['primary'][0] is not None:
+        raise guard['primary'][0]
+    return result
+
+
+def stop_supplement(root, label, reason):
+    folder = root / 'runtime/runs' / (label + '-supervision-stop')
+    folder.mkdir()
+    row = {'status': 'STOP', 'label': folder.name, 'kind': 'supervision_failure_marker',
+           'failure': reason, 'wall_seconds': 0.0, 'runner_wall_seconds': 0.0,
+           'cost_accounted_by_enclosing_queue_overhead': True, 'original_receipts_preserved': True}
+    write_new(folder / 'START.json', {'kind': row['kind']})
+    write_new(folder / 'receipt.json', row)
+
+
+def packet_unchanged(directory, manifest):
+    for name, expected in manifest['files'].items():
+        row = stable_file(directory / name, META_CAP)
+        need(row['sha256'] == expected['sha256'] and row['bytes'] == expected['bytes'],
+             'Parent source packet changed: ' + name)
+        need(not (directory / name).stat().st_mode & 0o222, 'Parent source packet became writable')
+    return True

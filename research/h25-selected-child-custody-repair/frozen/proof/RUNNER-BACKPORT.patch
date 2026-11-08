@@ -1,0 +1,244 @@
+--- bd882/run_guarded_v3.py
++++ successor/run_guarded_v3.py
+@@ -163,6 +163,148 @@
+         return {'raw': raw.decode('utf-8', errors='replace')}, False
+ 
+ 
++_LOCK_CUSTODY = [None]
++
++_GROUP_CUSTODY = [None]
++
++
++def run_group_capture(timed, stage, env, folder, runner_start, cap, spent):
++    if _GROUP_CUSTODY[0] is not None:
++        raise RuntimeError('one common-runner group owner')
++
++    state = {
++        'process': None, 'spawn': 'NOT_ENTERED',
++        'peek': 'NOT_ENTERED', 'raw_peek': None,
++        'owns_unreaped_child': False,
++        'signal': 'NOT_ENTERED', 'signal_absent': None,
++        'wait': 'NOT_ENTERED', 'raw_wait': None,
++        'streams': [[None, 'RESERVED'], [None, 'RESERVED']],
++        # Body, signal, wait, stderr-close, stdout-close.
++        'errors': [[None, None] for _ in range(5)],
++        'unknown': False,
++    }
++    _GROUP_CUSTODY[0] = state
++    peak, stop, code = 0, None, None
++
++    try:
++        for index, name in enumerate(('stdout.txt', 'stderr.txt')):
++            row = state['streams'][index]
++            row[1] = 'OPEN_ENTERED'
++            row[0] = (folder / name).open('wb')
++            row[1] = 'OWNED'
++
++        state['spawn'] = 'ENTERED'
++        process = subprocess.Popen(
++            timed, cwd=stage, env=env,
++            stdout=state['streams'][0][0],
++            stderr=state['streams'][1][0],
++            start_new_session=True)
++        state['process'] = process
++        state['spawn'] = 'RETURNED'
++
++        while True:
++            state['owns_unreaped_child'] = False
++            state['peek'] = 'ENTERED'
++            observed = os.waitid(
++                os.P_PID, process.pid,
++                os.WEXITED | os.WNOHANG | os.WNOWAIT)
++            state['raw_peek'] = observed
++            if observed is not None:
++                if (type(observed) is not os.waitid_result or
++                        observed.si_pid != process.pid or
++                        observed.si_code not in
++                        (os.CLD_EXITED, os.CLD_KILLED, os.CLD_DUMPED)):
++                    raise RuntimeError('actual owned terminal observation')
++            state['peek'] = 'KNOWN'
++            state['owns_unreaped_child'] = True
++            if observed is not None:
++                break
++
++            peak = max(peak, group_rss(process.pid))
++            if peak > RSS_CAP:
++                stop = 'sampled_group_rss_cap'
++            elif time.monotonic() - runner_start > min(TIMEOUT, cap - spent):
++                stop = 'wall_or_aggregate_cap'
++            elif max((folder / 'stdout.txt').stat().st_size,
++                     (folder / 'stderr.txt').stat().st_size) > OUTPUT_CAP:
++                stop = 'output_cap'
++            if stop:
++                break
++            time.sleep(0.05)
++
++    except BaseException as error:
++        state['errors'][0][0] = error
++        state['errors'][0][1] = (
++            BaseException.__dict__['__traceback__'].__get__(
++                error, BaseException))
++        if state['spawn'] == 'ENTERED':
++            state['spawn'] = 'UNKNOWN'
++            state['unknown'] = True
++
++    finally:
++        process = state['process']
++        if process is not None:
++            if state['owns_unreaped_child']:
++                state['signal'] = 'ENTERED'
++                try:
++                    os.killpg(process.pid, signal.SIGKILL)
++                    state['signal'] = 'KNOWN'
++                except ProcessLookupError as error:
++                    state['signal_absent'] = error
++                    state['signal'] = 'KNOWN_ABSENT'
++                except BaseException as error:
++                    state['errors'][1][0] = error
++                    state['errors'][1][1] = (
++                        BaseException.__dict__['__traceback__'].__get__(
++                            error, BaseException))
++                    state['signal'] = 'UNKNOWN'
++                    state['unknown'] = True
++
++                state['wait'] = 'ENTERED'
++                try:
++                    code = process.wait()
++                    state['raw_wait'] = code
++                    if type(code) is not int:
++                        raise RuntimeError('actual terminal wait result')
++                    state['wait'] = 'COMMITTED'
++                except BaseException as error:
++                    state['errors'][2][0] = error
++                    state['errors'][2][1] = (
++                        BaseException.__dict__['__traceback__'].__get__(
++                            error, BaseException))
++                    state['wait'] = 'UNKNOWN'
++                    state['unknown'] = True
++            else:
++                state['unknown'] = True
++
++        for error_slot, stream_index in ((3, 1), (4, 0)):
++            row = state['streams'][stream_index]
++            if row[1] == 'OPEN_ENTERED':
++                row[1] = 'UNKNOWN'
++                state['unknown'] = True
++            if row[1] != 'OWNED':
++                continue
++            row[1] = 'CLOSE_ENTERED'
++            try:
++                row[0].close()
++            except BaseException as error:
++                state['errors'][error_slot][0] = error
++                state['errors'][error_slot][1] = (
++                    BaseException.__dict__['__traceback__'].__get__(
++                        error, BaseException))
++                row[1] = 'UNKNOWN'
++                state['unknown'] = True
++            else:
++                row[1] = 'CLOSED'
++
++    for error, traceback in state['errors']:
++        if error is not None:
++            raise BaseException.with_traceback(error, traceback)
++    if state['unknown'] or state['wait'] != 'COMMITTED':
++        raise RuntimeError('common-runner retirement remains unknown')
++    return code, peak, stop
++
++
+ def main():
+     launch = require_trusted_launch()
+     parser = argparse.ArgumentParser(description=__doc__)
+@@ -177,7 +319,19 @@
+     runner_usage_start = resource.getrusage(resource.RUSAGE_SELF)
+     (HERE / 'runtime').mkdir(exist_ok=True)
+     # A single parent owns this round; never wait behind another scientific run.
+-    with (HERE / 'runtime/science.lock').open('a') as lock:
++    if _LOCK_CUSTODY[0] is not None:
++        raise RuntimeError('one common-runner lock owner')
++    lock_state = {
++        'handle': None, 'acquire': 'NOT_ENTERED', 'close': 'NOT_ENTERED',
++        'errors': [[None, None], [None, None]], 'unknown': False,
++    }
++    _LOCK_CUSTODY[0] = lock_state
++    expected_stop = False
++    try:
++        lock_state['acquire'] = 'ENTERED'
++        lock = (HERE / 'runtime/science.lock').open('a')
++        lock_state['handle'] = lock
++        lock_state['acquire'] = 'OWNED'
+         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+         stage = HERE / 'stages' / args.stage
+         stage_raw = (stage / 'STAGE.json').read_bytes()
+@@ -253,30 +407,8 @@
+                    'phase_cap_seconds': cap, 'job': args.job, 'label': args.label}
+         (folder / 'START.json').write_text(json.dumps(started, indent=2, sort_keys=True) + '\n')
+         start = time.monotonic()
+-        stop = None
+-        peak = 0
+-        with (folder / 'stdout.txt').open('wb') as out, (folder / 'stderr.txt').open('wb') as err:
+-            process = subprocess.Popen(timed, cwd=stage, env=env, stdout=out, stderr=err, start_new_session=True)
+-            try:
+-                while process.poll() is None:
+-                    peak = max(peak, group_rss(process.pid))
+-                    if peak > RSS_CAP:
+-                        stop = 'sampled_group_rss_cap'
+-                    elif time.monotonic() - runner_start > min(TIMEOUT, cap - spent):
+-                        stop = 'wall_or_aggregate_cap'
+-                    elif max((folder / 'stdout.txt').stat().st_size, (folder / 'stderr.txt').stat().st_size) > OUTPUT_CAP:
+-                        stop = 'output_cap'
+-                    if stop:
+-                        os.killpg(process.pid, signal.SIGKILL)
+-                        break
+-                    time.sleep(0.05)
+-                code = process.wait()
+-            finally:
+-                try:
+-                    os.killpg(process.pid, signal.SIGKILL)
+-                except ProcessLookupError:
+-                    pass
+-                process.wait()
++        code, peak, stop = run_group_capture(
++            timed, stage, env, folder, runner_start, cap, spent)
+         elapsed = time.monotonic() - start
+         stdout, stderr, stop, cap_seen = finalize_logs(folder, stop)
+         measurement, oversized_usage = read_usage(usage)
+@@ -306,8 +438,36 @@
+                        status='PASS' if code == 0 and stop is None and stderr['bytes'] == 0 and unchanged else 'STOP')
+         (folder / 'receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+         print(json.dumps(receipt, sort_keys=True), flush=True)
+-        if receipt['status'] != 'PASS':
+-            raise SystemExit(1)
++        expected_stop = receipt['status'] != 'PASS'
++    except BaseException as error:
++        lock_state['errors'][0][0] = error
++        lock_state['errors'][0][1] = (
++            BaseException.__dict__['__traceback__'].__get__(error, BaseException))
++        if lock_state['acquire'] == 'ENTERED':
++            lock_state['acquire'] = 'UNKNOWN'
++            lock_state['unknown'] = True
++    finally:
++        if lock_state['acquire'] == 'OWNED':
++            lock_state['close'] = 'ENTERED'
++            try:
++                lock_state['handle'].close()
++            except BaseException as error:
++                lock_state['errors'][1][0] = error
++                lock_state['errors'][1][1] = (
++                    BaseException.__dict__['__traceback__'].__get__(error, BaseException))
++                lock_state['close'] = 'UNKNOWN'
++                lock_state['unknown'] = True
++            else:
++                lock_state['close'] = 'CLOSED'
++        elif lock_state['acquire'] == 'UNKNOWN':
++            lock_state['unknown'] = True
++    for error, traceback in lock_state['errors']:
++        if error is not None:
++            raise BaseException.with_traceback(error, traceback)
++    if lock_state['unknown'] or lock_state['close'] != 'CLOSED':
++        raise RuntimeError('common-runner lock retirement remains unknown')
++    if expected_stop:
++        raise SystemExit(1)
+ 
+ 
+ if __name__ == '__main__':
