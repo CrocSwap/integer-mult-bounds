@@ -139,7 +139,7 @@ for L, lst in FAM.items():
         print("   L=%d fields=%d uncovered site=%s saving vs chain = %.5f" % (L, len(fs), unc, saving))
 # the logs in supp/ must contain these families as REAL
 here = os.path.dirname(os.path.abspath(__file__))
-for L, name in ((4, "r2test_dec4.out"), (6, "r2test_dec6.out")):
+for L, name in ((4, "r2test_dec4.txt"), (6, "r2test_dec6.txt")):
     txt = open(os.path.join(here, "supp", name)).read()
     real = [ln for ln in txt.splitlines() if " REAL " in ln]
     for fs, sv in FAM[L]:
