@@ -1,6 +1,7 @@
 # Validation scope
 
-CPython 3.12.14, standard library, 2026-11-08. These commands completed:
+Initial four-command verification: CPython 3.12.14, standard library,
+2026-11-08. These commands completed:
 
 ```sh
 python3 -I -W error -B research/p104-two-channel-hub/verify.py
@@ -41,3 +42,30 @@ the numerical verifier or receipt. It reduces arbitrary intermediate frames
 to the stored catalogue when only one old MOVE is active and no extra old-role
 relocations/retags or substituted buffer pivots are allowed. See the review
 addendum in `independent/REVIEW.md`.
+
+## Full independent verification extension
+
+The initial sampled review above is now supplemented by the independent full
+checker in `independent-full/`. It reconstructs all 18,747 requested contact
+vectors and 24,736 nonzero contact records on all 801 axes, then uses
+coefficient nullspaces and dense rational elimination to match every pure
+dimension and pairing rank at all 4,296 certified cuts. No primary executable
+is imported. The separately derived physical event-grid sweep covers all
+22,079 event/midpoint times and 689,190 eligible group/frame/cuts. Its wrapper
+uses freshly reconstructed contact times, checks exact pivot sets and
+684,894 dominated gaps, and authenticates the unused duplicate-frame alias.
+
+The full checker passed read-only normal and optimized runs in 34.036 and
+40.864 seconds before integration. Real compressed-source corruptions are
+rejected in both modes. The domain midpoint/gap fixtures and three altered
+certificate/contact controls passed. `independent-full/REVIEW.md` and
+`independent-full/DOMAIN-REVIEW.md` record method, dependence and limits.
+The expanded manifest retains the four original checks and adds normal/-O
+full-history-plus-domain checks, with declared total timeout 1,200 seconds.
+
+The integrated six-command registered replay completed successfully and
+printed `PASS_REGISTERED_RESEARCH_PACKAGE research/p104-two-channel-hub
+outcome=completed`. Both new modes returned
+`PASS_INDEPENDENT_FULL_HUB_AND_DOMAIN`, matching all rank, history, domain
+and control receipts. The original primary verifier, primary RESULT, source
+word and original independent review files remain byte-identical.

@@ -27,6 +27,15 @@ substituted buffer pivots, changed source scalar contacts and altered helper
 boundaries are outside the theorem. A new frame alone cannot evade it; new
 frames with a changed pivot meeting can. Atlas C02 remains open generally.
 
+The full second verifier independently reconstructs every required contact
+vector in the opposite direction, extracts pure spaces by coefficient
+nullspaces, and recomputes all 4,296 pairing ranks. A separate physical
+event-grid sweep checks 689,190 eligible group/frame/cuts: the 4,296
+certificate cuts and 684,894 additional cuts dominated by them. The wrapper
+uses freshly reconstructed contact histories for this coverage check. See
+[independent-full/REVIEW.md](independent-full/REVIEW.md) and
+[independent-full/DOMAIN-REVIEW.md](independent-full/DOMAIN-REVIEW.md).
+
 ## Reproduce
 
 ```sh
