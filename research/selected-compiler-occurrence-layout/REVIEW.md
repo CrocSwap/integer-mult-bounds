@@ -109,3 +109,20 @@ numerical total bill.
 Credit remains with the source contributors in PROOF.md/README.md. This review
 adds the independent toy representation and adversarial examination above.
 Apache-2.0.
+
+## Follow-up review of the one-rho tariff
+
+A separate source-aware pass read the exact layer and transform definitions,
+compact movement proof and #6115 specialization. It confirmed that native
+columns comprise the selected bits at one common offset; unselected chunk
+bits can retain their physical positions because arbitrary spectators are part
+of the endpoint contract. Full-field scalar conjugation therefore needs no
+inner K-plane sweep. The finite bill includes signed scalar role swaps, all
+current-volume multipliers and descriptor work; the permutation term alone is
+not a complete bill. The explicit logarithmic-K guard and bad-fraction bound
+follow from the actual compact proof. The #6115 substitution changes only a
+fixed ordinary coefficient/polylogarithm and other actual finite stock/descriptor
+constants, keeping its selected exponents and stopping rule. Deferred exposure,
+physical backing and precision remain retained premises. This review does not
+claim independent admission of the entire compiler dependency chain or treat
+nonmaterialization as a proof gap.

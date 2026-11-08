@@ -192,8 +192,12 @@ The two full H-bit front fields end by o; the full H-bit back field starts
 at z. No row/control bit enters an occurrence map. Section 3 permutes only
 N base blocks, preserving this separation. A primitive of c*f columns has
 c*f<=N*f<=d, hence (c*f-1)G<=H and c*f<=p. The remaining compact domain
-A=O(p), K/log p tending to infinity, and the record-fiber condition are
-explicit retained premises. Interval placement does not prove their tariff.
+G=4*ceil(log2 p)+6, A=O(p), K>=G+4*ceil(log2 p)+10 and the
+record-fiber condition are explicit retained premises. COST.md verifies this
+sufficient guard directly in the compact proof, including K=128G in the
+selected deferred schedule. K/log p tending to infinity is a stronger
+sufficient regime, not needed after the guard is supplied. Interval placement
+alone does not prove the tariff.
 When the fit inequality fails the source individual-kernel fallback applies;
 it is outside this invocation theorem.
 
@@ -230,7 +234,28 @@ composition, not consequences of address cardinality alone. Deleting padded
 zero rows still requires the complete linear endpoint to return them to zero.
 W and O must be final-template values, never raw 13,444 or local 29/31/13.
 
-## 5. Scope, evidence and attribution
+## 5. Compiler implication and scope
+
+Together with COST.md, the geometry gives a source-compatible finite-word
+construction at the retained ordinary node tariff, conditional on native
+all-column whole-job endpoints, owned initialization/erasure and the admitted
+physical/precision contracts. Finiteness of an explicitly defined construction
+does not require materializing or executing the enormous winning template.
+Nonmaterialization alone is therefore not a mathematical gap.
+
+The quantified integer-flow theorem remains an imported dependency here.
+FINITE-PRECOMPILATION sections3--6 provide its Pascal matching, source deficits,
+ordered complete-batch clearance and strict smaller-rank substitution; the
+lockstep source supplies distinct-field ownership and return chronology.
+Together with p7-TENSOR's product/completion/splitting semantics and the actual
+selected canonical raw ABI, those retained theorems imply the complex compiler
+closure under the other stated premises. This package has not independently
+re-audited every quantified statement in that dependency chain. It neither
+identifies a new remaining incompatibility nor certifies removal of the
+selected compiler assumption. The unexecuted emitter is an implementation and
+independent validation boundary, not a replacement for a missing existence
+proof. All five selected assumptions remain in the record.
+
 
 The written theorem constructs geometry for every finite instance of the named
 source compiler under its semantic and ownership premises. Its all-f force
@@ -244,8 +269,10 @@ exact executed coverage; not every universal induction is a finite fixture.
 The final selected matching, occurrence counts, numerical program, descriptor
 producer, row dispatcher and precision/error contracts are not materialized
 or executed. Primitive correctness, local all-column semantics, owned erasure,
-finite-program cost closure, precision/tape and analytic recovery remain
-premises. This is not a proof of the entire native_all_columns or compiler
+complete physical/stock/precision closure and analytic recovery remain
+premises. COST.md proves the narrower symbolic ordinary node-tariff closure
+under its explicit primitive and current-volume contracts; that is separate
+from rounded numerical and complete machine admission. This is not a proof of the entire native_all_columns or compiler
 assumption, a complete multiplication theorem, or a change to kappa.
 
 Credit @CubeJerry and the retained contributors: Douglas Colkitt's compact

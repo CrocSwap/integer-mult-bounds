@@ -18,18 +18,24 @@ return route. Scalar contacts execute only after all participating fields are
 routed into the same canonical coordinates. A permutation entry/return pair
 costs at most 6(N-1) selected-bit records at fixed bit position rho; applying all
 K bit planes requires the actual K calls. Descriptor, role-swap, monomial,
-parking and setup costs are separate. No zero-cost injections are used.
+parking and setup costs are separate. No zero-cost injections are used. [COST.md](COST.md) traces the actual
+one-rho layer contract and the already-paid outer plane schedule. Its complete
+finite event sum preserves the selected ordinary node tariff and proves the
+explicit compact guard also suffices at K=128G; descriptor and physical
+current-volume contracts remain visible.
 
 The reservation theorem states explicit final N/W/O and complete-row stock
 conditions. It preserves entire dirty control ranges and nested returns.
 Owned backing is separately admitted; row labels do not provide erased storage.
-The proof does not materialize the final selected matching, dispatcher or
+The proof is an existence implication and does not require materialization.
+Quantified matching, ordered batching and rank descent are imported retained
+theorems, as PROOF.md explains. The package does not execute the final matching, dispatcher or
 numerical machine, evaluate its complete tariff, or certify the selected raw
 10^9 allowance after re-emitting adapters. All five framework assumptions stay.
 
 ## Evidence and reproduction
 
-The primary checker imports no predecessor executable. It binds 15 source
+The primary checker imports no predecessor executable. It binds 21 source
 files by SHA256 before parsing and checks:
 
 - All 112 retained phase recipes, a superset of the selected 104 ports: 2,016
@@ -51,10 +57,14 @@ executed command outcomes are recorded in [VALIDATION.json](VALIDATION.json).
 ```sh
 python3 -I -W error -B research/selected-compiler-occurrence-layout/verify.py
 python3 -I -W error -B research/selected-compiler-occurrence-layout/independent_check.py
+python3 -I -W error -B research/selected-compiler-occurrence-layout/rho_tariff.py --repo .
 python3 -B scripts/research_package.py --package research/selected-compiler-occurrence-layout
 ```
 
-Normal and optimized commands are registered. These checks corroborate the
+All three checkers have normal and optimized commands registered. The added
+tariff checker authenticates nine exact source pins, enumerates 2,415 outer
+schedules, and checks selected-bit inverses, compact guards and semantic
+extra-plane controls. These checks corroborate the
 written universal argument; finite tests do not establish its all-size force.
 No selected scientific cold replay, Lean, Docker or full historical suite was
 run. The final native and numerical endpoints remain retained premises.
