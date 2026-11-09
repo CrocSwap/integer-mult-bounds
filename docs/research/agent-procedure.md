@@ -102,15 +102,15 @@ Run this standard-library helper:
 
 ```sh
 # Python 3.10 or later; no third-party dependencies.
-python3 scripts/choose_current_research_task.py
+python3 scripts/choose_contextual_research_task.py
 # To reproduce a selection, pass the emitted 32-hex-digit nonce:
-python3 scripts/choose_current_research_task.py --seed YOUR_NONCE
+python3 scripts/choose_contextual_research_task.py --seed YOUR_NONCE
 # Expertise or an explicit user preference may override the allocation:
-python3 scripts/choose_current_research_task.py --track complex-mechanisms
+python3 scripts/choose_contextual_research_task.py --track complex-mechanisms
 # Retrieve a specific card after assignment:
-python3 scripts/choose_current_research_task.py --task connector-alphabet-change
+python3 scripts/choose_contextual_research_task.py --task connector-alphabet-change
 # Optional: surface structured handoffs/claims from an existing overlap cache.
-python3 scripts/choose_current_research_task.py --coordination-cache /tmp/overlap.json
+python3 scripts/choose_contextual_research_task.py --coordination-cache /tmp/overlap.json
 ```
 
 It reads [the task catalogue](agent-task-catalog.json), draws a
@@ -120,6 +120,14 @@ and selected-record hash. It does not contact GitHub, reserve work, or establish
 that a task is open. A deterministic seed is a reproducibility aid, not novelty.
 Each card supplies a first-step command, expected evidence, a next experiment,
 its connection to the bottleneck, allowed variations and scope-change triggers.
+
+The contextual entry point delegates selection and command routing to the
+unchanged pickers, then adds `catalog_selection`: the original catalogue context
+and its κ/source/review comparison with `selected`. A mismatch means the
+assessment predates or differs from the selection; missing fields are unknown.
+This does not assess whether a task remains useful or authenticate the scientific
+closure. Use `selected` for the current review and replay. See the
+[source-pinned discrepancy and controls](priority-selection-context.md).
 
 **Resolve the generic orientation command before running a historical card.**
 If its `first_step.command` is `python3 -B scripts/research_baseline.py`, use the
