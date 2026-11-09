@@ -80,7 +80,8 @@ is 1,448,742. The proof, deterministic checker, caller bytes and source
 records are retained at the published pin.
 
 Concurrent CrocSwap/integer-mult-bounds#6911, observed at head
-`dfb29acefe428c85ec1cd3bfe7c08d8c0d3d3903`, claims conditional saving
+`dfb29acefe428c85ec1cd3bfe7c08d8c0d3d3903` and rechecked at
+`5c06d893b5542570116f73f3a438ae94f70f45ee`, claims conditional saving
 0.003519487 through a different mixture of two-chain and hosted ports.
 This package retains its frozen source. No cuts or interfaces are silently
 transferred between those different native words. Both remain proposed
@@ -145,9 +146,11 @@ conditional external dependency. The separately verified
 134-axis cap, strictification and complete two-level ordinary bootstrap from
 the canonical saving 0.0034, with fresh finite constants. Its completed
 physical, ROW-restoration, delayed-cover and stock contracts remain premises;
-finite replay does not establish them. The five framework assumptions,
-owned ascent, dirty erasure, column-uniform frame implementation and precision
-obligations remain. Independent AI-assisted implementations provide method
+finite replay does not establish them. The five framework assumptions and
+outstanding physical storage, dirty-erasure, column-uniform frame implementation
+and precision obligations remain. The owned-ascent companion derives the local
+direction/current-content implication under the retained contracts; full physical
+supplier admission remains separate. Independent AI-assisted implementations provide method
 diversity, not proof-kernel or human mathematical acceptance. The finite search
 does not prove optimality or impossibility of further improvement.
 

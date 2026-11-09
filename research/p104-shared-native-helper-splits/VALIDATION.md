@@ -134,14 +134,23 @@ acceptance. Contributor: @CubeJerry, with substantial OpenAI assistance.
 ## Final execution record
 
 The complete six-command registered gate completed successfully on
-2026-11-09 before final dependency retention. Its scientific word, witnesses,
-replay implementations, physical receipt, prices and both caller payloads were
-unchanged afterward. The subsequently retained compiler proof and BIT review
-were copied from the independently verified companion published at
-`6392be85277d5b788936e934b418e36b146d8979`, whose complete tree equals its
-reviewed local commit. The expanded primary check is rerun after that source
-binding; no native or caller payload changes are part of this retention. Every
-retained byte is authenticated by `SOURCE-PINS.json`; the independent
-`retained/compiler/ambient_bounds.py` check is also executed on this retained
-copy. These supplementary checks cover the added dependency evidence without
-claiming that a hash check proves the mathematics.
+2026-11-09 using Python 3.12.14, including the latest compiler/BIT evidence,
+all 2,989 physical maps, both caller views and the source-pin completeness
+check. The final marker was
+`PASS_REGISTERED_RESEARCH_PACKAGE research/p104-shared-native-helper-splits outcome=completed`.
+
+The compiler companion is publicly pinned at
+`6392be85277d5b788936e934b418e36b146d8979`. Its complete Git tree
+`171ba4c827afc651db4995342c99e673cd68434d` equals the independently audited
+local companion used in the replay. Only publication references, explanatory
+scope wording and this execution record changed afterward; every scientific
+input, verifier and mathematical receipt remained unchanged.
+
+All 42 retained dependencies have exactly one Git-blob/SHA-256 pin. The
+primary checker rejects incomplete or duplicate pin coverage before checking
+bytes. Separate temporary-copy controls rejected a missing compiler pin and
+an altered compiler byte. Final pin coverage and package metadata were
+rechecked after binding the published source. The retained independent
+`retained/compiler/ambient_bounds.py` check was included in the full replay.
+These integrity checks do not substitute for the stated mathematical proofs
+or discharge the remaining conditional assumptions.

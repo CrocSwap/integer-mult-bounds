@@ -18,10 +18,15 @@ from linear import HERE, digest, load, main_roles, need, read, replay, source_co
 from pricing import caller_invoice, root_invoice, ordinary_bound, verify_price
 
 
-def pins():
-    manifest = read(HERE / 'SOURCE-PINS.json')
+def pins(root=HERE):
+    manifest = read(root / 'SOURCE-PINS.json')
+    declared = [row['local'] for row in manifest['files']]
+    actual = {str(path.relative_to(root)) for path in (root / 'retained').rglob('*')
+              if path.is_file() and '__pycache__' not in path.parts}
+    need(len(declared) == len(set(declared)) and set(declared) == actual,
+         'Every retained input, including compiler/BIT evidence, has exactly one pin')
     for row in manifest['files']:
-        data = (HERE / row['local']).read_bytes()
+        data = (root / row['local']).read_bytes()
         need(hashlib.sha256(data).hexdigest() == row['sha256'], ('Retained byte pin', row['local']))
         need(hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
              == row['git_blob'], ('Retained Git blob identity', row['local']))
