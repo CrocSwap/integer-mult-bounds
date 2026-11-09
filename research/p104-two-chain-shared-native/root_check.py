@@ -7,7 +7,7 @@ the chains to vanish and each chain's Gram to be sgn(i-j); (2) re-proves the SPE
 stage order, units inside masks, masks commuting with the prefix before and after the stage, the symbolic whole-job identity M(D) = -diag(prod D^eps) with each D once and affine,
 full mask credit, dyadic x,y.
 DECLARED: the lines of the predecessor family checks that this root does not satisfy, and why they are not requirements of the outer theorem:
-  hosted t != 0 (ROOTAUDIT-style rootcheck line 'hosted t not 0, not -1'): here t = 0 by construction (no coupled plane; two separate planes per stage);
+  hosted t != 0 (The hosted family's root check line 'hosted t not 0, not -1'): here t = 0 by construction (no coupled plane; two separate planes per stage);
   hosted alpha, beta dyadic units: here alpha = beta = 0 (same reason);
   Gram digraph strongly connected (added by the #6883 root_check.py itself, not a SPEC line): here the Gram digraph has two components.
   The theorem's requirement is on the unit identity and the whole-job credit, not on connectivity (see README)."""
