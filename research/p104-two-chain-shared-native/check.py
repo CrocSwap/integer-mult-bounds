@@ -313,7 +313,7 @@ signed = Counter(Tq); signed.subtract(Pq); d = Q(0)
 for r, c in signed.items():
     lg = E.log_bounds(r); d -= c * (E.mul(E.power(r, 1 - PIN), lg)[0] if c >= 0 else r * lg[1])
 need(d < 0, 'unique raw crossing through the BIT pin (derivative upper bound negative at the pin)')
-cutoff, floor, power, offset = 11, 12, 1920, Q(1, 7); LP = 2134
+cutoff, floor, power, offset = 11, 12, 1920, Q(1, 7); LP = 2157
 tt_ = 1 - TESTED; target, paidm = E.moment(Tq, tt_), E.moment(Pq, tt_)
 alpha = E.divide(paidm, target); gamma = E.divide(E.moment(Pq, tt_ + offset), E.mul(E.power(cutoff, offset), target))
 delta = E.divide((Q(sum(Tq.values()) * floor),) * 2, E.mul(E.power(cutoff, TESTED), target))
@@ -321,12 +321,13 @@ reserve, decay = Q(1, 10 ** 27), Q(31, 32)
 need(alpha[1] < 1 - reserve and gamma[1] < decay and delta[1] < decay, 'tail ratios (interval engine): alpha %.12f gamma %.4f delta %.4f (cutoff 11, floor 12, offset 1/7, power 1920)' % (float(alpha[1]), float(gamma[1]), float(delta[1])))
 normalized = 1 / (1 + power * reserve) + 4 * decay ** power
 need(normalized < 1, 'composite bound (predecessor pricing.py:211): 1/(1+power*reserve) + 4*decay^power < 1 at power 1920 (excess over the first term %.2e)' % float(4 * decay ** power))
-maxT = max(Tq); quarter = E.power(maxT, Q(power, 4) * TESTED); factor = E.mul(E.mul(quarter, quarter), E.mul(quarter, quarter))
+maxT = max(Tq); carrier = max(maxT, int(C['ambient_rank']))     # the compiler fit m*c <= N (FP:111-114) is on the literal carrier, 9 base rows + 8 per stage = 153, not on the largest target rank 145
+quarter = E.power(carrier, Q(power, 4) * TESTED); factor = E.mul(E.mul(quarter, quarter), E.mul(quarter, quarter))
 eta = E.scale(E.divide((Q(1), Q(1)), factor), tt_)
-need(eta[0] > Q(63, 64) ** LP and factor[1] < 2 ** LP and cutoff ** 64 < floor ** 63 and 2 * (cutoff ** power) ** 64 <= (maxT ** power) ** 63, 'compiler complement capacity and shifted exits at logarithm power %d (max target rank %d)' % (LP, maxT))
+need(eta[0] > Q(63, 64) ** LP and factor[1] < 2 ** LP and cutoff ** 64 < floor ** 63 and 2 * (cutoff ** power) ** 64 <= (carrier ** power) ** 63, 'compiler complement capacity and shifted exits at logarithm power %d on the literal carrier %d (the largest target rank is %d; an earlier version used 145 and was too low)' % (LP, carrier, maxT))
 lp_ = LP
 while eta[0] > Q(63, 64) ** (lp_ - 1): lp_ -= 1
-need(lp_ == 2133 and Q(63, 64) ** 2100 > eta[0], 'logarithm power: the smallest admissible value at this price is %d, written as %d (2100 FAILS here: it is a free parameter, LOG-MAJORANT.md:110-122, and the wall of 2100 is at a tested price near .0034607, below this claim)' % (lp_, LP))
+need(lp_ == 2156 and Q(63, 64) ** 2134 > eta[0] and Q(63, 64) ** 2155 > eta[0], 'logarithm power: on the literal carrier 153 the smallest admissible value at this price is %d, written as %d (the value 2134 written by an earlier version, computed with the largest target rank 145 in place of the carrier, and 2155 both FAIL; it is a free parameter, LOG-MAJORANT.md:110-122)' % (lp_, LP))
 gap = (TESTED - KAPPA) / 7; need(gap.numerator == 1, 'compiler grid: (tested-kappa)/7 = %s' % gap)
 step = gap.denominator
 wins = lambda j: (step * j + 1) ** LP < 2 ** j
