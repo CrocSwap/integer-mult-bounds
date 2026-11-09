@@ -371,7 +371,7 @@ So no hypothesis of `(4a)` fails. Two literal inputs fail with computed replacem
 
 ## Sources and changes (not for a package)
 
-**the numerical run:** ` numerical run/RESULT.md` exists (written while this note was in progress) and is folded in at sections 5, 7, 8. It says "theorem survives" and names the two corrections used above.
+**the numerical run:** Results of the numerical run are folded in at sections 5, 7, 8. It says "theorem survives" and names the two corrections used above.
 
 **Source reads.** `pkg-lift` at origin/main 7c49fe32c, read with `git show`, checkout unchanged: `upstream/build/sections/{02-streams,05-layers,06-transforms,08-assembly}.tex`, `research/higher-moment-strictification/vendor/{FINITE-PRECOMPILATION,p7-TENSOR}.md`; branch `fork/research/p104-odd-scalar-native` for `check.py`, `native.py`. ` earlier reading/src/p6901.md`, `p6932.md`, `6932_README.md`.
 
@@ -391,6 +391,6 @@ So no hypothesis of `(4a)` fails. Two literal inputs fail with computed replacem
 | 8 | **New here.** READ's `Sigma` about `2^7300` is the split-class value only. The largest are the small-rank base (`2^13,935`) and the ordinary remainder (`2^H`). Still harmless | this note, sec 3 and 5 |
 | 9 | **New here.** READ expected about 1.1 more bits of `p`. Reading 08-assembly: none needed, `3l < L` absorbs it at line 564 | this note, sec 6 |
 | 10 | **New here.** Proposition R's constant holds for all `D >= 1` with the stated `g`, not only `D >= 19` | `const.py` |
-| 11 | **Reversed.** READ said removing the root scale frees 2,089,440, so raw "should fit". On the recharge line it frees nothing. It fails by 1.26M to 9.20M on the old caller, and fits with #6912's rewrite | this note sec 7; the numerical run |
+| 11 | **Reversed.** An earlier reading said removing the root scale frees 2,089,440, so raw "should fit". On the recharge line it frees nothing. It fails by 1.26M to 9.20M on the old caller, and fits with #6912's rewrite | this note sec 7; the numerical run |
 | 12 | Slack 9 bits corrected to 5.5; model 3 bits low | the numerical run |
 | 13 | S3 split into S3, S3a; the factor 2 per context removed, since the completion is now charged explicitly | READ change 1 |
