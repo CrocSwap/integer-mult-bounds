@@ -514,6 +514,11 @@ def main():
 
     pure = [element for element in group if element[0] == tuple(range(8))]
     expect(len(pure) == 32, "the pure sign subgroup fixing sector 1 does not have order 32")
+    fibers = {}
+    for element in group:
+        fibers[element[0]] = fibers.get(element[0], 0) + 1
+    expect(len(fibers) == 96 and all(count == 32 for count in fibers.values()),
+           "the c=1 stabilizer is not 96 permutations with 32 sign patterns each")
     signs = [element for element in pure if element[1][0] == 1]
     expect(len(signs) == 16, "the positive coordinate-0 sign stabilizer does not have order 16")
     dims, value = character_model(signs)

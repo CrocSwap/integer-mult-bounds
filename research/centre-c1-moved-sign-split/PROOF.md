@@ -27,7 +27,7 @@ Thus `T c = c` is the intertwining condition for `A_c`. The trace on the 4096-di
 
 ## The residual stabilizer
 
-`R` is the set of those `1344 * 256` signed pairs whose port map is linear, preserves the standard dot product, and fixes sector `c = 1`. The basis image of a linear map determines the map, so a candidate whose basis image moves sector 1 is excluded before the full port check. Every candidate whose basis image fixes sector 1 was checked on all 112 ports. The accepted set has order **3072**. It is closed under the signed-permutation composition law and under inversion, and the stored label map of each inverse agrees with the inverse matrix on a port basis.
+`R` is the set of those `1344 * 256` signed pairs whose port map is linear, preserves the standard dot product, and fixes sector `c = 1`. The basis image of a linear map determines the map, so a candidate whose basis image moves sector 1 is excluded before the full port check. Every candidate whose basis image fixes sector 1 was checked on all 112 ports. The accepted set has order **3072**: 96 underlying permutations, each with exactly 32 sign patterns. It is closed under the signed-permutation composition law and under inversion, and the stored label map of each inverse agrees with the inverse matrix on a port basis.
 
 `H` is the order-16 subgroup of coordinate sign patterns in `R` with positive sign on coordinate 0. It is elementary abelian. Its character dimensions on the `c = 1` block are
 

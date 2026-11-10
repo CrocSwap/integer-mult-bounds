@@ -2,7 +2,7 @@
 
 Prepared by unpaidmoon with substantial Cursor Grok assistance. Apache-2.0.
 
-For the historical 8-by-112 centre query, the residual signed-permutation stabilizer of sector `c = 1` has order **3072**. On each sign character moved by the predecessor involutions `g` and `t`, that finite group splits the character. The finest splits certified here come from one explicit order-4 permutation: complex dimensions `144 + 84 + 120 + 84` on each 432-dimensional character, `48 + 48 + 48 + 48` on each 192-dimensional character, and `32 + 12 + 24 + 12` on each 80-dimensional character.
+For the historical 8-by-112 centre query, the residual signed-permutation stabilizer of sector `c = 1` has order **3072**: 96 permutations, each with 32 sign patterns. On each sign character moved by the predecessor involutions `g` and `t`, that finite group splits the character. The finest splits certified here come from one explicit order-4 permutation: complex dimensions `144 + 84 + 120 + 84` on each 432-dimensional character, `48 + 48 + 48 + 48` on each 192-dimensional character, and `32 + 12 + 24 + 12` on each 80-dimensional character.
 
 This is an exhaustive finite census with exact intertwining identities. It does not change the selected conditional kappa `781451/250000000`. [PROOF.md](PROOF.md) records the stabilizer, the eigenvalue tables, and the centralizer obstruction.
 
