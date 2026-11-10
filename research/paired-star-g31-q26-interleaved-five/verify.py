@@ -423,6 +423,15 @@ def check_profile_pure():
         # core top from leaf0 bottom.
         require(got[0][d + Q] == MUL[x][z], "q=26 core-top entry is not xz")
         require(exp[2 * d][Q] == 0 and exp[0][d + Q] == 0, "target off-block is not zero")
+        p6, pp6, q6, qp6 = plane_projectors()
+        small = eye(6)
+        for mat, scalar in ((p6, x), (q6, z), (pp6, x), (qp6, z)):
+            small = mm(factor(mat, scalar), small)
+        plane = (0, Q, d, d + Q, 2 * d, 2 * d + Q)
+        for a, ia in enumerate(plane):
+            for b, ib in enumerate(plane):
+                require(got[ia][ib] == small[a][b],
+                        "q=26 pure product does not restrict to the 6-plane")
         commuting = pure_on_profile(v0, v1, 0)
         require(commuting == exp, "B=0 cross of this order should match; the frame control failed")
 

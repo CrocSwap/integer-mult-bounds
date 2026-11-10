@@ -113,7 +113,8 @@ target. At the field points
 one has `x_0 = 3`, `x_1 = 5` and `x_0 = 2`, `x_1 = 4` respectively, in the
 fixed GF(16) representation below, and both products `x_0 x_1` are nonzero.
 The same two entries of the embedded `q = 26` pure product equal those
-products, and the target entries are zero.
+products, and the target entries are zero. Every one of the 36 entries on
+the copies of `V` agrees with this 6-by-6 product.
 
 Thin maps contribute only to the coefficient of `e`. They do not change this
 pure factor. Therefore no choice of thin maps, of any rank and in any gaps,
