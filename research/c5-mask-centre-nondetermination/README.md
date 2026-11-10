@@ -1,15 +1,21 @@
-# The sixteen characteristic-5 masks do not force a legal sum-33 centre
+# Separate c=5 weight-2-family and all-ones-window centre counterexamples
 
-**Partial obstruction. No new κ.** In the unchanged unsigned dirty connector,
-neither half of the sixteen masks of weights 2 and 6 forces the centre
-`S(16) = q_16 + q_17` into `{0,1,5,6,10}^6`. Every all-ones window has a
-floor word with that window and an illegal centre. The fifteen weight-2
-masks are realized both by a word with a legal centre and by a word with
-an illegal centre. No pair of sum 33 can carry any of those sixteen masks.
+**Two separate counterexamples. No new κ.** In the unchanged unsigned dirty
+connector, the following are established separately. They do not combine.
 
-This does not prove that a word realizing all sixteen at once has an illegal
-centre, and it does not prove hypothesis (H) of the centre-freeze. The
-selected conditional κ stays `781451/250000000`.
+1. No individual all-ones window forces `S(16) = q_16 + q_17` to be legal.
+   Every admissible window has a floor word with that window and an illegal
+   centre. Some windows also have a legal-centre word. None forces the legal
+   polarity.
+2. The fifteen weight-2 masks, as a family and without the weight-6 mask,
+   admit both polarities. One floor word realizes all fifteen with an illegal
+   centre, and another realizes all fifteen with a legal centre.
+
+No conclusion is established about a word that realizes all fifteen weight-2
+masks and the weight-6 mask together. That conjunction is not shown to force
+a legal centre, and it is not shown to admit an illegal centre. This holds
+whether or not such a word exists. The selected conditional κ stays
+`781451/250000000`. Hypothesis (H) of the centre-freeze is not proved.
 
 ## Proved statement
 
@@ -27,26 +33,33 @@ Let `A = {0,1,5,6,10}`. Call `S(16)` **legal** when every coordinate lies in
 sum in `{0,...,10}` lies in `A` exactly when it is congruent to 0 or 1
 modulo 5, and the mask bit is 1 exactly on `{1,6}`.
 
-**Theorem.** The sixteen masks do not determine the legality of `S(16)`,
-in the following three senses.
+**Result A.** No individual all-ones window forces a legal centre. There
+are 4095 admissible ways to assign coordinate types to one all-ones window.
+For every one of them there is a length-30 floor word that realizes that
+window and has illegal `S(16)`. For 1731 of them there is also a floor word
+with the same window and legal `S(16)`. No window forces `S(16)` to be
+legal. Of the 2364 windows that force it to be illegal, 1573 do so because
+`q_16` cannot contain a coordinate 0, by the three human classes below. The
+other 791 admit a coordinate 0, but none of their feasible vectors `q_16`
+is a legal centre; that last split is the exhaustive comparison in
+`verify.py`. Each of these words is a witness for one window. A window
+witness does not realize every weight-2 mask, and Result A does not quantify
+over words that realize the weight-6 mask together with all fifteen weight-2
+masks.
 
-1. **Weight 6.** There are 4095 admissible ways to assign coordinate types
-   to an all-ones window. For every one of them there is a length-30 floor
-   word that realizes that window and has illegal `S(16)`. For 1731 of them
-   there is also a floor word with the same window and legal `S(16)`. No
-   window forces `S(16)` to be legal. Of the 2364 windows that force it to
-   be illegal, 1573 do so because `q_16` cannot contain a coordinate 0, by
-   the three human classes below. The other 791 admit a coordinate 0, but
-   none of their feasible vectors `q_16` is a legal centre; that last split
-   is the exhaustive comparison in `verify.py`.
-2. **Weight 2.** The sorted floor word realizes all fifteen weight-2 masks
-   and has illegal `S(16)`. The explicit word
-   `001211112322203343354444555500` realizes all fifteen and has legal
-   `S(16)`. Neither word realizes the weight-6 mask.
-3. **No diagonal pair.** Every 6-tuple with coordinates in `A` has coordinate
-   sum congruent to its mask weight modulo 5. A tuple of sum 33 therefore
-   has weight 3, never weight 2 or 6. The thirteen pairs with `s + t = 33`
-   cannot realize any of the sixteen masks.
+**Result B.** The fifteen weight-2 masks admit both centre polarities. The
+sorted floor word realizes all fifteen and has illegal `S(16)`. The explicit
+word `001211112322203343354444555500` realizes all fifteen and has legal
+`S(16)`. Neither word realizes the weight-6 mask. Result B is a statement
+about that family alone.
+
+The weight identity is rechecked and is not a third result about the
+conjunction. Every 6-tuple with coordinates in `A` has coordinate sum
+congruent to its mask weight modulo 5. A tuple of sum 33 therefore has
+weight 3. A single pair with `s + t = 33` cannot realize a weight-2 mask or
+the weight-6 mask. That says where one mask can sit. It does not say whether
+realizing every weight-2 mask and the weight-6 mask on other pairs forces
+`S(16)` to be legal.
 
 The evidence class is an exhaustive finite census. The domains are finite:
 the 36 ordered pairs of counts in `{0,...,5}`, the centre vectors of sum 16,
@@ -68,9 +81,12 @@ Boundary 30 is not a second endpoint: `q_30` is the all-fives vector.
 Hypothesis (H) from PR #7038 asks every `S(s) = q_s + q_{33-s}`, for
 `s = 4,...,16`, to be legal. That note proves (H) is empty for every floor
 word, because a legal `S(16)` freezes a coordinate at 10 and the diagonal
-step cannot move 10 inside `A`. It leaves open whether the sixteen masks
-force `S(16)` into `A^6`. That is the question decided here for each half
-of the sixteen, and left open for their conjunction.
+step cannot move 10 inside `A`. It leaves open whether every depth-two
+floor word satisfies (H). One proposed route was to derive a legal `S(16)`
+from the sixteen masks of weights 2 and 6. This note does not decide that
+route. Result A is about one all-ones window at a time. Result B is about
+the weight-2 masks without the weight-6 mask. A word that realizes both at
+once is not covered by either result.
 
 ## Coordinate types of an all-ones window
 
@@ -240,10 +256,11 @@ is `q_16 = (3,5,5,3,0,0)`, `w_16 = 4`,
 all 465 pairs. This word was found by a local solver and is checked here
 as a literal; the solver is not part of the replay.
 
-Thus the fifteen weight-2 masks occur with both centre polarities. They do
-not determine `S(16)`.
+Thus the fifteen weight-2 masks, without the weight-6 mask, occur with both
+centre polarities. That is Result B. It does not restrict the centre of a
+word that also realizes the weight-6 mask.
 
-## A mixed family that is still illegal
+## One six-D window that also meets thirteen weight-2 masks
 
 The word
 
@@ -251,28 +268,31 @@ The word
 102431540325045231253054314120
 ```
 
-has `q_18 = (3,3,3,3,3,3)`, so `(18, 18)` is the six-D window above and
-`S(16) = (6,4,6,5,6,6)` is illegal. The same word realizes 13 of the 15
-weight-2 masks. The two it misses are `(0,0,1,0,1,0)` and
-`(0,1,0,0,0,1)`. The illegality is already forced by the six-D window, so
-these thirteen masks do not push that window onto a legal centre. They are
-not the full set of fifteen.
+has `q_18 = (3,3,3,3,3,3)`, so `(18, 18)` is the six-D window in the tight
+class above, and `S(16) = (6,4,6,5,6,6)` is illegal for that window reason.
+The same word also realizes 13 of the 15 weight-2 masks. The two it misses
+are `(0,0,1,0,1,0)` and `(0,1,0,0,0,1)`. This is one checked example inside
+Result A. It is not a classification of those thirteen masks together with
+weight 6, and it is not a statement about the conjunction of all fifteen
+weight-2 masks with the weight-6 mask.
 
-## What was not proved
+## What these two results do not say
 
-The conjunction of all fifteen weight-2 masks with the weight-6 mask is not
-decided. PR #7038's proposed derivation was: those sixteen masks force
-`S(16)` legal, and the frozen step then empties (H). Each half fails to
-force the legal centre, and the halves meet on no sum-33 pair. A derivation
-that uses all sixteen at once is not supplied here.
+Result A and Result B are separate. A counterexample to one all-ones window,
+and a pair of counterexamples to the weight-2 family alone, do not imply a
+counterexample to their conjunction. No conclusion about that conjunction is
+established here, including in the case where a word realizing all fifteen
+weight-2 masks and the weight-6 mask exists.
 
-Merged PR #6216 is a checked DRAT certificate that no floor word realizes
-all sixteen masks. Emptiness makes both "`S(16)` is legal" and "`S(16)` is
-illegal" vacuously true. That is not a derivation of the centre, and this
-package does not replay the certificate. The centre-freeze needs a legal
-centre that a word actually reaches, or an argument that produces one. The
-transports above produce illegal centres, or both polarities, and never a
-forced legal centre.
+PR #7038 asked whether those sixteen masks force a legal `S(16)`, which with
+the centre-freeze would empty (H). This package does not answer that
+question.
+
+Merged PR #6216 asserts that no floor word realizes all sixteen masks. This
+package does not replay that certificate and does not use the asserted empty
+fibre as a reason to call the centre legal or illegal. Emptiness, if
+granted, would make both polarities vacuous; that is #6216's claim, not a
+result of this census.
 
 No supplier, consumer, or selected frontier changes. The live selected
 record at the base commit is κ `= 781451/250000000 = 0.003125804`.
@@ -287,7 +307,12 @@ python3.12 -I -O -W error -B research/c5-mask-centre-nondetermination/verify.py
 python3.12 -B scripts/research_package.py --package research/c5-mask-centre-nondetermination --check-only
 ```
 
-The marker is
+The marker token is the package id. Its counts are the two separate checks:
+`legal_only=0` and `weight6_forces_legal=0` are Result A, and
+`weight2_polarities=2` is Result B. The fields `joint_weight2=13` and
+`joint_missing=2` count masks on the single six-D example above. They are
+not a result about the conjunction of all fifteen weight-2 masks with the
+weight-6 mask.
 
 ```text
 PASS_C5_MASK_CENTRE_NONDETERMINATION assignments=4095 illegal_only=2364 both=1731 legal_only=0 no_zero=1573 zero_but_illegal=791 classes=845+721+7 constructed=5826 midpoint_q16=21 weight2_polarities=2 weight6_forces_legal=0 joint_weight2=13 joint_missing=2 controls=9
@@ -297,23 +322,23 @@ The nine controls are the near-miss centre `(3,3,3,3,3,1)`, the agreement of
 the human no-zero classes with the enumerated vectors, the 21 midpoint
 vectors, the weight identity on every allowed 6-tuple, the sorted staircase
 and its centre, the swapped sorted word, the legal weight-2 witness, the
-flexible all-ones pair and its illegal twin, and the 13-mask joint word.
+flexible all-ones pair and its illegal twin, and the six-D example that
+meets 13 weight-2 masks.
 Failures raise `SystemExit`. Optimized mode cannot silence them. No Lean,
 Docker, or historical suite was run.
 
 ## Open next questions
 
-1. Does any satisfiable family made of the weight-6 mask and at least 14 of
-   the weight-2 masks force `S(16)` into `A^6`?
-   *Why:* the families decided above do not, and a forced legal centre is
-   the input the PR #7038 freeze still lacks. The full sixteen are a
-   different statement: their emptiness, as certified by PR #6216, does not
-   select a centre.
-   *First step:* take the fifteen weight-2 masks except `(0,0,1,0,1,0)`,
-   together with the all-ones mask, and either exhibit a floor word with
-   illegal `S(16)` or prove that every realization has legal `S(16)`.
-   *Blocked by:* this census does not decide that 14-mask family. The
-   weight identity still gives it no pair on `s + t = 33`.
+1. For a floor word that realizes all fifteen weight-2 masks and the
+   weight-6 mask together, what is the status of `S(16)`?
+   *Why:* Result A and Result B do not apply to that word. PR #7038 still
+   lacks a derivation of a legal centre from that conjunction, and this
+   package does not provide one.
+   *First step:* state the conjunction as its own hypothesis, separate from
+   the one-window census and from the weight-2 family. This package does not
+   take that step.
+   *Blocked by:* no joint word is constructed or excluded here. PR #6216's
+   empty-fibre assertion is not an input to this census.
 
 ## Credit
 

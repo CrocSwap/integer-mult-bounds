@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""The sixteen c=5 masks do not force a legal sum-33 centre.
+"""Two separate c=5 centre counterexamples.
+
+Result A: no individual all-ones window forces a legal sum-33 centre.
+Result B: the fifteen weight-2 masks admit both centre polarities.
+No conclusion is drawn about a word that realizes both together.
 
 Evidence class: exhaustive finite census. The human completeness argument
 is in README.md. This program enumerates every admissible all-ones window,
 builds a floor word for every window with an illegal centre, and checks the
 explicit weight-2 witnesses. It does not call a SAT solver and it does not
-search the joint sixteen-mask fibre.
+search words that realize all fifteen weight-2 masks and the weight-6 mask.
 """
 
 import itertools
