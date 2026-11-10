@@ -85,15 +85,25 @@ def blobs(root, specs):
     out = git(root, 'cat-file', '--batch', data=''.join(s + '\n' for s in framed).encode()).stdout
     pos = 0
     for spec in framed:
-        end = out.index(b'\n', pos)
-        header = out[pos:end].split()
+        end = out.find(b'\n', pos)
+        if end < 0:
+            raise SystemExit('missing Git batch response header for: ' + repr(spec))
+        header = out[pos:end]
         pos = end + 1
-        if header[-1] == b'missing' or header[1] != b'blob':
+        if header == spec.encode() + b' missing':
             found[spec] = None
             continue
-        size = int(header[2])
-        found[spec] = out[pos:pos + size]
-        pos += size + 1
+        fields = header.split()
+        if len(fields) != 3 or not fields[2].isdigit():
+            raise SystemExit('invalid Git batch response header for: ' + repr(spec))
+        payload_end = pos + int(fields[2])
+        if out[payload_end:payload_end + 1] != b'\n':
+            raise SystemExit('invalid Git batch payload terminator for: ' + repr(spec))
+        # Trees and other successful objects have payloads too.
+        found[spec] = out[pos:payload_end] if fields[1] == b'blob' else None
+        pos = payload_end + 1
+    if pos != len(out):
+        raise SystemExit('unexpected trailing bytes in Git batch response')
     return found
 
 

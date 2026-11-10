@@ -197,6 +197,16 @@ class CommittedPathReport(unittest.TestCase):
         pins = [self.pin(target, pinner, before[target]) for target in targets]
         self.report(repository, self.expected(repository, 3, pins))
 
+    def test_tree_response_does_not_hide_later_stale_pinner(self):
+        target, old = "research/target", b"old payload"
+        pin = digest(old).encode()
+        before = {target: old, "a-pin": pin, "z-pin": pin}
+        after = {target: b"new payload", "a-pin/child": b"tree entry", "z-pin": pin}
+        repository = self.repository(before, after)
+        pins = [self.pin(target, "z-pin", old),
+                self.pin(target, "a-pin", old, state="pinner_removed")]
+        self.report(repository, self.expected(repository, 2, pins))
+
     def test_unicode_and_carriage_return_names(self):
         target, pinner, old = "research/測試/δ\rdata.json", "notes/測試:δ\npins.txt", b"unicode case"
         before = {target: old, pinner: digest(old).encode()}

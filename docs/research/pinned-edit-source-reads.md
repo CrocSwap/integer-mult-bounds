@@ -23,6 +23,14 @@ non-blob objects retain the old `None` behavior; unexpected Git failures
 propagate rather than becoming clean reports. This uses no newer Git batching
 option or new dependency.
 
+The ordinary batch reader consumes each successful response's declared payload
+and terminating newline before classifying its type. A directory that replaces
+a pinning file is reported as removed, and the next response is still read at
+its header. The committed-tree regression keeps a second stale pin after the
+directory and requires exit 1 in both default and strict modes. Thanks to
+[@antunishdPursuit](https://github.com/CrocSwap/integer-mult-bounds/pull/6357#issuecomment-6582649037)
+for reproducing the false-clean report.
+
 The original Git subprocesses inherit shell variables such as `GIT_DIR`, which
 can select an unrelated clean repository despite `--root`. Every guard Git
 read now uses the existing `research_package.git_source_env()` policy. This
