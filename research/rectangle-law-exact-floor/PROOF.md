@@ -93,8 +93,10 @@ factorisations explicitly over Q for 1 <= u, h <= 8 and all eight odd sign patte
 ## 3. Corollary: Theorem S for any stage size and hub count
 
 Hypothesis (S_u) is hypothesis (S) of the source with u x u in place of 2 x 2: L = 18 stages of
-u units each, Gamma_dc the u x u matrix of products y_u . x_v over all coordinates for stage d
-before stage c, and sgn(d - c) Gamma_dc = Xi_d H_c with Xi_d, H_c invertible u x u for d != c.
+u LOCAL units each (the units of stage d precede those of stage c when d < c), Gamma_dc the
+u x u matrix (y_a . x_b) over all coordinates with a a unit of stage d and b a unit of stage c,
+and sgn(d - c) Gamma_dc = Xi_d H_c with Xi_d, H_c invertible u x u for every d != c. (The source
+writes the unit indices as u and v; here u is the stage size.)
 Take any h hub coordinates; let Xi'_d (u x h) hold the y-entries of stage d at the hubs and
 H'_c (h x u) the x-entries of stage c. The cell with the hubs removed is
 s Xi_d H_c - Xi'_d H'_c = Xi_d (s I - A_d B_c) H_c with A_d = Xi_d^-1 Xi'_d and
