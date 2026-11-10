@@ -15,9 +15,11 @@ Facts checked here, all by exhaustive enumeration:
     the row in one point, and every polynomial of degree <= 2 sums to 0 on a 3-flat);
   * the four #7031 forms (p, q, r, s) miss exactly one of their 16 values on the 120
     lines, so exactly two functions of them host frame 0: charge 40 and charge 16;
-  * exact minima over three named host classes (flat indicators, W_F-invariant
-    functions, all hosts of degree <= 3), on the 120-line scope and on the 104
-    P104-line scope.
+  * exact minima over W_F-invariant functions (the five flat indicators are among
+    them) and over all hosts of degree <= 3, on the 120-line scope and on the 104
+    P104-line scope; the five flat charges are listed on the 120-line scope;
+  * a letter-product baseline and explicit sparser hosts (data/hosts_*.json), each
+    re-evaluated at every scope point.
 
 Checks are need() failures, so python -O still runs them. No claim is made about
 the minimum over all Boolean functions, about sums of products, or about kappa.
@@ -549,7 +551,7 @@ def main(argv):
                 need(parity == 0, "a monomial of degree <= 2 does not sum to 0 on a 3-flat")
         certificates.append((index, a, dirs))
 
-    # ---- per-clique exact minima in the three named classes, two scopes
+    # ---- per-clique exact minima in the named classes, two scopes
     results = {}
     for scope_name, scope in (("T120", lines_t), ("P104", p104)):
         for index, clique in enumerate(clique_data):

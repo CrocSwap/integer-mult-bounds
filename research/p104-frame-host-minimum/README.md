@@ -41,8 +41,8 @@ value of `(v, v)/2`). The 120 chart points are exactly `{x : Q(x) = 1}`. Each of
 15 cliques is a coset `F = a + W` of a 3-dimensional subspace `W`. Let `B` be the polar
 form of `Q`; it is nondegenerate because the Cartan matrix is unimodular. Then:
 
-- the other 32 cosets of `W` split as 28 that hold exactly 4 lines, 3 that hold none,
-  and `F` itself with 8 (8 + 28·4 = 120);
+- the 32 cosets of `W` split as `F` itself with 8 lines, 28 cosets with exactly 4 lines
+  each, and 3 cosets with none (8 + 28·4 = 120);
 - the 3 empty cosets and `F` make the 5-flat `a + W^⊥`, so `(a + W^⊥) ∩ lines = F`;
 - hence exactly 8 functions invariant under `W` host the row, and exactly 5 flats
   `G ⊇ F` meet the lines only in `F`: the subspaces between `W` and `W^⊥`
@@ -63,10 +63,11 @@ most 2 exists. The linear system over `F_2` agrees: it is inconsistent for degre
 both scopes. Hosts of degree at most 3 form an affine space of dimension 9 on the
 120-line scope (`f + (1+Q)·affine`, 512 hosts) and of dimension 11 on the 104-line scope.
 
-**4. Exact minima in three named classes.** The classes are the 5 flat indicators, the 8
-`W`-invariant hosts, and all hosts of degree at most 3. On the 120-line scope the flat
-minimum equals the invariant minimum in every row. For frame 0 the minimum is 16 over
-flats and invariant hosts, and 14 over all cubic hosts (a unique minimiser).
+**4. Exact minima in named classes.** The classes are the `W`-invariant hosts (8 on the
+120-line scope; the 5 flat indicators are among them) and all hosts of degree at most 3,
+on both scopes. On the 120-line scope the minimum over the 5 flats equals the minimum over
+all invariant hosts in every row. For frame 0 the minimum is 16 over invariant hosts and
+14 over all cubic hosts (a unique minimiser).
 
 **5. Explicit sparser hosts (upper bounds).** A seeded randomized search
 (`search.py`: information-set decoding over the 256 monomials, 3000 orders per row,
@@ -135,10 +136,11 @@ generator command takes about 3 minutes. From the repository root:
 ```
 
 `verify.py` prints `PASS_P104_FRAME_HOST_MINIMUM` with the key numbers. Its failure
-controls reject a corrupted host and a wrong form. The ANF of the two four-form hosts
-is computed twice, by polynomial multiplication and by the subset-sum transform, and
-both must appear in the enumerations built by two other methods (cosets and a linear
-system over `F_2`). `data/frames.json` is #7014's witness as vendored by #7031 and
+controls reject a corrupted host and a wrong form. The ANF of the two four-form
+hosts is computed by polynomial multiplication and checked against the subset-sum
+transform of their truth tables. Both must occur in the coset enumeration, and the
+three-form host must also occur in the enumeration built from a linear system over `F_2`
+(the degree-4 product must not). `data/frames.json` is #7014's witness as vendored by #7031 and
 #7047 (sha256 `c75915c18fc06ac19cc90fb9911209517c071862fdf401b998d5075efc0cda0d`,
 checked); the chart convention and the root-line map follow #7031 and #6933.
 
