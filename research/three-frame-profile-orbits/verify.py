@@ -22,7 +22,6 @@ P: Sym = (Fr(1, 2), Fr(1, 2), Fr(1, 2))
 Q: Sym = (Fr(1, 2), Fr(-1, 2), Fr(1, 2))
 IDENTITY: Sym = (Fr(1), Fr(0), Fr(1))
 LABELS: tuple[Sym, Sym, Sym, Sym] = (A, B, P, Q)
-LABEL_NAMES = "ABPQ"
 
 CENSUS_FOUR_OLD: tuple[Profile, ...] = (
     (0, 1, 1, 2), (0, 1, 2, 1), (0, 2, 1, 1), (1, 0, 1, 2),
