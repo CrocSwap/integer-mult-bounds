@@ -1,31 +1,37 @@
 # Current reviewed status
 
-Selected conditional κ: **0.003125804** = 781451/250000000, DreamingOfClouds'
-PR6030 on the cumulative P104 construction. The complete caller counts 13,444
-productive fields and 66,834 paid calls. The saving is about 0.81775% above the
-preceding selected PR5599 claim 0.00310045.
+Selected conditional κ: **0.00363005817** = 363005817/100000000000, Jerry Chen /
+CubeJerry's PR7000 with the paired QUERY-only BIT dependency PR7001. The complete
+complex caller counts 23,392 productive fields and 117,612 paid calls. The saving
+κ is about 16.13% above the preceding selected PR6030 claim .003125804.
 
 [Selected record](../../certificates/selected-result.json) ·
-[Application review](pr-intake-evidence/pr6030-audit/PROOF-REVIEW.md) ·
-[Validation](pr-intake-evidence/pr6030-audit/VALIDATION.json) ·
-[Integration](pr-intake-evidence/pr6030-audit/INTEGRATION.json) ·
-[Contributor map](community-p1046030-contributors.md).
+[Application review](pr-intake-evidence/pr7000-application/PROOF-REVIEW.md) ·
+[Validation](pr-intake-evidence/pr7000-application/VALIDATION.json) ·
+[Contributor map](community-frontier7000-contributors.md).
 
-Replay: `make frontier6030-verify`. Normal primary macOS/Linux results are
-source-bound and retained. Fresh serial local checks cover the independent
-word/invoice/new-native audit, exact original caller positive control, adapted
-candidate caller and optimized primary. All fresh jobs stay within their
-600-second and sampled 1 GiB limits. Independent funding decimals corroborate,
-but do not replace, the primary exact rational interval certificates.
+Replay: `make frontier7000-verify`. Eleven unchanged exact-source executions
+are retained from the preceding admission review; seven fresh serial checks
+complete the current geometry, scalar and native-map audit. All successful jobs
+have explicit wall-time and sampled 1 GiB descendant-memory limits. A failed
+600-second monolithic attempt is preserved separately; three bounded parts
+cover all 3,057 native maps and 104 main-boundary pairs. This is complete coverage
+of the current catalogue, including inherited maps.
+
+The written application joins all 14,400 caller contacts, actual owner/paid lists,
+636 rational BIT frames, exact fixed-rational scalar services, complete root
+factors and new finite-cost/threshold constants. The BIT ambient correction
+127→134 requires logarithm power 617; it preserves ordinary saving .00385248.
+The old source-unit invoice is not used as a literal tape-step cap.
 
 The five assumptions remain native_all_columns, owned_erasure, compiler,
-precision_tape and analytic_recovery. No full uniform word or rounded multiplier
-is materialized; no complete Lean or independent human theorem proof is asserted.
+precision_tape and analytic_recovery. No full uniform word or complete multiplier
+is materialized; no independent human or formal-kernel theorem proof is asserted.
 
-DreamingOfClouds, Ali Romman, Mason Hale, Pierre-Loic Doulcet, Matarener,
-Clear1nsight and the cumulative native/controller/compiler/BIT/analytic lineage
-retain credit. Prior source-bound foundation evidence is reused explicitly.
-The [PR5599 checkpoint](../../certificates/checkpoints/frontier5599.json) is preserved.
+CubeJerry, DreamingOfClouds, Ali Romman and the cumulative native, controller,
+compiler, BIT, analytic and independent-verification lineage retain credit.
+The [PR6030 checkpoint](../../certificates/checkpoints/frontier6030.json) is preserved.
+Later archived or proposed improvements require their own source-bound review.
 
 The remaining sections form a **historical snapshot**; their “current” wording
 is local to their checkpoint, not the selected record above.

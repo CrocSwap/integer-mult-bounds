@@ -13,52 +13,53 @@ starting with [the coordination guide](https://github.com/CrocSwap/integer-mult-
 New to the construction? Read [the bottleneck brief](docs/research/bottleneck-brief.md).
 Workflow feedback is welcome in [discussion #1200](https://github.com/CrocSwap/integer-mult-bounds/discussions/1200).
 
-## Current reviewed result: P104 twin-rung removal
+## Current reviewed result: shared native wires and helper splits
 
-**DreamingOfClouds' [#6030](https://github.com/CrocSwap/integer-mult-bounds/pull/6030)**,
-building on Ali Romman's construction/verification chain and the community P104 work, gives
+**Jerry Chen / CubeJerry's [#7000](https://github.com/CrocSwap/integer-mult-bounds/pull/7000)**,
+with the paired BIT dependency [#7001](https://github.com/CrocSwap/integer-mult-bounds/pull/7001), gives
 
 $$
 T(n)=O\!\left(n(\log n)^{1-\kappa}\right),\qquad
-\kappa=\frac{781451}{250000000}=0.003125804>2^{-9}.
+\kappa=\frac{363005817}{100000000000}=0.00363005817.
 $$
 
-A helper-rung removal and rerouted scalar program improve the fully charged
-invoice. The complete caller has **13,444 productive fields and 66,834 paid
-calls**. The exponent saving is about **0.81775% larger** than the preceding
-selected 0.00310045; this is not a practical runtime comparison.
+The complete complex caller has **23,392 productive fields and 117,612 paid
+calls**. The exponent saving κ is about **16.13% larger** than the preceding
+selected 0.003125804. The construction builds on DreamingOfClouds' shared
+native words, Ali Romman's helper mechanisms and the cumulative community work.
 
-Full primary replays pass on macOS and Linux after a gzip-portability repair.
-The independent audit checks the complete word, invoice, all seven new native
-maps, and the physical caller. Its adapted caller reproduces the original
-positive control byte for byte; optimized and normal primary outputs agree.
-Local audit jobs ran serially with sampled 1 GiB descendant-memory limits.
+The admission combines eleven unchanged source-bound executions with seven
+new serial checks. It covers the complete 3,057-map native catalogue and all
+104 main-boundary pairs, 14,400 caller contacts, exact scalar arithmetic,
+ownership and complete paid/target invoices. The application proof supplies
+the common-grid root boundary and fresh physical-cost constants. The BIT
+working dimension is corrected to 134 with logarithm power 617, preserving
+its ordinary saving .00385248. A monolithic audit timeout is retained separately;
+three completed bounded parts supply the full native coverage.
 
 **The same five conditional framework assumptions remain.** The enormous
-uniform word and rounded multiplier are not materialized. This is not a
-complete Lean theorem or independent human proof of integer multiplication.
-
-Credit includes **DreamingOfClouds, Ali Romman, Mason Hale, Pierre-Loic Doulcet,
-Matarener and Chris R / Clear1nsight**, alongside the cumulative construction,
-BIT, compiler, native and analytic lineage. [Detailed contributor map](docs/research/community-p1046030-contributors.md).
+uniform word and complete multiplier are not materialized. No independent human
+or formal-kernel proof of the full multiplication theorem is asserted.
 
 [Selected record](certificates/selected-result.json) ·
-[Application review](docs/research/pr-intake-evidence/pr6030-audit/PROOF-REVIEW.md) ·
-[Validation](docs/research/pr-intake-evidence/pr6030-audit/VALIDATION.json) ·
-[Integration](docs/research/pr-intake-evidence/pr6030-audit/INTEGRATION.json) ·
-[Contributors](CONTRIBUTORS.md) · [PR ledger](docs/research/pr-ledger.md)
+[Application review](docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md) ·
+[Validation](docs/research/pr-intake-evidence/pr7000-application/VALIDATION.json) ·
+[Detailed contributor map](docs/research/community-frontier7000-contributors.md) ·
+[PR ledger](docs/research/pr-ledger.md)
 
 ```sh
 # Fast source/metadata check; no operator replay.
 python3 -B scripts/research_selected_baseline.py
-# Full serial finite replay and independent controls.
-make frontier6030-verify
+# Authenticate all recorded review executions without repeating them.
+python3 -I -B scripts/verify_frontier7000.py --check-only
+# Complete serial finite replay in a fresh isolated export.
+make frontier7000-verify
 ```
 
-The [PR5599 checkpoint](certificates/checkpoints/frontier5599.json) and its
-[review](docs/research/pr-intake-evidence/pr5599-completion/PROOF-REVIEW.md)
+The [PR6030 checkpoint](certificates/checkpoints/frontier6030.json) and its
+[review](docs/research/pr-intake-evidence/pr6030-audit/PROOF-REVIEW.md)
 remain preserved. Frozen submissions keep their historical status; the selected
-record identifies the reviewed claim.
+record identifies the reviewed claim and applicable repairs.
 
 ## Historical checkpoint: productive helper jobs
 

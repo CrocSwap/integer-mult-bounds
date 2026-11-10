@@ -8,8 +8,8 @@ The ledger separates historical review from integration. A prior snapshot or a m
 
 | Disposition | Count |
 |---|---:|
-| incorporated | 2200 |
-| partially reviewed | 3975 |
+| incorporated | 2202 |
+| partially reviewed | 3973 |
 | superseded | 3 |
 | unreviewed | 60 |
 
@@ -6278,6 +6278,6 @@ Each evidence link leads to the original scoped assessment. The JSON records exa
 | [#6997](https://github.com/CrocSwap/integer-mult-bounds/pull/6997) | CubeJerry | partially reviewed | [record 1](../../docs/research/pr-intake-decisions.json) |
 | [#6998](https://github.com/CrocSwap/integer-mult-bounds/pull/6998) | CubeJerry | partially reviewed | [record 1](../../docs/research/pr-intake-decisions.json) |
 | [#6999](https://github.com/CrocSwap/integer-mult-bounds/pull/6999) | CubeJerry | partially reviewed | [record 1](../../docs/research/pr-intake-decisions.json) |
-| [#7000](https://github.com/CrocSwap/integer-mult-bounds/pull/7000) | CubeJerry | partially reviewed | [record 1](../../docs/research/pr-intake-decisions.json) · [record 2](../../docs/research/pr-intake-evidence/pr7000-admission/PROOF-REVIEW.md) · [record 3](../../docs/research/pr-intake-evidence/pr7000-admission/VALIDATION.json) |
-| [#7001](https://github.com/CrocSwap/integer-mult-bounds/pull/7001) | CubeJerry | partially reviewed | [record 1](../../docs/research/pr-intake-decisions.json) · [record 2](../../docs/research/pr-intake-evidence/pr7000-admission/PROOF-REVIEW.md) · [record 3](../../docs/research/pr-intake-evidence/pr7000-admission/VALIDATION.json) |
+| [#7000](https://github.com/CrocSwap/integer-mult-bounds/pull/7000) | CubeJerry | incorporated | [record 1](../../docs/research/pr-intake-decisions.json) · [record 2](../../docs/research/pr-intake-evidence/pr7000-admission/PROOF-REVIEW.md) · [record 3](../../docs/research/pr-intake-evidence/pr7000-admission/VALIDATION.json) · [record 4](../../docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md) · [record 5](../../docs/research/pr-intake-evidence/pr7000-application/VALIDATION.json) |
+| [#7001](https://github.com/CrocSwap/integer-mult-bounds/pull/7001) | CubeJerry | incorporated | [record 1](../../docs/research/pr-intake-decisions.json) · [record 2](../../docs/research/pr-intake-evidence/pr7000-admission/PROOF-REVIEW.md) · [record 3](../../docs/research/pr-intake-evidence/pr7000-admission/VALIDATION.json) · [record 4](../../docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md) · [record 5](../../docs/research/pr-intake-evidence/pr7000-application/VALIDATION.json) |
 | [#7002](https://github.com/CrocSwap/integer-mult-bounds/pull/7002) | CubeJerry | partially reviewed | [record 1](../../docs/research/pr-intake-decisions.json) |
