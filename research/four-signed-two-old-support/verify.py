@@ -109,9 +109,7 @@ def support_scan(rows):
     }
     for name, mask in expected.items():
         hits = found[name]
-        require(hits, name + " is not a subset sum")
-        require((mask, 2) in hits, name + " is not the declared projector pair")
-        require(all(size == 2 for _, size in hits), name + " has a carrier other than size 2")
+        require(hits == [(mask, 2)], name + " is not exactly the declared projector pair: " + str(hits))
 
 
 def every_old_pair():
