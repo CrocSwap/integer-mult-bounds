@@ -1,0 +1,292 @@
+Description: always call gcc with an explicit target and version
+ Many problems have been caused by the fact that tools like gnatmake
+ call other tools like gcc without an explicit target or version.
+ .
+ In order to solve this issue for all similar tools at once, AdaCore
+ has created the Osint.Program_Name function. When gnatmake launches a
+ gcc subprocess, this function computes the name of the right gcc
+ executable. This patch improves the function in four ways.
+ .
+ The previous algorithm wrongly tests "End_Of_Prefix > 1",
+ which may happen even if a match has been found.
+ This part will most probably be of interest for upstream.
+ .
+ Update the gnatchop tool to use this function.
+ This part will most probably be of interest for upstream.
+ .
+ Check that the target and version in the gnatmake program name, if
+ present, match the static constants inside the gnatmake program
+ itself. Also, knowing the length of the only allowed prefix and suffix
+ slightly improves performance by avoiding loops.
+ This part will most probably be of interest for upstream.
+ .
+ In Debian, gcc/gcc-version/target-gcc are symbolic links to the
+ target-gcc-version executable. The same holds for gnatmake, but the
+ target and version may differ. So "target-gcc-version" is the right
+ answer. It helps log checkers and humans debuggers, even if gnatmake
+ was invoked via a shortcut intended for human typers.
+ This part will probably be hard to merge for upstream, as some
+ distributions provide no "target-gcc-version".
+ .
+ Log for bug 903694 carries regression tests for both bugs.
+Forwarded: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=87777
+Bug-Debian: https://bugs.debian.org/814977
+Bug-Debian: https://bugs.debian.org/814978
+Bug-Debian: https://bugs.debian.org/856274
+Bug-Debian: https://bugs.debian.org/881938
+Bug-Debian: https://bugs.debian.org/903694
+Author: Ludovic Brenta <lbrenta@debian.org>
+Author: Nicolas Boulenguez <nicolas@debian.org>
+Author: Svante Signell <svante.signell@gmail.com>
+Author: YunQiang Su <wzssyqa@gmail.com>
+
+--- a/src/gcc/ada/osint.ads
++++ b/src/gcc/ada/osint.ads
+@@ -144,14 +144,10 @@ package Osint is
+    --  path) in Name_Buffer, with the length in Name_Len.
+ 
+    function Program_Name (Nam : String; Prog : String) return String_Access;
+-   --  In the native compilation case, creates a string containing Nam. In the
+-   --  cross compilation case, looks at the prefix of the current program being
+-   --  run and prepends it to Nam. For instance if the program being run is
+-   --  <target>-gnatmake and Nam is "gcc", the returned value will be a pointer
+-   --  to "<target>-gcc". This function clobbers Name_Buffer and Name_Len.
+-   --  Also looks at any suffix, e.g. gnatmake-4.1 -> "gcc-4.1". Prog is the
+-   --  default name of the current program being executed, e.g. "gnatmake",
+-   --  "gnatlink".
++   --  On Debian, always create a string containing
++   --  Sdefault.Target_Name & '-' & Nam & '-' & Gnatvsn.Library_Version.
++   --  Fail if the program base name differs from Prog,
++   --  maybe extended with the same prefix or suffix.
+ 
+    procedure Write_Program_Name;
+    --  Writes name of program as invoked to the current output (normally
+--- a/src/gcc/ada/osint.adb
++++ b/src/gcc/ada/osint.adb
+@@ -2268,50 +2268,51 @@ package body Osint is
+    ------------------
+ 
+    function Program_Name (Nam : String; Prog : String) return String_Access is
+-      End_Of_Prefix   : Natural := 0;
+-      Start_Of_Prefix : Positive := 1;
+-      Start_Of_Suffix : Positive;
+-
++      --  Most of the work is to check that the current program name
++      --  is consistent with the two static constants below.
++      Suffix : constant String  := '-' & Gnatvsn.Library_Version;
++      Prefix : Types.String_Ptr := Sdefault.Target_Name;
++      First  : Integer;
++      Result : System.OS_Lib.String_Access;
+    begin
+       --  Get the name of the current program being executed
+-
+       Find_Program_Name;
+ 
+-      Start_Of_Suffix := Name_Len + 1;
++      --  If our version is present, skip it.
++      First := Name_Len - Suffix'Length + 1;
++      if 0 < First and then Name_Buffer (First .. Name_Len) = Suffix then
++         Name_Len := First - 1;
++      end if;
++
++      --  The central part must be Prog.
++      First := Name_Len - Prog'Length + 1;
++      if First <= 0 or else Name_Buffer (First .. Name_Len) /= Prog then
++         Fail ("Osint.Program_Name: must end with " & Prog
++                 & " or " & Prog & Suffix);
++      end if;
++      Name_Len := First - 1;
+ 
+-      --  Find the target prefix if any, for the cross compilation case.
+-      --  For instance in "powerpc-elf-gcc" the target prefix is
+-      --  "powerpc-elf-"
+-      --  Ditto for suffix, e.g. in "gcc-4.1", the suffix is "-4.1"
+-
+-      for J in reverse 1 .. Name_Len loop
+-         if Is_Directory_Separator (Name_Buffer (J))
+-           or else Name_Buffer (J) = ':'
+-         then
+-            Start_Of_Prefix := J + 1;
+-            exit;
+-         end if;
+-      end loop;
+-
+-      --  Find End_Of_Prefix
+-
+-      for J in Start_Of_Prefix .. Name_Len - Prog'Length + 1 loop
+-         if Name_Buffer (J .. J + Prog'Length - 1) = Prog then
+-            End_Of_Prefix := J - 1;
+-            exit;
+-         end if;
+-      end loop;
++      --  According to Make-generated.in, this ends with a slash.
++      Prefix.all (Prefix.all'Last) := '-';
+ 
+-      if End_Of_Prefix > 1 then
+-         Start_Of_Suffix := End_Of_Prefix + Prog'Length + 1;
++      --  If our target is present, skip it.
++      First := Name_Len - Prefix.all'Length + 1;
++      if 0 < First and then Name_Buffer (First .. Name_Len) = Prefix.all then
++         Name_Len := First - 1;
+       end if;
+ 
+-      --  Create the new program name
++      --  What remains must be the directory part.
++      if 0 < Name_Len
++        and then Name_Buffer (Name_Len) /= ':'
++        and then not Is_Directory_Separator (Name_Buffer (Name_Len))
++      then
++         Fail ("Osint.Program_Name: must start with " & Prog
++                 & " or " & Prefix.all & Prog);
++      end if;
+ 
+-      return new String'
+-        (Name_Buffer (Start_Of_Prefix .. End_Of_Prefix)
+-         & Nam
+-         & Name_Buffer (Start_Of_Suffix .. Name_Len));
++      Result := new String'(Prefix.all & Nam & Suffix);
++      Types.Free (Prefix);
++      return Result;
+    end Program_Name;
+ 
+    ------------------------------
+--- a/src/gcc/ada/gnatchop.adb
++++ b/src/gcc/ada/gnatchop.adb
+@@ -36,6 +36,7 @@ with GNAT.OS_Lib;                use GNA
+ with GNAT.Heap_Sort_G;
+ with GNAT.Table;
+ 
++with Osint;
+ with Switch;                     use Switch;
+ with Types;
+ 
+@@ -44,12 +45,9 @@ procedure Gnatchop is
+    Config_File_Name : constant String_Access := new String'("gnat.adc");
+    --  The name of the file holding the GNAT configuration pragmas
+ 
+-   Gcc : String_Access := new String'("gcc");
++   Gcc : String_Access := null;
+    --  May be modified by switch --GCC=
+ 
+-   Gcc_Set : Boolean := False;
+-   --  True if a switch --GCC= is used
+-
+    Gnat_Cmd : String_Access;
+    --  Command to execute the GNAT compiler
+ 
+@@ -222,12 +220,6 @@ procedure Gnatchop is
+                                        Integer'Image
+                                          (Maximum_File_Name_Length);
+ 
+-   function Locate_Executable
+-     (Program_Name    : String;
+-      Look_For_Prefix : Boolean := True) return String_Access;
+-   --  Locate executable for given program name. This takes into account
+-   --  the target-prefix of the current command, if Look_For_Prefix is True.
+-
+    subtype EOL_Length is Natural range 0 .. 2;
+    --  Possible lengths of end of line sequence
+ 
+@@ -492,76 +484,6 @@ procedure Gnatchop is
+           Unit.Table (Sorted_Units.Table (U + 1)).File_Name.all;
+    end Is_Duplicated;
+ 
+-   -----------------------
+-   -- Locate_Executable --
+-   -----------------------
+-
+-   function Locate_Executable
+-     (Program_Name    : String;
+-      Look_For_Prefix : Boolean := True) return String_Access
+-   is
+-      Gnatchop_Str    : constant String := "gnatchop";
+-      Current_Command : constant String := Normalize_Pathname (Command_Name);
+-      End_Of_Prefix   : Natural;
+-      Start_Of_Prefix : Positive;
+-      Start_Of_Suffix : Positive;
+-      Result          : String_Access;
+-
+-   begin
+-      Start_Of_Prefix := Current_Command'First;
+-      Start_Of_Suffix := Current_Command'Last + 1;
+-      End_Of_Prefix   := Start_Of_Prefix - 1;
+-
+-      if Look_For_Prefix then
+-
+-         --  Find Start_Of_Prefix
+-
+-         for J in reverse Current_Command'Range loop
+-            if Current_Command (J) = '/'                 or else
+-               Current_Command (J) = Directory_Separator or else
+-               Current_Command (J) = ':'
+-            then
+-               Start_Of_Prefix := J + 1;
+-               exit;
+-            end if;
+-         end loop;
+-
+-         --  Find End_Of_Prefix
+-
+-         for J in Start_Of_Prefix ..
+-                  Current_Command'Last - Gnatchop_Str'Length + 1
+-         loop
+-            if Current_Command (J .. J + Gnatchop_Str'Length - 1) =
+-                                                                  Gnatchop_Str
+-            then
+-               End_Of_Prefix := J - 1;
+-               exit;
+-            end if;
+-         end loop;
+-      end if;
+-
+-      if End_Of_Prefix > Current_Command'First then
+-         Start_Of_Suffix := End_Of_Prefix + Gnatchop_Str'Length + 1;
+-      end if;
+-
+-      declare
+-         Command : constant String :=
+-                     Current_Command (Start_Of_Prefix .. End_Of_Prefix)
+-                       & Program_Name
+-                       & Current_Command (Start_Of_Suffix ..
+-                                          Current_Command'Last);
+-      begin
+-         Result := Locate_Exec_On_Path (Command);
+-
+-         if Result = null then
+-            Error_Msg
+-              (Command & ": installation problem, executable not found");
+-         end if;
+-      end;
+-
+-      return Result;
+-   end Locate_Executable;
+-
+    ---------------
+    -- Parse_EOL --
+    ---------------
+@@ -1089,8 +1011,8 @@ procedure Gnatchop is
+                exit;
+ 
+             when '-' =>
+-               Gcc     := new String'(Parameter);
+-               Gcc_Set := True;
++               Free (Gcc);
++               Gcc := new String'(Parameter);
+ 
+             when 'c' =>
+                Compilation_Mode := True;
+@@ -1768,9 +1690,13 @@ begin
+ 
+    --  Check presence of required executables
+ 
+-   Gnat_Cmd := Locate_Executable (Gcc.all, not Gcc_Set);
++   if Gcc = null then
++      Gcc := Osint.Program_Name ("gcc", "gnatchop");
++   end if;
++   Gnat_Cmd := Locate_Exec_On_Path (Gcc.all);
+ 
+    if Gnat_Cmd = null then
++      Error_Msg (Gcc.all & ": installation problem, executable not found");
+       goto No_Files_Written;
+    end if;
+ 

@@ -1,0 +1,44 @@
+{
+  "schema": "unit13-independent-semantic-fixtures-v1",
+  "scope": "Independent literal MODEL prefixes and inert source mutations; no kernel trace, seed, memory image, actual ownership or handoff claim.",
+  "source_design_sha256": "30addd150d37f1891d3a3e1ba9f133659802f1e52c56d21d5a115e34b24467f2",
+  "event_cases": [
+    {"id":"positive_empty_prefix","accept":true,"relation":"No completed event asserted","events":[]},
+    {"id":"positive_G_only","accept":true,"relation":"Normal returned G request; later interrupted operations may have unrecorded effects","events":[[1,1,1,16]]},
+    {"id":"positive_C_failure_EFAULT","accept":true,"relation":"Nonzero seed copy return follows its own immediate EFAULT source branch; partial effects unspecified","events":[[1,1,1,16],[2,2,1,2,16,1],[5,1]]},
+    {"id":"positive_C_zero_prefix","accept":true,"relation":"Completed C transfer event without later memory-state claim","events":[[1,1,1,16],[2,2,1,2,16,0]]},
+    {"id":"positive_K_tag_only","accept":true,"relation":"Interrupted prefix after tag store does not assert paired value store or atomicity","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1]]},
+    {"id":"positive_GCK_prefix","accept":true,"relation":"Both ordered K stores; no U or handoff inferred","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2]]},
+    {"id":"positive_later_preU_EINTR","accept":true,"relation":"Later local failure preserves earlier C completion and K writes","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[5,3]]},
+    {"id":"positive_later_preU_EFAULT","accept":true,"relation":"Later pre-U EFAULT has no completed U/table/handoff","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[5,4]]},
+    {"id":"positive_later_preU_EINVAL","accept":true,"relation":"Later argv/env local failure does not undo earlier events","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[5,5]]},
+    {"id":"positive_U_failure_EFAULT","accept":true,"relation":"Nonzero later auxv copy has its distinct EFAULT branch, preserving G/C/K only","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[4,2,3,4,1,8,1],[5,2]]},
+    {"id":"positive_local_return_zero","accept":true,"relation":"Local successful transfer sequence only; no future handoff or memory snapshot equality","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[4,2,3,4,1,8,0],[6]]},
+    {"id":"negative_changed_request_length","accept":false,"relation":"G request must remain16 despite otherwise coherent shape","events":[[1,1,1,15]]},
+    {"id":"negative_substituted_provider","accept":false,"relation":"A different provider does not establish the named genuine RNG relation","events":[[1,7,1,16]]},
+    {"id":"negative_argv_pointer","accept":false,"relation":"K value must use computed random destination MODEL identity2, not plausible argv identity5","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,5,64,64,2]]},
+    {"id":"negative_mismatched_copy_source","accept":false,"relation":"Copy must read the same kernel object filled by G, not another16-byte object","events":[[1,1,1,16],[2,2,9,2,16,0]]},
+    {"id":"negative_copy_failure_labelled_success","accept":false,"relation":"C nonzero cannot proceed to K/U success","events":[[1,1,1,16],[2,2,1,2,16,1],[3,25,2,64,64,1],[3,25,2,64,64,2],[4,2,3,4,1,8,0],[6]]},
+    {"id":"negative_C_failure_U_failure_branch","accept":false,"relation":"Seed-copy failure cannot be relabelled later auxv-copy failure","events":[[1,1,1,16],[2,2,1,2,16,1],[5,2]]},
+    {"id":"negative_U_failure_labelled_return_zero","accept":false,"relation":"Failed later transfer grants no local table completion","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[4,2,3,4,1,8,1],[6]]},
+    {"id":"negative_U_before_K_value","accept":false,"relation":"Tag and value stores are ordered separately; U cannot bypass the value store","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[4,2,3,4,1,8,0]]},
+    {"id":"negative_K_value_before_tag","accept":false,"relation":"Separate K stores preserve source order","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,2]]},
+    {"id":"negative_U_wrong_source","accept":false,"relation":"U source is saved_auxv MODEL object3","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[4,2,9,4,1,8,0]]},
+    {"id":"negative_U_wrong_length_expression","accept":false,"relation":"U requires ei_index*sizeof(elf_addr_t), not an alternate length expression","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[3,25,2,64,64,2],[4,2,3,4,9,8,0]]},
+    {"id":"negative_native_word32","accept":false,"relation":"Selected native ELF word width is64, not32","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,32,1]]},
+    {"id":"negative_later_failure_before_K_value","accept":false,"relation":"The declared later pre-U failure branch cannot occur before the completed K value store","events":[[1,1,1,16],[2,2,1,2,16,0],[3,25,2,64,64,1],[5,3]]}
+  ],
+  "source_mutations": [
+    {"id":"source_changed_request_length","role":"producer","needle":"get_random_bytes(k_rand_bytes, sizeof(k_rand_bytes));","replacement":"get_random_bytes(k_rand_bytes, 15);","relation":"Array and copy remain16; request mismatch must be a semantic rejection without pin checking"},
+    {"id":"source_substituted_provider","role":"producer","needle":"get_random_bytes(k_rand_bytes, sizeof(k_rand_bytes));","replacement":"unrelated_provider(k_rand_bytes, sizeof(k_rand_bytes));","relation":"A coherent different provider call cannot discharge the named RNG relation"},
+    {"id":"source_argv_pointer","role":"producer","needle":"NEW_AUX_ENT(AT_RANDOM, (elf_addr_t)(unsigned long)u_rand_bytes);","replacement":"NEW_AUX_ENT(AT_RANDOM, (elf_addr_t)(unsigned long)mm->arg_start);","relation":"An argv pointer cannot replace the random destination even if plausibly in user space"},
+    {"id":"source_mismatched_copy_source","role":"producer","needle":"copy_to_user(u_rand_bytes, k_rand_bytes, sizeof(k_rand_bytes))","replacement":"copy_to_user(u_rand_bytes, k_platform, sizeof(k_rand_bytes))","relation":"Same16-byte copy length does not repair source-object mismatch"},
+    {"id":"source_copy_failure_labelled_success","role":"producer","needle":"if (copy_to_user(u_rand_bytes, k_rand_bytes, sizeof(k_rand_bytes)))\n\t\treturn -EFAULT;","replacement":"if (copy_to_user(u_rand_bytes, k_rand_bytes, sizeof(k_rand_bytes)))\n\t\treturn 0;","relation":"A nonzero copy result cannot be relabelled local success"}
+  ],
+  "arithmetic_cases": [
+    {"id":"down16","cursor":4096,"width":64,"length":16,"expected":4080,"note":"Numeric relation only, not actual ownership"},
+    {"id":"above32bits","cursor":4294971408,"width":64,"length":16,"expected":4294971392,"note":"No32-bit truncation on qualified native64 model"},
+    {"id":"unsigned_wrap","cursor":8,"width":64,"length":16,"expected":18446744073709551608,"note":"Modulo relation only; does not establish a valid nonwrapping owned stack span"}
+  ],
+  "no_memory_or_handoff_fixture": "No fixture contains seed bytes, copied-byte positions, a destination memory image, actual-owner flags or a handoff equality claim. Completed events remain valid with a hypothetical later writer; such a writer defeats any added memory/handoff corollary."
+}

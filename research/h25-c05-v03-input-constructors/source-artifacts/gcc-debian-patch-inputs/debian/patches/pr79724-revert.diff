@@ -1,0 +1,24 @@
+# DP: Revert PR ada/79724, handling of suffixes (conflicts with local ada-gcc-name patch)
+
+--- a/src/gcc/ada/osint.adb
++++ b/src/gcc/ada/osint.adb
+@@ -2277,6 +2277,8 @@ package body Osint is
+ 
+       Find_Program_Name;
+ 
++      Start_Of_Suffix := Name_Len + 1;
++
+       --  Find the target prefix if any, for the cross compilation case.
+       --  For instance in "powerpc-elf-gcc" the target prefix is
+       --  "powerpc-elf-"
+@@ -2300,7 +2302,9 @@ package body Osint is
+          end if;
+       end loop;
+ 
+-      Start_Of_Suffix := End_Of_Prefix + Prog'Length + 1;
++      if End_Of_Prefix > 1 then
++         Start_Of_Suffix := End_Of_Prefix + Prog'Length + 1;
++      end if;
+ 
+       --  Create the new program name
+ 

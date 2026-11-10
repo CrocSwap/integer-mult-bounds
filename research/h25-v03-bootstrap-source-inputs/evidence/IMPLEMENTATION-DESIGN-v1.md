@@ -1,0 +1,68 @@
+# Unit06 exact conditional source design
+
+Status: DESIGN ONLY, before the parent input gate. No implementation execution or archived module import occurred. Pro7 was read completely. Prior units remain read-only. This proposes complete concrete source operations, conditional on future genuine independent source/stage/C05/C07/native/funding/execution selections; it supplies none of those admissions.
+
+## 1. Chosen actual caller and receiver route
+
+Use explicit new successors of the recovered same-process wrapper `run_queue4_subreaper.py` (ea4c07337ccc1865accfd1b1fe485d51057a04a49e4bfb5f10cc36dc92b5f9a8) and its source-packet preparation. Preserve its real `RootProxy -> h25_parent_supervisor.run_root`, original `parent_lock`, `budget`, actual `install_subreaper`, canonical prior-history reads, original runner invocation, bounded recursive domain cleanup, raw retention and overhead records. Preserve the actual queue `integration/run_reviewed_queue_v4.py` (1348a7b4d7cc1f9fef556f5e0abdaf04411a998afdcd574d7812c76ab37dcf68) and runner bytes. The queue's actual lines136–140 compare each selected stage manifest against the independently admitted case stage_sha256 before invoking its subprocess alias. This is a real source path, not a replacement boolean claiming stage approval.
+
+The recovered wrapper's existing config/policy reads do not themselves establish prior independent admission. The successor must receive a fixed source/admission selection from the original T0 trusted-first-launcher boundary and actually authenticate the selected source packet, config and policy bytes against those prior pins before using them. It must not learn expected pins from the new body or accept `authenticated=True`. The T0 source/selection remains unconfigured here; installing values is a separate actual admission. Its read primitive is implemented below, not an opaque callback.
+
+The caller independently authenticates the approved bootstrap STAGE.json, exact B entry, ordinary adjacent M manifest and JOBS member before run_root. It verifies their membership using retained stage bytes and performs the runner-compatible full stage inventory comparison. It rechecks this selection immediately before the original RootProxy dispatch. The actual unchanged queue retains its own pre-stage comparison. The outer canonical root/history is the original root, never a fresh empty ledger.
+
+The caller holds the original outer queue lock. It does not independently reacquire the canonical science lock: the unchanged runner owns that lock. The inner prefix plan uses separately owned private control root K outside either immutable stage. Preparation and the future runtime must establish distinct actual lock resources, not infer distinctness from strings. The exact accepted TCB JSON at SHA610492b3fc06baa0560175edc3ba27057de00d00b8fd3d58dbe55e5a371c042a is installed under K/control and independently pinned. Actual native installation remains the existing original installer, with no stub record replacing it.
+
+## 2. Real source authentication primitive
+
+New self-contained T0-side code `retain_regular(pin, cap, owner)` performs exact-type/shape/bound validation, lstat with no-follow, O_RDONLY|O_NOFOLLOW|O_NONBLOCK|O_CLOEXEC open, immediate retained descriptor assignment, fstat regular/single-link/mode/size/identity comparison, bounded reads of the initial size, hash and size comparison with the prior independent pin, descriptor and pathname metadata rechecks, and consumed descriptor close. The nine identity fields for policy blobs are device,inode,mode,nlink,uid,gid,size,mtime_ns,ctime_ns, matching original schema.blob. No descriptor, bytes or stat dictionary from a caller is accepted as observed evidence. Actual returned raw bytes are retained before decoding. The first delivered error and secondary close failure remain raw objects; uncertainty burns/quarantines the operation. This uses only already trusted T0 primitives and does not import epoch_copy before authentication.
+
+The same retained immutable bytes are subsequently compiled. No read-after-approval pathname buffer is substituted. Hash approval and endpoint equality are not an immutable-interval proof; actual admitted stage/currentness/ancestor/lifetime premises remain explicit.
+
+## 3. Generic fixed entry B
+
+B is installed at `integration/predecessor_entry.py`, an explicit new entry/stage selection. It accepts exactly the runner's `--output VALUE --lanes VALUE` and optional final `--finite-only`, with no invented --manifest option. It checks absolute admitted output against Q.session_directory, exact lane/finite-only/mode against the selected manifest/job, actual original interpreter flags and six-entry environment, and exact original three-entry sys.path. `sys.flags.optimize` must match the manifest/plan mode. It must not create --output before make_prefix_owner: that constructor exclusively creates the session.
+
+B reads an ordinary fixed adjacent `PREFIX-BOOTSTRAP.json` (M). M's authority is the actual caller's prior authentication of the independently admitted Sb/STAGE.json and the admitted stage lifetime. B does not embed hash(M), claim self-authentication from a matching STAGE file, or manufacture an ancestor token. M and STAGE remain outer-custody and cost inputs.
+
+B authenticates and retains ALL selected project source bodies before executing the first one. The independently reviewed complete source graph/init order is supplied by the source-graph audit, then checked against retained body hashes and the selected graph manifest. Runtime checks reject missing sources, unsupported/dynamic source changes and initialisation cycles before project execution. Source inspection—not an asserted `complete=True`—must cover all static/lazy/dynamic project imports and module-body initializers.
+
+Before any selected module is published, B rejects its name if already present in sys.modules. It creates fresh actual `types.ModuleType(name)` objects, sets exact independently selected __name__/__file__ and the REAL `builtins.__dict__`, and retains those objects in its own map. Each module is published immediately before executing its body in the accepted dependency order; dependencies must already be executed objects from that retained map. Compilation uses the retained bytes, exact policy filename, mode=exec,dont_inherit=True,optimize=sys.flags.optimize. No custom builtins dictionary or replacement importer is installed. A project import may not resolve through an omitted ambient module; initial selected names are rejected and every project edge is covered by the source-derived graph. Original T0 standard-library trust is a premise, not fabricated per-body authentication events.
+
+All initialisation effects are in the bill: domain os.sysconf, parent-epoch dataclass generation/descriptor setup, closure's ambient snapshot, source recompilation later during receiver binding, and original native installer lazy ctypes loading. Only authentic independently admitted gate data is installed: six Unit05 supervisor globals CONFIGURATION/SOURCE_REVIEW/STAGE_APPROVAL/COMMAND_APPROVAL/FUNDING/EXECUTION_APPROVAL and three COPY_* globals. Unrelated production-parent/epoch gates remain None. Future genuine gate values are authenticated data, not approved merely because they decode.
+
+After identity/import checks and gate installation, B calls exactly once:
+
+    token = actual_modules['v03_prefix_supervisor_v1'].make_prefix_owner(actual_modules)
+    result_pin = actual_modules['v03_prefix_supervisor_v1'].run_prefix(token)
+
+No preliminary closure capture occurs; no public fake capability or production epoch/completion is created. The actual constructor performs source/copy checks, receiver capture, private locks and real native installer. Its result remains DATA.
+
+## 4. Unchanged queue's actual science receiver
+
+A concrete mismatch exists: queue.validate requires `science/receipt.json`; Unit05 writes `PREFIX-OBSERVATION.json`. Chosen adaptation: after the actual run_prefix returns and its result file is actually read/verified, B writes a new bounded exclusive DATA receipt at `--output/receipt.json`. Fixed status is `PREFIX_OBSERVATION_DATA`; explicit fields include the verified observation pin, production_completion=false,full_c05=false,full_v03=false,runtime_qualified=false. It is never copied from an expected fixture or a mocked owner.
+
+The independently selected queue case uses that exact science_status and explicit science_fields. This preserves the actual old generic queue receiver, original runner exit/status/stdout/stderr, and all original supervision/history checks. A queue PASS means only acceptance of this explicitly selected source/control DATA contract, not original V03/C05 credit or parent completion.
+
+## 5. Concrete installed policy preparation and acyclic finalisation
+
+New preparation code performs actual exclusive writes through owned destination directories, complete write/fsync/consumed close, final chmod before observing identities, no overwrite or content-only inode deduplication, and final descriptor-based hash/metadata readback. It does not take a callback that promises the policy is prepared. Genuine expected source inputs and future approvals are independently selected data; actual observed identities are generated only by these operations.
+
+1. Freeze the separately admitted child Root stage Sc and complete original child configuration inputs.
+2. Finish receiver source installation, the generic B bytes and modes; retain each actual installed source blob. Construct P as the actual module-name→schema.blob map from these observations. P has no self-row. Keep original module/global/capture/domain limits 48/512/2/4. Actual complete fit is checked/refused, not inferred from fifteen names.
+3. Construct Q using genuine complete parent source rows. Each row is EXACT category,path,sha256,bytes,mode; bytes1..64MiB; mode0..07777; paths unique; ALL NINE original categories parent/root/provider/driver/project/system_headers/compiler_link/oracle/stage must be present. These are actual selected source/compile/oracle/stage inputs, not fifteen policy modules relabelled or dummy category rows. Each row is independently expected and actually observed/reconciled. This does not derive complete C05 W subset I; that remains an external independent original admission.
+4. Q includes actual P, checker, original variant, Root, selected driver, gate data, B and true receiver/source inputs as required. Q never includes its own path or inode, M, or Sb/STAGE.json. Its outer pin is constructed only after Q's exclusive write/final-mode readback. Preserve Unit05's corrected one outer-plan plus at most8191 inner rows and four explicit plan reads/retained raw slots.
+5. Construct M after Q/P and genuine configuration/admission data have their actual pins. M names these inputs and the exact source graph, entry lane/finite/mode selection, K and output. B reads M at its fixed adjacent name; B contains no M hash.
+6. Write actual JOBS.json with entry route, exact lanes/finite_only/optimized selection. Freeze Sb/STAGE.json last, using the actual runner-compatible inventory. Its inventory excludes ANY basename STAGE.json; ordinary M/P/Q filenames must not accidentally fall under that exclusion. Retain and separately account for every excluded outer manifest byte.
+7. The T0 caller authenticates the independently admitted final Sb/STAGE pin and B/M/JOB members, then launches through the actual wrapper/queue/supervisor route.
+
+Prohibited back edges are Q→M, Q→Sb/STAGE and B→hash(M). P/Q/M are real files with observed final identities; hashes do not fabricate identity values. Whole-stage and endpoint checks do not substitute for C07.
+
+## 6. Planned bounded files and source-only execution boundary
+
+Pending parent gate and independently accepted graph/caller inputs, planned new files are `implementation/predecessor_entry.py` (self-contained retained-byte loader/entry), `implementation/prepare_prefix_stage_v1.py` (real preparation P/Q/M/JOBS/STAGE), and explicit caller/source-packet successor files with narrow diff/provenance records. Pure validators/serialization/planning helpers may be exercised only on NEW code and fresh owned-data fixtures. No original module body, full supervisor, actual caller, native installer, Popen, compiler or namespace operation will run in Unit06 tests. Testing a supplied graph alone is not a source-completeness milestone.
+
+## 7. Essential inputs and gate disposition
+
+Available/under independent audit: exact fifteen-module inner graph including the three newly recovered bodies, original h25 supervisor cfb09..., queue1348..., wrapper ea4c..., runner bd882..., and exact native supplement4935B/610492.... Complete graph/import/init and caller/receiver adaptation review are still required before source drafting. Exact paths/hashes are delegated to the source/caller auditors; no broad history or protected runtime traversal is needed.
+
+Unestablished genuine runtime inputs: independent T0 caller/selection approval, installed actual source/policy/plan/manifest identities, full nine-category parent inventory and complete child C05 closure, C07 immutable namespace/ancestor/lifetime, actual stage/native/source/command/funding/execution approvals, original canonical history/current budget state, real distinct private lock identities, and complete cost/fit/domain tail. These are neither filled nor represented by success stubs. The concrete known source-level queue-receipt mismatch is addressed above, conditional on independent review. If graph/caller constructors remain incomplete at13:11:50, stop rather than execute or extend the unit.

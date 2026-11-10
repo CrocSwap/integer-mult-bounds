@@ -1,0 +1,497 @@
+--- a/src/fixincludes/Makefile.in
++++ b/src/fixincludes/Makefile.in
+@@ -52,9 +52,9 @@ target_noncanonical:=@target_noncanonica
+ gcc_version := $(shell @get_gcc_base_ver@ $(srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)
+ # Directory in which the compiler finds executables
+-libexecsubdir = $(libexecdir)/gcc/$(target_noncanonical)/$(gcc_version)
++libexecsubdir = $(libexecdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)
+ # Where our executable files go
+ itoolsdir = $(libexecsubdir)/install-tools
+ # Where our data files go
+--- a/src/libgfortran/Makefile.in
++++ b/src/libgfortran/Makefile.in
+@@ -750,7 +750,7 @@ gcc_version := $(shell @get_gcc_base_ver
+ @LIBGFOR_USE_SYMVER_GNU_TRUE@@LIBGFOR_USE_SYMVER_TRUE@version_dep = gfortran.ver
+ @LIBGFOR_USE_SYMVER_SUN_TRUE@@LIBGFOR_USE_SYMVER_TRUE@version_dep = gfortran.ver-sun gfortran.ver
+ gfor_c_HEADERS = ISO_Fortran_binding.h
+-gfor_cdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++gfor_cdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
+ 	    $(lt_host_flags)
+ 
+@@ -765,12 +765,12 @@ libgfortran_la_LDFLAGS = -version-info `
+ 
+ libgfortran_la_DEPENDENCIES = $(version_dep) libgfortran.spec $(LIBQUADLIB_DEP)
+ cafexeclib_LTLIBRARIES = libcaf_single.la
+-cafexeclibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
++cafexeclibdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
+ libcaf_single_la_SOURCES = caf/single.c
+ libcaf_single_la_LDFLAGS = -static
+ libcaf_single_la_DEPENDENCIES = caf/libcaf.h
+ libcaf_single_la_LINK = $(LINK) $(libcaf_single_la_LDFLAGS)
+-@IEEE_SUPPORT_TRUE@fincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
++@IEEE_SUPPORT_TRUE@fincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
+ @IEEE_SUPPORT_TRUE@nodist_finclude_HEADERS = ieee_arithmetic.mod ieee_exceptions.mod ieee_features.mod
+ AM_CPPFLAGS = -iquote$(srcdir)/io -I$(srcdir)/$(MULTISRCTOP)../gcc \
+ 	      -I$(srcdir)/$(MULTISRCTOP)../gcc/config $(LIBQUADINCLUDE) \
+--- a/src/libgfortran/Makefile.am
++++ b/src/libgfortran/Makefile.am
+@@ -39,7 +39,7 @@ version_dep =
+ endif
+ 
+ gfor_c_HEADERS = ISO_Fortran_binding.h
+-gfor_cdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++gfor_cdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ 
+ LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
+ 	    $(lt_host_flags)
+@@ -55,14 +55,14 @@ libgfortran_la_LDFLAGS = -version-info `
+ libgfortran_la_DEPENDENCIES = $(version_dep) libgfortran.spec $(LIBQUADLIB_DEP)
+ 
+ cafexeclib_LTLIBRARIES = libcaf_single.la
+-cafexeclibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
++cafexeclibdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
+ libcaf_single_la_SOURCES = caf/single.c
+ libcaf_single_la_LDFLAGS = -static
+ libcaf_single_la_DEPENDENCIES = caf/libcaf.h
+ libcaf_single_la_LINK = $(LINK) $(libcaf_single_la_LDFLAGS)
+ 
+ if IEEE_SUPPORT
+-fincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
++fincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
+ nodist_finclude_HEADERS = ieee_arithmetic.mod ieee_exceptions.mod ieee_features.mod
+ endif
+ 
+--- a/src/lto-plugin/Makefile.in
++++ b/src/lto-plugin/Makefile.in
+@@ -342,7 +342,7 @@ with_libiberty = @with_libiberty@
+ ACLOCAL_AMFLAGS = -I .. -I ../config
+ AUTOMAKE_OPTIONS = no-dependencies
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+-libexecsubdir := $(libexecdir)/gcc/$(real_target_noncanonical)/$(gcc_version)$(accel_dir_suffix)
++libexecsubdir := $(libexecdir)/gcc-cross/$(real_target_noncanonical)/$(gcc_version)$(accel_dir_suffix)
+ AM_CPPFLAGS = -I$(top_srcdir)/../include $(DEFS)
+ AM_CFLAGS = @ac_lto_plugin_warn_cflags@ $(CET_HOST_FLAGS) -DBASE_VERSION='"$(gcc_version)"'
+ AM_LDFLAGS = @ac_lto_plugin_ldflags@ @ac_lto_plugin_extra_ldflags@
+--- a/src/lto-plugin/Makefile.am
++++ b/src/lto-plugin/Makefile.am
+@@ -5,7 +5,7 @@ AUTOMAKE_OPTIONS = no-dependencies
+ 
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ target_noncanonical := @target_noncanonical@
+-libexecsubdir := $(libexecdir)/gcc/$(real_target_noncanonical)/$(gcc_version)$(accel_dir_suffix)
++libexecsubdir := $(libexecdir)/gcc-cross/$(real_target_noncanonical)/$(gcc_version)$(accel_dir_suffix)
+ 
+ AM_CPPFLAGS = -I$(top_srcdir)/../include $(DEFS)
+ AM_CFLAGS = @ac_lto_plugin_warn_cflags@ $(CET_HOST_FLAGS) -DBASE_VERSION='"$(gcc_version)"'
+--- a/src/libitm/Makefile.in
++++ b/src/libitm/Makefile.in
+@@ -459,7 +459,7 @@ SUBDIRS = testsuite
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ abi_version = -fabi-version=4
+ search_path = $(addprefix $(top_srcdir)/config/, $(config_path)) $(top_srcdir)
+-libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++libsubincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ AM_CPPFLAGS = $(addprefix -I, $(search_path))
+ AM_CFLAGS = $(XCFLAGS)
+ AM_CXXFLAGS = $(XCFLAGS) -std=gnu++0x -funwind-tables -fno-exceptions \
+--- a/src/libitm/Makefile.am
++++ b/src/libitm/Makefile.am
+@@ -12,7 +12,7 @@ abi_version = -fabi-version=4
+ config_path = @config_path@
+ search_path = $(addprefix $(top_srcdir)/config/, $(config_path)) $(top_srcdir)
+ 
+-libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++libsubincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ 
+ vpath % $(strip $(search_path))
+ 
+--- a/src/gcc/gcc.cc
++++ b/src/gcc/gcc.cc
+@@ -4828,7 +4828,7 @@ process_command (unsigned int decoded_op
+ 	 GCC_EXEC_PREFIX is typically a directory name with a trailing
+ 	 / (which is ignored by make_relative_prefix), so append a
+ 	 program name.  */
+-      char *tmp_prefix = concat (gcc_exec_prefix, "gcc", NULL);
++      char *tmp_prefix = concat (gcc_exec_prefix, "gcc-cross", NULL);
+       gcc_libexec_prefix = get_relative_prefix (tmp_prefix,
+ 						standard_exec_prefix,
+ 						standard_libexec_prefix);
+@@ -4854,15 +4854,15 @@ process_command (unsigned int decoded_op
+     {
+       int len = strlen (gcc_exec_prefix);
+ 
+-      if (len > (int) sizeof ("/lib/gcc/") - 1
++      if (len > (int) sizeof ("/lib/gcc-cross/") - 1
+ 	  && (IS_DIR_SEPARATOR (gcc_exec_prefix[len-1])))
+ 	{
+-	  temp = gcc_exec_prefix + len - sizeof ("/lib/gcc/") + 1;
++	  temp = gcc_exec_prefix + len - sizeof ("/lib/gcc-cross/") + 1;
+ 	  if (IS_DIR_SEPARATOR (*temp)
+ 	      && filename_ncmp (temp + 1, "lib", 3) == 0
+ 	      && IS_DIR_SEPARATOR (temp[4])
+-	      && filename_ncmp (temp + 5, "gcc", 3) == 0)
+-	    len -= sizeof ("/lib/gcc/") - 1;
++	      && filename_ncmp (temp + 5, "gcc-cross", 3) == 0)
++	    len -= sizeof ("/lib/gcc-cross/") - 1;
+ 	}
+ 
+       set_std_prefix (gcc_exec_prefix, len);
+--- a/src/gcc/Makefile.in
++++ b/src/gcc/Makefile.in
+@@ -635,9 +635,9 @@ libexecdir = @libexecdir@
+ # --------
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(real_target_noncanonical)/$(version)$(accel_dir_suffix)
++libsubdir = $(libdir)/gcc-cross/$(real_target_noncanonical)/$(version)$(accel_dir_suffix)
+ # Directory in which the compiler finds executables
+-libexecsubdir = $(libexecdir)/gcc/$(real_target_noncanonical)/$(version)$(accel_dir_suffix)
++libexecsubdir = $(libexecdir)/gcc-cross/$(real_target_noncanonical)/$(version)$(accel_dir_suffix)
+ # Directory in which all plugin resources are installed
+ plugin_resourcesdir = $(libsubdir)/plugin
+  # Directory in which plugin headers are installed
+@@ -2318,8 +2318,8 @@ default-d.o: config/default-d.cc
+ 
+ DRIVER_DEFINES = \
+   -DSTANDARD_STARTFILE_PREFIX=\"$(unlibsubdir)/\" \
+-  -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc/\" \
+-  -DSTANDARD_LIBEXEC_PREFIX=\"$(libexecdir)/gcc/\" \
++  -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc-cross/\" \
++  -DSTANDARD_LIBEXEC_PREFIX=\"$(libexecdir)/gcc-cross/\" \
+   -DDEFAULT_TARGET_VERSION=\"$(version)\" \
+   -DDEFAULT_REAL_TARGET_MACHINE=\"$(real_target_noncanonical)\" \
+   -DDEFAULT_TARGET_MACHINE=\"$(target_noncanonical)\" \
+@@ -3039,7 +3039,7 @@ PREPROCESSOR_DEFINES = \
+   -DTOOL_INCLUDE_DIR=\"$(gcc_tooldir)/include\" \
+   -DNATIVE_SYSTEM_HEADER_DIR=\"$(NATIVE_SYSTEM_HEADER_DIR)\" \
+   -DPREFIX=\"$(prefix)/\" \
+-  -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc/\" \
++  -DSTANDARD_EXEC_PREFIX=\"$(libdir)/gcc-cross/\" \
+   @TARGET_SYSTEM_ROOT_DEFINE@
+ 
+ CFLAGS-cppbuiltin.o += $(PREPROCESSOR_DEFINES) -DBASEVER=$(BASEVER_s)
+--- a/src/libssp/Makefile.in
++++ b/src/libssp/Makefile.in
+@@ -366,7 +366,7 @@ gcc_version := $(shell @get_gcc_base_ver
+ @LIBSSP_USE_SYMVER_SUN_TRUE@@LIBSSP_USE_SYMVER_TRUE@version_dep = ssp.map-sun
+ AM_CFLAGS = -Wall $(XCFLAGS)
+ toolexeclib_LTLIBRARIES = libssp.la libssp_nonshared.la
+-libsubincludedir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)/include
++libsubincludedir = $(libdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)/include
+ nobase_libsubinclude_HEADERS = ssp/ssp.h ssp/string.h ssp/stdio.h ssp/unistd.h
+ libssp_la_SOURCES = \
+ 	ssp.c gets-chk.c memcpy-chk.c memmove-chk.c mempcpy-chk.c \
+--- a/src/libssp/Makefile.am
++++ b/src/libssp/Makefile.am
+@@ -39,7 +39,7 @@ AM_CFLAGS += $(XCFLAGS)
+ toolexeclib_LTLIBRARIES = libssp.la libssp_nonshared.la
+ 
+ target_noncanonical = @target_noncanonical@
+-libsubincludedir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)/include
++libsubincludedir = $(libdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)/include
+ nobase_libsubinclude_HEADERS = ssp/ssp.h ssp/string.h ssp/stdio.h ssp/unistd.h
+ 
+ libssp_la_SOURCES = \
+--- a/src/libquadmath/Makefile.in
++++ b/src/libquadmath/Makefile.in
+@@ -468,7 +468,7 @@ AUTOMAKE_OPTIONS = foreign info-in-build
+ 
+ @BUILD_LIBQUADMATH_TRUE@libquadmath_la_DEPENDENCIES = $(version_dep) $(libquadmath_la_LIBADD)
+ @BUILD_LIBQUADMATH_TRUE@nodist_libsubinclude_HEADERS = quadmath.h quadmath_weak.h
+-@BUILD_LIBQUADMATH_TRUE@libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++@BUILD_LIBQUADMATH_TRUE@libsubincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ @BUILD_LIBQUADMATH_TRUE@libquadmath_la_SOURCES = \
+ @BUILD_LIBQUADMATH_TRUE@  math/x2y2m1q.c math/acoshq.c math/fmodq.c \
+ @BUILD_LIBQUADMATH_TRUE@  math/acosq.c math/frexpq.c \
+--- a/src/libquadmath/Makefile.am
++++ b/src/libquadmath/Makefile.am
+@@ -41,7 +41,7 @@ libquadmath_la_LDFLAGS = -version-info `
+ libquadmath_la_DEPENDENCIES = $(version_dep) $(libquadmath_la_LIBADD)
+ 
+ nodist_libsubinclude_HEADERS = quadmath.h quadmath_weak.h
+-libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++libsubincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ 
+ libquadmath_la_SOURCES = \
+   math/x2y2m1q.c math/acoshq.c math/fmodq.c \
+--- a/src/libobjc/Makefile.in
++++ b/src/libobjc/Makefile.in
+@@ -48,7 +48,7 @@ extra_ldflags_libobjc = @extra_ldflags_l
+ top_builddir = .
+ 
+ libdir = $(exec_prefix)/lib
+-libsubdir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)
+ 
+ # Multilib support variables.
+ MULTISRCTOP =
+--- a/src/libada/Makefile.in
++++ b/src/libada/Makefile.in
+@@ -70,7 +70,7 @@ GCC_DIR=$(MULTIBUILDTOP)../../$(host_sub
+ 
+ target_noncanonical:=@target_noncanonical@
+ version := $(shell @get_gcc_base_ver@ $(srcdir)/../gcc/BASE-VER)
+-libsubdir := $(libdir)/gcc/$(target_noncanonical)/$(version)$(MULTISUBDIR)
++libsubdir := $(libdir)/gcc-cross/$(target_noncanonical)/$(version)$(MULTISUBDIR)
+ ADA_RTS_DIR=$(GCC_DIR)/ada/rts$(subst /,_,$(MULTISUBDIR))
+ 
+ # exeext should not be used because it's the *host* exeext.  We're building
+--- a/src/libgomp/Makefile.in
++++ b/src/libgomp/Makefile.in
+@@ -516,8 +516,8 @@ gcc_version := $(shell @get_gcc_base_ver
+ search_path = $(addprefix $(top_srcdir)/config/, $(config_path)) $(top_srcdir) \
+ 	      $(top_srcdir)/../include
+ 
+-fincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
+-libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++fincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
++libsubincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ AM_CPPFLAGS = $(addprefix -I, $(search_path))
+ AM_CFLAGS = $(XCFLAGS)
+ AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
+--- a/src/libgomp/Makefile.am
++++ b/src/libgomp/Makefile.am
+@@ -11,8 +11,8 @@ config_path = @config_path@
+ search_path = $(addprefix $(top_srcdir)/config/, $(config_path)) $(top_srcdir) \
+ 	      $(top_srcdir)/../include
+ 
+-fincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
+-libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++fincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)$(MULTISUBDIR)/finclude
++libsubincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ 
+ vpath % $(strip $(search_path))
+ 
+--- a/src/libgcc/Makefile.in
++++ b/src/libgcc/Makefile.in
+@@ -200,7 +200,7 @@ STRIP = @STRIP@
+ STRIP_FOR_TARGET = $(STRIP)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(real_host_noncanonical)/$(version)@accel_dir_suffix@
++libsubdir = $(libdir)/gcc-cross/$(real_host_noncanonical)/$(version)@accel_dir_suffix@
+ # Used to install the shared libgcc.
+ slibdir = @slibdir@
+ # Maybe used for DLLs on Windows targets.
+--- a/src/libffi/include/Makefile.am
++++ b/src/libffi/include/Makefile.am
+@@ -8,6 +8,6 @@ EXTRA_DIST=ffi.h.in
+ 
+ # Where generated headers like ffitarget.h get installed.
+ gcc_version   := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+-toollibffidir := $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++toollibffidir := $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ 
+ toollibffi_HEADERS = ffi.h ffitarget.h
+--- a/src/libffi/include/Makefile.in
++++ b/src/libffi/include/Makefile.in
+@@ -326,7 +326,7 @@ EXTRA_DIST = ffi.h.in
+ 
+ # Where generated headers like ffitarget.h get installed.
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+-toollibffidir := $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
++toollibffidir := $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include
+ toollibffi_HEADERS = ffi.h ffitarget.h
+ all: all-am
+ 
+--- a/src/libcc1/Makefile.am
++++ b/src/libcc1/Makefile.am
+@@ -40,7 +40,7 @@ libiberty = $(if $(wildcard $(libiberty_
+ 	    $(Wc)$(libiberty_normal)))
+ libiberty_dep = $(patsubst $(Wc)%,%,$(libiberty))
+ 
+-plugindir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)/plugin
++plugindir = $(libdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)/plugin
+ cc1libdir = $(libdir)/$(libsuffix)
+ 
+ if ENABLE_PLUGIN
+--- a/src/libcc1/Makefile.in
++++ b/src/libcc1/Makefile.in
+@@ -396,7 +396,7 @@ libiberty = $(if $(wildcard $(libiberty_
+ 	    $(Wc)$(libiberty_normal)))
+ 
+ libiberty_dep = $(patsubst $(Wc)%,%,$(libiberty))
+-plugindir = $(libdir)/gcc/$(target_noncanonical)/$(gcc_version)/plugin
++plugindir = $(libdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)/plugin
+ cc1libdir = $(libdir)/$(libsuffix)
+ @ENABLE_PLUGIN_TRUE@plugin_LTLIBRARIES = libcc1plugin.la libcp1plugin.la
+ @ENABLE_PLUGIN_TRUE@cc1lib_LTLIBRARIES = libcc1.la
+--- a/src/libsanitizer/Makefile.am
++++ b/src/libsanitizer/Makefile.am
+@@ -1,6 +1,6 @@
+ ACLOCAL_AMFLAGS = -I .. -I ../config
+ 
+-sanincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include/sanitizer
++sanincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include/sanitizer
+ 
+ nodist_saninclude_HEADERS =
+ 
+--- a/src/libsanitizer/Makefile.in
++++ b/src/libsanitizer/Makefile.in
+@@ -361,7 +361,7 @@ top_build_prefix = @top_build_prefix@
+ top_builddir = @top_builddir@
+ top_srcdir = @top_srcdir@
+ ACLOCAL_AMFLAGS = -I .. -I ../config
+-sanincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include/sanitizer
++sanincludedir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)/include/sanitizer
+ nodist_saninclude_HEADERS = $(am__append_1)
+ @SANITIZER_SUPPORTED_TRUE@SUBDIRS = sanitizer_common $(am__append_2) \
+ @SANITIZER_SUPPORTED_TRUE@	$(am__append_3) lsan asan ubsan \
+--- a/src/libphobos/configure.ac
++++ b/src/libphobos/configure.ac
+@@ -256,6 +256,8 @@ AC_SUBST(SPEC_PHOBOS_DEPS)
+ libtool_VERSION=4:0:0
+ AC_SUBST(libtool_VERSION)
+ 
++# trigger rebuild of the configure file
++
+ # Set default flags (after DRUNTIME_WERROR!)
+ if test -z "$GDCFLAGS"; then
+     GDCFLAGS="-g -O2"
+--- a/src/libphobos/m4/druntime.m4
++++ b/src/libphobos/m4/druntime.m4
+@@ -114,6 +114,7 @@ AC_DEFUN([DRUNTIME_INSTALL_DIRECTORIES],
+ 
+   # Default case for install directory for D sources files.
+   gdc_include_dir='$(libdir)/gcc/${target_alias}/${gcc_version}/include/d'
++  gdc_include_dir='${libdir}/gcc-cross/${target_alias}'/${gcc_version}/include/d
+   AC_SUBST(gdc_include_dir)
+ ])
+ 
+--- a/src/gcc/ada/gcc-interface/Makefile.in
++++ b/src/gcc/ada/gcc-interface/Makefile.in
+@@ -921,7 +921,7 @@ toolexeclibdir = $(ADA_RTL_OBJ_DIR)
+ 
+ ADA_INCLUDE_DIR = $(libsubdir)/adainclude
+ ADA_RTL_OBJ_DIR = $(libsubdir)/adalib
+-ADA_RTL_DSO_DIR = $(toolexeclibdir)
++ADA_RTL_DSO_DIR = $(subst /gcc/,/gcc-cross/,$(toolexeclibdir))
+ 
+ # Special flags
+ 
+--- a/src/c++tools/Makefile.in
++++ b/src/c++tools/Makefile.in
+@@ -21,7 +21,7 @@ bindir := @bindir@
+ libexecdir := @libexecdir@
+ target_noncanonical := @target_noncanonical@
+ gcc_version := $(shell @get_gcc_base_ver@ $(srcdir)/../gcc/BASE-VER)
+-libexecsubdir := $(libexecdir)/gcc/$(target_noncanonical)/$(gcc_version)
++libexecsubdir := $(libexecdir)/gcc-cross/$(target_noncanonical)/$(gcc_version)
+ INSTALL := @INSTALL@
+ INSTALL_PROGRAM := @INSTALL_PROGRAM@
+ INSTALL_STRIP_PROGRAM := $(srcdir)/../install-sh -c -s
+--- a/src/libgm2/libm2cor/Makefile.am
++++ b/src/libgm2/libm2cor/Makefile.am
+@@ -27,7 +27,7 @@ MAKEOVERRIDES=
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ # Used to install the shared libgcc.
+ slibdir = @slibdir@
+ 
+--- a/src/libgm2/libm2cor/Makefile.in
++++ b/src/libgm2/libm2cor/Makefile.in
+@@ -391,7 +391,7 @@ MAKEOVERRIDES =
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ MULTIDIR := $(shell $(CC) $(CFLAGS) -print-multi-directory)
+ MULTIOSDIR := $(shell $(CC) $(CFLAGS) -print-multi-os-directory)
+ MULTIOSSUBDIR := $(shell if test x$(MULTIOSDIR) != x.; then echo /$(MULTIOSDIR); fi)
+--- a/src/libgm2/libm2iso/Makefile.am
++++ b/src/libgm2/libm2iso/Makefile.am
+@@ -27,7 +27,7 @@ MAKEOVERRIDES=
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ # Used to install the shared libgcc.
+ # was slibdir = @slibdir@
+ slibdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)$(MULTISUBDIR)
+--- a/src/libgm2/libm2iso/Makefile.in
++++ b/src/libgm2/libm2iso/Makefile.in
+@@ -416,7 +416,7 @@ MAKEOVERRIDES =
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ MULTIDIR := $(shell $(CC) $(CFLAGS) -print-multi-directory)
+ MULTIOSDIR := $(shell $(CC) $(CFLAGS) -print-multi-os-directory)
+ MULTIOSSUBDIR := $(shell if test x$(MULTIOSDIR) != x.; then echo /$(MULTIOSDIR); fi)
+--- a/src/libgm2/libm2log/Makefile.am
++++ b/src/libgm2/libm2log/Makefile.am
+@@ -27,7 +27,7 @@ MAKEOVERRIDES=
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ # Used to install the shared libgcc.
+ slibdir = @slibdir@
+ 
+--- a/src/libgm2/libm2log/Makefile.in
++++ b/src/libgm2/libm2log/Makefile.in
+@@ -380,7 +380,7 @@ MAKEOVERRIDES =
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ MULTIDIR := $(shell $(CC) $(CFLAGS) -print-multi-directory)
+ MULTIOSDIR := $(shell $(CC) $(CFLAGS) -print-multi-os-directory)
+ MULTIOSSUBDIR := $(shell if test x$(MULTIOSDIR) != x.; then echo /$(MULTIOSDIR); fi)
+--- a/src/libgm2/libm2min/Makefile.am
++++ b/src/libgm2/libm2min/Makefile.am
+@@ -27,7 +27,7 @@ MAKEOVERRIDES=
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ # Used to install the shared libgcc.
+ slibdir = @slibdir@
+ 
+--- a/src/libgm2/libm2min/Makefile.in
++++ b/src/libgm2/libm2min/Makefile.in
+@@ -370,7 +370,7 @@ MAKEOVERRIDES =
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ MULTIDIR := $(shell $(CC) $(CFLAGS) -print-multi-directory)
+ MULTIOSDIR := $(shell $(CC) $(CFLAGS) -print-multi-os-directory)
+ MULTIOSSUBDIR := $(shell if test x$(MULTIOSDIR) != x.; then echo /$(MULTIOSDIR); fi)
+--- a/src/libgm2/libm2pim/Makefile.am
++++ b/src/libgm2/libm2pim/Makefile.am
+@@ -27,7 +27,7 @@ MAKEOVERRIDES=
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ # Used to install the shared libgcc.
+ slibdir = @slibdir@
+ 
+--- a/src/libgm2/libm2pim/Makefile.in
++++ b/src/libgm2/libm2pim/Makefile.in
+@@ -405,7 +405,7 @@ MAKEOVERRIDES =
+ gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+ 
+ # Directory in which the compiler finds libraries etc.
+-libsubdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)
++libsubdir = $(libdir)/gcc-cross/$(target_alias)/$(gcc_version)
+ MULTIDIR := $(shell $(CC) $(CFLAGS) -print-multi-directory)
+ MULTIOSDIR := $(shell $(CC) $(CFLAGS) -print-multi-os-directory)
+ MULTIOSSUBDIR := $(shell if test x$(MULTIOSDIR) != x.; then echo /$(MULTIOSDIR); fi)

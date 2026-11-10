@@ -1,0 +1,221 @@
+# DP: libiberty: Disable hwcaps for sha1.o
+
+--- a/src/config/hwcaps.m4
++++ b/src/config/hwcaps.m4
+@@ -7,6 +7,7 @@ dnl  HWCAP_CFLAGS='-Wa,-nH' if possible.
+ dnl
+ AC_DEFUN([GCC_CHECK_ASSEMBLER_HWCAP], [
+   test -z "$HWCAP_CFLAGS" && HWCAP_CFLAGS=''
++  AC_REQUIRE([AC_CANONICAL_TARGET])
+ 
+   # Restrict the test to Solaris, other assemblers (e.g. AIX as) have -nH
+   # with a different meaning.
+--- a/src/libiberty/Makefile.in
++++ b/src/libiberty/Makefile.in
+@@ -114,7 +114,7 @@ INCDIR=$(srcdir)/$(MULTISRCTOP)../includ
+ 
+ COMPILE.c = $(CC) -c @DEFS@ $(CFLAGS) $(CPPFLAGS) -I. -I$(INCDIR) \
+                $(HDEFINES) @ac_libiberty_warn_cflags@ -D_GNU_SOURCE \
+-               @CET_HOST_FLAGS@
++               @CET_HOST_FLAGS@ @HWCAP_CFLAGS@
+ 
+ # Just to make sure we don't use a built-in rule with VPATH
+ .c.$(objext):
+--- a/src/libiberty/aclocal.m4
++++ b/src/libiberty/aclocal.m4
+@@ -15,7 +15,9 @@ m4_ifndef([AC_CONFIG_MACRO_DIRS], [m4_de
+ m4_include([../config/acx.m4])
+ m4_include([../config/cet.m4])
+ m4_include([../config/enable.m4])
++m4_include([../config/hwcaps.m4])
+ m4_include([../config/no-executables.m4])
++m4_include([../config/override.m4])
+ m4_include([../config/picflag.m4])
+ m4_include([../config/warnings.m4])
+ m4_include([acinclude.m4])
+--- a/src/libiberty/configure
++++ b/src/libiberty/configure
+@@ -626,6 +626,11 @@ pexecute
+ target_header_dir
+ CHECK
+ LIBOBJS
++HWCAP_CFLAGS
++target_os
++target_vendor
++target_cpu
++target
+ CET_HOST_FLAGS
+ NOASANFLAG
+ PICFLAG
+@@ -1323,6 +1328,7 @@ _ACEOF
+ System types:
+   --build=BUILD     configure for building on BUILD [guessed]
+   --host=HOST       cross-compile to build programs to run on HOST [BUILD]
++  --target=TARGET   configure for building compilers for TARGET [HOST]
+ _ACEOF
+ fi
+ 
+@@ -2460,6 +2466,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+ 
++
++
++
+ # This works around the fact that libtool configuration may change LD
+ # for this particular configuration, but some shells, instead of
+ # keeping the changes in LD private, export them just because LD is
+@@ -4290,7 +4299,7 @@ else
+     We can't simply define LARGE_OFF_T to be 9223372036854775807,
+     since some C++ compilers masquerading as C compilers
+     incorrectly reject 9223372036854775807.  */
+-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
++#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+ 		       && LARGE_OFF_T % 2147483647 == 1)
+ 		      ? 1 : -1];
+@@ -4336,7 +4345,7 @@ else
+     We can't simply define LARGE_OFF_T to be 9223372036854775807,
+     since some C++ compilers masquerading as C compilers
+     incorrectly reject 9223372036854775807.  */
+-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
++#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+ 		       && LARGE_OFF_T % 2147483647 == 1)
+ 		      ? 1 : -1];
+@@ -4360,7 +4369,7 @@ rm -f core conftest.err conftest.$ac_obj
+     We can't simply define LARGE_OFF_T to be 9223372036854775807,
+     since some C++ compilers masquerading as C compilers
+     incorrectly reject 9223372036854775807.  */
+-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
++#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+ 		       && LARGE_OFF_T % 2147483647 == 1)
+ 		      ? 1 : -1];
+@@ -4405,7 +4414,7 @@ else
+     We can't simply define LARGE_OFF_T to be 9223372036854775807,
+     since some C++ compilers masquerading as C compilers
+     incorrectly reject 9223372036854775807.  */
+-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
++#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+ 		       && LARGE_OFF_T % 2147483647 == 1)
+ 		      ? 1 : -1];
+@@ -4429,7 +4438,7 @@ rm -f core conftest.err conftest.$ac_obj
+     We can't simply define LARGE_OFF_T to be 9223372036854775807,
+     since some C++ compilers masquerading as C compilers
+     incorrectly reject 9223372036854775807.  */
+-#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
++#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
+ 		       && LARGE_OFF_T % 2147483647 == 1)
+ 		      ? 1 : -1];
+@@ -5493,6 +5502,88 @@ LDFLAGS="$cet_save_LDFLAGS"
+ 
+ 
+ 
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking target system type" >&5
++$as_echo_n "checking target system type... " >&6; }
++if ${ac_cv_target+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if test "x$target_alias" = x; then
++  ac_cv_target=$ac_cv_host
++else
++  ac_cv_target=`$SHELL "$ac_aux_dir/config.sub" $target_alias` ||
++    as_fn_error $? "$SHELL $ac_aux_dir/config.sub $target_alias failed" "$LINENO" 5
++fi
++
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_target" >&5
++$as_echo "$ac_cv_target" >&6; }
++case $ac_cv_target in
++*-*-*) ;;
++*) as_fn_error $? "invalid value of canonical target" "$LINENO" 5;;
++esac
++target=$ac_cv_target
++ac_save_IFS=$IFS; IFS='-'
++set x $ac_cv_target
++shift
++target_cpu=$1
++target_vendor=$2
++shift; shift
++# Remember, the first character of IFS is used to create $*,
++# except with old shells:
++target_os=$*
++IFS=$ac_save_IFS
++case $target_os in *\ *) target_os=`echo "$target_os" | sed 's/ /-/g'`;; esac
++
++
++# The aliases save the names the user supplied, while $host etc.
++# will get canonicalized.
++test -n "$target_alias" &&
++  test "$program_prefix$program_suffix$program_transform_name" = \
++    NONENONEs,x,x, &&
++  program_prefix=${target_alias}-
++
++  test -z "$HWCAP_CFLAGS" && HWCAP_CFLAGS=''
++
++
++  # Restrict the test to Solaris, other assemblers (e.g. AIX as) have -nH
++  # with a different meaning.
++  case ${target_os} in
++    solaris2*)
++      ac_save_CFLAGS="$CFLAGS"
++      CFLAGS="$CFLAGS -Wa,-nH"
++
++      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for as that supports -Wa,-nH" >&5
++$as_echo_n "checking for as that supports -Wa,-nH... " >&6; }
++      cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++int
++main ()
++{
++return 0;
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_compile "$LINENO"; then :
++  ac_hwcap_flags=yes
++else
++  ac_hwcap_flags=no
++fi
++rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
++      if test "$ac_hwcap_flags" = "yes"; then
++	HWCAP_CFLAGS="-Wa,-nH $HWCAP_CFLAGS"
++      fi
++      { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_hwcap_flags" >&5
++$as_echo "$ac_hwcap_flags" >&6; }
++
++      CFLAGS="$ac_save_CFLAGS"
++      ;;
++  esac
++
++
++
++
+ echo "# Warning: this fragment is automatically generated" > temp-frag
+ 
+ if [ -n "${frag}" ] && [ -f "${frag}" ]; then
+@@ -7647,6 +7738,8 @@ main ()
+     if (*(data + i) != *(data3 + i))
+       return 14;
+   close (fd);
++  free (data);
++  free (data3);
+   return 0;
+ }
+ _ACEOF
+--- a/src/libiberty/configure.ac
++++ b/src/libiberty/configure.ac
+@@ -253,6 +253,8 @@ AC_SUBST(NOASANFLAG)
+ GCC_CET_HOST_FLAGS(CET_HOST_FLAGS)
+ AC_SUBST(CET_HOST_FLAGS)
+ 
++GCC_CHECK_ASSEMBLER_HWCAP
++
+ echo "# Warning: this fragment is automatically generated" > temp-frag
+ 
+ if [[ -n "${frag}" ]] && [[ -f "${frag}" ]]; then

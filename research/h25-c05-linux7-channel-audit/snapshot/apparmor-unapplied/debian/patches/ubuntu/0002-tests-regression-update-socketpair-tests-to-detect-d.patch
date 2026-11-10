@@ -1,0 +1,431 @@
+From 2fdcd166e010087c1e3833ec7f2c15d89af45740 Mon Sep 17 00:00:00 2001
+From: John Johansen <john@jjmx.net>
+Date: Sun, 27 Jul 2025 02:37:20 -0600
+Subject: [PATCH 2/5] tests: regression: update socketpair tests to detect
+ different situations
+
+The change in socket behavior, reflected in the previous patch only
+occurs in some kernels. Better detect and report what is being used.
+This not only helps with debugging but also is needed to ensure the
+tests are correct when used on different combinations of the kernel and
+parser.
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 35f1cb3d87056699edfbefb604b80489c0e3e12b)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/abis/af_unix-v789 | 129 ++++++++++++++++++++
+ tests/regression/apparmor/abis/af_unix-v9   | 127 +++++++++++++++++++
+ tests/regression/apparmor/prologue.inc      |  24 +++-
+ tests/regression/apparmor/socketpair.sh     |  65 ++++++++--
+ 4 files changed, 335 insertions(+), 10 deletions(-)
+ create mode 100644 tests/regression/apparmor/abis/af_unix-v789
+ create mode 100644 tests/regression/apparmor/abis/af_unix-v9
+
+diff --git a/tests/regression/apparmor/abis/af_unix-v789 b/tests/regression/apparmor/abis/af_unix-v789
+new file mode 100644
+index 000000000..fbfc4f924
+--- /dev/null
++++ b/tests/regression/apparmor/abis/af_unix-v789
+@@ -0,0 +1,129 @@
++capability {0xffffff
++}
++caps {extended {yes
++}
++mask {chown dac_override dac_read_search fowner fsetid kill setgid setuid setpcap linux_immutable net_bind_service net_broadcast net_admin net_raw ipc_lock ipc_owner sys_module sys_rawio sys_chroot sys_ptrace sys_pacct sys_admin sys_boot sys_nice sys_resource sys_time sys_tty_config mknod lease audit_write audit_control setfcap mac_override mac_admin syslog wake_alarm block_suspend audit_read perfmon bpf checkpoint_restore
++}
++}
++dbus {mask {acquire send receive
++}
++}
++domain {attach_conditions {xattr {yes
++}
++}
++change_hat {yes
++}
++change_hatv {yes
++}
++change_onexec {yes
++}
++change_profile {yes
++}
++computed_longest_left {yes
++}
++disconnected.ipc {yes
++}
++disconnected.path {yes
++}
++fix_binfmt_elf_mmap {yes
++}
++interruptible {yes
++}
++kill.signal {yes
++}
++post_nnp_subset {yes
++}
++stack {yes
++}
++unconfined_allowed_children {yes
++}
++version {1.2
++}
++}
++file {mask {create read write exec append mmap_exec link lock
++}
++}
++io_uring {mask {sqpoll override_creds
++}
++}
++ipc {posix_mqueue {create read write open delete setattr getattr
++}
++}
++mount {mask {mount umount pivot_root
++}
++move_mount {detached
++}
++}
++namespaces {mask {userns_create
++}
++pivot_root {no
++}
++profile {yes
++}
++userns_create {pciu&
++}
++}
++network {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
++}
++af_unix {yes
++}
++}
++network_v8 {af_inet {yes
++}
++af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
++}
++}
++network_v9 {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
++}
++af_unix {yes
++}
++}
++policy {notify {user {file
++}
++}
++outofband {0x000001
++}
++permstable32 {allow deny subtree cond kill complain prompt audit quiet hide xindex tag label
++}
++permstable32_version {0x000003
++}
++set_load {yes
++}
++state32 {0x000001
++}
++unconfined_restrictions {change_profile {yes
++}
++io_uring {1
++}
++userns {1
++}
++}
++versions {v5 {yes
++}
++v6 {yes
++}
++v7 {yes
++}
++v8 {yes
++}
++v9 {yes
++}
++}
++}
++ptrace {mask {read trace
++}
++}
++query {label {data {yes
++}
++multi_transaction {yes
++}
++perms {allow deny audit quiet
++}
++}
++}
++rlimit {mask {cpu fsize data stack core rss nproc nofile memlock as locks sigpending msgqueue nice rtprio rttime
++}
++}
++signal {mask {hup int quit ill trap abrt bus fpe kill usr1 segv usr2 pipe alrm term stkflt chld cont stop stp ttin ttou urg xcpu xfsz vtalrm prof winch io pwr sys emt lost
++}
++}
+diff --git a/tests/regression/apparmor/abis/af_unix-v9 b/tests/regression/apparmor/abis/af_unix-v9
+new file mode 100644
+index 000000000..a9560e77f
+--- /dev/null
++++ b/tests/regression/apparmor/abis/af_unix-v9
+@@ -0,0 +1,127 @@
++capability {0xffffff
++}
++caps {extended {yes
++}
++mask {chown dac_override dac_read_search fowner fsetid kill setgid setuid setpcap linux_immutable net_bind_service net_broadcast net_admin net_raw ipc_lock ipc_owner sys_module sys_rawio sys_chroot sys_ptrace sys_pacct sys_admin sys_boot sys_nice sys_resource sys_time sys_tty_config mknod lease audit_write audit_control setfcap mac_override mac_admin syslog wake_alarm block_suspend audit_read perfmon bpf checkpoint_restore
++}
++}
++dbus {mask {acquire send receive
++}
++}
++domain {attach_conditions {xattr {yes
++}
++}
++change_hat {yes
++}
++change_hatv {yes
++}
++change_onexec {yes
++}
++change_profile {yes
++}
++computed_longest_left {yes
++}
++disconnected.ipc {yes
++}
++disconnected.path {yes
++}
++fix_binfmt_elf_mmap {yes
++}
++interruptible {yes
++}
++kill.signal {yes
++}
++post_nnp_subset {yes
++}
++stack {yes
++}
++unconfined_allowed_children {yes
++}
++version {1.2
++}
++}
++file {mask {create read write exec append mmap_exec link lock
++}
++}
++io_uring {mask {sqpoll override_creds
++}
++}
++ipc {posix_mqueue {create read write open delete setattr getattr
++}
++}
++mount {mask {mount umount pivot_root
++}
++move_mount {detached
++}
++}
++namespaces {mask {userns_create
++}
++pivot_root {no
++}
++profile {yes
++}
++userns_create {pciu&
++}
++}
++network {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
++}
++}
++network_v8 {af_inet {yes
++}
++af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
++}
++}
++network_v9 {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
++}
++af_unix {yes
++}
++}
++policy {notify {user {file
++}
++}
++outofband {0x000001
++}
++permstable32 {allow deny subtree cond kill complain prompt audit quiet hide xindex tag label
++}
++permstable32_version {0x000003
++}
++set_load {yes
++}
++state32 {0x000001
++}
++unconfined_restrictions {change_profile {yes
++}
++io_uring {1
++}
++userns {1
++}
++}
++versions {v5 {yes
++}
++v6 {yes
++}
++v7 {yes
++}
++v8 {yes
++}
++v9 {yes
++}
++}
++}
++ptrace {mask {read trace
++}
++}
++query {label {data {yes
++}
++multi_transaction {yes
++}
++perms {allow deny audit quiet
++}
++}
++}
++rlimit {mask {cpu fsize data stack core rss nproc nofile memlock as locks sigpending msgqueue nice rtprio rttime
++}
++}
++signal {mask {hup int quit ill trap abrt bus fpe kill usr1 segv usr2 pipe alrm term stkflt chld cont stop stp ttin ttou urg xcpu xfsz vtalrm prof winch io pwr sys emt lost
++}
++}
+diff --git a/tests/regression/apparmor/prologue.inc b/tests/regression/apparmor/prologue.inc
+index cc8564888..46ff151fb 100755
+--- a/tests/regression/apparmor/prologue.inc
++++ b/tests/regression/apparmor/prologue.inc
+@@ -130,14 +130,36 @@ requires_query_interface()
+ 	fi
+ }
+ 
++is_option()
++{
++	case $1 in
++	-* ) return 0
++	esac
++
++	return 1
++}
++
+ # parser_supports() - test if the parser supports the following rules
+ # $@: rules to test, use quotes if the rule contains whitespace
+ # Returns: 0 and output "true" if all rules supported
+ #          1 and error message if compiler does not support rule
+ parser_supports()
+ {
++	local opts;
++
++	if is_option "$1" ; then
++		while [ $# > 0 -a "--" != "$1" ]; do
++			opts="$opts $1"
++			shift
++		done
++		if [ $# -gt 0 ] ; then
++			# shift --
++			shift
++		fi
++	fi
++
+ 	for R in "$@" ; do
+-		echo "/test { $R }" | $subdomain ${parser_args} -qQT 2>/dev/null 1>/dev/null
++		echo "/test { $R }" | $subdomain ${parser_args} $opts -qQT 2>/dev/null 1>/dev/null
+ 		if [ $? -ne 0 ] ; then
+ 			echo "Compiler does not support rule '$R'"
+ 			return 1;
+diff --git a/tests/regression/apparmor/socketpair.sh b/tests/regression/apparmor/socketpair.sh
+index bb79ae8da..a2cc7a922 100755
+--- a/tests/regression/apparmor/socketpair.sh
++++ b/tests/regression/apparmor/socketpair.sh
+@@ -20,6 +20,38 @@ bin=$pwd
+ . $bin/prologue.inc
+ 
+ requires_any_of_kernel_features network/af_unix network_v9/af_unix
++requires_parser_support "unix,"
++
++# This needs parser_supports flag to test how parser is doing internal encoding
++# Adding the parser patch is REQUIRED before these tests can be picked to
++# parsers that don't support v9 semantics.
++# the alternative is to pick support for v9 semantics to older parser
++# releases.
++parser_supports_v9_unix()
++{
++	# TODO proper test here, needs parser patch that can report what
++	# coding is being used internally, as this switch is not availabe
++	# to test using rules
++	echo "true"
++	return $?
++}
++
++# TODO:
++# - add tests for extened_v9_unix rules
++# - add conditional and update current tests for semantic changes under
++#   extended_v9_unix
++#  this conditional can be used to enclose tests older parsers won't
++#  be able to.
++parser_supports_extended_v9_unix()
++{
++	# turn downgrade warning into error to make sure we catch downgrade
++	# use a rule not supported by non-v9 parser to catch non-v9 parsers
++	# which might not treat a unix rule as downgrade
++	parser_supports --features-file=abi/af_unix-v9 --Werror==all -- 'unix rw addr=/path,'
++	local rc=$?
++	echo "true"
++	return $rc
++}
+ 
+ do_test()
+ {
+@@ -37,26 +69,41 @@ af_unix_create_label=""
+ af_unix_inherit=""
+ aa_enabled="/sys/module/apparmor/parameters/enabled:r"
+ 
+-if [ "$(kernel_features network/af_unix)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
+-	# AppArmor requires that the process inheriting the sock file
+-	# descriptors have send,receive perms in its profile
+-	af_unix_create="unix:(create,getopt)"
+-	af_unix_create_label="unix:(send,receive)"
+-	af_unix_inherit="unix:(getopt,send,receive)"
+-fi
++# AppArmor requires that the process inheriting the sock file
++# descriptors have send,receive perms in its profile
++af_unix_create="unix:(create,getopt)"
++af_unix_create_label="unix:(send,receive)"
++af_unix_inherit="unix:(getopt,send,receive)"
+ 
+-if [ "$(kernel_features network_v9/af_unix)" = "true" ] ; then
++if [ "$(kernel_features network_v9/af_unix)" = "true" -a \
++     "$(parser_supports 'unix,')" = "true" ] ; then
+ 	# can get a stack from socket being passed to new confinement
++	if [ "$(parser_supports_v9_unix)" != "true" ] ; then
++		# NOP ATM, this doesn't change what the kernel is doing
++		# as this part of v9 is a break with v7/8
++		echo -n "  parser does not support v9, encoding v7/8 "
++	fi
+ 	np1_result="$test//&$np1"
+ 	np1_np2_result="$test//&$np1//&$np2"
+         mixed_enforce="mixed"
+         mixed_complain="mixed"
+-else
++	echo "... using v9 af_unix kernel semantics"
++elif [ "$(kernel_features network_v8/af_unix)" = "true" -o \
++       "$(kernel_features network/af_unix)" = "true" -a \
++       "$(parser_supports 'unix,')" = "true" ] ; then
+ 	# old abi did not update the label to new task confinements using it
+ 	np1_result="$np1"
+ 	np1_np2_result="$np2"
+         mixed_enforce="enforce"
+         mixed_complain="complain"
++	if [ "$(kernel_features network_v9/af_unix)" = "true" ] ; then
++		echo -n "    kernel supports v9 unix should not be here"
++		exit 1
++	fi
++	echo "... using v7 af_unix kernel"
++else
++	echo "   kernel does not support unix rules, broken requires should not be here"
++	exit 1
+ fi
+ 
+ # Ensure everything works as expected when unconfined
+-- 
+2.43.0
+

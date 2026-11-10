@@ -1,0 +1,39 @@
+# DP: Report an ICE to apport (if apport is available
+# DP: and the environment variable GCC_NOAPPORT is not set)
+
+--- a/src/gcc/gcc.cc
++++ b/src/gcc/gcc.cc
+@@ -7965,13 +7965,16 @@ do_report_bug (const char **new_argv, co
+   if (status == ATTEMPT_STATUS_SUCCESS)
+     {
+       const bool gcc_dump = has_deb_build_options ("gcc-ice", "nodump");
++      const bool gcc_apport
++	= !env.get ("GCC_NOAPPORT")
++	  && !access ("/usr/share/apport/gcc_ice_hook", R_OK | X_OK);
+ 
+       if (gcc_dump)
+ 	fnotice (stderr,
+ 		 "Preprocessed source stored into %s file,"
+ 		 " please attach this to your bugreport.\n",
+ 		 *out_file);
+-      if (gcc_dump)
++      if (gcc_dump || gcc_apport)
+ 	{
+ 	  char *cmd = XNEWVEC (char, 50 + strlen (*out_file));
+ 
+@@ -7985,6 +7988,15 @@ do_report_bug (const char **new_argv, co
+ 	  fflush (stderr);
+ 	  free (cmd);
+ 	}
++      if (gcc_apport)
++	{
++	  char *cmd
++	    = XNEWVEC (char, 50 + strlen (*out_file) + strlen (new_argv[0]));
++	  sprintf (cmd, "/usr/share/apport/gcc_ice_hook %s %s", new_argv[0],
++		   *out_file);
++	  system (cmd);
++	  free (cmd);
++	}
+       /* Make sure it is not deleted.  */
+       free (*out_file);
+       *out_file = NULL;

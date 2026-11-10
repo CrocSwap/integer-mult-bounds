@@ -1,0 +1,13 @@
+# Unit06 loader and receiver-policy input verdict
+
+PASS for complete implementable source inputs in this independent receiver/loader/policy scope, frozen 2026-11-02 13:09:55 UTC. This permits conditional source authorship after the parent combines the separate caller audit; it does not accept an implementation, actual startup, capture fit, C05/V03 or runtime admission.
+
+Exact reviewed graph:132763 bytes, SHA256 `f999a6bfc9ac9048b248d9b029b7676ba04dea5c559228d5286e49d269ca3597`. Exact concrete design:13674 bytes, SHA256 `400f1533fd08dcad2633d477f9d388cd65b888b0c0e74c08c20e7fbef33c0bae`. All15 retained project bodies/pins, recursive import edges and dependency-first order were independently cross-checked. No unsupported exact closure/schema/constructor interface or source-level initialization cycle was found.
+
+The design specifies same retained authenticated bytes before any project execution; fresh actual modules registered in the justified order; exact names/filenames and real builtins; actual optimization and dont_inherit; construction-derived expected identities; only genuine pre-capture six supervisor and three COPY gates; and one actual owner constructor followed by run_prefix. It preserves48/512/two-capture limits. Module initialization effects are explicit costs.
+
+Policy P uses real final installed identities. Q preserves exact five-field rows and all nine source categories, true child/configuration custody and one outer row, excluding its own path/inode and later M/bootstrap STAGE. M is an ordinary adjacent filename; all outer exclusions remain covered and billed. The actual queue receipt mismatch has an explicit DATA-only adaptation, subject to the separate exact caller/receiver audit.
+
+Implementation must retain raw primary/secondary failures and partial module objects terminally, outside captured globals; no retry, preliminary capture or deletion-as-rollback. New entry/preparer/caller source is a separately authenticated graph, not silently included in the inner15 count. These are concrete review conditions for the forthcoming source, not success stubs or exemptions.
+
+The initial RECEIVER-INPUT-REVIEW-v1 pair is preserved unchanged; this delta closes its pending design status. Genuine T0/source/stage/native/command/funding/execution/C05/C07 selections, installed identities, original history/ownership, distinct actual locks and complete costs/fit remain external prerequisites. Full C05/V03 and runtime flags remain false; original43.5% and closed units are unchanged. No original code or tests, new tests, native/compiler/Popen/namespace/target work ran. Only owned reports were written.

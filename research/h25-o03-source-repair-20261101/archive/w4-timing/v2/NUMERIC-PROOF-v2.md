@@ -1,0 +1,29 @@
+# W4 numeric repair v2 — analytical argument, no execution
+
+The sole repair addresses W4-V1-001. V1 accepted `179.990000000000000000000000001` (31 characters) while ambient precision 28 could round its exact charge, `180 + 10^-27`, to 180. CPU coverage and ledger comparisons had the same ambient-context dependency. V1 is preserved, rejected and superseded for this source arithmetic obligation; no old attempt is reclassified.
+
+V2 retains Decimal, the admitted grammar/domain, all state and wire fields, all original 30 cases/47 variants/oracles, and every v1 payload byte. It adds a fresh explicit context at the beginning of the run's existing primary boundary. Every setting is supplied: precision 128, ROUND_HALF_EVEN, Emin=-999, Emax=999, capitals=1, clamp=0, empty flags, and traps for Clamped, DivisionByZero, FloatOperation, Inexact, InvalidOperation, Overflow, Rounded, Subnormal and Underflow. Caller precision, rounding, flags, traps, exponent limits, DefaultContext, and previous thread-local context values supply none of those settings. No rounding should occur for admitted operations; rounding-related traps fail closed if an arithmetic premise is violated. There is no disabling of traps to make an operation pass.
+
+The public proposed interface is run(request). All numeric helpers are internal to its primary-boundary call graph. No standalone helper invocation is admitted. The context is entered before admission JSON parsing and remains active through legacy parsing, token/domain gates, RSS-integrality check, wall charge, sampler comparisons, four CPU summands, CPU allowance and ledger addition. All projected measurement/charge strings are constructed there. Report construction afterward handles only fixed projections, strings, integers, Booleans and nulls; it does not perform Decimal arithmetic. The fresh context is restored after primary capture in a protected secondary boundary. A restoration failure cannot replace a saved primary. A restoration failure without a previous primary becomes a STOP primary. A future completion/caller control must check preservation of the caller's context on both ordinary and primary-failure returns; that control is proposed, not run.
+
+## Exactness and exponent bound
+
+A floating JSON token has at most 32 characters, including sign/punctuation/exponent; its explicit exponent magnitude is at most 12. Ignoring punctuation only makes a conservative bound larger: its mantissa has at most 32 digit places, and its decimal fractional length is at most 32. Thus every parsed finite value is an exact integer multiple of q=10^-44. A syntactically possible token before the domain check has at most 32 coefficient digits, exponent no smaller than -44, and adjusted magnitude below 10^44. Decimal string construction is exact; the subsequent context-governed abs operation can represent those at most 32 coefficient digits without rounding. Nonfinite constants and out-of-range exponents fail before policy arithmetic. Integer tokens have at most 32 characters and are converted with bounded exact Python integer arithmetic before the same magnitude gate.
+
+After nonnegative validation, each measurement/CPU scalar is at most 10^12. The following exact results stay on q's lattice:
+
+- wall + 0.01 is at most 10^12 + 0.01;
+- RSS * 1024 is at most 1.024*10^15 (RSS is additionally checked integer-valued);
+- four CPU summands total at most 4*10^12;
+- user + system + 0.03 is at most 2*10^12 + 0.03;
+- spent < 2400 plus wall charge is less than 10^12 + 2400.01.
+
+Their absolute value is less than 2*10^15. Dividing that conservative largest bound by q gives coefficients strictly below 2*10^59, at most 60 decimal digits. Each intermediate operand/result fits precision 128 without any discarded trailing zeros or significant digits. This also bounds comparison operands, even if a cap will subsequently reject the value. Comparisons of finite Decimals are exact. The explicit constants 0.01, 0.03, 180, 2400, 1024, 1073741824 and 10^12 are exact. No binary floating conversion is used by candidate arithmetic. RSS to_integral_value is used only with an exact equality check to reject fractional RSS, never to replace RSS with a rounded measurement.
+
+Admitted nonzero values/intermediates have adjusted exponents within [-44,44] before the domain gate and within [-44,16] afterward. Both are strictly inside [-999,999], so there is no subnormal, underflow, overflow, or exponent clamp under the isolated settings. Zero coefficients retain bounded lexical scales; their exponent does not extend this bound. Precision 128 is therefore sufficient for the entire existing 32-character/exponent±12/domain contract. This argument does not narrow that contract and does not depend on the caller's ambient decimal precision.
+
+## Conservation and future providers
+
+The wire schemas, field names, numeric token cap, exponent/domain gates, status rules, rounding allowances, file/report caps, I/O, primary/report preservation, legacy semantics and old oracle outcomes are unchanged. Added literal near-threshold and hostile-context proposals exercise wall, ledger, CPU and context isolation; their exact expectations were authored from decimal place values and this argument, not candidate/Decimal evaluation. Every proposed case remains UNEXECUTED in both normal and -O modes.
+
+V2 adds imports of Context, localcontext, ROUND_HALF_EVEN and named decimal signals from the already used decimal namespace. Future actual W3 closure must authenticate this expanded callable/provider surface, including its real decimal/_decimal implementation and context-manager behavior, before use. No actual provider pin, current W3 seal, controller/admission/launcher producer or W5 permission is supplied by this source freeze. This argument assumes authenticated standard-library semantics; a source-only pin is not a host/provider attestation or runtime qualification.

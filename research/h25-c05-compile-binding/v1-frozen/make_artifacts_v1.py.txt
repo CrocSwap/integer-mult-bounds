@@ -1,0 +1,90 @@
+"""Exports new pure source-binding evidence; does not import original modules."""
+from pathlib import Path
+import hashlib
+import json
+import sys
+
+BASE = Path(__file__).parent
+sys.path.insert(0,str(BASE))
+import compile_binding_v1 as new
+import test_compile_binding_v1 as fixtures
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def main():
+    sources = fixtures.corpus()
+    rules = new.authenticate_source_rules(sources)
+    plan,config,launches = fixtures.fixture()
+    pr,pp = fixtures.raw(plan)
+    cr,cp = fixtures.raw(config)
+    example = new.construct_original_compile_pair(sources,parent_plan_raw=pr,parent_plan_sha256=pp,
+        variant_configuration_raw=cr,variant_configuration_sha256=cp,compiler_launches=launches)
+    (BASE/'SOURCE-RULES-v1.json').write_bytes(new.canonical(rules))
+    (BASE/'FRESH-EXAMPLE-v1.json').write_bytes(new.canonical({'fixture_only':True,'parent_projection':plan,
+        'variant_projection':config,'proposed_compiler_launches':launches,'derived_binding':example}))
+    old = BASE.parents[1]/'implementation/c05_gcc_rules_v1.py'
+    oldraw = old.read_bytes()
+    current_pin = 'b3b8c5229f6e1bfca8e903aae95ad306200fbdce9ebd3b80974117613f538697'
+    if len(oldraw)!=33560 or digest(oldraw)!=current_pin:
+        raise ValueError('current final frozen GCC model identity changed')
+    oldlines = oldraw.decode().split('\n')
+    failure = {'schema':'unit03-binding-initial-artifact-export-failure-v1',
+        'operation':'assert frozen old model identity while exporting source evidence',
+        'result':'AssertionError; fixture tests had passed and were not the failing operation',
+        'historical_expected':{'bytes':33402,'sha256':'483586044c81537fcf19d9d9dd6ed331884b427d80bd91a38ae4f38c31237e7a'},
+        'current_observed':{'bytes':len(oldraw),'sha256':digest(oldraw)},
+        'root_clarification':'Unit01 final baseline repaired a trailing no-final-newline patch marker; current final/PR6362 export uses b3b8; earlier 483586 snapshot is historical',
+        'worker_wrote_old_model':False,'recovery':'use exact confirmed current final baseline; preserve historical mismatch without claiming equality'}
+    (BASE/'INITIAL-EXPORT-FAILURE-v1.json').write_bytes(new.canonical(failure))
+    derivation = {'schema':'unit03-original-compile-binding-derivation-v1',
+        'source_pins':rules['sources'],'anchors':rules['anchors'],
+        'helper_recovery':{'retained_copy':str(BASE/'cold_build_evidence.py.txt'),
+          'original_source_path':'outputs/h25-data-handling-20261028/stages/combined-finite-v8/integration/cold_build_evidence.py',
+          'authenticated_before_input_gate':True,'authentication_observed_utc':'2026-11-02T09:17:58Z',
+          'earlier_scoped_ENOENT':['outputs/h25-bookkeeping-swarm-20261028/stages/combined-finite-v8/integration/cold_build_evidence.py',
+                                   'stages/combined-finite-v8/integration/cold_build_evidence.py'],
+          'recovery_does_not_rewrite_prior_ENOENT_scope':True},
+        'original_roles':rules['roles'],'nine_compiler_options':rules['fixed_options'],
+        'native_environment':rules['native_environment'],'compiler_cwd_rule':rules['helper_launch']['cwd_rule'],
+        'compiler_environment_rule':rules['helper_launch']['environment_rule'],
+        'parent_cwd_check':{'lines':[335,336],'meaning':'parent validates cwd/output/evidence/stage path values separately'},
+        'path_binding':{'source':"stage_root + '/areas/field-negative-variants-v1/' + role + '/dict_probe_fields_v1.c'",
+          'output':"producer_output + '/' + role + '/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so'",
+          'parent_cwd':'independent parent-plan row cwd spelling',
+          'compiler_cwd':'inherits producer current cwd; equality to admitted parent cwd remains conditional on unchanged intervening original route/currentness'},
+        'frozen_old_model':{'path':str(old),'bytes':len(oldraw),'sha256':digest(oldraw),
+          'relevant_lines':[415,439],'text':'\n'.join(oldlines[414:439]),'worker_wrote_old_model':False,
+          'comparison_uses_confirmed_final_baseline':True,'historical_equality_claimed':False},
+        'counterexample':{'fixture_only':True,'stage':'/immutable/stage',
+          'producer_output':'/owned/evidence/failure_variants/producer-output','cwd':'/independent/work',
+          'old_literal_cwd_ancestry_predicate_is_false_for_both_operands':True,
+          'new_source_binding_projection_accepts':True,'runtime_validity_at_these_paths_claimed':False},
+        'parser_scope':'necessary source-specific compile and parent-row projection; not full original parent-plan/configuration validation',
+        'preserved_labels':{'roles':rules['roles'],'helper_name':'control','timeout_seconds':15,
+          'source_name':'dict_probe_fields_v1.c','module_name':'_h25_dict_probe','no_cached_binary':True},
+        'validation':{'fresh_pure_test_methods':19,'status':'PASS','original_modules_imported':False,
+          'original_code_executed':False,'compiler_executed':False},
+        'full_C05':False,'full_V03':False,'effective_configuration':False,'execution_ready':False,'outside_costs':'OPEN_NOT_ZERO'}
+    (BASE/'DERIVATION-v1.json').write_bytes(new.canonical(derivation))
+    admission = {'schema':'unit03-compile-binding-open-admission-v1','source_binding_projection_implemented':True,
+        'parent_plan_admitted':False,'variant_configuration_admitted':False,'compiler_binary_authenticated':False,
+        'effective_GCC_configuration':False,'full_C05':False,'full_V03':False,'execution_ready':False,
+        'original_activity_credit':False,'closed_units_resumed':False,
+        'open':['independence and actual admission of supplied parent/configuration record pins',
+          'original Root/native/parent capability and complete configured source closure admission',
+          'actual parent-to-Root-to-producer-to-compiler cwd/environment identity and currentness',
+          'actual source/header contents, path aliases, output ownership and immutable namespace',
+          'compiler binary/package/generated-configuration correspondence and complete query-producing rules',
+          'complete transitive input inventory, negative lookups, PCH and namespace interval',
+          'original resource, physical-cost, domain termination and evidence obligations'],
+        'outside_costs':'OPEN_NOT_ZERO'}
+    (BASE/'OPEN-ADMISSION-v1.json').write_bytes(new.canonical(admission))
+    print(json.dumps({'derivation':str(BASE/'DERIVATION-v1.json'),'source_rules':str(BASE/'SOURCE-RULES-v1.json'),
+                      'open_admission':str(BASE/'OPEN-ADMISSION-v1.json'),'tests':'19 PASS','full_C05':False},indent=2))
+
+
+if __name__=='__main__':
+    main()

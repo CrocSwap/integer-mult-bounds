@@ -1,0 +1,456 @@
+/* Fresh dictionary collision-path metadata inspection.
+ * Source-derived from CPython 3.12.3 Objects/dictobject.c and private headers.
+ * See NOTICE-PSF.md and LICENSE-PSF.txt. No verdict or inspection result cache.
+ * SOURCE ONLY: parent compilation/execution gate is separate.
+ */
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
+#define Py_BUILD_CORE 1
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+#include "internal/pycore_dict.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+#if PY_VERSION_HEX != 0x030c03f0
+# error "This source admits only the authenticated CPython 3.12.3 header profile"
+#endif
+#if defined(Py_DEBUG) || defined(Py_TRACE_REFS) || defined(Py_GIL_DISABLED)
+# error "Unsupported Python build profile"
+#endif
+
+#define PROBE_SCHEMA 2
+#define PROBE_CAP 4096u
+#define SHAPE_CAP 262144u
+#define MAX_LOG2_SIZE 31u
+#define PROBE_PERTURB_SHIFT 5u
+_Static_assert(sizeof(void *) == 8, "pointer width");
+_Static_assert(sizeof(size_t) == 8, "size_t width");
+_Static_assert(sizeof(Py_ssize_t) == 8, "Py_ssize_t width");
+_Static_assert(sizeof(Py_hash_t) == 8, "hash width");
+_Static_assert(sizeof(long) == 8, "long width");
+_Static_assert(sizeof(PyDictObject) == 48, "dict object layout");
+_Static_assert(offsetof(PyDictObject, ma_keys) == 32, "dict keys offset");
+_Static_assert(offsetof(PyDictObject, ma_values) == 40, "dict values offset");
+_Static_assert(offsetof(PyDictKeysObject, dk_indices) == 32, "keys indices offset");
+_Static_assert(sizeof(PyDictKeyEntry) == 24, "general entry size");
+_Static_assert(DICT_MAX_WATCHERS == 8 && DICT_VERSION_MASK == 255, "watcher mask");
+_Static_assert(DKIX_EMPTY == -1 && DKIX_DUMMY == -2, "index sentinels");
+
+typedef struct {
+    int armed;
+    int initialized;
+    int overflow;
+    int64_t interpreter_id;
+    hashfunc tuple_hash, long_hash, unicode_hash;
+    richcmpfunc tuple_compare, long_compare, unicode_compare;
+    destructor bool_dealloc;
+    PyMappingMethods *dict_mapping;
+    PySequenceMethods *dict_sequence;
+    binaryfunc dict_subscript;
+    objobjargproc dict_assign;
+    objobjproc dict_contains;
+    uint64_t calls, checks, safe, unsupported, empty_safe;
+    uint64_t slots, shape_items, hash_calls, matching_entries;
+    uint64_t bad_query, bad_layout, watched, bad_key, bad_value, budget;
+    uint64_t widths_seen;
+} ProbeState;
+
+static void
+add_count(ProbeState *state, uint64_t *counter, uint64_t amount)
+{
+    if (UINT64_MAX - *counter < amount) {
+        *counter = UINT64_MAX;
+        state->overflow = 1;
+    }
+    else {
+        *counter += amount;
+    }
+}
+
+/* Public runtime/type metadata only; no dictionary private-field access. */
+static int
+runtime_check(ProbeState *state)
+{
+    if (!state || !state->initialized || !PyGILState_Check() ||
+        Py_Version != (unsigned long)PY_VERSION_HEX ||
+        PyInterpreterState_GetID(PyThreadState_GetInterpreter(PyThreadState_Get())) != state->interpreter_id ||
+        state->interpreter_id != 0 ||
+        PyDict_Type.tp_basicsize != (Py_ssize_t)sizeof(PyDictObject) ||
+        PyTuple_Type.tp_basicsize != (Py_ssize_t)offsetof(PyTupleObject, ob_item) ||
+        PyTuple_Type.tp_itemsize != (Py_ssize_t)sizeof(PyObject *) ||
+        PyTuple_Type.tp_hash != state->tuple_hash ||
+        PyLong_Type.tp_hash != state->long_hash ||
+        PyUnicode_Type.tp_hash != state->unicode_hash ||
+        PyTuple_Type.tp_richcompare != state->tuple_compare ||
+        PyLong_Type.tp_richcompare != state->long_compare ||
+        PyUnicode_Type.tp_richcompare != state->unicode_compare ||
+        PyBool_Type.tp_dealloc != state->bool_dealloc ||
+        PyDict_Type.tp_as_mapping != state->dict_mapping ||
+        PyDict_Type.tp_as_sequence != state->dict_sequence ||
+        !state->dict_mapping || !state->dict_sequence ||
+        state->dict_mapping->mp_subscript != state->dict_subscript ||
+        state->dict_mapping->mp_ass_subscript != state->dict_assign ||
+        state->dict_sequence->sq_contains != state->dict_contains) {
+        PyErr_SetString(PyExc_RuntimeError, "Probe public runtime/type profile changed");
+        return -1;
+    }
+    add_count(state, &state->checks, 1);
+    return 0;
+}
+
+static ProbeState *
+checked_state(PyObject *module, int require_armed)
+{
+    ProbeState *state = (ProbeState *)PyModule_GetState(module);
+    if (runtime_check(state) < 0)
+        return NULL;
+    if (require_armed && !state->armed) {
+        PyErr_SetString(PyExc_RuntimeError, "Probe is not authenticated and active");
+        return NULL;
+    }
+    return state;
+}
+
+static int
+shape_item(ProbeState *state, uint32_t *used)
+{
+    if (*used >= SHAPE_CAP)
+        return 0;
+    ++*used;
+    add_count(state, &state->shape_items, 1);
+    return 1;
+}
+
+/* Return 1 safe, 0 unsupported shape, -1 exhausted shape budget.
+ * Depth is exactly the original schema; no recursive user dispatch. */
+static int
+integer_tuple_contents(ProbeState *state, PyObject *part, uint32_t *used)
+{
+    /* Caller has charged part before any type/size inspection. */
+    if (!part || !PyTuple_CheckExact(part))
+        return 0;
+    Py_ssize_t n = PyTuple_GET_SIZE(part);
+    for (Py_ssize_t i = 0; i < n; ++i) {
+        if (!shape_item(state, used))
+            return -1;
+        PyObject *value = PyTuple_GET_ITEM(part, i);
+        if (!value || !PyLong_CheckExact(value))
+            return 0;
+    }
+    return 1;
+}
+
+static int
+integer_tuple(ProbeState *state, PyObject *part, uint32_t *used)
+{
+    if (!shape_item(state, used))
+        return -1;
+    return integer_tuple_contents(state, part, used);
+}
+
+static int
+key_shape(ProbeState *state, PyObject *key, uint32_t *used)
+{
+    if (!shape_item(state, used))
+        return -1;
+    if (!key || !PyTuple_CheckExact(key) || PyTuple_GET_SIZE(key) != 2)
+        return 0;
+    PyObject *first = PyTuple_GET_ITEM(key, 0);
+    PyObject *second = PyTuple_GET_ITEM(key, 1);
+    if (!first || !second)
+        return 0;
+    if (!shape_item(state, used))
+        return -1;  /* charge first before its first type inspection */
+    if (PyUnicode_CheckExact(first)) {
+        if (PyUnicode_GET_LENGTH(first) != 5 ||
+            PyUnicode_READ_CHAR(first, 0) != 'l' ||
+            PyUnicode_READ_CHAR(first, 1) != 'a' ||
+            PyUnicode_READ_CHAR(first, 2) != 'b' ||
+            PyUnicode_READ_CHAR(first, 3) != 'e' ||
+            PyUnicode_READ_CHAR(first, 4) != 'l')
+            return 0;
+    }
+    else {
+        int first_ok = integer_tuple_contents(state, first, used);
+        if (first_ok != 1)
+            return first_ok;
+    }
+    return integer_tuple(state, second, used);
+}
+
+/* Width and i were bounded before entry. memcpy avoids alignment/aliasing
+ * assumptions beyond the authenticated header's byte-array layout. */
+static Py_ssize_t
+read_index_bytes(const char *indices, size_t i, unsigned int width)
+{
+    const char *address = indices + i * width;
+    if (width == 1) {
+        int8_t value;
+        memcpy(&value, address, sizeof value);
+        return value;
+    }
+    if (width == 2) {
+        int16_t value;
+        memcpy(&value, address, sizeof value);
+        return value;
+    }
+    int32_t value;
+    memcpy(&value, address, sizeof value);
+    return value;
+}
+
+static PyObject *
+unsupported(ProbeState *state, uint64_t *reason)
+{
+    add_count(state, &state->unsupported, 1);
+    add_count(state, reason, 1);
+    Py_RETURN_NOTIMPLEMENTED;
+}
+
+static PyObject *
+probe_inspect(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
+{
+    ProbeState *state = checked_state(module, 1);
+    if (!state)
+        return NULL;
+    if (nargs != 2) {
+        PyErr_SetString(PyExc_TypeError, "inspect requires exactly mapping and key");
+        return NULL;
+    }
+    add_count(state, &state->calls, 1);
+    PyObject *mapping = args[0], *query = args[1];
+    if (!PyDict_CheckExact(mapping))
+        return unsupported(state, &state->bad_layout);
+    uint32_t used = 0;
+    int query_ok = key_shape(state, query, &used);
+    if (query_ok != 1)
+        return unsupported(state, query_ok < 0 ? &state->budget : &state->bad_query);
+    add_count(state, &state->hash_calls, 1);
+    Py_hash_t hash = PyObject_Hash(query);
+    if (hash == -1)
+        return NULL;  /* exact schema cannot normally fail; preserve exception */
+
+    /* First private ABI access: frontend must have authenticated and armed us. */
+    PyDictObject *dict = (PyDictObject *)mapping;
+    if (dict->ma_values != NULL || dict->ma_keys == NULL || dict->ma_used < 0)
+        return unsupported(state, &state->bad_layout);
+    if ((dict->ma_version_tag & DICT_VERSION_MASK) != 0)
+        return unsupported(state, &state->watched);
+    PyDictKeysObject *keys = dict->ma_keys;
+
+    /* Independently reviewed empty bootstrap: authenticated field profile,
+     * not pointer identity. No entry address or entry/value read occurs. */
+    if (keys->dk_kind == DICT_KEYS_UNICODE && dict->ma_used == 0 &&
+        keys->dk_log2_size == 0 && keys->dk_log2_index_bytes == 0 &&
+        keys->dk_version == 1 && keys->dk_usable == 0 &&
+        keys->dk_nentries == 0 && keys->dk_refcnt == _Py_IMMORTAL_REFCNT) {
+        int8_t first_index;
+        add_count(state, &state->slots, 1);
+        memcpy(&first_index, keys->dk_indices, sizeof first_index);
+        if (first_index != DKIX_EMPTY)
+            return unsupported(state, &state->bad_layout);
+        add_count(state, &state->empty_safe, 1);
+        add_count(state, &state->safe, 1);
+        Py_RETURN_TRUE;
+    }
+    if (keys->dk_kind != DICT_KEYS_GENERAL || keys->dk_refcnt != 1)
+        return unsupported(state, &state->bad_layout);
+    unsigned int log_size = keys->dk_log2_size;
+    if (log_size < 3 || log_size > MAX_LOG2_SIZE)
+        return unsupported(state, &state->bad_layout);
+    unsigned int width_log = log_size < 8 ? 0 : (log_size < 16 ? 1 : 2);
+    unsigned int width = 1u << width_log;
+    unsigned int index_log = log_size + width_log;
+    if (keys->dk_log2_index_bytes != index_log || index_log >= sizeof(size_t) * 8)
+        return unsupported(state, &state->bad_layout);
+    size_t table_size = (size_t)1 << log_size;
+    size_t entry_capacity = (table_size * 2) / 3;
+    if (keys->dk_nentries < 0 || keys->dk_usable < 0 ||
+        (size_t)keys->dk_nentries > entry_capacity ||
+        (size_t)keys->dk_usable > entry_capacity - (size_t)keys->dk_nentries ||
+        dict->ma_used > keys->dk_nentries)
+        return unsupported(state, &state->bad_layout);
+    PyDictKeyEntry *entries = (PyDictKeyEntry *)(keys->dk_indices + ((size_t)1 << index_log));
+    size_t mask = table_size - 1;
+    size_t perturb = (size_t)hash;
+    size_t index = (size_t)hash & mask;
+    state->widths_seen |= width;
+    for (uint32_t visits = 0; visits < PROBE_CAP; ++visits) {
+        add_count(state, &state->slots, 1);
+        Py_ssize_t slot = read_index_bytes(keys->dk_indices, index, width);
+        if (slot == DKIX_EMPTY) {
+            add_count(state, &state->safe, 1);
+            Py_RETURN_TRUE;
+        }
+        if (slot != DKIX_DUMMY) {
+            if (slot < 0 || slot >= keys->dk_nentries)
+                return unsupported(state, &state->bad_layout);
+            PyDictKeyEntry *entry = &entries[slot];
+            if (entry->me_hash == hash) {
+                add_count(state, &state->matching_entries, 1);
+                int key_ok = key_shape(state, entry->me_key, &used);
+                if (key_ok != 1)
+                    return unsupported(state, key_ok < 0 ? &state->budget : &state->bad_key);
+                /* TYPE ONLY: no truth/equality, reference retention or answer use. */
+                if (entry->me_value == NULL || !Py_IS_TYPE(entry->me_value, &PyBool_Type))
+                    return unsupported(state, &state->bad_value);
+            }
+        }
+        perturb >>= PROBE_PERTURB_SHIFT;
+        index = (index * 5 + perturb + 1) & mask;
+    }
+    return unsupported(state, &state->budget);
+}
+
+static PyObject *
+probe_check(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    if (!checked_state(module, 1))
+        return NULL;
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+probe_activate(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    ProbeState *state = checked_state(module, 0);
+    if (!state)
+        return NULL;
+    if (state->armed) {
+        PyErr_SetString(PyExc_RuntimeError, "Probe module already has an owner");
+        return NULL;
+    }
+    state->armed = 1;
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+probe_deactivate(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    ProbeState *state = (ProbeState *)PyModule_GetState(module);
+    if (!state) {
+        PyErr_SetString(PyExc_RuntimeError, "Probe module state missing");
+        return NULL;
+    }
+    state->armed = 0;
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+probe_profile(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    if (!checked_state(module, 0))
+        return NULL;
+    return Py_BuildValue("(iiiiiiiiiiiiiii)", PROBE_SCHEMA, PY_VERSION_HEX,
+        (int)sizeof(void *), (int)sizeof(size_t), (int)sizeof(Py_hash_t),
+        (int)sizeof(PyDictObject), (int)offsetof(PyDictObject, ma_keys),
+        (int)offsetof(PyDictObject, ma_values),
+        (int)offsetof(PyDictKeysObject, dk_indices), (int)sizeof(PyDictKeyEntry),
+        DICT_MAX_WATCHERS, PROBE_PERTURB_SHIFT, MAX_LOG2_SIZE, PROBE_CAP, SHAPE_CAP);
+}
+
+static PyObject *
+probe_counters(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    ProbeState *state = checked_state(module, 1);
+    if (!state)
+        return NULL;
+    return Py_BuildValue("{s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:K,s:i}",
+        "calls", (unsigned long long)state->calls,
+        "checks", (unsigned long long)state->checks,
+        "safe", (unsigned long long)state->safe,
+        "unsupported", (unsigned long long)state->unsupported,
+        "empty_safe", (unsigned long long)state->empty_safe,
+        "slots", (unsigned long long)state->slots,
+        "shape_items", (unsigned long long)state->shape_items,
+        "hash_calls", (unsigned long long)state->hash_calls,
+        "matching_entries", (unsigned long long)state->matching_entries,
+        "bad_query", (unsigned long long)state->bad_query,
+        "bad_layout", (unsigned long long)state->bad_layout,
+        "watched", (unsigned long long)state->watched,
+        "bad_key", (unsigned long long)state->bad_key,
+        "bad_value", (unsigned long long)state->bad_value,
+        "budget", (unsigned long long)state->budget,
+        "widths_seen", (unsigned long long)state->widths_seen,
+        "counter_overflow", state->overflow);
+}
+
+static int
+probe_exec(PyObject *module)
+{
+    ProbeState *state = (ProbeState *)PyModule_GetState(module);
+    if (!state)
+        return -1;
+    if (!PyGILState_Check() || Py_Version != (unsigned long)PY_VERSION_HEX ||
+        PyDict_Type.tp_basicsize != (Py_ssize_t)sizeof(PyDictObject)) {
+        PyErr_SetString(PyExc_ImportError, "Probe unsupported public runtime profile");
+        return -1;
+    }
+    state->interpreter_id = PyInterpreterState_GetID(PyThreadState_GetInterpreter(PyThreadState_Get()));
+    state->tuple_hash = PyTuple_Type.tp_hash;
+    state->long_hash = PyLong_Type.tp_hash;
+    state->unicode_hash = PyUnicode_Type.tp_hash;
+    state->tuple_compare = PyTuple_Type.tp_richcompare;
+    state->long_compare = PyLong_Type.tp_richcompare;
+    state->unicode_compare = PyUnicode_Type.tp_richcompare;
+    state->bool_dealloc = PyBool_Type.tp_dealloc;
+    state->dict_mapping = PyDict_Type.tp_as_mapping;
+    state->dict_sequence = PyDict_Type.tp_as_sequence;
+    if (!state->dict_mapping || !state->dict_sequence || !state->tuple_hash ||
+        !state->long_hash || !state->unicode_hash || !state->tuple_compare ||
+        !state->long_compare || !state->unicode_compare || !state->bool_dealloc) {
+        PyErr_SetString(PyExc_ImportError, "Probe public type slots missing");
+        return -1;
+    }
+    state->dict_subscript = state->dict_mapping->mp_subscript;
+    state->dict_assign = state->dict_mapping->mp_ass_subscript;
+    state->dict_contains = state->dict_sequence->sq_contains;
+    state->initialized = 1;
+    return runtime_check(state);
+}
+
+/* Additive bootstrap helpers; their state and entries never enter field reads. */
+static struct PyModuleDef probe_module;
+#include "field_loader_snapshot_v1.h"
+
+static PyMethodDef probe_methods[] = {
+    {"inspect", (PyCFunction)(void(*)(void))probe_inspect, METH_FASTCALL, "Fresh callback-safety metadata: True or NotImplemented."},
+    {"check", probe_check, METH_NOARGS, "Check public runtime and captured type slots."},
+    {"profile", probe_profile, METH_NOARGS, "Public build/profile metadata; no dict inspection."},
+    {"counters", probe_counters, METH_NOARGS, "Fresh bounded operational counters; never authority."},
+    {"_activate", probe_activate, METH_NOARGS, "Provider lifecycle after authenticated loading."},
+    {"_deactivate", probe_deactivate, METH_NOARGS, "Release this module's active owner."},
+    {"_field_loader_maps", probe_field_loader_maps, METH_NOARGS, "Once-only bootstrap map inventory; no symbol resolution."},
+    {"_field_loader_snapshot", probe_field_loader_snapshot, METH_O, "Once-only admitted main-scope symbol resolution."},
+    {NULL, NULL, 0, NULL}
+};
+static PyModuleDef_Slot probe_slots[] = {
+    {Py_mod_exec, probe_exec},
+    {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+    {0, NULL}
+};
+static struct PyModuleDef probe_module = {
+    PyModuleDef_HEAD_INIT,
+    "_h25_dict_probe",
+    "Fresh source-bound dictionary probe metadata, without answer retention.",
+    sizeof(ProbeState),
+    probe_methods,
+    probe_slots,
+    NULL, NULL, NULL
+};
+PyMODINIT_FUNC
+PyInit__h25_dict_probe(void)
+{
+    return PyModuleDef_Init(&probe_module);
+}
+
+/* Separate multiphase service, sharing no ProbeState or counters. */
+#include "field_service_v1.h"

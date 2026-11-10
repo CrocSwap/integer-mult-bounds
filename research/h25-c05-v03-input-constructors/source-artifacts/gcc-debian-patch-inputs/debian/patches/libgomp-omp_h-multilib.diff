@@ -1,0 +1,32 @@
+# DP: Fix up omp.h for multilibs.
+
+2008-06-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* omp.h.in (omp_nest_lock_t): Fix up for Linux multilibs.
+
+2015-03-25  Matthias Klose  <doko@ubuntu.com>
+
+	* omp.h.in (omp_nest_lock_t): Limit the fix Linux.
+
+--- a/src/libgomp/omp.h.in
++++ b/src/libgomp/omp.h.in
+@@ -52,8 +52,19 @@ typedef struct
+ 
+ typedef struct
+ {
++  /*
++    Derive OMP_NEST_LOCK_SIZE and OMP_NEST_LOCK_ALIGN, don't hard
++    code the values because the header is used for all multilibs.
++    OMP_NEST_LOCK_SIZE  = @OMP_NEST_LOCK_SIZE@
++    OMP_NEST_LOCK_ALIGN = @OMP_NEST_LOCK_ALIGN@
++  */
++#if defined(__linux__) && !(defined(__hppa__) || defined(__alpha__))
++  unsigned char _x[8 + sizeof (void *)] 
++    __attribute__((__aligned__(sizeof (void *))));
++#else
+   unsigned char _x[@OMP_NEST_LOCK_SIZE@] 
+     __attribute__((__aligned__(@OMP_NEST_LOCK_ALIGN@)));
++#endif
+ } omp_nest_lock_t;
+ #endif
+ 

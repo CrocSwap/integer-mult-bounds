@@ -1,0 +1,148 @@
+From: Nicolas Boulenguez <nicolas.boulenguez@free.fr>
+Subject: [PATCH 2/8] Ada: remove C conversions with C struct timespec from
+ Ada.Calendar
+Bug-Debian: https://bugs.debian.org/1067453
+
+--- a/src/gcc/ada/libgnat/a-calcon.adb
++++ b/src/gcc/ada/libgnat/a-calcon.adb
+@@ -69,39 +69,6 @@ package body Ada.Calendar.Conversions is
+           (Year, Month, Day, Hour, Minute, Second, DST);
+    end To_Ada_Time;
+ 
+-   -----------------
+-   -- To_Duration --
+-   -----------------
+-
+-   function To_Duration
+-     (tv_sec  : long;
+-      tv_nsec : long) return Duration
+-   is
+-      Secs      : constant Long_Integer := Long_Integer (tv_sec);
+-      Nano_Secs : constant Long_Integer := Long_Integer (tv_nsec);
+-   begin
+-      return Conversion_Operations.To_Duration (Secs, Nano_Secs);
+-   end To_Duration;
+-
+-   ------------------------
+-   -- To_Struct_Timespec --
+-   ------------------------
+-
+-   procedure To_Struct_Timespec
+-     (D       : Duration;
+-      tv_sec  : out long;
+-      tv_nsec : out long)
+-   is
+-      Secs      : Long_Integer;
+-      Nano_Secs : Long_Integer;
+-
+-   begin
+-      Conversion_Operations.To_Struct_Timespec (D, Secs, Nano_Secs);
+-
+-      tv_sec  := long (Secs);
+-      tv_nsec := long (Nano_Secs);
+-   end To_Struct_Timespec;
+-
+    ------------------
+    -- To_Struct_Tm --
+    ------------------
+--- a/src/gcc/ada/libgnat/a-calcon.ads
++++ b/src/gcc/ada/libgnat/a-calcon.ads
+@@ -30,7 +30,7 @@
+ ------------------------------------------------------------------------------
+ 
+ --  This package provides various routines for conversion between Ada and Unix
+---  time models - Time, Duration, struct tm and struct timespec.
++--  time models - Time, Duration and struct tm.
+ 
+ with Interfaces.C;
+ 
+@@ -67,22 +67,6 @@ package Ada.Calendar.Conversions is
+    --  the input values are out of the defined ranges or if tm_sec equals 60
+    --  and the instance in time is not a leap second occurrence.
+ 
+-   function To_Duration
+-     (tv_sec  : Interfaces.C.long;
+-      tv_nsec : Interfaces.C.long) return Duration;
+-   --  Convert an elapsed time value expressed in Unix-like fields of struct
+-   --  timespec into a Duration value. The expected ranges are:
+-
+-   --     tv_sec   -  seconds
+-   --     tv_nsec  -  nanoseconds
+-
+-   procedure To_Struct_Timespec
+-     (D       : Duration;
+-      tv_sec  : out Interfaces.C.long;
+-      tv_nsec : out Interfaces.C.long);
+-   --  Convert a Duration value into the constituents of struct timespec.
+-   --  Formal tv_sec denotes seconds and tv_nsecs denotes nanoseconds.
+-
+    procedure To_Struct_Tm
+      (T       : Time;
+       tm_year : out Interfaces.C.int;
+--- a/src/gcc/ada/libgnat/a-calend.adb
++++ b/src/gcc/ada/libgnat/a-calend.adb
+@@ -990,44 +990,6 @@ is
+             raise Time_Error;
+       end To_Ada_Time;
+ 
+-      -----------------
+-      -- To_Duration --
+-      -----------------
+-
+-      function To_Duration
+-        (tv_sec  : Long_Integer;
+-         tv_nsec : Long_Integer) return Duration
+-      is
+-         pragma Unsuppress (Overflow_Check);
+-      begin
+-         return Duration (tv_sec) + Duration (tv_nsec) / Nano_F;
+-      end To_Duration;
+-
+-      ------------------------
+-      -- To_Struct_Timespec --
+-      ------------------------
+-
+-      procedure To_Struct_Timespec
+-        (D       : Duration;
+-         tv_sec  : out Long_Integer;
+-         tv_nsec : out Long_Integer)
+-      is
+-         pragma Unsuppress (Overflow_Check);
+-         Secs      : Duration;
+-         Nano_Secs : Duration;
+-
+-      begin
+-         --  Seconds extraction, avoid potential rounding errors
+-
+-         Secs   := D - 0.5;
+-         tv_sec := Long_Integer (Secs);
+-
+-         --  Nanoseconds extraction
+-
+-         Nano_Secs := D - Duration (tv_sec);
+-         tv_nsec := Long_Integer (Nano_Secs * Nano);
+-      end To_Struct_Timespec;
+-
+       ------------------
+       -- To_Struct_Tm --
+       ------------------
+--- a/src/gcc/ada/libgnat/a-calend.ads
++++ b/src/gcc/ada/libgnat/a-calend.ads
+@@ -303,17 +303,6 @@ private
+          tm_isdst : Integer) return Time;
+       --  Struct tm to Ada Epoch conversion
+ 
+-      function To_Duration
+-        (tv_sec  : Long_Integer;
+-         tv_nsec : Long_Integer) return Duration;
+-      --  Struct timespec to Duration conversion
+-
+-      procedure To_Struct_Timespec
+-        (D       : Duration;
+-         tv_sec  : out Long_Integer;
+-         tv_nsec : out Long_Integer);
+-      --  Duration to struct timespec conversion
+-
+       procedure To_Struct_Tm
+         (T       : Time;
+          tm_year : out Integer;

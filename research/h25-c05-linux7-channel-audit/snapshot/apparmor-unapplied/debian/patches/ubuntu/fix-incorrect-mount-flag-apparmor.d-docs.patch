@@ -1,0 +1,42 @@
+From 3b1819db3777e043275632eb8b54469f60044998 Mon Sep 17 00:00:00 2001
+From: Ryan Lee <ryan.lee@canonical.com>
+Date: Mon, 5 May 2025 17:16:06 -0700
+Subject: [PATCH] fix incorrect mount flag documentation in apparmor.d man page
+
+The documentation was wrong about how options=(list) and options in (list) are combined
+
+Signed-off-by: Ryan Lee <ryan.lee@canonical.com>
+---
+ parser/apparmor.d.pod | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/parser/apparmor.d.pod b/parser/apparmor.d.pod
+index dfcb37077..9533155c8 100644
+--- a/parser/apparmor.d.pod
++++ b/parser/apparmor.d.pod
+@@ -1179,17 +1179,17 @@ using inode access times. Matches only:
+ 
+ =item B<< mount options=(ro, atime) options in (nodev, user) /dev/foo -E<gt> /mnt/, >>
+ 
+-allow mounting /dev/foo on /mmt/ read only and using inode access times or
+-allow mounting /dev/foo on /mnt/ with some combination of 'nodev' and 'user'.
++allow mounting /dev/foo on /mnt/ read only and using inode access times, in
++addition to allowing some combination of 'nodev' and 'user' to be added on top.
+ Matches only:
+ 
+     $ mount -o ro,atime /dev/foo /mnt
+ 
+-    $ mount -o nodev /dev/foo /mnt
++    $ mount -o ro,atime,nodev /dev/foo /mnt
+ 
+-    $ mount -o user /dev/foo /mnt
++    $ mount -o ro,atime,user /dev/foo /mnt
+ 
+-    $ mount -o nodev,user /dev/foo /mnt
++    $ mount -o ro,atime,nodev,user /dev/foo /mnt
+ 
+ =back
+ 
+-- 
+2.43.0
+

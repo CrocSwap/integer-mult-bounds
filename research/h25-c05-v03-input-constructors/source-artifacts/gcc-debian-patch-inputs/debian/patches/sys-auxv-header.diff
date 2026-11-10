@@ -1,0 +1,40 @@
+# DP: Check for the sys/auxv.h header file.
+
+--- a/src/gcc/configure.ac
++++ b/src/gcc/configure.ac
+@@ -1339,6 +1339,7 @@ AC_HEADER_TIOCGWINSZ
+ AC_CHECK_HEADERS(limits.h stddef.h string.h strings.h stdlib.h time.h iconv.h \
+ 		 fcntl.h ftw.h unistd.h sys/auxv.h sys/file.h sys/time.h sys/mman.h \
+ 		 sys/resource.h sys/param.h sys/times.h sys/stat.h sys/locking.h \
++		 sys/auxv.h \
+ 		 direct.h malloc.h langinfo.h ldfcn.h locale.h wchar.h)
+ 
+ # Check for thread headers.
+--- a/src/gcc/config.in
++++ b/src/gcc/config.in
+@@ -1975,6 +1975,12 @@
+ #endif
+ 
+ 
++/* Define to 1 if you have the <sys/auxv.h> header file. */
++#ifndef USED_FOR_TARGET
++#undef HAVE_SYS_AUXV_H
++#endif
++
++
+ /* Define to 1 if you have the <sys/file.h> header file. */
+ #ifndef USED_FOR_TARGET
+ #undef HAVE_SYS_FILE_H
+--- a/src/gcc/config/rs6000/driver-rs6000.cc
++++ b/src/gcc/config/rs6000/driver-rs6000.cc
+@@ -35,6 +35,10 @@ along with GCC; see the file COPYING3.
+ # include <link.h>
+ #endif
+ 
++#ifdef HAVE_SYS_AUXV_H
++# include <sys/auxv.h>
++#endif
++
+ #if defined (__APPLE__) || (__FreeBSD__)
+ # include <sys/types.h>
+ # include <sys/sysctl.h>

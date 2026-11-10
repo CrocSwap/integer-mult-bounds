@@ -1,0 +1,72 @@
+From d23a44201e37a5ec9589d28567342762b6f99f96 Mon Sep 17 00:00:00 2001
+From: John Johansen <john@jjmx.net>
+Date: Tue, 12 Aug 2025 16:16:38 -0600
+Subject: [PATCH 5/5] tests: regression: update network requirements for v9
+
+Make network test against v9 support.
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 271252ed883d84095277af396b8aaaf1fb985f08)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/net_inet.sh             | 2 +-
+ tests/regression/apparmor/tcp.sh                  | 2 +-
+ tests/regression/apparmor/unix_socket_autobind.sh | 2 +-
+ tests/regression/apparmor/unix_socket_pathname.sh | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/tests/regression/apparmor/net_inet.sh b/tests/regression/apparmor/net_inet.sh
+index 8451c9c12..fd47e11da 100644
+--- a/tests/regression/apparmor/net_inet.sh
++++ b/tests/regression/apparmor/net_inet.sh
+@@ -18,7 +18,7 @@ bin=$pwd
+ 
+ . $bin/prologue.inc
+ 
+-requires_kernel_features network_v8/af_inet
++requires_any_of_kernel_features network_v8/af_inet network_v9/af_inet
+ requires_parser_support "network ip=::1,"
+ 
+ settest net_inet_rcv
+diff --git a/tests/regression/apparmor/tcp.sh b/tests/regression/apparmor/tcp.sh
+index 4e5ea6882..1805d5d3f 100755
+--- a/tests/regression/apparmor/tcp.sh
++++ b/tests/regression/apparmor/tcp.sh
+@@ -21,7 +21,7 @@ bin=$pwd
+ # need to be able to query the parser if it supports the
+ # kernel feature
+ . $bin/prologue.inc
+-requires_any_of_kernel_features network network_v8
++requires_any_of_kernel_features network network_v8 network_v9
+ 
+ port=34567
+ ip="127.0.0.1"
+diff --git a/tests/regression/apparmor/unix_socket_autobind.sh b/tests/regression/apparmor/unix_socket_autobind.sh
+index 56493743d..156cde232 100644
+--- a/tests/regression/apparmor/unix_socket_autobind.sh
++++ b/tests/regression/apparmor/unix_socket_autobind.sh
+@@ -33,7 +33,7 @@ bin=$pwd
+ 
+ . $bin/prologue.inc
+ . $bin/unix_socket.inc
+-requires_an_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
++requires_any_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
+ requires_any_of_kernel_features network/af_unix network_v9/af_unix
+ requires_parser_support "unix,"
+ 
+diff --git a/tests/regression/apparmor/unix_socket_pathname.sh b/tests/regression/apparmor/unix_socket_pathname.sh
+index 652e22a28..8e92ad203 100755
+--- a/tests/regression/apparmor/unix_socket_pathname.sh
++++ b/tests/regression/apparmor/unix_socket_pathname.sh
+@@ -29,7 +29,7 @@ bin=$pwd
+ . $bin/prologue.inc
+ requires_kernel_features policy/versions/v6
+ #af_mask for downgrade test af_unix for full test
+-requires_any_of_kernel_features network/af_mask network_v8/af_mask
++requires_any_of_kernel_features network/af_mask network_v8/af_mask network_v9/af_mask
+ 
+ settest unix_socket
+ 
+-- 
+2.43.0
+

@@ -409,3 +409,7 @@ The [exact-head delta](pr-intake-evidence/queue-oct31b-20261031.json) records 9 
 ## Delta intake through PR6349
 
 The [exact-head delta](pr-intake-evidence/queue-nov01a-20261101.json) records 12 decisions: {'archive': 12}. Source-only retention preserves attribution and open scientific obligations. Historical-only files and any workflow configuration resolutions are explicit in that receipt. No scientific replay or selected-frontier change.
+
+## Delta intake through PR6443
+
+The [exact-head delta](pr-intake-evidence/queue-nov10a-20261110.json) records 98 research archives and two correctness holds (#6357, #6428). PR6216 repairs its previous receipt-integrity hold. Original failure evidence in #6332/#6335 remains explicitly failed. Mathematical validation and selected-frontier admission remain open.

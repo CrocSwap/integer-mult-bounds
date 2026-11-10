@@ -1,0 +1,51 @@
+--- source-v1/bounded_serialization.py
++++ originals-v1/bounded_serialization.py
+@@ -346,10 +346,7 @@
+                 freshness()
+                 expected_unchanged()
+             except BaseException:
+-                try:
+-                    writer.last_operation["status"] = "FALLBACK_EXIT_FRESHNESS_FAILED"
+-                except BaseException:
+-                    pass
++                writer.last_operation["status"] = "FALLBACK_EXIT_FRESHNESS_FAILED"
+                 raise
+             return answer
+         info = {"status": "IN_PROGRESS", "phase": "stage_create", "stage": None,
+@@ -375,11 +372,8 @@
+                 except BaseException as close_error:
+                     if primary is None:
+                         raise
+-                    try:
+-                        info.setdefault("close_errors", []).append({
+-                            "phase": phase, "type": type(close_error).__name__})
+-                    except BaseException:
+-                        pass
++                    info.setdefault("close_errors", []).append({
++                        "phase": phase, "type": type(close_error).__name__})
+         try:
+             stage = Path(operation("stage_create", lambda: tempfile.mkdtemp(
+                 prefix=".serialization-", dir=output), output=output))
+@@ -485,9 +479,9 @@
+             info["status"] = "BOUNDED_SERIALIZATION_PASS"
+             return receipt
+         except BaseException as error:
++            info["status"] = "FAILED_EVIDENCE_RETAINED"
+             # Logging failures must never replace the primary exception.
+             try:
+-                info["status"] = "FAILED_EVIDENCE_RETAINED"
+                 info["error"] = {"type": type(error).__name__, "message": str(error)[:2048]}
+                 if stage is not None:
+                     for name, row in info["files"].items():
+@@ -499,10 +493,7 @@
+                     _need(len(raw) <= 65536, "Serialization failure manifest exceeded bound")
+                     operation("failure_manifest", lambda: (stage / "failure.json").write_bytes(raw), path=stage)
+             except BaseException as secondary:
+-                try:
+-                    info["failure_manifest_error_type"] = type(secondary).__name__
+-                except BaseException:
+-                    pass
++                info["failure_manifest_error_type"] = type(secondary).__name__
+             raise
+ 
+     writer.last_operation = None

@@ -1,0 +1,43 @@
+{
+  "schema": "h25-serialization-implementation-contract-v2",
+  "status": "SOURCE_READY_PARENT_EXECUTION_ONLY",
+  "prior_documents": ["PROPOSAL.json", "SOURCE-DESIGN.md", "API.md", "COST-CONTROLS.json"],
+  "prior_documents_unchanged": true,
+  "admission": "Parent explicitly authorized implementation with reviewer regular-file/short-write/copy-rehash contract",
+  "production_api": "bounded_serialization.make_writer(comparison.write_scientific, comparison.canonical, comparison.EXPECTED, comparison.require, *, batch_bytes=1048576, batch_rows=1024, copy_bytes=1048576)",
+  "writer_api": "writer(output,result,witness,rank_calls) -> unchanged scientific receipt",
+  "supplemental_receipt": "writer.last_operation",
+  "control_api": "serialization_controls.run_controls(comparison, fresh_external_output_root)",
+  "control_case_count_expected_from_source": 65,
+  "control_cap_cases": 128,
+  "control_retained_file_cap_bytes_before_controls_json": 16777216,
+  "control_execution_status": "NOT_EXECUTED",
+  "regular_file_failure_contract": {
+    "order": ["result.json", "witness.json", "rank-trace.json"],
+    "short_write": "Require exact full requested count; else OSError without retry",
+    "declared_difference": "Original single-write caller ignored return count; exact kernel failure-prefix length is not invariant under chunking",
+    "original_exception": "Actual IO errors propagate; secondary close/manifest errors do not mask primary",
+    "failure_retention": "Earlier completed finals, failing prefix/corrupt final and private stage remain; later finals not opened",
+    "cleanup": "Successful stage removed only after all copies close and compare; no deletion of old-run evidence"
+  },
+  "stage_integrity": "Record fstat identity/mode/size/mtime/ctime at generation; compare path and opened descriptor before and after copy; rehash/count existing copy reads and compare after close; final regular-file size checked",
+  "full_io_and_hash_bill": {
+    "exact_total_bytes_if_unchanged": 60818421,
+    "stage_write_bytes": 60818421,
+    "staged_copy_read_bytes": 60818421,
+    "final_write_bytes": 60818421,
+    "stage_hash_input_bytes": 60818421,
+    "copy_verification_hash_input_bytes": 60818421,
+    "total_hash_input_bytes": 121636842,
+    "total_write_bytes": 121636842,
+    "extra_full_read_in_candidate": 0,
+    "notes": "Retains v1 complete bill; adds copy hash work, file metadata checks and bounded manifests. Independent parent artifact validation read costs remain separate. No fsync or crash-atomicity promise."
+  },
+  "scope_limitations": [
+    "Eager witness secondary lists retained in this first implementation",
+    "Literal fallback retains original unbounded allocations",
+    "No arbitrary file-like or concurrent-mutating caller equivalence claim",
+    "Parent owns actual source/runtime binary custody and combined guard sealing",
+    "No measured wall/CPU/RSS result; all scientific comparisons/tests remain parent-only"
+  ]
+}

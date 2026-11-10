@@ -1,0 +1,202 @@
+ChatGPT said:
+Decision
+
+These provenance proofs may terminate at the existing OS/loader trust boundary. Requiring recursive verification of ChaCha, entropy collection, FPU sizing, or CPU detection merely to identify a genuine kernel-supplied input would strengthen the original assurance requirement. What must still be proved is the particular interface, its arguments, the destination and ownership of its output, and its relationship to the admitted execution.
+
+I read the complete 
+original native TCB, its profile, and the relevant parent and supervisor bodies. The TCB expressly presupposes OS/loader and POSIX integrity, excludes inode-zero executable mappings from its file-backed inventory, and places them within the OS trust boundary. The 
+supervisor similarly relies on genuine native operations while disclaiming authentication of native memory by file hashes.
+
+That premise must include the ordinary operational meaning already required for exec, mappings, POSIX I/O, and process ownership. Interpreting it as merely “unchanged kernel bytes” would leave the original checks without their necessary semantics.
+
+The exact Unit12 kernel bodies remained inaccessible through my Launchpad fetch. Their detailed statements below are therefore reported retained-source findings, not newly verified reads. This is an access limitation, not evidence of source absence.
+
+Where the proof stops
+
+The legitimate termination point is a named OS/loader interface guarantee, with source evidence binding the particular producer to that interface. It is not every private helper merely because its name appears in kernel source.
+
+For example, the ELF loader supplies AT_RANDOM as an address of sixteen random bytes, while the x86 ABI defines AT_MINSIGSTKSZ as the kernel’s signal-frame requirement for the current hardware configuration. These meanings allow a scoped provider contract without independently reproducing their implementation algorithms. 
+Linux manual page
++1
+
+The distinction is between origin and the stronger functional claims subsequently used. Establishing that sixteen bytes came from the genuine kernel RNG does not establish statistical independence or cryptographic strength. Establishing the genuine kernel-advertised signal-stack requirement does not derive its exact numerical value. If later reasoning needs either stronger property, it must obtain the corresponding evidence rather than silently assuming it.
+
+An initial TCB receipt also does not establish a perpetual trusted interval. The 
+parent separately checks actual process identity, captured primitives, receiver/source bindings, and deadlines. Those checks do not create C07 lifetime protection or compiler channel confinement.
+
+Precise quantified boundary
+
+Define 
+𝑇
+(
+𝐷
+,
+Γ
+0
+)
+T(D,Γ
+0
+	​
+
+) from the unchanged programs and actual launch mechanism under the original premises, independently of K, including failures and interruptions. For each relevant event in every trace, establish an ordinary 
+𝐹
+/
+𝐴
+F/A origin, an 
+𝑁
+/
+𝐿
+N/L relation, or a named provider relation.
+
+For provider 
+𝑝
+p, the permitted proof rule is
+
+𝐻
+O
+S
+(
+𝑒
+)
+∧
+ActualProvider
+⁡
+𝑝
+(
+𝑒
+)
+∧
+ArgumentsAndOwnership
+⁡
+𝑝
+(
+𝑒
+)
+  
+⟹
+  
+𝑅
+𝑝
+(
+𝑒
+)
+.
+H
+OS
+	​
+
+(e)∧ActualProvider
+p
+	​
+
+(e)∧ArgumentsAndOwnership
+p
+	​
+
+(e)⟹R
+p
+	​
+
+(e).
+
+Here 
+𝐻
+O
+S
+H
+OS
+	​
+
+ is the original premise where applicable, not a newly minted approval flag. Source work establishes the dispatch and argument relation; genuine instance evidence establishes the actual subject and applicable context. The provider premise supplies only the declared semantics.
+
+A kernel correctly returning foreign proc data or received-FD contents does not close those payloads’ origins. Likewise, the inode-zero exclusion does not authenticate arbitrary anonymous code.
+
+Minimum evidence for the reported categories
+Category	Sufficient scoped boundary and remaining evidence
+RSEQ	Resolve the exact selected UAPI declaration, meaning of end, alignment, and the producer’s arithmetic before claiming numerical size/alignment relations. Do not substitute sizeof for active extent. get_count_order, CLOCKS_PER_SEC/`USER_HZ`, and native ELF aliases are definitional questions, not reasons to audit the whole kernel. Later writes to registered RSEQ memory require a separate owned-registration/update contract.
+Random seed	Establish the sixteen-byte request, genuine provider dispatch, copy length, fresh exec-stack destination, and AT_RANDOM pointer relationship. The origin proof can stop at the kernel RNG. Entropy contributors and ChaCha internals need not be recursively verified for this claim.
+Signal-frame requirement	Bind the actual native ABI’s AT_MINSIGSTKSZ to its genuine provider. Preserve the reported unconditional emission and configured IA32/FPU effects. No guessed constant or silently simplified native-only formula is permissible. Proving every FPU calculation is unnecessary unless reproducing the numerical result is itself required.
+vDSO/vvar	Preserve the reported vdso64_enabled guard without inventing a null test. Account separately for kernel-provided executable code, dynamic data, selected ABI, and actual mapping. The existing OS boundary covers genuine kernel implementation integrity; a pointer-range check or source tag does not establish actual mapping correspondence or all subsequent observations.
+CPU and execution state	Give HWCAP fields their selected ABI meanings and bind credentials, secure-exec state, and any executable FD to the actual exec. Prove an FD branch absent or establish its ownership. Direct CPU instructions and arbitrary hypervisor leaves are not automatically covered by an auxv contract.
+
+Selecting this particular kernel/configuration remains an instance-admission matter. The source association is not a reproducible-build or running-memory proof, but neither does the original contract require inventing such a proof merely to use its declared OS premise.
+
+One next complete operation
+
+Complete a source proof and bounded witness for the original AT_RANDOM producer path. This is a distinct, narrow operation using retained inputs, not a reopening of Unit12 or a claim to complete the auxv catalogue.
+
+Its exact success proposition should be
+
+successful native ELF handoff
+⇒
+∃
+𝑝
+,
+𝑏
+,
+∣
+𝑏
+∣
+=
+16
+,
+𝐴
+𝑇
+R
+A
+N
+D
+O
+M
+=
+𝑝
+,
+𝑀
+h
+a
+n
+d
+o
+f
+f
+[
+𝑝
+:
+𝑝
++
+16
+]
+=
+𝑏
+,
+successful native ELF handoff⇒∃p,b,∣b∣=16,AT
+RANDOM
+	​
+
+=p,M
+handoff
+	​
+
+[p:p+16]=b,
+
+where 
+𝑏
+b was supplied by the named kernel RNG for that invocation, and 
+𝑝
+p identifies the allocated initial-stack span. This is a statement at handoff, before userspace can overwrite the bytes. It makes no statistical claim and no claim that the bytes remain unchanged forever.
+
+The operation should do the following.
+
+Authenticate the retained fs/binfmt_elf.c, relevant auxvec/ELF declarations, and provider source against the retained index. Check the complete local path from buffer declaration through generation, allocation, copy, tag emission, and failure exits.
+Establish source and destination correspondence for partial writes as well as success. A failed or interrupted path must not acquire a completed-handoff claim.
+Produce the proof and a canonical, integer-only witness describing the provider relation, source anchors, and outstanding actual-exec binding. It must contain neither fabricated seed bytes nor an admission flag.
+Independently challenge the argument with changed request length, a substituted provider, a pointer into argv, a mismatched copy source, and a copy failure incorrectly treated as success. These must test the reasoning, not merely checksum rejection.
+
+Use a separate fixed source unit with a 15-minute input gate and at most 60 minutes overall. No new kernel implementation bodies are needed. If native ELF aliases remain essential and unresolved, permit only the specifically named same-commit definition header include/linux/elf.h; stop if further definitions are indispensable. The upstream location is an acquisition lead, not a substitute for the target version. 
+GitHub
+
+Success is independent acceptance of this one provenance theorem. STOP on an unresolved provider, tag, conversion, ownership, or failure-path edge. Do not respond by expanding into entropy or FPU internals. Future genuine-owner binding remains necessary; source pins cannot manufacture an actual exec or mapping.
+
+No additional user assurance decision is needed to author this narrow proof under the original OS/loader premise. Accepting stronger entropy guarantees, arbitrary outside payloads, private GCC correctness, or a perpetual integrity interval would require additional evidence or an explicit assurance change.
+
+Full C05/full V03 remain false. Complete channel coverage, C07 lifetime, inventory fit, the intact baseline, and all named V03 controls remain required. All limits, scores, costs marked OPEN_NOT_ZERO, and original authorship and lineage remain unchanged, including Chris R/Clear1nsight, Pro/Codex/Sol Max, PR6321/6029/5864, unpaidmoon/Cursor Grok PR6339, and Douglas R. Colkitt.

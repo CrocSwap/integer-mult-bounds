@@ -1,0 +1,64 @@
+From: Richard Sandiford <richard.sandiford@arm.com>
+Date: Wed, 5 Mar 2025 08:25:55 +0000
+Subject: [PATCH] Fix folding of BIT_NOT_EXPR for POLY_INT_CST [PR118976]
+
+There was an embarrassing typo in the folding of BIT_NOT_EXPR for
+POLY_INT_CSTs: it used - rather than ~ on the poly_int.  Not sure
+how that happened, but it might have been due to the way that
+~x is implemented as -1 - x internally.
+
+gcc/
+	PR tree-optimization/118976
+	* fold-const.cc (const_unop): Use ~ rather than - for BIT_NOT_EXPR.
+	* config/aarch64/aarch64.cc (aarch64_test_sve_folding): New function.
+	(aarch64_run_selftests): Run it.
+
+(cherry picked from commit 78380fd7f743e23dfdf013d68a2f0347e1511550)
+
+Bug-Ubuntu: https://launchpad.net/bugs/2101084
+Origin: upstream, https://gcc.gnu.org/g:7995713012fcc0e0e098157d87fe5ff9d85c820b
+
+diff --git a/src/gcc/config/aarch64/aarch64.cc b/src/gcc/config/aarch64/aarch64.cc
+index a18355e8c96..0a98f005b71 100644
+--- a/src/gcc/config/aarch64/aarch64.cc
++++ b/src/gcc/config/aarch64/aarch64.cc
+@@ -27639,6 +27639,16 @@ aarch64_test_fractional_cost ()
+   ASSERT_EQ (cf (1, 2).as_double (), 0.5);
+ }
+
++/* Test SVE arithmetic folding.  */
++
++static void
++aarch64_test_sve_folding ()
++{
++  tree res = fold_unary (BIT_NOT_EXPR, ssizetype,
++			 ssize_int (poly_int64 (1, 1)));
++  ASSERT_TRUE (operand_equal_p (res, ssize_int (poly_int64 (-2, -1))));
++}
++
+ /* Run all target-specific selftests.  */
+
+ static void
+@@ -27646,6 +27656,7 @@ aarch64_run_selftests (void)
+ {
+   aarch64_test_loading_full_dump ();
+   aarch64_test_fractional_cost ();
++  aarch64_test_sve_folding ();
+ }
+
+ } // namespace selftest
+diff --git a/src/gcc/fold-const.cc b/src/gcc/fold-const.cc
+index 8215cbef991..b5a83f6c5f3 100644
+--- a/src/gcc/fold-const.cc
++++ b/src/gcc/fold-const.cc
+@@ -1828,7 +1828,7 @@ const_unop (enum tree_code code, tree type, tree arg0)
+       if (TREE_CODE (arg0) == INTEGER_CST)
+ 	return fold_not_const (arg0, type);
+       else if (POLY_INT_CST_P (arg0))
+-	return wide_int_to_tree (type, -poly_int_cst_value (arg0));
++	return wide_int_to_tree (type, ~poly_int_cst_value (arg0));
+       /* Perform BIT_NOT_EXPR on each element individually.  */
+       else if (TREE_CODE (arg0) == VECTOR_CST)
+ 	{
+--
+2.51.0

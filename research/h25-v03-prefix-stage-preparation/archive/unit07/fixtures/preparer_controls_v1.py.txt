@@ -1,0 +1,117 @@
+"""Serialized NEW preparer controls. No original body imports or execution.
+
+Only newly authored preparation/helper functions operate on fresh owned files.
+Fixture constants/rows below are explicit DATA; they confer no genuine approval.
+"""
+import ast
+import hashlib
+import importlib.util
+import os
+from pathlib import Path
+import tempfile
+import types
+import unittest
+from unittest.mock import patch
+
+HERE=Path(__file__).resolve().parent
+SOURCE=HERE.parent/'implementation'/'prepare_prefix_stage_v1.py'
+spec=importlib.util.spec_from_file_location('unit07_preparer_new',SOURCE)
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+
+
+class Controls(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory(prefix='unit07-preparer-owned-')
+        self.root=Path(self.tmp.name);self.owner=m.make_preparation_owner()
+        m.open_existing_directory(self.owner,str(self.root))
+    def tearDown(self):
+        m.close_preparation(self.owner);self.tmp.cleanup()
+    def test_exact_closed_helper_prefix(self):
+        raw=SOURCE.read_bytes().split(b'# UNIT06_T0_SUPPORT_END\n')[0]+b'# UNIT06_T0_SUPPORT_END\n'
+        self.assertEqual(len(raw),9878)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),'48bc4009acb7569fb4a2ac529bec928a3aafdedc017a0ebaae97f72b7c97eabe')
+    def test_new_exclusive_equal_content_distinct_inodes(self):
+        a=m.install_file(self.owner,str(self.root),'a',b'equal',copy=True)
+        b=m.install_file(self.owner,str(self.root),'b',b'equal',copy=True)
+        self.assertNotEqual(a['identity']['inode'],b['identity']['inode'])
+        self.assertEqual(a['sha256'],b['sha256']);self.assertEqual(a['identity']['links'],1)
+        self.assertEqual(a['identity']['mode']&0o7777,0o444)
+        self.assertEqual(self.owner.copy_attempts,2)
+        with self.assertRaises(FileExistsError):m.install_file(self.owner,str(self.root),'a',b'changed')
+        self.assertEqual((self.root/'a').read_bytes(),b'equal')
+        self.assertIsInstance(self.owner.primary,FileExistsError)
+    def test_write_primary_close_secondary_and_consumed_slot(self):
+        first=RuntimeError('write primary');second=RuntimeError('close secondary');realclose=os.close
+        def badwrite(fd,data):raise first
+        def badclose(fd):realclose(fd);raise second
+        with patch.object(m.os,'write',badwrite),patch.object(m.os,'close',badclose):
+            with self.assertRaises(RuntimeError) as raised:m.install_file(self.owner,str(self.root),'partial',b'raw-before-I-O')
+        self.assertIs(raised.exception,first);self.assertIs(self.owner.primary,first)
+        self.assertIn(second,self.owner.secondary);self.assertIsNone(self.owner.fd_slots[-1])
+        self.assertEqual(self.owner.writes[-1]['raw'],b'raw-before-I-O')
+        with self.assertRaises(RuntimeError) as again:m.install_file(self.owner,str(self.root),'later',b'x')
+        self.assertIs(again.exception,first);self.assertFalse((self.root/'later').exists())
+    def test_record_short_write_bound(self):
+        realwrite=os.write;calls=[]
+        def short(fd,data):calls.append(1);return realwrite(fd,data[:1])
+        with patch.object(m.os,'write',short):
+            with self.assertRaises(m.Stop):m.install_file(self.owner,str(self.root),'short',b'x'*4097)
+        self.assertEqual(len(calls),4096);self.assertEqual(self.owner.writes[-1]['write_calls'],4096)
+        self.assertEqual(self.owner.writes[-1]['bytes_written'],4096)
+        self.assertEqual(self.owner.writes[-1]['raw'],b'x'*4097)
+    def test_owned_short_read_bound_retains_raw_and_close(self):
+        (self.root/'read').write_bytes(b'z'*8193);realread=os.read;realclose=os.close;calls=[];secondary=RuntimeError('close')
+        def short(fd,n):calls.append(1);return realread(fd,1)
+        def badclose(fd):realclose(fd);raise secondary
+        with patch.object(m.os,'read',short),patch.object(m.os,'close',badclose):
+            with self.assertRaises(m.Stop) as raised:m._owned_read(self.owner,str(self.root),'read',str(self.root/'read'),m.FILE_CAP)
+        self.assertIs(raised.exception,self.owner.primary);self.assertEqual(len(calls),8192)
+        self.assertIn(secondary,self.owner.secondary);self.assertEqual(len(self.owner.captures[-1]['chunks']),8192)
+        self.assertIsNone(self.owner.fd_slots[-1])
+    def test_symlink_destination_rejected(self):
+        (self.root/'source').write_bytes(b'keep');(self.root/'alias').symlink_to('source')
+        with self.assertRaises(FileExistsError):m.install_file(self.owner,str(self.root),'alias',b'bad')
+        self.assertEqual((self.root/'source').read_bytes(),b'keep')
+    def test_foreign_metaclass_no_callback(self):
+        calls=[]
+        class Meta(type):
+            def __eq__(self,other):calls.append(other);raise AssertionError('callback')
+        class Foreign(metaclass=Meta):pass
+        with self.assertRaises(m.Stop):m.plain(Foreign())
+        self.assertEqual(calls,[])
+    def test_path_and_exact_caps_before_io(self):
+        for path in ('/tmp/é','/tmp/\nfile','/'+('/'.join(['a']*65))):
+            with self.assertRaises(m.Stop):m.path_text(path)
+        with self.assertRaises(m.Stop):m.install_file(self.owner,str(self.root),'boolean-mode',b'x',True)
+        self.assertFalse((self.root/'boolean-mode').exists())
+    def test_original_wire_bounds_and_rows(self):
+        with self.assertRaises(m.Stop):m.original_record({'x':list(range(257))})
+        rows=[{'category':category,'path':str(self.root/category),'sha256':'0'*64,'bytes':1,'mode':0o444} for category in sorted(m.SOURCE_CATEGORIES)]
+        m.validate_source_rows(rows)
+        with self.assertRaises(m.Stop):m.validate_source_rows(rows[:-1])
+        rows[0]['bytes']=True
+        with self.assertRaises(m.Stop):m.validate_source_rows(rows)
+    def test_reconcile_same_path_preserves_original_category(self):
+        rows=[{'category':category,'path':str(self.root/category),'sha256':'0'*64,'bytes':1,'mode':0o444} for category in sorted(m.SOURCE_CATEGORIES)]
+        extra=dict(rows[0],category='project')
+        got=m.reconcile_rows(rows,[extra]);self.assertEqual(got,rows)
+        extra['bytes']=2
+        with self.assertRaises(m.Stop):m.reconcile_rows(rows,[extra])
+    def test_command_modes_original_source_output_roles(self):
+        child={'stage_directory':'/owned/Sc','driver_source':{'path':'/owned/Sc/integration/v03_control_driver_v1.py','sha256':'a'*64},'generation':'generation','launch_nonce':'b'*64}
+        normal=m.construct_command(child,'normal','/canonical/runtime/runs/label/science/producer-output')
+        optimized=m.construct_command(child,'optimized','/canonical/runtime/runs/label/science/producer-output')
+        self.assertEqual(normal[:5],['/usr/bin/python3.12','-S','-s','-P','-B'])
+        self.assertEqual(optimized[:6],normal[:5]+['-O'])
+        self.assertIn('/owned/Sc/integration/full_driver.py',normal)
+        self.assertEqual(normal[normal.index('--output')+1],'/canonical/runtime/runs/label/science/producer-output')
+    def test_no_original_project_imports_or_executions(self):
+        tree=ast.parse(SOURCE.read_bytes())
+        imports=[]
+        for node in ast.walk(tree):
+            if isinstance(node,ast.Import):imports.extend(a.name for a in node.names)
+            elif isinstance(node,ast.ImportFrom):imports.append(node.module)
+        self.assertFalse(set(imports)&set(m.PROJECT_PINS));self.assertNotIn('subprocess',imports)
+        self.assertEqual(self.owner.modules,{})
+
+if __name__=='__main__':unittest.main(verbosity=2)

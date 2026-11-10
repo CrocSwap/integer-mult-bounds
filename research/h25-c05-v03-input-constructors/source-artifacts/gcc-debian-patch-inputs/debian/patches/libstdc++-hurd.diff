@@ -1,0 +1,48 @@
+This is notably needed because in glibc 2.34, the move of pthread functions
+into libc.so happened for Linux only, not GNU/Hurd.
+
+The pthread_self() function can also always be used fine as it is on
+GNU/Hurd.
+
+libstdc++-v3/ChangeLog:
+
+        * config/os/gnu-linux/os_defines.h [!__linux__]
+          (_GLIBCXX_NATIVE_THREAD_ID, _GLIBCXX_GTHREAD_USE_WEAK): Do not define.
+
+--- a/src/libstdc++-v3/config/os/gnu-linux/os_defines.h
++++ b/src/libstdc++-v3/config/os/gnu-linux/os_defines.h
+@@ -60,22 +60,24 @@
+ # define _GLIBCXX_HAVE_FLOAT128_MATH 1
+ #endif
+ 
+-#if __GLIBC_PREREQ(2, 27)
+-// Since glibc 2.27 pthread_self() is usable without linking to libpthread.
+-# define _GLIBCXX_NATIVE_THREAD_ID pthread_self()
+-#else
++#ifdef __linux__
++# if __GLIBC_PREREQ(2, 27)
++// Since glibc 2.27 Linux' pthread_self() is usable without linking to libpthread.
++#  define _GLIBCXX_NATIVE_THREAD_ID pthread_self()
++# else
+ // Before then it was in libc.so.6 but not libc.a, and always returns 0,
+ // which breaks the invariant this_thread::get_id() != thread::id{}.
+ // So only use it if we know the libpthread version is available.
+ // Otherwise use (__gthread_t)1 as the ID of the main (and only) thread.
+-# define _GLIBCXX_NATIVE_THREAD_ID \
+-  (__gthread_active_p() ? __gthread_self() : (__gthread_t)1)
+-#endif
++#  define _GLIBCXX_NATIVE_THREAD_ID \
++   (__gthread_active_p() ? __gthread_self() : (__gthread_t)1)
++# endif
+ 
+-#if __GLIBC_PREREQ(2, 34)
+-// Since glibc 2.34 all pthreads functions are usable without linking to
++# if __GLIBC_PREREQ(2, 34)
++// Since glibc 2.34 all Linux pthreads functions are usable without linking to
+ // libpthread.
+-# define _GLIBCXX_GTHREAD_USE_WEAK 0
++#  define _GLIBCXX_GTHREAD_USE_WEAK 0
++# endif
+ #endif
+ 
+ #endif

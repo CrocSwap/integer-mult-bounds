@@ -1,0 +1,163 @@
+# DP: Re-apply sanitizer patch for sparc, dropped upstream
+
+# don't remove, this is regularly overwritten, see PR sanitizer/63958.
+
+libsanitizer/
+
+2014-10-14  David S. Miller  <davem@davemloft.net>
+
+	* sanitizer_common/sanitizer_platform_limits_linux.cc (time_t):
+	Define at __kernel_time_t, as needed for sparc.
+	(struct __old_kernel_stat): Don't check if __sparc__ is defined.
+	* libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+	(__sanitizer): Define struct___old_kernel_stat_sz,
+	struct_kernel_stat_sz, and struct_kernel_stat64_sz for sparc.
+	(__sanitizer_ipc_perm): Adjust for sparc targets.
+	(__sanitizer_shmid_ds): Likewsie.
+	(__sanitizer_sigaction): Likewsie.
+	(IOC_SIZE): Likewsie.
+
+Index: libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h
+===================================================================
+--- a/src/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h	(revision 216223)
++++ a/src/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.h	(revision 216224)
+@@ -72,6 +72,14 @@
+   const unsigned struct_kernel_stat_sz = 144;
+   #endif
+   const unsigned struct_kernel_stat64_sz = 104;
++#elif defined(__sparc__) && defined(__arch64__)
++  const unsigned struct___old_kernel_stat_sz = 0;
++  const unsigned struct_kernel_stat_sz = 104;
++  const unsigned struct_kernel_stat64_sz = 144;
++#elif defined(__sparc__) && !defined(__arch64__)
++  const unsigned struct___old_kernel_stat_sz = 0;
++  const unsigned struct_kernel_stat_sz = 64;
++  const unsigned struct_kernel_stat64_sz = 104;
+ #endif
+   struct __sanitizer_perf_event_attr {
+     unsigned type;
+@@ -94,7 +102,7 @@
+ 
+ #if defined(__powerpc64__)
+   const unsigned struct___old_kernel_stat_sz = 0;
+-#else
++#elif !defined(__sparc__)
+   const unsigned struct___old_kernel_stat_sz = 32;
+ #endif
+ 
+@@ -173,6 +181,18 @@
+     unsigned short __pad1;
+     unsigned long __unused1;
+     unsigned long __unused2;
++#elif defined(__sparc__)
++# if defined(__arch64__)
++    unsigned mode;
++    unsigned short __pad1;
++# else
++    unsigned short __pad1;
++    unsigned short mode;
++    unsigned short __pad2;
++# endif
++    unsigned short __seq;
++    unsigned long long __unused1;
++    unsigned long long __unused2;
+ #else
+     unsigned short mode;
+     unsigned short __pad1;
+@@ -190,6 +210,26 @@
+ 
+   struct __sanitizer_shmid_ds {
+     __sanitizer_ipc_perm shm_perm;
++  #if defined(__sparc__)
++  # if !defined(__arch64__)
++    u32 __pad1;
++  # endif
++    long shm_atime;
++  # if !defined(__arch64__)
++    u32 __pad2;
++  # endif
++    long shm_dtime;
++  # if !defined(__arch64__)
++    u32 __pad3;
++  # endif
++    long shm_ctime;
++    uptr shm_segsz;
++    int shm_cpid;
++    int shm_lpid;
++    unsigned long shm_nattch;
++    unsigned long __glibc_reserved1;
++    unsigned long __glibc_reserved2;
++  #else    
+   #ifndef __powerpc__
+     uptr shm_segsz;
+   #elif !defined(__powerpc64__)
+@@ -227,6 +267,7 @@
+     uptr __unused4;
+     uptr __unused5;
+   #endif
++#endif
+   };
+ #elif SANITIZER_FREEBSD
+   struct __sanitizer_ipc_perm {
+@@ -523,9 +564,13 @@
+ #else
+     __sanitizer_sigset_t sa_mask;
+ #ifndef __mips__
++#if defined(__sparc__)
++    unsigned long sa_flags;
++#else
+     int sa_flags;
+ #endif
+ #endif
++#endif
+ #if SANITIZER_LINUX
+     void (*sa_restorer)();
+ #endif
+@@ -745,7 +790,7 @@
+ 
+ #define IOC_NRBITS 8
+ #define IOC_TYPEBITS 8
+-#if defined(__powerpc__) || defined(__powerpc64__) || defined(__mips__)
++#if defined(__powerpc__) || defined(__powerpc64__) || defined(__mips__) || defined(__sparc__)
+ #define IOC_SIZEBITS 13
+ #define IOC_DIRBITS 3
+ #define IOC_NONE 1U
+@@ -775,7 +820,17 @@
+ #define IOC_DIR(nr) (((nr) >> IOC_DIRSHIFT) & IOC_DIRMASK)
+ #define IOC_TYPE(nr) (((nr) >> IOC_TYPESHIFT) & IOC_TYPEMASK)
+ #define IOC_NR(nr) (((nr) >> IOC_NRSHIFT) & IOC_NRMASK)
++
++#if defined(__sparc__)
++// In sparc the 14 bits SIZE field overlaps with the
++// least significant bit of DIR, so either IOC_READ or
++// IOC_WRITE shall be 1 in order to get a non-zero SIZE.
++# define IOC_SIZE(nr)                       \
++  ((((((nr) >> 29) & 0x7) & (4U|2U)) == 0)? \
++   0 : (((nr) >> 16) & 0x3fff))
++#else
+ #define IOC_SIZE(nr) (((nr) >> IOC_SIZESHIFT) & IOC_SIZEMASK)
++#endif
+ 
+   extern unsigned struct_arpreq_sz;
+   extern unsigned struct_ifreq_sz;
+Index: libsanitizer/sanitizer_common/sanitizer_platform_limits_linux.cc
+===================================================================
+--- a/src/libsanitizer/sanitizer_common/sanitizer_platform_limits_linux.cc	(revision 216223)
++++ a/src/libsanitizer/sanitizer_common/sanitizer_platform_limits_linux.cc	(revision 216224)
+@@ -36,6 +36,7 @@
+ #define uid_t __kernel_uid_t
+ #define gid_t __kernel_gid_t
+ #define off_t __kernel_off_t
++#define time_t __kernel_time_t
+ // This header seems to contain the definitions of _kernel_ stat* structs.
+ #include <asm/stat.h>
+ #undef ino_t
+@@ -60,7 +61,7 @@
+ }  // namespace __sanitizer
+ 
+ #if !defined(__powerpc64__) && !defined(__x86_64__) && !defined(__aarch64__)\
+-                            && !defined(__mips__)
++                            && !defined(__mips__) && !defined(__sparc__)
+ COMPILER_CHECK(struct___old_kernel_stat_sz == sizeof(struct __old_kernel_stat));
+ #endif
+ 

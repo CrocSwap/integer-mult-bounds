@@ -1,0 +1,54 @@
+# Mask __float128 types from CUDA compilers (LP: #1717257)
+
+Index: b/src/libstdc++-v3/include/std/type_traits
+===================================================================
+--- a/src/libstdc++-v3/include/std/type_traits
++++ b/src/libstdc++-v3/include/std/type_traits
+@@ -489,7 +489,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+     : public true_type { };
+ #endif
+ 
+-#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128)
++#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128) && !defined(__CUDACC__)
+   template<>
+     struct __is_floating_point_helper<__float128>
+     : public true_type { };
+Index: b/src/libstdc++-v3/include/bits/std_abs.h
+===================================================================
+--- a/src/libstdc++-v3/include/bits/std_abs.h
++++ b/src/libstdc++-v3/include/bits/std_abs.h
+@@ -131,7 +131,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+   { return __gnu_cxx::__bfloat16_t(__builtin_fabsf(__x)); }
+ #endif
+ 
+-#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128)
++#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128) && !defined(__CUDACC__)
+   __extension__ inline _GLIBCXX_CONSTEXPR
+   __float128
+   abs(__float128 __x)
+Index: b/src/libstdc++-v3/include/bits/stl_algobase.h
+===================================================================
+--- a/src/libstdc++-v3/include/bits/stl_algobase.h
++++ b/src/libstdc++-v3/include/bits/stl_algobase.h
+@@ -1052,7 +1052,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
+   __size_to_integer(double __n) { return (long long)__n; }
+   inline _GLIBCXX_CONSTEXPR long long
+   __size_to_integer(long double __n) { return (long long)__n; }
+-#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128)
++#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128) && !defined(__CUDACC__)
+   __extension__ inline _GLIBCXX_CONSTEXPR long long
+   __size_to_integer(__float128 __n) { return (long long)__n; }
+ #endif
+Index: b/src/libstdc++-v3/include/std/numbers
+===================================================================
+--- a/src/libstdc++-v3/include/std/numbers
++++ b/src/libstdc++-v3/include/std/numbers
+@@ -219,7 +219,7 @@ __glibcxx_numbers (_Float128, F128);
+ __glibcxx_numbers (__gnu_cxx::__bfloat16_t, BF16);
+ #endif
+ 
+-#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128)
++#if !defined(__STRICT_ANSI__) && defined(_GLIBCXX_USE_FLOAT128) && !defined(__CUDACC__)
+ __glibcxx_numbers (__float128, Q);
+ #endif // USE_FLOAT128
+ 

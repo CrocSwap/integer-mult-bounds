@@ -1,0 +1,82 @@
+"""Passive text-only versioned repair. Does not import/execute candidate code."""
+from pathlib import Path
+import hashlib
+f=Path(__file__).resolve().parent.parent
+old=(f/'implementation/prepare_prefix_stage_v1.py').read_bytes()
+if hashlib.sha256(old).hexdigest()!='75bcddd650394187c2f63aedb28ad32cb840b358d372ad99e0973e6d84c6e80d':raise RuntimeError('initial source changed')
+marker=b'# UNIT06_T0_SUPPORT_END\n';prefix,suffix=old.split(marker,1);prefix+=marker
+s=suffix.decode()
+s=s.replace("SOURCE_CATEGORIES=", "# Versioned Unit07 repair; v1 exact rejected source is retained unchanged.\nSOURCE_CATEGORIES=",1)
+s=s.replace("QUEUE_SHA=", "CALLER_PIN=('25138c2c998762649c6a61cb8a6ae8aacd81bd533591b082ab6f58def712fca2',34716)\nQUEUE_SHA=",1)
+s=s.replace("    owner=Owner();owner.phase='PREPARATION_NEW';owner.directories={};owner.created=[]", "    owner=Owner();owner.phase='PREPARATION_NEW';owner.directories={};owner.created=[]\n    owner.io_counts={};owner.close_records=[];owner.iterators=[];owner.final_bill=None")
+s=s.replace("def _close_slot(owner,slot):\n    fd=owner.fd_slots[slot];owner.fd_slots[slot]=None\n    if fd is not None:\n        try:os.close(fd)\n        except BaseException as error:owner.fail(error)", "def _close_slot(owner,slot):\n    fd=owner.fd_slots[slot]\n    if fd is not None:\n        record={'slot':slot,'fd':fd,'attempted':False,'completed':False}\n        owner.close_records.append(record);owner.fd_slots[slot]=None;record['attempted']=True\n        try:os.close(fd);record['completed']=True\n        except BaseException as error:owner.fail(error)")
+s=s.replace("raw=original_record(value);owner.generated_bytes", "raw=canonical(value);owner.generated_bytes")
+s=s.replace("    return retain_regular(pin,cap,owner)", "    return _source_read(pin['path'],pin['sha256'],cap,owner,pin)")
+s=s.replace("pin,raw=retained_read(row['path'],row['sha256'],FILE_CAP,owner)", "pin,raw=_source_read(row['path'],row['sha256'],FILE_CAP,owner)")
+s=s.replace("pin,_=observe_regular(root+'/runtime/'+name,RECORD_CAP,owner)", "pin,_=_source_read(root+'/runtime/'+name,None,RECORD_CAP,owner)")
+s=s.replace("    need(value['terminal_function']=='_v03_original_input_prefix'", "    if value['terminal_function']=='_vcheck_custody':need(value['message']=='Variant current source closure differs','custody refusal site');return\n    need(value['terminal_function']=='_v03_original_input_prefix'")
+s=s.replace("    validate_blob(request['caller_source'])", "    validate_blob(request['caller_source']);need((request['caller_source']['sha256'],request['caller_source']['bytes'])==CALLER_PIN,'fixed bounded caller source differs')")
+s=s.replace("        record['observed']={'path':path", "        absolute=identity(os.stat(path,follow_symlinks=False));owner.stat_calls+=1\n        need(after==absolute,'absolute installed pathname differs from retained context')\n        record['observed']={'path':path")
+# Retain actual scandir handles and consume once, including failure state.
+s=s.replace("        iterator=None;primary=None;owner.pending=True", "        iterator=None;primary=None;owner.pending=True\n        iterator_record={'path':current,'handle':None,'close_attempted':False,'closed':False};owner.iterators.append(iterator_record)")
+s=s.replace("iterator=os.scandir(fd);owner.pending=False", "iterator=os.scandir(fd);iterator_record['handle']=iterator;owner.pending=False")
+s=s.replace("            for entry in iterator:\n", "            while True:\n                try:\n                    owner.io_counts['iterator_next']=owner.io_counts.get('iterator_next',0)+1;entry=next(iterator)\n                except StopIteration:break\n")
+s=s.replace("                info=entry.stat(follow_symlinks=False);owner.stat_calls+=1", "                owner.io_counts['entry_stat']=owner.io_counts.get('entry_stat',0)+1;owner.stat_calls+=1\n                info=entry.stat(follow_symlinks=False)")
+s=s.replace("                old=iterator;iterator=None\n                try:old.close()", "                old=iterator;iterator=None;iterator_record['handle']=None;iterator_record['close_attempted']=True\n                try:\n                    owner.io_counts['iterator_close']=owner.io_counts.get('iterator_close',0)+1;old.close();iterator_record['closed']=True")
+# Per-record actual consumer intersection: NEW helper canonical bound is stricter
+# than Group01 (65536nodes/depth24/text8192/list8192 vs200k/depth40/text65536).
+# It is required by the byte-unchanged b783 entry, not the unrelated epoch256 codec.
+start=s.index('def operation_bill(owner):');end=s.index('\n\ndef _prepare',start)
+s=s[:start]+'''def operation_bill(owner):
+    return {'io_attempts':dict(owner.io_counts),'read_calls':owner.read_calls,'write_calls':owner.write_calls,'retained_and_generated_bytes':owner.total_bytes,'generated_bytes':owner.generated_bytes,'private_copy_attempts':owner.copy_attempts,'directory_opens':owner.directory_opens,'directory_creates':owner.directory_creates,'stat_calls':owner.stat_calls,'scandir_calls':owner.scandir_calls,'child_entries':owner.entry_count,'installed_files':len(owner.writes),'cleanup_consumed':owner.cleanup_done,'remaining_known_fd_slots':sum(fd is not None for fd in owner.fd_slots),'preparation_cost_status':'ACTUAL_IO_ATTEMPTS_RECORDED_NOT_PRICED','final_tail_cost':'OPEN_NOT_ZERO','final_fit':'OPEN_NOT_ZERO'}
+''' + s[end:]
+# Endpoint reconciliation is path-and-descriptor equality, not an interval proof.
+s=s.replace("fd=owner.fd_slots[owner.directories[path]];os.fchmod(fd,0o555);os.fsync(fd)", "fd=owner.fd_slots[owner.directories[path]];os.fchmod(fd,0o555);os.fsync(fd)\n            observed=identity(os.fstat(fd));named=identity(os.stat(path,follow_symlinks=False))\n            need(observed==named and stat.S_ISDIR(observed['mode']) and not observed['mode']&0o222,'final directory pathname/readonly endpoint differs')")
+start=s.index('def prepare_prefix_stage(request):')
+s=s[:start]+'''def prepare_prefix_stage(request):
+    """One actual preparation attempt; failed owner remains in PREPARATIONS."""
+    need(_PREPARATION_USED[0] is False,'one public preparation attempt per fresh process');_PREPARATION_USED[0]=True
+    owner=make_preparation_owner();owner.burned=True;primary=None;result=None
+    try:
+        result=_prepare(request,owner)
+    except BaseException as error:
+        primary=owner.fail(error)
+    finally:
+        try:close_preparation(owner)
+        except BaseException as error:owner.fail(error)
+        owner.final_bill=operation_bill(owner)
+        if result is not None:result['operation_bill']=owner.final_bill
+    if owner.primary is not None:raise owner.primary
+    owner.result=result
+    return result
+'''
+# A successor of the NEW retained reader, now with actual OS-attempt accounting.
+p=prefix.decode();a=p.index('def _retained_read(');b=p.index('\n\ndef retained_read(',a)
+reader=p[a:b].replace('def _retained_read(','def _source_read(')
+reader=reader[:reader.index('    finally:')]+'''    finally:
+        _close_slot(owner,slot);owner.busy=False
+        if primary is None and owner.primary is not None:raise owner.primary
+'''
+s=reader+'\n\n'+s
+# Instrument every actual os operation in the NEW successor suffix. This leaves
+# the exact accepted9878B prefix intact but _prepare never calls its uncounted IO.
+for opname in ('stat','fstat','open','close','read','write','fchmod','fsync','mkdir','scandir'):
+    s=s.replace('os.'+opname+'(',"_io(owner,'"+opname+"',")
+# Old manual stat bumps would double count now; entry.stat is separate from os.
+s=s.replace(';owner.stat_calls+=1','').replace(';owner.stat_calls+=2','')
+s=s.replace("owner.io_counts['entry_stat']=owner.io_counts.get('entry_stat',0)+1\n", "owner.io_counts['entry_stat']=owner.io_counts.get('entry_stat',0)+1;owner.stat_calls+=1\n")
+ops='''
+
+def _io(owner,operation,*args,**kwargs):
+    # operation names are internal literals. Counts include failed attempts and
+    # cleanup, and are not monetary/time/memory or admission claims.
+    owner.io_counts[operation]=owner.io_counts.get(operation,0)+1
+    if operation=='stat' or operation=='fstat':owner.stat_calls+=1
+    return getattr(os,operation)(*args,**kwargs)
+
+'''
+s=ops+s
+new=prefix+s.encode();out=f/'implementation/prepare_prefix_stage_v2.py'
+if out.exists():raise RuntimeError('successor exists; never overwrite reviewed source')
+out.write_bytes(new)
+print(len(new),hashlib.sha256(new).hexdigest())

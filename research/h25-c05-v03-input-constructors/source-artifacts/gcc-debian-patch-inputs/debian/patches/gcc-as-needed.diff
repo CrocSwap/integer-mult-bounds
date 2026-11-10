@@ -1,0 +1,285 @@
+# DP: On linux targets pass --as-needed by default to the linker, but always
+# DP: link the sanitizer libraries with --no-as-needed.
+
+--- a/src/gcc/gcc.cc
++++ b/src/gcc/gcc.cc
+@@ -759,8 +759,11 @@ proper position among the other output f
+ #ifdef LIBASAN_EARLY_SPEC
+ #define LIBASAN_SPEC STATIC_LIBASAN_LIBS
+ #elif defined(HAVE_LD_STATIC_DYNAMIC)
+-#define LIBASAN_SPEC "%{static-libasan:" LD_STATIC_OPTION \
+-		     "} -lasan %{static-libasan:" LD_DYNAMIC_OPTION "}" \
++#define LIBASAN_SPEC "%{static-libasan:" LD_STATIC_OPTION "}" \
++		     " %{!static-libasan:%{!fuse-ld=gold:--push-state} --no-as-needed}" \
++		     " -lasan " \
++		     " %{static-libasan:" LD_DYNAMIC_OPTION "}" \
++		     " %{!static-libasan:%{fuse-ld=gold:--as-needed;:--pop-state}}" \
+ 		     STATIC_LIBASAN_LIBS
+ #else
+ #define LIBASAN_SPEC "-lasan" STATIC_LIBASAN_LIBS
+@@ -795,8 +798,11 @@ proper position among the other output f
+ #ifdef LIBTSAN_EARLY_SPEC
+ #define LIBTSAN_SPEC STATIC_LIBTSAN_LIBS
+ #elif defined(HAVE_LD_STATIC_DYNAMIC)
+-#define LIBTSAN_SPEC "%{static-libtsan:" LD_STATIC_OPTION \
+-		     "} -ltsan %{static-libtsan:" LD_DYNAMIC_OPTION "}" \
++#define LIBTSAN_SPEC "%{static-libtsan:" LD_STATIC_OPTION "}" \
++		     " %{!static-libtsan:%{!fuse-ld=gold:--push-state} --no-as-needed}" \
++		     " -ltsan " \
++		     " %{static-libtsan:" LD_DYNAMIC_OPTION "}" \
++		     " %{!static-libtsan:%{fuse-ld=gold:--as-needed;:--pop-state}}" \
+ 		     STATIC_LIBTSAN_LIBS
+ #else
+ #define LIBTSAN_SPEC "-ltsan" STATIC_LIBTSAN_LIBS
+@@ -813,8 +819,11 @@ proper position among the other output f
+ #ifdef LIBLSAN_EARLY_SPEC
+ #define LIBLSAN_SPEC STATIC_LIBLSAN_LIBS
+ #elif defined(HAVE_LD_STATIC_DYNAMIC)
+-#define LIBLSAN_SPEC "%{static-liblsan:" LD_STATIC_OPTION \
+-		     "} -llsan %{static-liblsan:" LD_DYNAMIC_OPTION "}" \
++#define LIBLSAN_SPEC "%{static-liblsan:" LD_STATIC_OPTION "}" \
++		     " %{!static-liblsan:%{!fuse-ld=gold:--push-state} --no-as-needed}" \
++		     " -llsan " \
++		     " %{static-liblsan:" LD_DYNAMIC_OPTION "}" \
++		     " %{!static-liblsan:%{fuse-ld=gold:--as-needed;:--pop-state}}" \
+ 		     STATIC_LIBLSAN_LIBS
+ #else
+ #define LIBLSAN_SPEC "-llsan" STATIC_LIBLSAN_LIBS
+@@ -829,8 +838,11 @@ proper position among the other output f
+ #define STATIC_LIBUBSAN_LIBS \
+   " %{static-libubsan|static:%:include(libsanitizer.spec)%(link_libubsan)}"
+ #ifdef HAVE_LD_STATIC_DYNAMIC
+-#define LIBUBSAN_SPEC "%{static-libubsan:" LD_STATIC_OPTION \
+-		     "} -lubsan %{static-libubsan:" LD_DYNAMIC_OPTION "}" \
++#define LIBUBSAN_SPEC "%{static-libubsan:" LD_STATIC_OPTION "}" \
++		     " %{!static-libubsan:%{!fuse-ld=gold:--push-state} --no-as-needed}" \
++		     " -lubsan " \
++		     " %{static-libubsan:" LD_DYNAMIC_OPTION "}" \
++		     " %{!static-libubsan:%{fuse-ld=gold:--as-needed;:--pop-state}}" \
+ 		     STATIC_LIBUBSAN_LIBS
+ #else
+ #define LIBUBSAN_SPEC "-lubsan" STATIC_LIBUBSAN_LIBS
+--- a/src/gcc/config/gnu-user.h
++++ b/src/gcc/config/gnu-user.h
+@@ -136,22 +136,22 @@ see the files COPYING3 and COPYING.RUNTI
+ #define LIBASAN_EARLY_SPEC "%{!shared:libasan_preinit%O%s} " \
+   "%{static-libasan:%{!shared:" \
+   LD_STATIC_OPTION " --whole-archive -lasan --no-whole-archive " \
+-  LD_DYNAMIC_OPTION "}}%{!static-libasan:-lasan}"
++  LD_DYNAMIC_OPTION "}}%{!static-libasan:%{!fuse-ld=gold:--push-state} --no-as-needed -lasan %{fuse-ld=gold:--as-needed;:--pop-state}}"
+ #undef LIBHWASAN_EARLY_SPEC
+ #define LIBHWASAN_EARLY_SPEC "%{!shared:libhwasan_preinit%O%s} " \
+   "%{static-libhwasan:%{!shared:" \
+   LD_STATIC_OPTION " --whole-archive -lhwasan --no-whole-archive " \
+-  LD_DYNAMIC_OPTION "}}%{!static-libhwasan:-lhwasan}"
++  LD_DYNAMIC_OPTION "}}%{!static-libhwasan:%{!fuse-ld=gold:--push-state} --no-as-needed -lhwasan %{fuse-ld=gold:--as-needed;:--pop-state}}"
+ #undef LIBTSAN_EARLY_SPEC
+ #define LIBTSAN_EARLY_SPEC "%{!shared:libtsan_preinit%O%s} " \
+   "%{static-libtsan:%{!shared:" \
+   LD_STATIC_OPTION " --whole-archive -ltsan --no-whole-archive " \
+-  LD_DYNAMIC_OPTION "}}%{!static-libtsan:-ltsan}"
++  LD_DYNAMIC_OPTION "}}%{!static-libtsan:%{!fuse-ld=gold:--push-state} --no-as-needed -ltsan %{fuse-ld=gold:--as-needed;:--pop-state}}"
+ #undef LIBLSAN_EARLY_SPEC
+ #define LIBLSAN_EARLY_SPEC "%{!shared:liblsan_preinit%O%s} " \
+   "%{static-liblsan:%{!shared:" \
+   LD_STATIC_OPTION " --whole-archive -llsan --no-whole-archive " \
+-  LD_DYNAMIC_OPTION "}}%{!static-liblsan:-llsan}"
++  LD_DYNAMIC_OPTION "}}%{!static-liblsan:%{!fuse-ld=gold:--push-state} --no-as-needed -llsan %{fuse-ld=gold:--as-needed;:--pop-state}}"
+ #endif
+ 
+ #undef TARGET_F951_OPTIONS
+--- a/src/gcc/config/aarch64/aarch64-linux.h
++++ b/src/gcc/config/aarch64/aarch64-linux.h
+@@ -36,6 +36,7 @@
+ 
+ #define LINUX_TARGET_LINK_SPEC  "%{h*}		\
+    --hash-style=gnu				\
++   %{!fsanitize=*:--as-needed}			\
+    %{static:-Bstatic}				\
+    %{shared:-shared}				\
+    %{symbolic:-Bsymbolic}			\
+--- a/src/gcc/config/ia64/linux.h
++++ b/src/gcc/config/ia64/linux.h
+@@ -58,7 +58,7 @@ do {						\
+ #define GLIBC_DYNAMIC_LINKER "/lib/ld-linux-ia64.so.2"
+ 
+ #undef LINK_SPEC
+-#define LINK_SPEC " --hash-style=gnu \
++#define LINK_SPEC " --hash-style=gnu %{!fsanitize=*:--as-needed} \
+   %{shared:-shared} \
+   %{!shared: \
+     %{!static: \
+--- a/src/gcc/config/sparc/linux.h
++++ b/src/gcc/config/sparc/linux.h
+@@ -81,7 +81,7 @@ extern const char *host_detect_local_cpu
+ #define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
+ 
+ #undef  LINK_SPEC
+-#define LINK_SPEC "-m elf32_sparc --hash-style=gnu %{shared:-shared} \
++#define LINK_SPEC "-m elf32_sparc --hash-style=gnu %{!fsanitize=*:--as-needed} %{shared:-shared} \
+   %{!mno-relax:%{!r:-relax}} \
+   %{!shared: \
+     %{!static: \
+--- a/src/gcc/config/s390/linux.h
++++ b/src/gcc/config/s390/linux.h
+@@ -82,7 +82,7 @@ along with GCC; see the file COPYING3.
+ 
+ #undef  LINK_SPEC
+ #define LINK_SPEC \
+-  "%{m31:-m elf_s390}%{m64:-m elf64_s390} --hash-style=gnu \
++  "%{m31:-m elf_s390}%{m64:-m elf64_s390} --hash-style=gnu %{!fsanitize=*:--as-needed} \
+    %{shared:-shared} \
+    %{!shared: \
+       %{static:-static} \
+--- a/src/gcc/config/rs6000/linux64.h
++++ b/src/gcc/config/rs6000/linux64.h
+@@ -377,13 +377,13 @@ extern int dot_symbols;
+ 					   " -m elf64ppc")
+ #endif
+ 
+-#define LINK_OS_LINUX_SPEC32 LINK_OS_LINUX_EMUL32 " --hash-style=gnu %{!shared: %{!static: \
++#define LINK_OS_LINUX_SPEC32 LINK_OS_LINUX_EMUL32 " --hash-style=gnu %{!fsanitize=*:--as-needed} %{!shared: %{!static: \
+   %{!static-pie: \
+     %{rdynamic:-export-dynamic} \
+     -dynamic-linker " GNU_USER_DYNAMIC_LINKER32 "}}} \
+   %(link_os_extra_spec32)"
+ 
+-#define LINK_OS_LINUX_SPEC64 LINK_OS_LINUX_EMUL64 " --hash-style=gnu %{!shared: %{!static: \
++#define LINK_OS_LINUX_SPEC64 LINK_OS_LINUX_EMUL64 " --hash-style=gnu %{!fsanitize=*:--as-needed} %{!shared: %{!static: \
+   %{!static-pie: \
+     %{rdynamic:-export-dynamic} \
+     -dynamic-linker " GNU_USER_DYNAMIC_LINKER64 "}}} \
+--- a/src/gcc/config/rs6000/sysv4.h
++++ b/src/gcc/config/rs6000/sysv4.h
+@@ -780,7 +780,7 @@ GNU_USER_TARGET_CC1_SPEC
+ #define GNU_USER_DYNAMIC_LINKER GLIBC_DYNAMIC_LINKER
+ #endif
+ 
+-#define LINK_OS_LINUX_SPEC "-m elf32ppclinux --hash-style=gnu %{!shared: %{!static: \
++#define LINK_OS_LINUX_SPEC "-m elf32ppclinux --hash-style=gnu %{!fsanitize=*:--as-needed} %{!shared: %{!static: \
+   %{rdynamic:-export-dynamic} \
+   -dynamic-linker " GNU_USER_DYNAMIC_LINKER "}}"
+ 
+--- a/src/gcc/config/i386/gnu-user64.h
++++ b/src/gcc/config/i386/gnu-user64.h
+@@ -57,6 +57,7 @@ see the files COPYING3 and COPYING.RUNTI
+                    %{" SPEC_32 ":-m " GNU_USER_LINK_EMULATION32 "} \
+                    %{" SPEC_X32 ":-m " GNU_USER_LINK_EMULATIONX32 "} \
+   --hash-style=gnu \
++  %{!fsanitize=*:--as-needed} \
+   %{shared:-shared} \
+   %{!shared: \
+     %{!static: \
+--- a/src/gcc/config/i386/gnu-user.h
++++ b/src/gcc/config/i386/gnu-user.h
+@@ -68,7 +68,7 @@ along with GCC; see the file COPYING3.
+   { "link_emulation", GNU_USER_LINK_EMULATION },\
+   { "dynamic_linker", GNU_USER_DYNAMIC_LINKER }
+ 
+-#define GNU_USER_TARGET_LINK_SPEC "-m %(link_emulation) --hash-style=gnu %{shared:-shared} \
++#define GNU_USER_TARGET_LINK_SPEC "-m %(link_emulation) --hash-style=gnu %{!fsanitize=*:--as-needed} %{shared:-shared} \
+   %{!shared: \
+     %{!static: \
+       %{!static-pie: \
+--- a/src/gcc/config/alpha/linux-elf.h
++++ b/src/gcc/config/alpha/linux-elf.h
+@@ -37,7 +37,7 @@ along with GCC; see the file COPYING3.
+ 
+ #define ELF_DYNAMIC_LINKER	GNU_USER_DYNAMIC_LINKER
+ 
+-#define LINK_SPEC "-m elf64alpha --hash-style=gnu %{G*} %{relax:-relax}	\
++#define LINK_SPEC "-m elf64alpha --hash-style=gnu %{!fsanitize=*:--as-needed} %{G*} %{relax:-relax}	\
+   %{O*:-O3} %{!O*:-O1}						\
+   %{shared:-shared}						\
+   %{!shared:							\
+--- a/src/gcc/config/arm/linux-elf.h
++++ b/src/gcc/config/arm/linux-elf.h
+@@ -71,6 +71,7 @@
+      %{!shared:-dynamic-linker " GNU_USER_DYNAMIC_LINKER "}} \
+    -X \
+    --hash-style=gnu \
++   %{!fsanitize=*:--as-needed} \
+    %{mbig-endian:-EB} %{mlittle-endian:-EL}" \
+    SUBTARGET_EXTRA_LINK_SPEC
+ 
+--- a/src/gcc/config/mips/gnu-user.h
++++ b/src/gcc/config/mips/gnu-user.h
+@@ -55,6 +55,7 @@ along with GCC; see the file COPYING3.
+ #undef GNU_USER_TARGET_LINK_SPEC
+ #define GNU_USER_TARGET_LINK_SPEC "\
+   %{G*} %{EB} %{EL} %{mips*} %{shared} \
++ %{!fsanitize=*:--as-needed} \
+   %{!shared: \
+     %{!static: \
+       %{rdynamic:-export-dynamic} \
+--- a/src/gcc/config/riscv/linux.h
++++ b/src/gcc/config/riscv/linux.h
+@@ -49,6 +49,7 @@ along with GCC; see the file COPYING3.
+ 
+ #define LINK_SPEC "\
+ -hash-style=gnu \
++%{!fsanitize=*:--as-needed} \
+ -melf" XLEN_SPEC DEFAULT_ENDIAN_SPEC "riscv" LD_EMUL_SUFFIX " \
+ %{mno-relax:--no-relax} \
+ %{mbig-endian:-EB} \
+--- a/src/gcc/config/m68k/linux.h
++++ b/src/gcc/config/m68k/linux.h
+@@ -78,6 +78,7 @@ along with GCC; see the file COPYING3.
+ 
+ #undef LINK_SPEC
+ #define LINK_SPEC "-m m68kelf %{shared} \
++  %{!fsanitize=*:--as-needed} \
+   %{!shared: \
+     %{!static: \
+       %{rdynamic:-export-dynamic} \
+--- a/src/gcc/config/sh/linux.h
++++ b/src/gcc/config/sh/linux.h
+@@ -72,6 +72,7 @@ along with GCC; see the file COPYING3.
+ #undef SUBTARGET_LINK_SPEC
+ #define SUBTARGET_LINK_SPEC \
+   "%{shared:-shared} \
++   %{!fsanitize=*:--as-needed} \
+    %{!static: \
+      %{rdynamic:-export-dynamic} \
+      -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
+--- a/src/gcc/config/pa/pa-linux.h
++++ b/src/gcc/config/pa/pa-linux.h
+@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.
+ 
+ #undef LINK_SPEC
+ #define LINK_SPEC "\
++  %{!fsanitize=*:--as-needed} \
+   %{shared:-shared} \
+   %{!shared: \
+     %{!static: \
+--- a/src/gcc/config/loongarch/gnu-user.h
++++ b/src/gcc/config/loongarch/gnu-user.h
+@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.
+ #undef GNU_USER_TARGET_LINK_SPEC
+ #define GNU_USER_TARGET_LINK_SPEC \
+   "%{G*} %{shared} -m " GNU_USER_LINK_EMULATION \
++  " %{!fsanitize=*:--as-needed} " \
+   "%{!shared: %{static} " \
+   "%{!static: %{!static-pie: %{rdynamic:-export-dynamic} " \
+   "-dynamic-linker " GNU_USER_DYNAMIC_LINKER "}} " \
+--- a/src/gcc/config/sparc/linux64.h
++++ b/src/gcc/config/sparc/linux64.h
+@@ -90,7 +90,7 @@ along with GCC; see the file COPYING3.  If not see
+   { "link_arch_default", LINK_ARCH_DEFAULT_SPEC },	  \
+   { "link_arch",	 LINK_ARCH_SPEC },
+ 
+-#define LINK_ARCH32_SPEC "-m elf32_sparc %{shared:-shared} \
++#define LINK_ARCH32_SPEC "-m elf32_sparc %{shared:-shared} %{!fsanitize=*:--as-needed} \
+   %{!shared: \
+     %{!static: \
+       %{rdynamic:-export-dynamic} \
+@@ -98,7 +98,7 @@ along with GCC; see the file COPYING3.  If not see
+       %{static:-static}} \
+ "
+ 
+-#define LINK_ARCH64_SPEC "-m elf64_sparc %{shared:-shared} \
++#define LINK_ARCH64_SPEC "-m elf64_sparc %{shared:-shared} %{!fsanitize=*:--as-needed} \
+   %{!shared: \
+     %{!static: \
+       %{rdynamic:-export-dynamic} \
+

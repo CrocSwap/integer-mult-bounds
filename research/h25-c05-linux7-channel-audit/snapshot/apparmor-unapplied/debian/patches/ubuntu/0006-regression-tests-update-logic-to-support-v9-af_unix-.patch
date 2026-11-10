@@ -1,0 +1,751 @@
+From e39e81b17b230088d7d4d482ea09ea8c5e8dc9f7 Mon Sep 17 00:00:00 2001
+From: John Johansen <john.johansen@canonical.com>
+Date: Wed, 10 Sep 2025 07:13:23 -0700
+Subject: [PATCH 6/7] regression tests: update logic to support v9 af_unix on
+ legacy
+
+This cleans up the and does a little rework on support tests for
+unix and network mediation support.
+
+The current tests fail because they don't bind support for a feature
+between the parser and the user. Eg.
+
+On a kernel that only supports v9 af_unix and a parser that only
+supports v7 af_unix encoding the tests, checking for any af_unix
+support and whether the parser supports "unix," rules will fail
+because the parser can not encode v9 af_unix support, even though both
+the kernel and parser "supports" af_unix.
+
+To fix this add a set of support routines, that can test if the
+parser supports different version encoding or downgrades, and then
+build on those to test for support of combinations. Eg.
+
+  parser supports v9 && kernel supports v9
+
+and then build on those for generic tests
+  supports_unix_rules
+
+Update the individual regression tests and while we are at it clean
+up some of the output formating.
+
+Note: the v8 network mask in the af_unix_v7 abi is necessary to work
+      around https://gitlab.com/apparmor/apparmor/-/issues/548
+
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 1224e343f3769b931b2ec725ee79070ad092aeb0)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ .../apparmor/abis/{af_unix-v9 => af_unix_v7}  |  12 +-
+ .../apparmor/abis/{af_unix-v9 => af_unix_v9}  |   8 -
+ .../apparmor/abis/{af_unix-v9 => socket_v7}   |  10 --
+ .../apparmor/abis/{af_unix-v9 => socket_v8}   |  11 +-
+ .../apparmor/abis/{af_unix-v9 => socket_v9}   |  11 +-
+ .../apparmor/attach_disconnected.sh           |   7 +-
+ tests/regression/apparmor/dbus_eavesdrop.sh   |   6 +
+ tests/regression/apparmor/dbus_message.sh     |   2 +
+ tests/regression/apparmor/dbus_service.sh     |   3 +
+ .../apparmor/dbus_unrequested_reply.sh        |   2 +
+ tests/regression/apparmor/deleted.sh          |   9 +-
+ tests/regression/apparmor/net_supports.inc    | 140 ++++++++++++++++++
+ tests/regression/apparmor/prologue.inc        |  35 +++--
+ tests/regression/apparmor/query_label.sh      |   5 +
+ tests/regression/apparmor/socketpair.sh       |  37 +----
+ .../apparmor/unix_socket_abstract.sh          |   3 +-
+ .../apparmor/unix_socket_autobind.sh          |   4 +-
+ .../apparmor/unix_socket_pathname.sh          |  13 +-
+ .../apparmor/unix_socket_unnamed.sh           |   4 +-
+ 19 files changed, 214 insertions(+), 108 deletions(-)
+ copy tests/regression/apparmor/abis/{af_unix-v9 => af_unix_v7} (88%)
+ copy tests/regression/apparmor/abis/{af_unix-v9 => af_unix_v9} (79%)
+ copy tests/regression/apparmor/abis/{af_unix-v9 => socket_v7} (78%)
+ copy tests/regression/apparmor/abis/{af_unix-v9 => socket_v8} (78%)
+ rename tests/regression/apparmor/abis/{af_unix-v9 => socket_v9} (78%)
+ create mode 100644 tests/regression/apparmor/net_supports.inc
+
+diff --git a/tests/regression/apparmor/abis/af_unix-v9 b/tests/regression/apparmor/abis/af_unix_v7
+similarity index 88%
+copy from tests/regression/apparmor/abis/af_unix-v9
+copy to tests/regression/apparmor/abis/af_unix_v7
+index a9560e77f..38e2572af 100644
+--- a/tests/regression/apparmor/abis/af_unix-v9
++++ b/tests/regression/apparmor/abis/af_unix_v7
+@@ -65,17 +65,13 @@ userns_create {pciu&
+ }
+ network {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+ }
+-}
+-network_v8 {af_inet {yes
+-}
+-af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-}
+-network_v9 {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+ af_unix {yes
+ }
+ }
++network_v8 {
++af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
++}
++}
+ policy {notify {user {file
+ }
+ }
+diff --git a/tests/regression/apparmor/abis/af_unix-v9 b/tests/regression/apparmor/abis/af_unix_v9
+similarity index 79%
+copy from tests/regression/apparmor/abis/af_unix-v9
+copy to tests/regression/apparmor/abis/af_unix_v9
+index a9560e77f..02998e4c6 100644
+--- a/tests/regression/apparmor/abis/af_unix-v9
++++ b/tests/regression/apparmor/abis/af_unix_v9
+@@ -63,14 +63,6 @@ profile {yes
+ userns_create {pciu&
+ }
+ }
+-network {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-}
+-network_v8 {af_inet {yes
+-}
+-af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-}
+ network_v9 {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+ }
+ af_unix {yes
+diff --git a/tests/regression/apparmor/abis/af_unix-v9 b/tests/regression/apparmor/abis/socket_v7
+similarity index 78%
+copy from tests/regression/apparmor/abis/af_unix-v9
+copy to tests/regression/apparmor/abis/socket_v7
+index a9560e77f..8bdf4bb97 100644
+--- a/tests/regression/apparmor/abis/af_unix-v9
++++ b/tests/regression/apparmor/abis/socket_v7
+@@ -66,16 +66,6 @@ userns_create {pciu&
+ network {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+ }
+ }
+-network_v8 {af_inet {yes
+-}
+-af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-}
+-network_v9 {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-af_unix {yes
+-}
+-}
+ policy {notify {user {file
+ }
+ }
+diff --git a/tests/regression/apparmor/abis/af_unix-v9 b/tests/regression/apparmor/abis/socket_v8
+similarity index 78%
+copy from tests/regression/apparmor/abis/af_unix-v9
+copy to tests/regression/apparmor/abis/socket_v8
+index a9560e77f..3d194a1a0 100644
+--- a/tests/regression/apparmor/abis/af_unix-v9
++++ b/tests/regression/apparmor/abis/socket_v8
+@@ -63,19 +63,10 @@ profile {yes
+ userns_create {pciu&
+ }
+ }
+-network {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-}
+-network_v8 {af_inet {yes
+-}
++network_v8 {
+ af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+ }
+ }
+-network_v9 {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-af_unix {yes
+-}
+-}
+ policy {notify {user {file
+ }
+ }
+diff --git a/tests/regression/apparmor/abis/af_unix-v9 b/tests/regression/apparmor/abis/socket_v9
+similarity index 78%
+rename from tests/regression/apparmor/abis/af_unix-v9
+rename to tests/regression/apparmor/abis/socket_v9
+index a9560e77f..7edbfada1 100644
+--- a/tests/regression/apparmor/abis/af_unix-v9
++++ b/tests/regression/apparmor/abis/socket_v9
+@@ -63,19 +63,10 @@ profile {yes
+ userns_create {pciu&
+ }
+ }
+-network {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-}
+-network_v8 {af_inet {yes
+-}
++network_v9 {
+ af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+ }
+ }
+-network_v9 {af_mask {unspec unix inet ax25 ipx appletalk netrom bridge atmpvc x25 inet6 rose netbeui security key netlink packet ash econet atmsvc rds sna irda pppox wanpipe llc ib mpls can tipc bluetooth iucv rxrpc isdn phonet ieee802154 caif alg nfc vsock kcm qipcrtr smc xdp mctp
+-}
+-af_unix {yes
+-}
+-}
+ policy {notify {user {file
+ }
+ }
+diff --git a/tests/regression/apparmor/attach_disconnected.sh b/tests/regression/apparmor/attach_disconnected.sh
+index 832305838..0bb84c49a 100644
+--- a/tests/regression/apparmor/attach_disconnected.sh
++++ b/tests/regression/apparmor/attach_disconnected.sh
+@@ -18,6 +18,11 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
++
++# needs more than just kernel support, needs corresponding parser support
++# as well
++requires supports_unix_rules
+ 
+ settest unix_fd_server
+ disk_img=$tmpdir/disk_img
+@@ -29,8 +34,6 @@ file=$tmpdir/file
+ socket=$tmpdir/unix_fd_test
+ att_dis_client=$pwd/attach_disconnected
+ 
+-requires_any_of_kernel_features network/af_unix network_v9/af_unix
+-
+ attach_disconnected_cleanup() {
+ 	if [ ! -z "$loop_device" ]; then
+ 		losetup -d $loop_device
+diff --git a/tests/regression/apparmor/dbus_eavesdrop.sh b/tests/regression/apparmor/dbus_eavesdrop.sh
+index 2022667fb..0f56ed913 100755
+--- a/tests/regression/apparmor/dbus_eavesdrop.sh
++++ b/tests/regression/apparmor/dbus_eavesdrop.sh
+@@ -18,8 +18,14 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ requires_kernel_features dbus
+ requires_parser_support "dbus,"
++
++#with v9 af_unix mediation, dbus is present but always allow unless
++#policy encodes unix support. So check that unix rules are supported
++requires supports_unix_rules
++
+ . $bin/dbus.inc
+ 
+ args="--session"
+diff --git a/tests/regression/apparmor/dbus_message.sh b/tests/regression/apparmor/dbus_message.sh
+index dda03cc23..7b3d5650a 100755
+--- a/tests/regression/apparmor/dbus_message.sh
++++ b/tests/regression/apparmor/dbus_message.sh
+@@ -18,8 +18,10 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ requires_kernel_features dbus
+ requires_parser_support "dbus,"
++requires supports_unix_rules
+ . $bin/dbus.inc
+ 
+ listnames="--type=method_call --session --name=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames"
+diff --git a/tests/regression/apparmor/dbus_service.sh b/tests/regression/apparmor/dbus_service.sh
+index d44965af4..7e70ca35b 100755
+--- a/tests/regression/apparmor/dbus_service.sh
++++ b/tests/regression/apparmor/dbus_service.sh
+@@ -17,8 +17,11 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
++
+ requires_kernel_features dbus
+ requires_parser_support "dbus,"
++requires supports_unix_rules
+ . $bin/dbus.inc
+ 
+ service="--$bus --name=$dest $path $iface"
+diff --git a/tests/regression/apparmor/dbus_unrequested_reply.sh b/tests/regression/apparmor/dbus_unrequested_reply.sh
+index 3b9260653..8b8b3102b 100644
+--- a/tests/regression/apparmor/dbus_unrequested_reply.sh
++++ b/tests/regression/apparmor/dbus_unrequested_reply.sh
+@@ -17,8 +17,10 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ requires_kernel_features dbus
+ requires_parser_support "dbus,"
++requires supports_unix_rules
+ . $bin/dbus.inc
+ 
+ service="--$bus --name=$dest $path $iface"
+diff --git a/tests/regression/apparmor/deleted.sh b/tests/regression/apparmor/deleted.sh
+index 88aa640d7..96ae5789e 100755
+--- a/tests/regression/apparmor/deleted.sh
++++ b/tests/regression/apparmor/deleted.sh
+@@ -21,6 +21,7 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ 
+ file=$tmpdir/file
+ file2="$tmpdir/file (deleted)"
+@@ -65,9 +66,7 @@ okperm=rwl
+ badperm=wl
+ af_unix=""
+ 
+-if [ "$(kernel_features network_v8)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
+-	af_unix="unix:create"
+-elif [ "$(kernel_features network/af_unix)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
++if supports_unix_rules ; then
+ 	af_unix="unix:create"
+ fi
+ 
+@@ -88,7 +87,7 @@ EOM
+ rm -f ${socket}
+ 
+ # these tests require af_unix support
+-if [ "$(kernel_features network/af_unix)" = "true" -a "$(parser_supports 'unix,')" = "true" ]; then
++if supports_unix_rules ; then
+ # PASS - unconfined client
+ 
+ genprofile $af_unix $file:$okperm $socket:rw $fd_client:ux
+@@ -133,5 +132,5 @@ sleep 1
+ rm -f ${socket}
+ 
+ else
+-    echo "    Required feature 'network/af_unix' not available. Skipping subset of tests that require network/af_unix ..."
++    echo "    Required feature 'unix rules' support not available. Skipping subset of tests that require af_unix ..."
+ fi
+diff --git a/tests/regression/apparmor/net_supports.inc b/tests/regression/apparmor/net_supports.inc
+new file mode 100644
+index 000000000..7c4f2b8ed
+--- /dev/null
++++ b/tests/regression/apparmor/net_supports.inc
+@@ -0,0 +1,140 @@
++# Test parser_supports flag to test how parser is doing internal encoding
++# the features file only gives the option of v7 socket mediation
++# without finegrained af_unix or ip mediation.
++# If the parser doesnt support v7, this forces a rule downgrade.
++# which we can then error out on.
++parser_supports_v7_socket_encode()
++{
++	local res=$(parser_supports --features-file=abis/socket_v7 --warn=rule-downgraded --Werror=rule-downgraded --warn=rule-not-enforced --Werror=rule-not-enforced -- "unix bind addr=@test,")
++	[ "$res" == "true" ] && return 0
++	return $?
++}
++
++parser_supports_ubuntu_socket()
++{
++	parser_supports_v7_socket_encode
++	return $?
++}
++
++# Test parser_supports flag to test how parser is doing internal encoding
++# the features file only gives the option of v8 socket mediation
++# without finegrained af_unix or ip mediation.
++# If the parser doesnt support v8, this forces a rule downgrade.
++# which we can then error out on.
++parser_supports_v8_socket_encode()
++{
++	local res=$(parser_supports --features-file=abis/socket_v8 --warn=rule-downgraded --Werror=rule-downgraded --warn=rule-not-enforced --Werror=rule-not-enforced -- "unix bind addr=@test,")
++	[ "$res" == "true" ] && return 0
++	return $?
++}
++
++# Test parser_supports flag to test how parser is doing internal encoding
++# the features file only gives the option of v8 socket mediation
++# without finegrained af_unix or ip mediation.
++# If the parser doesnt support v8, this forces a rule downgrade.
++# which we can then error out on.
++parser_supports_v9_socket_encode()
++{
++	local res=$(parser_supports --features-file=abis/socket_v9 --warn=rule-downgraded --Werror=rule-downgraded --warn=rule-not-enforced --Werror=rule-not-enforced -- "unix bind addr=@test,")
++	[ "$res" == "true" ] && return 0
++	return $?
++}
++
++parser_supports_upstream_socket()
++{
++	parser_supports_v9_socket_encode || parser_supports_v8_socket_encode || return $?
++	return 0
++}
++
++# Test parser_supports flag to test how parser is doing internal encoding
++# the features file only gives the option of v7 or older v7 socket mediation
++# without finegrained mediation.
++# If the parser doesnt support v7, this forces a rule downgrade.
++# which we can then error out on.
++parser_supports_v7_unix_encode()
++{
++	local res=$(parser_supports --features-file=abis/af_unix_v7 --warn=rule-downgraded --Werror=rule-downgraded --warn=rule-not-enforced --Werror=rule-not-enforced -- "unix bind addr=@test,")
++	[ "$res" == "true" ] && return 0
++	return $?
++}
++
++# There is no v8 af_unix
++
++# Test parser_supports flag to test how parser is doing internal encoding
++# the features file only gives the option of v9 or older v7 socket mediation
++# without finegrained mediation.
++# If the parser doesnt support v9, this forces a rule downgrade.
++# which we can then error out on.
++parser_supports_v9_unix_encode()
++{
++	local res=$(parser_supports --features-file=abis/af_unix_v9 --warn=rule-downgraded --Werror=rule-downgraded --warn=rule-not-enforced --Werror=rule-not-enforced -- "unix bind addr=@test,")
++	[ "$res" == "true" ] && return 0
++	return $?
++}
++
++# TODO:
++# - add tests for extened_v9_unix rules
++# - add conditional and update current tests for semantic changes under
++#   extended_v9_unix
++#  this conditional can be used to enclose tests older parsers won't
++#  be able to.
++parser_supports_extended_v9_unix()
++{
++	# turn downgrade warning into error to make sure we catch downgrade
++	# use a rule not supported by non-v9 parser to catch non-v9 parsers
++	# which might not treat a unix rule as downgrade
++	local res=$(parser_supports --features-file=abis/af_unix_v9 --warn=rule-downgraded --Werror=rule-downgraded --warn=rule-not-enforced --Werror=rule-not-enforced -- "unix rw addr=/path,")
++	[ "$res" == "true" ] && return 0
++	return $?
++}
++
++# Both kernel and parser support v7 af_unix rules
++supports_unix_v7()
++{
++	local res=$(kernel_features network/af_unix)
++	[ "$res" == "true" ]  && parser_supports_v7_unix_encode && return 0
++	return $?
++}
++
++# Both kernel and parser support v9 af_unix rules
++supports_unix_v9()
++{
++	local res=$(kernel_features network_v9/af_unix)
++	[ "$res" == "true" ] && parser_supports_v9_unix_encode && return 0
++	return $?
++}
++
++# Both kernel and parser support af_unix rules
++supports_unix_rules()
++{
++	supports_unix_v9 || supports_unix_v7 || return $?
++	return 0
++}
++
++supports_socket_v7()
++{
++	local res=$(kernel_features network/af_mask)
++	[ "$res" == "true" ] && parser_supports_v7_socket_encode && return 0
++	return $?
++}
++
++supports_socket_v8()
++{
++	local res=$(kernel_features network_v8/af_mask)
++	[ "$res" == "true" ] && parser_supports_v8_socket_encode && return 0
++	return $?
++}
++
++supports_socket_v9()
++{
++	local res=$(kernel_features network_v9/af_mask)
++	[ "$res" == "true" ] && parser_supports_v9_socket_encode && return 0
++	return $?
++}
++
++# Both kernel and parser support some combination of socket mediation
++supports_socket_mediation()
++{
++	supports_socket_v9 || supports_socket_v8 || supports_socket_v7 || return $?
++	return 0
++}
+diff --git a/tests/regression/apparmor/prologue.inc b/tests/regression/apparmor/prologue.inc
+index be655d242..5934bc328 100755
+--- a/tests/regression/apparmor/prologue.inc
++++ b/tests/regression/apparmor/prologue.inc
+@@ -32,18 +32,18 @@
+ kernel_features_istrue()
+ {
+ 	if [ ! -e "/sys/kernel/security/apparmor/features/" ] ; then
+-		echo "Kernel feature masks not supported."
++		echo "    Kernel feature masks not supported."
+ 		return 1;
+ 	fi
+ 
+ 	for f in $@ ; do
+ 		if [ ! -e "/sys/kernel/security/apparmor/features/$f" ] ; then
+-			echo "Required feature '$f' not available."
++			echo "    Required feature '$f' not available."
+ 			return 2;
+ 		fi
+ 		if [ ! -f "/sys/kernel/security/apparmor/features/$f" -o \
+ 		     `cat "/sys/kernel/security/apparmor/features/$f"` == 'no' ] ; then
+-			echo "Required feature '$f' not available."
++			echo "    Required feature '$f' not available."
+ 			return 3;
+ 		fi
+         done
+@@ -61,7 +61,7 @@ kernel_features()
+ {
+ 	features_dir="/sys/kernel/security/apparmor/features/"
+ 	if [ ! -e "$features_dir" ] ; then
+-		echo "Kernel feature masks not supported."
++		echo "    Kernel feature masks not supported."
+ 		return 1;
+ 	fi
+ 
+@@ -72,11 +72,11 @@ kernel_features()
+ 			file=$(dirname "$features_dir/$f")
+ 			if [ -f $file ]; then
+ 				if ! grep -q $feature $file; then
+-					echo "Required feature '$f' not available."
++					echo "    Required feature '$f' not available."
+ 					return 2;
+ 				fi
+ 			else
+-				echo "Required feature '$f' not available."
++				echo "    Required feature '$f' not available."
+ 				return 3;
+ 			fi
+ 		fi
+@@ -108,16 +108,29 @@ requires_any_of_kernel_features()
+ 		features="$features $1"
+ 		shift
+ 	done
+-	echo "Required feature(s): $features not available. Skipping tests ..."
++	echo "    Required feature(s): $features not available. Skipping tests ..."
+ 	exit 0
+ }
+ 
++requires()
++{
++	local features
++	while [ $# -gt 0 ]; do
++		if ! $("$1") ; then
++			echo "    Required $1 not available. Skipping tests ..." 1>&2
++			exit 0;
++		fi
++		shift
++	done
++	return 0
++}
++
+ # requires_namespace_interface() - exit if namespace interface is not available
+ requires_namespace_interface()
+ {
+ 	if [ ! -e "/sys/kernel/security/apparmor/policy/namespaces" ]
+ 	then
+-		echo "Namespaces in apparmorfs policy interface not supported. Skipping tests ..."
++		echo "    Namespaces in apparmorfs policy interface not supported. Skipping tests ..."
+ 		exit 0
+ 	fi
+ }
+@@ -127,7 +140,7 @@ requires_query_interface()
+ {
+ 	if [ ! -e "/sys/kernel/security/apparmor/.access" ]
+ 	then
+-		echo "Kernel query interface not supported. Skipping tests ..."
++		echo "    Kernel query interface not supported. Skipping tests ..."
+ 		exit 0
+ 	fi
+ }
+@@ -161,9 +174,9 @@ parser_supports()
+ 	fi
+ 
+ 	for R in "$@" ; do
+-		echo "/test { $R }" | $subdomain ${parser_args} $opts -qQT 2>/dev/null 1>/dev/null
++		echo "/test { $R }" | $subdomain ${parser_args} ${opts} -QT 2>/dev/null 1>/dev/null
+ 		if [ $? -ne 0 ] ; then
+-			echo "Compiler does not support rule '$R'"
++			echo "    Compiler does not support rule '$R'"
+ 			return 1;
+ 		fi
+ 	done
+diff --git a/tests/regression/apparmor/query_label.sh b/tests/regression/apparmor/query_label.sh
+index 080f9b5aa..44fda5e08 100755
+--- a/tests/regression/apparmor/query_label.sh
++++ b/tests/regression/apparmor/query_label.sh
+@@ -17,8 +17,13 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ requires_query_interface
+ 
++# with af_unix v9, dbus requires policy encode support for unix mediation
++# or it will lie. Saying that it is supported but always returning allowed
++requires supports_unix_rules
++
+ settest query_label
+ 
+ expect=""
+diff --git a/tests/regression/apparmor/socketpair.sh b/tests/regression/apparmor/socketpair.sh
+index a2cc7a922..baed6bb5f 100755
+--- a/tests/regression/apparmor/socketpair.sh
++++ b/tests/regression/apparmor/socketpair.sh
+@@ -18,40 +18,11 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ 
+ requires_any_of_kernel_features network/af_unix network_v9/af_unix
+ requires_parser_support "unix,"
+ 
+-# This needs parser_supports flag to test how parser is doing internal encoding
+-# Adding the parser patch is REQUIRED before these tests can be picked to
+-# parsers that don't support v9 semantics.
+-# the alternative is to pick support for v9 semantics to older parser
+-# releases.
+-parser_supports_v9_unix()
+-{
+-	# TODO proper test here, needs parser patch that can report what
+-	# coding is being used internally, as this switch is not availabe
+-	# to test using rules
+-	echo "true"
+-	return $?
+-}
+-
+-# TODO:
+-# - add tests for extened_v9_unix rules
+-# - add conditional and update current tests for semantic changes under
+-#   extended_v9_unix
+-#  this conditional can be used to enclose tests older parsers won't
+-#  be able to.
+-parser_supports_extended_v9_unix()
+-{
+-	# turn downgrade warning into error to make sure we catch downgrade
+-	# use a rule not supported by non-v9 parser to catch non-v9 parsers
+-	# which might not treat a unix rule as downgrade
+-	parser_supports --features-file=abi/af_unix-v9 --Werror==all -- 'unix rw addr=/path,'
+-	local rc=$?
+-	echo "true"
+-	return $rc
+-}
+ 
+ do_test()
+ {
+@@ -78,10 +49,10 @@ af_unix_inherit="unix:(getopt,send,receive)"
+ if [ "$(kernel_features network_v9/af_unix)" = "true" -a \
+      "$(parser_supports 'unix,')" = "true" ] ; then
+ 	# can get a stack from socket being passed to new confinement
+-	if [ "$(parser_supports_v9_unix)" != "true" ] ; then
++	if [ "$(parser_supports_v9_unix_encode)" != "true" ] ; then
+ 		# NOP ATM, this doesn't change what the kernel is doing
+ 		# as this part of v9 is a break with v7/8
+-		echo -n "  parser does not support v9, encoding v7/8 "
++		echo -n "    parser does not support v9, encoding v7/8 "
+ 	fi
+ 	np1_result="$test//&$np1"
+ 	np1_np2_result="$test//&$np1//&$np2"
+@@ -102,7 +73,7 @@ elif [ "$(kernel_features network_v8/af_unix)" = "true" -o \
+ 	fi
+ 	echo "... using v7 af_unix kernel"
+ else
+-	echo "   kernel does not support unix rules, broken requires should not be here"
++	echo "    kernel does not support unix rules, broken requires should not be here"
+ 	exit 1
+ fi
+ 
+diff --git a/tests/regression/apparmor/unix_socket_abstract.sh b/tests/regression/apparmor/unix_socket_abstract.sh
+index 77e8b8c92..a009237bc 100644
+--- a/tests/regression/apparmor/unix_socket_abstract.sh
++++ b/tests/regression/apparmor/unix_socket_abstract.sh
+@@ -27,10 +27,11 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ . $bin/unix_socket.inc
+ requires_any_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
+ requires_any_of_kernel_features network/af_unix network_v9/af_unix
+-requires_parser_support "unix,"
++requires supports_unix_rules
+ 
+ settest unix_socket
+ 
+diff --git a/tests/regression/apparmor/unix_socket_autobind.sh b/tests/regression/apparmor/unix_socket_autobind.sh
+index 156cde232..5283e3f3e 100644
+--- a/tests/regression/apparmor/unix_socket_autobind.sh
++++ b/tests/regression/apparmor/unix_socket_autobind.sh
+@@ -32,10 +32,10 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ . $bin/unix_socket.inc
+ requires_any_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
+-requires_any_of_kernel_features network/af_unix network_v9/af_unix
+-requires_parser_support "unix,"
++requires supports_unix_rules
+ 
+ settest unix_socket
+ 
+diff --git a/tests/regression/apparmor/unix_socket_pathname.sh b/tests/regression/apparmor/unix_socket_pathname.sh
+index 8e92ad203..d45b59196 100755
+--- a/tests/regression/apparmor/unix_socket_pathname.sh
++++ b/tests/regression/apparmor/unix_socket_pathname.sh
+@@ -27,6 +27,8 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
++
+ requires_kernel_features policy/versions/v6
+ #af_mask for downgrade test af_unix for full test
+ requires_any_of_kernel_features network/af_mask network_v8/af_mask network_v9/af_mask
+@@ -57,20 +59,19 @@ fi
+ # af_unix support requires 'unix getattr' to call getsockname()
+ af_unix_okserver=
+ af_unix_okclient=
+-if ( [ "$(kernel_features network_v9/af_unix)" = "true" ] ||
+-     [ "$(kernel_features network_v8/af_unix)" = "true" ] ||
+-     [ "$(kernel_features network/af_unix)" = "true" ] ) &&
+-     [ "$(parser_supports 'unix,')" = "true" ] ; then
++if supports_unix_rules ; then
+ 	af_unix_okserver="create,setopt"
+ 	af_unix_okclient="create,getopt,setopt,getattr"
+-elif [ "$(kernel_features network_v8)" = "true" ] ||
+-     [ "$(kernel_features network_v9)" = "true" ] ; then
++elif supports_socket_mediation ; then
+ 	af_unix_okserver="create,setopt,bind,listen,accept,getopt,rw,shutdown"
+ 	af_unix_okclient="create,getopt,setopt,getattr,connect,rw"
+ 	downgraded="true"
+ 	echo "    using unix socket mediation downgrade ..."
+ 	# af_unix_okserver="create"
+ 	# af_unix_okclient="create"
++else
++	echo "    no unix mediation support. skipping tests"
++	exit 0
+ fi
+ 
+ okclient=rw
+diff --git a/tests/regression/apparmor/unix_socket_unnamed.sh b/tests/regression/apparmor/unix_socket_unnamed.sh
+index 1669aaba8..52434d2eb 100644
+--- a/tests/regression/apparmor/unix_socket_unnamed.sh
++++ b/tests/regression/apparmor/unix_socket_unnamed.sh
+@@ -27,10 +27,10 @@ pwd=`cd $pwd ; /bin/pwd`
+ bin=$pwd
+ 
+ . $bin/prologue.inc
++. "$bin/net_supports.inc"
+ . $bin/unix_socket.inc
+ requires_any_of_kernel_features policy/versions/v7 policy/versions/v8 policy/versions/v9
+-requires_any_of_kernel_features network/af_unix network_v9/af_unix
+-requires_parser_support "unix,"
++requires supports_unix_rules
+ 
+ settest unix_socket
+ 
+-- 
+2.43.0
+

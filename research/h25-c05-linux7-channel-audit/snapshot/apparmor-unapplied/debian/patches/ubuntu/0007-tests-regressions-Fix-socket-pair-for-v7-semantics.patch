@@ -1,0 +1,38 @@
+From 24ad8176744cb5cc1ceafb58302f529b3b96c1bf Mon Sep 17 00:00:00 2001
+From: John Johansen <john.johansen@canonical.com>
+Date: Thu, 11 Sep 2025 12:07:47 -0700
+Subject: [PATCH 7/7] tests: regressions: Fix socket pair for v7 semantics
+
+v7 unix socket label sets the socket to the opening tasks label and
+never changes it.
+
+Unfortunately the update to add v9 support got the label that would go
+on the socket for v7 wrong. Using the label the test is transitioning
+to instead of the label of the test when it opens the socket.
+
+Fixes: 43113b899 ("tests: regression: Update socketpair test for upstream v9 socket behavior")
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+(cherry picked from commit 3c09e1bd00ec74c5eb1771d3763265891c64ef46)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ tests/regression/apparmor/socketpair.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tests/regression/apparmor/socketpair.sh b/tests/regression/apparmor/socketpair.sh
+index baed6bb5f..f5e07d371 100755
+--- a/tests/regression/apparmor/socketpair.sh
++++ b/tests/regression/apparmor/socketpair.sh
+@@ -63,8 +63,8 @@ elif [ "$(kernel_features network_v8/af_unix)" = "true" -o \
+        "$(kernel_features network/af_unix)" = "true" -a \
+        "$(parser_supports 'unix,')" = "true" ] ; then
+ 	# old abi did not update the label to new task confinements using it
+-	np1_result="$np1"
+-	np1_np2_result="$np2"
++	np1_result="$test"
++	np1_np2_result="$test"
+         mixed_enforce="enforce"
+         mixed_complain="complain"
+ 	if [ "$(kernel_features network_v9/af_unix)" = "true" ] ; then
+-- 
+2.43.0
+

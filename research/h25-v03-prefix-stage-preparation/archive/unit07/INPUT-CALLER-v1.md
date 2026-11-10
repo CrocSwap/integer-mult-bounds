@@ -1,0 +1,12 @@
+# Unit07 input caller/integration review
+
+**PASS for P1 caller/preparer integration source inputs and design**, pending parent release and subsequent exact implementation/control review. Read exact DESIGN-v1 SHA5fe1fac04c60681295fff28f617e16897f215ba068dc443a626f876736600508 and caller design SHA8d5107a1fa480a0865d319a6f84c09bb9311fc0a01c204429fce66b338926cb8.
+
+Independent passive byte planning confirms replacing only closed90a's9,574-byte c205 prefix with accepted b783's9,878-byte48bc prefix yields34,716 bytes, predictedSHA25138c2c998762649c6a61cb8a6ae8aacd81bd533591b082ab6f58def712fca2. No candidate was written or executed here; old sources remain unchanged.
+
+The actual original source_packet uses Path(__file__).name dynamically for its own-source correspondence, and _caller_source_packet requires that same actual basename. Neither hardcodes run_queue4_subreaper.py. Therefore a new installed run_queue4_prefix_v2.py is source-compatible only when adjacent readonly SOURCE-READINESS.files selects that exact basename/final bytes/hash plus supervisor.pycfb. A packet retaining only the old basename refuses. This is an exact positive/negative source discriminator, not an assumption that old body preservation proves compatibility. The outer readiness/selection hashes are finalized later and independently selected; the new caller embeds neither, so no self-hash backedge arises.
+
+The actual old queue supports the specified DATA status and five false science fields. Design's real descriptor-relative preparation, observed links/identity pins, separate K, fixed B/M/JOBS paths and P→Q→M→STAGE→config→selection order align with the actual caller/entry schemas. Canonical history, locks, runner/subreaper/RootProxy remain original operations. Sourcepacket/config/stage approval checks precede their use and first selected project import; first-script approval remains the original explicit trusted-launcher premise.
+
+This accepts availability and implementability, not finished source. The frozen code must still demonstrate actual owned I/O/error paths, no overwritten/self-referential output, genuine nine-category base row checks, unchanged old bodies and correct new-only harness scope. Source/identity generation grants no admission; actual C05/C07/native/funding/current-history/fit/parent-exit and original baseline/fullV03 remain unestablished. No original/new candidate/test code was executed by this reviewer. Costs OPEN_NOT_ZERO.
+

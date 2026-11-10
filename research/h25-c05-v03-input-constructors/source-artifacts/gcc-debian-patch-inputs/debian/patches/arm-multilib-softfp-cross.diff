@@ -1,0 +1,27 @@
+# DP: ARM hard/softfp float multilib support
+
+Index: b/src/gcc/config/arm/t-linux-eabi
+===================================================================
+--- a/src/gcc/config/arm/t-linux-eabi	2011-01-03 20:52:22.000000000 +0000
++++ b/src/gcc/config/arm/t-linux-eabi	2011-08-21 21:08:47.583351817 +0000
+@@ -24,6 +24,20 @@
+ MULTILIB_OPTIONS	=
+ MULTILIB_DIRNAMES	=
+ 
++ifeq ($(with_float),hard)
++MULTILIB_OPTIONS	= mfloat-abi=softfp/mfloat-abi=hard
++MULTILIB_DIRNAMES	= sf hf
++MULTILIB_EXCEPTIONS	=
++MULTILIB_MATCHES	= mfloat-abi?hard=mhard-float mfloat-abi?softfp=msoft-float mfloat-abi?softfp=mfloat-abi?soft
++MULTILIB_OSDIRNAMES	= ../libsf:arm-linux-gnueabi ../lib:arm-linux-gnueabihf
++else
++MULTILIB_OPTIONS	= mfloat-abi=softfp/mfloat-abi=hard
++MULTILIB_DIRNAMES	= sf hf
++MULTILIB_EXCEPTIONS	=
++MULTILIB_MATCHES	= mfloat-abi?hard=mhard-float mfloat-abi?softfp=msoft-float mfloat-abi?softfp=mfloat-abi?soft
++MULTILIB_OSDIRNAMES	= ../lib:arm-linux-gnueabi ../libhf:arm-linux-gnueabihf
++endif
++
+ #MULTILIB_OPTIONS     += mcpu=fa606te/mcpu=fa626te/mcpu=fmp626/mcpu=fa726te
+ #MULTILIB_DIRNAMES    += fa606te fa626te fmp626 fa726te
+ #MULTILIB_EXCEPTIONS  += *mthumb/*mcpu=fa606te *mthumb/*mcpu=fa626te *mthumb/*mcpu=fmp626 *mthumb/*mcpu=fa726te*

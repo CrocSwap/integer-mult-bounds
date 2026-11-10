@@ -1,0 +1,33 @@
+# DP: Fix --with-long-double-128 for sparc32 when defaulting to 64-bit.
+
+On sparc, the --with-long-double-128 option doesn't change anything for
+a 64-bit compiler, as it always default to 128-bit long doubles. For
+a 32/64-bit compiler defaulting to 32-bit this correctly control the
+size of long double of the 32-bit compiler, however for a 32/64-bit
+compiler defaulting to 64-bit, the built-in specs force the 
+-mlong-double-64 option. This makes the option useless in this case.
+
+The patch below fixes that by removing the -mlong-double-64 from the
+built-in spec, using the default instead.
+
+Changelog gcc/
+
+2013-12-04  Aurelien Jarno  <aurelien@aurel32.net>
+
+	* config/sparc/linux64.h (CC1_SPEC): When defaulting to 64-bit,
+	don't force -mlong-double-64 when -m32 or -mv8plus is given.
+
+--- a/src/gcc/config/sparc/linux64.h
++++ b/src/gcc/config/sparc/linux64.h
+@@ -160,9 +160,9 @@ extern const char *host_detect_local_cpu
+ #else
+ #define CC1_SPEC GNU_USER_TARGET_CC1_SPEC ASAN_CC1_SPEC \
+ "%{m32:%{m64:%emay not use both -m32 and -m64}} \
+-%{m32:-mptr32 -mno-stack-bias %{!mlong-double-128:-mlong-double-64} \
++%{m32:-mptr32 -mno-stack-bias \
+   %{!mcpu*:-mcpu=cypress}} \
+-%{mv8plus:-mptr32 -mno-stack-bias %{!mlong-double-128:-mlong-double-64} \
++%{mv8plus:-mptr32 -mno-stack-bias \
+   %{!mcpu*:-mcpu=v9}} \
+ %{!m32:%{!mcpu*:-mcpu=ultrasparc}} \
+ %{!mno-vis:%{!m32:%{!mcpu=v9:-mvis}}}"

@@ -1,0 +1,32 @@
+From 711bbac5ebbb4df1c5af75494529229f00bdf10d Mon Sep 17 00:00:00 2001
+From: Ryan Lee <ryan.lee@canonical.com>
+Date: Tue, 6 May 2025 16:01:53 -0700
+Subject: [PATCH] parser: fix handling of norelatime mount rule flag
+
+Specifying norelatime should set the corresponding MS_RELATIME flag clear
+bit. Instead, it ORed in MS_NORELATIME, which expands to 0. Properly set
+the clear bit by using MS_RELATIME.
+
+Fixes: c9e31b7f "Add mount rules"
+
+Signed-off-by: Ryan Lee <ryan.lee@canonical.com>
+---
+ parser/mount.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/parser/mount.cc b/parser/mount.cc
+index ce7df3731..354e4d42f 100644
+--- a/parser/mount.cc
++++ b/parser/mount.cc
+@@ -288,7 +288,7 @@ static struct mnt_keyword_table mnt_opts_table[] = {
+ 	{"make-rshared",	MS_RSHARED, 0},
+ 
+ 	{"relatime",		MS_RELATIME, 0},
+-	{"norelatime",		0, MS_NORELATIME},
++	{"norelatime",		0, MS_RELATIME},
+ 	{"iversion",		MS_IVERSION, 0},
+ 	{"noiversion",		0, MS_IVERSION},
+ 	{"strictatime",		MS_STRICTATIME, 0},
+-- 
+2.43.0
+

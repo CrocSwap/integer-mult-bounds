@@ -1,0 +1,38 @@
+Subject: Fix redefinition of _ to _ignored
+
+ This is the backport of an upstream commit which redefines _ to _ignored as
+ the former definition causes apparmor to crash with "Profile for %s not
+ found, skipping" when enforcing apparmor.d. The bug was reported in Ubuntu
+ in LP #2078467. Below is the brief upstream commit message:
+
+ This was a regression introduced in 4f51c93f
+ Fixes: #387
+
+Origin: upstream, https://gitlab.com/apparmor/apparmor/-/commit/6f9e841e74f04cac78da71fd2e8af3f973af94fc
+Bug-Ubuntu: https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/2078467
+Forwarded: no
+Last-Update: 2025-03-19
+Applied-Upstream: https://gitlab.com/apparmor/apparmor/-/commit/6f9e841e74f04cac78da71fd2e8af3f973af94fc
+
+diff --git a/utils/apparmor/tools.py b/utils/apparmor/tools.py
+index e8a99bbe65cd1cba27984681050ce836f8ae242d..97654cd92fbd8be1a5600fe564363e00531fba7c 100644
+--- a/utils/apparmor/tools.py
++++ b/utils/apparmor/tools.py
+@@ -90,7 +90,7 @@ class aa_tools:
+     def get_next_for_modechange(self):
+         """common code for mode/flags changes"""
+ 
+-        for (program, _, prof_filename) in self.get_next_to_profile():
++        for (program, _ignored, prof_filename) in self.get_next_to_profile():
+             output_name = prof_filename if program is None else program
+ 
+             if not os.path.isfile(prof_filename) or is_skippable_file(prof_filename):
+@@ -162,7 +162,7 @@ class aa_tools:
+     def cmd_autodep(self):
+         apparmor.loadincludes()
+ 
+-        for (program, _, prof_filename) in self.get_next_to_profile():
++        for (program, _ignored, prof_filename) in self.get_next_to_profile():
+             if not program:
+                 aaui.UI_Info(_('Please pass an application to generate a profile for, not a profile itself - skipping %s.') % prof_filename)
+                 continue
