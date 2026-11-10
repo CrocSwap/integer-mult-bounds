@@ -5,8 +5,9 @@ The exact source is the same 72,143-event #7112 native word used in the
 3454c4900245ed1814ceeff79a741a45160eb3a93cf8d15f891fe2a67ba036fc.
 The 8+9 caller SHA256 is
 255d89f38cd45e38e5770f559bc43dc217e989032359768cdc7e8cdfd64b47bc.
-Use the same five #6030 assumptions, selected BIT backend and reviewed
-#7000 physical-tape application as in APPLICATION-8X8.md.
+Use the five #6030 assumptions listed in [README.md](README.md) and the
+selected BIT backend and fixed-tape construction of the
+[#7000 application review](https://github.com/CrocSwap/integer-mult-bounds/blob/e54523517d0f03e58352e647c403a5af3e525a57/docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md).
 
 The asymmetric type-B tape closes with five noncommuting quarter turns
 and twelve padding turns in inverse pairs. All required prefix pivots
@@ -15,9 +16,15 @@ The audited literal 4,783-event caller has 72 output fields. Both the
 rational Laurent replay and a separate integer Laurent engine prove
 the exact same endpoint for all formal central and body variables.
 The 17 distinct eight-axis blocks and nine central axes use ambient
-145. The phase-polynomial substitution and completed-child interpretation
-are the same as in APPLICATION-8X8.md, with the new ordered occurrence
-receipt. It binds all 13,600 native contacts, 110,638 paid positions,
+145. For each invocation the eight complement axes are exchanged with
+its fresh stage block, holding the routed central axis and spectator
+axes fixed. The affine phase-polynomial checks bind these maps in both
+directions. The literal A and B routes apply the commuting stage body
+operators on disjoint blocks. A negative central sign can be reoriented
+by the ordinary square of the central factor. A signed rank-nine idle
+uses one positive rank-nine recursive request and the ordinary
+conjugation and phase that implement the inverse on the protected axis.
+The ordered occurrence receipt binds these completed-child routes. It binds all 13,600 native contacts, 110,638 paid positions,
 22,172 productive fields and 18,428 independently allocated helpers.
 There are 867 reserved native banks and a rank surplus of 1,424.
 The exact 3,047-map native catalogue is reused on identical native
