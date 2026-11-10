@@ -27,7 +27,8 @@ def main():
     need(len(prs) == 13, "13 PRs")
     for n, r in prs.items():
         need(re.fullmatch(r"[0-9a-f]{40}", r["head"]) and r["merge_base"] == rec["base_commit"], f"#{n}: head and base")
-        need(not (ROOT / r["package"]).exists() and not r["package_on_main"], f"#{n}: package not retained at base")
+        # Retention is a fact about the recorded base commit, not the live checkout (these PRs have since merged).
+        need(r["package_on_main"] is False, f"#{n}: recorded as not retained at base")
         need(r["paths_changed_outside_package"] == [], f"#{n}: single-package addition")
         need(len(r["files"]) >= 5 and all(re.fullmatch(r"[0-9a-f]{40}", f["blob"]) for f in r["files"]), f"#{n}: blobs")
         need(all(f["path"].startswith(r["package"] + "/") for f in r["files"]), f"#{n}: files inside the package")
