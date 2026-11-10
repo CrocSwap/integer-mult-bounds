@@ -1,0 +1,267 @@
+"""Strict property-query DATA inverse, separate from the scientific receiver.
+
+Only the authenticated BoundConsumers owner calls this module. DATA never
+constructs a lease, parent, launch authority or original negative outcome.
+"""
+import hashlib
+import json
+import struct
+from pathlib import Path
+
+REQUEST_CAP = 32768
+STREAM_CAP = 1048576
+EVENT_CAP = 65536
+WRITE_CAP = 8192
+FAMILIES = ('metadata', 'backend', 'encoder')
+QUERY_ENVIRONMENT = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C',
+                     'LC_ALL': 'C', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+
+
+def need(value, reason):
+    if value is not True:
+        raise ValueError(reason)
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                       ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def exact(value, keys, reason):
+    need(type(value) is dict and all(type(k) is str for k in value)
+         and set(value) == set(keys), reason)
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact query digest')
+    return value
+
+
+def label(value):
+    need(type(value) is str and 0 < len(value) <= 64 and
+         all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value),
+         'bounded query label')
+    return value
+
+
+def absolute(value):
+    need(type(value) is str and 0 < len(value) <= 4096 and value.startswith('/') and
+         '\x00' not in value and all(c not in ('.', '..', '') for c in value.split('/')[1:]),
+         'canonical absolute query path')
+    return value
+
+
+def validate_request(request, case_id, supervision_root, profile):
+    exact(request, ('schema', 'family_id', 'query_id', 'program', 'argv', 'environment', 'cwd',
+                    'temporary_directory', 'limits', 'source_tuple_sha256', 'profile_sha256'),
+          'exact compiler property request')
+    need(request['schema'] == 'compiler-property-query-v1', 'property request schema')
+    need(request['family_id'] in FAMILIES, 'independent original compiler family')
+    label(case_id); label(request['query_id'])
+    for name in ('program', 'cwd', 'temporary_directory'):
+        absolute(request[name])
+    stem = 'query-' + request['family_id'] + '-' + request['query_id']
+    need(request['temporary_directory'] == str(supervision_root / (stem + '-tmp')),
+         'source-derived administrative TMPDIR; no science directory substitution')
+    exact(request['limits'], ('hard_as_bytes', 'stdout_bytes', 'stderr_bytes', 'events', 'seconds'),
+          'exact query capacities')
+    need(request['limits'] == {'hard_as_bytes': 268435456, 'stdout_bytes': STREAM_CAP,
+                              'stderr_bytes': STREAM_CAP, 'events': EVENT_CAP, 'seconds': 10}
+         and all(type(v) is int for v in request['limits'].values()), 'original fixed query limits')
+    argv, env = request['argv'], request['environment']
+    need(type(argv) is list and 1 <= len(argv) <= 24 and all(type(v) is str for v in argv),
+         'exact original query argv and native argc')
+    need(bool(argv[0]) and '\x00' not in argv[0], 'unchanged original argv0 spelling')
+    need(type(env) is dict and 1 <= len(env) <= 32 and
+         all(type(k) is str and type(v) is str for k, v in env.items()),
+         'bounded exact query environment')
+    need(env == dict(QUERY_ENVIRONMENT, TMPDIR=request['temporary_directory']),
+         'exact source-selected property environment and administrative TMPDIR')
+    for value in argv + [k + '=' + env[k] for k in sorted(env)]:
+        need(type(value) is str and 0 < len(value.encode('utf8')) <= 8192 and '\x00' not in value,
+             'bounded native query argument/environment bytes')
+    need(all('=' not in k and '\x00' not in k and k for k in env), 'native environment key')
+    for name in ('source_tuple_sha256', 'profile_sha256'):
+        need(digest(request[name]) == profile[name], 'same authenticated source/profile query subject')
+    programs = [p for p in profile['program_pins'] if p['path'] == request['program']]
+    need(len(programs) == 1, 'one selected actual query program image')
+    encoded = canonical(request)
+    need(len(encoded) <= REQUEST_CAP, 'whole semantic query request extent')
+    return stem, programs[0], sha(encoded)
+
+
+def encode_request(request, ordinal):
+    need(type(ordinal) is int and 1 <= ordinal <= 17, 'reserved query ordinal bound')
+    argv = [v.encode('utf8') for v in request['argv']]
+    env = [(k + '=' + request['environment'][k]).encode('utf8')
+           for k in sorted(request['environment'])]
+    raw = bytearray(b'PQOBS001' + struct.pack('<8I', ordinal, len(argv), len(env),
+                    STREAM_CAP, STREAM_CAP, EVENT_CAP, WRITE_CAP, 10000))
+    for value in argv + env:
+        raw.extend(struct.pack('<I', len(value))); raw.extend(value)
+    need(len(raw) <= REQUEST_CAP, 'complete native request capacity')
+    return bytes(raw)
+
+
+def strict_json(raw, cap):
+    need(type(raw) is bytes and 0 < len(raw) <= cap, 'bounded complete query JSON')
+    def pairs(items):
+        value = {}
+        for key, item in items:
+            need(key not in value, 'duplicate observer JSON member')
+            value[key] = item
+        return value
+    def forbidden(unused):
+        raise ValueError('query JSON floating/nonfinite numeric value')
+    value = json.loads(raw.decode('ascii'), object_pairs_hook=pairs,
+                       parse_float=forbidden, parse_constant=forbidden)
+    need(raw.endswith(b'\n') and b'\n' not in raw[:-1], 'one complete observer JSON line')
+    return value
+
+
+TERMINAL_FIELDS = ('query_id', 'tracee_pid', 'protocol_phase', 'exec_events', 'exit_event_seen',
+    'terminal_wait_seen', 'exit_code', 'term_signal', 'eof_mask', 'retired_tasks', 'live_tasks',
+    'syscall_entries', 'syscall_exits', 'terminal_exit_entries', 'write_entries', 'write_exits', 'snapshot_records',
+    'snapshot_stdout_bytes', 'snapshot_stderr_bytes', 'drained_stdout_bytes', 'drained_stderr_bytes',
+    'retained_stdout_bytes', 'retained_stderr_bytes', 'readback_stdout_bytes', 'readback_stderr_bytes',
+    'journal_entries', 'journal_overflow', 'primary_index', 'cleanup_uncertain')
+SNAPSHOT_CAP = 8 + 2 * STREAM_CAP + 2 * WRITE_CAP * 40
+
+
+def decode_journal(raw):
+    need(type(raw) is bytes and len(raw) == 4096, 'whole native journal extent')
+    magic, version, used, overflow, primary, r0, r1 = struct.unpack_from('<8s6I', raw)
+    need(magic == b'PQERR001' and version == 1 and r0 == r1 == 0,
+         'actual initialized native journal')
+    need(used <= 64 and overflow in (0, 1), 'native journal capacity/refusal')
+    entries = []
+    for index in range(64):
+        row = struct.unpack_from('<IIiIQ', raw, 32 + index * 24)
+        ready = struct.unpack_from('<I', raw, 1568 + index * 4)[0]
+        need(ready == (1 if index < used else 0), 'complete committed native error slots')
+        if index < used:
+            entries.append({'phase': row[0], 'operation': row[1], 'raw_errno': row[2],
+                            'detail': row[3], 'auxiliary': row[4]})
+        else:
+            need(row == (0, 0, 0, 0, 0), 'unused native error slot unchanged')
+    need(raw[1824:] == b'\0' * 2272, 'native error journal fixed tail')
+    need(primary == (0 if used else 4294967295), 'native primary index ordering')
+    return {'entries': entries, 'overflow': overflow, 'primary_index': primary}
+
+
+def decode_snapshots(raw):
+    need(type(raw) is bytes and 8 <= len(raw) <= SNAPSHOT_CAP and raw[:8] == b'PQSNAP01',
+         'complete bounded native snapshot stream')
+    offset, active, count, last_sequence = 8, None, 0, None
+    streams = {1: bytearray(), 2: bytearray()}
+    while offset < len(raw):
+        need(offset + 40 <= len(raw), 'snapshot header truncation')
+        kind, seq, fd, nr, requested, returned, payload_len, reserved = struct.unpack_from('<IIIIQqII', raw, offset)
+        offset += 40; count += 1
+        need(count <= 2 * WRITE_CAP and reserved == 0 and fd in (1, 2) and nr in (1, 20),
+             'snapshot record shape/ABI/FD/capacity')
+        need(requested <= STREAM_CAP and payload_len <= STREAM_CAP and offset + payload_len <= len(raw),
+             'snapshot requested/payload extent')
+        if kind == 1:
+            need(active is None and payload_len == requested and returned == 0 and
+                 (last_sequence is None or seq == last_sequence + 1), 'sole stopped syscall entry sequence')
+            active = (seq, fd, nr, requested, raw[offset:offset + payload_len])
+        else:
+            need(kind == 2 and active is not None and payload_len == 0 and
+                 (seq, fd, nr, requested) == active[:4] and returned == requested,
+                 'actual matching full syscall return; no short/restart/error acceptance')
+            streams[fd].extend(active[4])
+            need(len(streams[fd]) <= STREAM_CAP, 'aggregate successful write bytes')
+            last_sequence, active = seq, None
+        offset += payload_len
+    need(active is None and offset == len(raw), 'no missing syscall exit or snapshot trailer')
+    return bytes(streams[1]), bytes(streams[2]), count
+
+
+def validate_terminal(request, ordinal, context, payloads):
+    """Independent pure inverse of the actual owner's post-retirement evidence.
+
+    Caller authenticity is checked by the source-bound supervisor, not by any
+    serialized member. These observations cannot create the owner they describe.
+    """
+    exact(payloads, ('snapshot', 'stdout', 'stderr', 'terminal', 'journal'), 'complete query readback payloads')
+    terminal = strict_json(payloads['terminal'], 16384)
+    exact(terminal, ('schema', 'early_errors') + TERMINAL_FIELDS, 'exact native property terminal')
+    need(terminal['schema'] == 'native-property-observation-v1' and
+         all(type(terminal[k]) is int for k in TERMINAL_FIELDS), 'actual integer native observations')
+    need(type(terminal['early_errors']) is list and terminal['early_errors'] == [],
+         'pre-journal native errors cannot disappear behind later initialization')
+    expected = {'query_id': ordinal, 'protocol_phase': 8, 'exec_events': 1, 'exit_event_seen': 1,
+                'terminal_wait_seen': 1, 'exit_code': 0, 'term_signal': 0, 'eof_mask': 3,
+                'retired_tasks': 1, 'live_tasks': 0, 'cleanup_uncertain': 0, 'terminal_exit_entries': 1,
+                'journal_entries': 0, 'journal_overflow': 0, 'primary_index': 4294967295}
+    need(all(terminal[k] == v for k, v in expected.items()) and terminal['tracee_pid'] > 0,
+         'complete actual native protocol; exit zero and EOF alone are insufficient')
+    need(0 < terminal['syscall_entries'] <= EVENT_CAP and
+         terminal['syscall_exits'] == terminal['syscall_entries'],
+         'paired returning syscalls and separate real nonreturning terminal entry')
+    journal = decode_journal(payloads['journal'])
+    need(not journal['entries'] and journal['overflow'] == 0, 'native errors remain failed query evidence')
+    stdout, stderr, records = decode_snapshots(payloads['snapshot'])
+    need(stdout == payloads['stdout'] and stderr == payloads['stderr'],
+         'successful-write snapshots equal independently read retained drain bytes')
+    need(terminal['write_entries'] == terminal['write_exits'] == records // 2 and
+         terminal['snapshot_records'] == records, 'exact native write/snapshot census')
+    for stream, raw in (('stdout', stdout), ('stderr', stderr)):
+        need(len(raw) <= STREAM_CAP and all(terminal[p + '_' + stream + '_bytes'] == len(raw)
+             for p in ('snapshot', 'drained', 'retained', 'readback')), 'all native stream byte counts agree')
+    need(context['observer_wait'] == 0 and type(context['observer_wait']) is int and
+         context['guardian_registered'] is True and context['guardian_retired'] is True,
+         'genuine parent wait and guardian registration/retirement')
+    domain, relay = context['domain'], context['relay']
+    observer = context['observer_process']
+    need(type(observer) is dict and type(observer.get('pid')) is int and observer['pid'] > 0 and
+         type(observer.get('start_ticks')) is int and observer['start_ticks'] > 0 and
+         terminal['tracee_pid'] != observer['pid'] and
+         any(row['pid'] == observer['pid'] and row['start_ticks'] == observer['start_ticks']
+             for row in domain['owned_generations']), 'actual parent-owned observer generation and distinct native tracee')
+    need(domain['complete'] is True and domain['group_empty_proved'] is True and domain['remaining'] == []
+         and domain['observed_after_root_exit'] == [] and domain['reaped_adopted'] == [],
+         'sole observer/tracee ownership and no surviving or adopted task')
+    need(relay['all_descriptors_known_closed'] is True and relay['eof_complete'] is True and
+         relay['overflow'] is False and relay['raw_error_present'] is False,
+         'complete parent observer diagnostic capture and endpoint retirement')
+    need(type(relay.get('streams')) is list and len(relay['streams']) == 2, 'two actual observer diagnostic streams')
+    for index, name in enumerate(('stdout', 'stderr')):
+        pin, stream = context['diagnostic_pins'][name], relay['streams'][index]
+        need(pin['bytes'] == stream['bytes'] == stream['observed_bytes'] == stream['final_bytes'] == 0 and
+             pin['sha256'] == stream['sha256'] == sha(b'') and stream['eof'] is True and
+             stream['overflow'] is False and stream['write_uncertain'] is False and stream['discarded_bytes'] == 0,
+             'independent observer raw diagnostic readback and relay agreement')
+    need(context['custody']['all_closed'] is True and context['custody']['raw_error_present'] is False and
+         context['scratch']['writer_retired'] is True and context['scratch']['finalized'] is True,
+         'all query evidence and administrative scratch writers retired')
+    need(context['request_sha256'] == sha(canonical(request)) and
+         context['native_request_sha256'] == sha(encode_request(request, ordinal)), 'exact native/semantic request join')
+    need(context['source_tuple_sha256'] == request['source_tuple_sha256'] and
+         context['profile_sha256'] == request['profile_sha256'] and
+         context['program_pin']['path'] == request['program'], 'exact case source/profile/program binding')
+    for name, raw in payloads.items():
+        pin = context['readback_pins'][name]
+        need(pin['bytes'] == len(raw) and pin['sha256'] == sha(raw), 'independent complete file readback identity')
+    observation = {'protocol': 'QUALIFIED', 'request_sha256': context['request_sha256'],
+        'terminal': terminal, 'journal': journal,
+        'case_id': context['case_id'], 'attempt_identity': context['attempt_identity'],
+        'family_id': request['family_id'], 'query_id': request['query_id'],
+        'observer_pin': context['observer_pin'], 'observer_source_pin': context['observer_source_pin'],
+        'program_pin': context['program_pin'], 'readback_pins': context['readback_pins'],
+        'diagnostic_pins': context['diagnostic_pins'],
+        'source_tuple_sha256': context['source_tuple_sha256'], 'profile_sha256': context['profile_sha256'],
+        'parent_wait': context['observer_wait'], 'guardian_retired': context['guardian_retired'],
+        'domain_retired': True, 'hard_as_bytes': 268435456,
+        'stdout': {'bytes': len(stdout), 'sha256': sha(stdout)},
+        'stderr': {'bytes': len(stderr), 'sha256': sha(stderr)},
+        'domain': domain, 'custody': context['custody'], 'scratch': context['scratch'],
+        'enclosed_actual_elapsed_ns': context['elapsed_ns'], 'scientific_receiver_used': False}
+    return {'schema': 'compiler-property-result-v1', 'request_sha256': context['request_sha256'],
+            'stdout': stdout, 'stderr': stderr, 'observer': observation}

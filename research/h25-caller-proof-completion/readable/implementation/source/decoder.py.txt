@@ -1,0 +1,1053 @@
+"""SOURCE-ONLY independent exact-prefix DATA oracle V3. Parent review/grant required."""
+import argparse
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import stat
+import time
+
+"""Independent literal DATA grammar reader. SOURCE ONLY; no target imports.
+
+Derived from the documented encoder language, without reading its decoder.
+Native IDs remain integers. This module creates no capabilities or foreign types.
+"""
+MAX_WIRE=16777216
+MAX_NODES=200000
+MAX_DEPTH=32
+MAX_CONTAINER=16384
+MAX_ATOM=65536
+MAX_INT_BITS=128
+
+class Rejected(ValueError):
+    def __init__(self,code,offset=0):
+        self.code,self.offset=code,offset
+        super().__init__(code+'@'+str(offset))
+
+def require(condition,code):
+    if condition is not True:raise Rejected(code)
+
+class Reader:
+    def __init__(self,raw,limit=MAX_WIRE,node_limit=MAX_NODES,depth_limit=MAX_DEPTH):
+        require(type(raw) is bytes,'INPUT_TYPE')
+        require(type(limit) is int and 0<limit<=MAX_WIRE,'LIMIT_DOMAIN')
+        require(type(node_limit) is int and 0<node_limit<=MAX_NODES,'LIMIT_DOMAIN')
+        require(type(depth_limit) is int and 0<=depth_limit<=MAX_DEPTH,'LIMIT_DOMAIN')
+        require(0<len(raw)<=limit,'WIRE_BOUND')
+        self.raw,self.at,self.nodes=raw,0,0
+        self.node_limit,self.depth_limit=node_limit,depth_limit
+    def fail(self,code):raise Rejected(code,self.at)
+    def number(self,end,signed=False):
+        start=self.at
+        stop=self.raw.find(bytes((end,)),start,min(len(self.raw),start+42))
+        if stop<0:self.fail('NUMBER_TERMINATOR')
+        token=self.raw[start:stop]
+        negative=signed and token[:1]==b'-'
+        digits=token[1:] if negative else token
+        if not digits or any(c<48 or c>57 for c in digits):self.fail('NUMBER_SYNTAX')
+        if len(digits)>1 and digits[0]==48:self.fail('NUMBER_CANONICAL')
+        if negative and digits==b'0':self.fail('NUMBER_CANONICAL')
+        value=int(token)
+        if value.bit_length()>MAX_INT_BITS:self.fail('INTEGER_BOUND')
+        self.at=stop+1
+        return value
+    def item(self,depth):
+        if depth>self.depth_limit:self.fail('DEPTH_BOUND')
+        self.nodes+=1
+        if self.nodes>self.node_limit:self.fail('NODE_BOUND')
+        if self.at>=len(self.raw):self.fail('TRUNCATED')
+        tag=self.raw[self.at];self.at+=1
+        if tag==110:return None
+        if tag==121:return True
+        if tag==122:return False
+        if tag==105:return self.number(59,True)
+        if tag in (115,98):
+            length=self.number(58)
+            # A UTF8 string can occupy four bytes per admitted code point.
+            cap=MAX_ATOM*4 if tag==115 else MAX_ATOM
+            if length>cap:self.fail('ATOM_BOUND')
+            stop=self.at+length
+            if stop>len(self.raw):self.fail('TRUNCATED_ATOM')
+            value=self.raw[self.at:stop];self.at=stop
+            if tag==98:return value
+            try:value=value.decode('utf-8','strict')
+            except UnicodeDecodeError:self.fail('UTF8')
+            if len(value)>MAX_ATOM:self.fail('STRING_BOUND')
+            return value
+        if tag not in (116,108,100):self.fail('TAG')
+        count=self.number(58)
+        if count>MAX_CONTAINER:self.fail('CONTAINER_BOUND')
+        if tag==100:
+            result={};previous=None
+            for unused in range(count):
+                key=self.item(depth+1)
+                if type(key) is not str:self.fail('DICT_KEY_TYPE')
+                if previous is not None and key<=previous:self.fail('DICT_KEY_ORDER')
+                previous=key
+                result[key]=self.item(depth+1)
+            return result
+        values=[]
+        for unused in range(count):values.append(self.item(depth+1))
+        return tuple(values) if tag==116 else values
+    def read(self):
+        result=self.item(0)
+        if self.at!=len(self.raw):self.fail('TRAILING')
+        return result
+
+def decode(raw,limit=MAX_WIRE,node_limit=MAX_NODES,depth_limit=MAX_DEPTH):
+    return Reader(raw,limit,node_limit,depth_limit).read()
+
+def dimensions(value):
+    """Independent recursive occurrence census and canonical-length formula.
+
+    This emits no encoded bytes and calls no source encoder. Aliased native
+    containers, if supplied by fixture authors, count once per occurrence.
+    """
+    out=dict(nodes=0,max_depth=0,max_container=0,max_bytes_atom=0,
+        max_string_chars=0,string_utf8_bytes=0,integer_occurrences=0,
+        max_integer_bits=0,tuple_occurrences=0,list_occurrences=0,
+        dict_occurrences=0,canonical_bytes_observed=0)
+    active=set()
+    def visit(x,depth):
+        require(depth<=MAX_DEPTH,'DIM_DEPTH')
+        out['nodes']+=1;require(out['nodes']<=MAX_NODES,'DIM_NODES')
+        out['max_depth']=max(out['max_depth'],depth);k=type(x)
+        if x is None or k is bool:size=1
+        elif k is int:
+            require(x.bit_length()<=MAX_INT_BITS,'DIM_INTEGER')
+            out['integer_occurrences']+=1
+            out['max_integer_bits']=max(out['max_integer_bits'],x.bit_length())
+            size=len(str(x))+2
+        elif k is bytes:
+            require(len(x)<=MAX_ATOM,'DIM_BYTES');out['max_bytes_atom']=max(out['max_bytes_atom'],len(x));size=2+len(str(len(x)))+len(x)
+        elif k is str:
+            require(len(x)<=MAX_ATOM,'DIM_STRING');n=len(x.encode('utf-8'))
+            out['max_string_chars']=max(out['max_string_chars'],len(x));out['string_utf8_bytes']+=n;size=2+len(str(n))+n
+        else:
+            require(k in (tuple,list,dict),'DIM_TYPE');require(len(x)<=MAX_CONTAINER and id(x) not in active,'DIM_CONTAINER')
+            active.add(id(x));out['max_container']=max(out['max_container'],len(x))
+            out[{tuple:'tuple_occurrences',list:'list_occurrences',dict:'dict_occurrences'}[k]]+=1
+            size=2+len(str(len(x)))
+            if k is dict:
+                require(all(type(key) is str for key in x),'DIM_KEY')
+                for key in sorted(x):visit(key,depth+1);visit(x[key],depth+1)
+            else:
+                for child in x:visit(child,depth+1)
+            active.remove(id(x))
+        out['canonical_bytes_observed']+=size
+        require(out['canonical_bytes_observed']<=MAX_WIRE,'DIM_WIRE')
+    visit(value,0)
+    return out
+
+def exact(left,right):
+    """Type-sensitive comparison; bool/int and tuple/list stay distinct."""
+    if type(left) is not type(right):return False
+    if type(left) in (tuple,list):return len(left)==len(right) and all(exact(a,b) for a,b in zip(left,right))
+    if type(left) is dict:return set(left)==set(right) and all(exact(left[k],right[k]) for k in left)
+    return left==right
+
+
+PREFIX_METADATA_KEYS = ('H02_internal_E04_occurrences', 'actual_command_sha256', 'artifact_bytes', 'artifact_sha256', 'base_fixture_constructions', 'capture_observations', 'compiler_calls', 'complete99case_qualification', 'complete_model', 'diagnostic_status', 'execution_approval_sha256', 'fake_dispatch_calls', 'fullscience', 'gain', 'genuine_H02_occurrences', 'host_dimensions', 'host_full_serializer_occurrences', 'lane', 'mode', 'native_field_calls', 'native_or_full_union_admission', 'normalized_stage_is_not_actual_full_stage', 'normalized_stage_sha256', 'ordinary_E04_occurrences', 'original_first50_included', 'original_root_sha256', 'parent_independent_prefix_outcome_review_required', 'performance_claimed', 'prior_stdout_bytes', 'prior_terminal_cleanup_complete', 'receipt_epoch_success_requires_authenticated_runner_exit_zero', 'representative_pending_occurrences', 'schema', 'scope', 'source_manifest_sha256', 'status', 'target_parser_calls')
+# Semantic source fragment. Joined after literal_data.py; never imports producer.
+TERMINAL_KEYS=set(('schema parent_receipt model_raw_ownership_v4 error_slots first_primary_id overflow native_error_typed_records pending_values_typed_chunks pending_raw_typed_chunks pending_flags pending_error_id pending_return_id pending_builder_id known_fd_tokens pending_acquisitions close_attempted close_confirmed unknown_acquisition quarantined evidence_incomplete last_source_path original_root_ready root_internal_uncertainty original_parser_registry_available original_parser_class_available original_parser_class_id all_nonterminal_known_cleanup_attempts_before_encoding reserved_terminal_token_retained_until_bounded_artifact_write opaque_objects_retained_until_process_exit native_or_full_union_admission').split())
+SIDE_KEYS=set(('phase actual_held_object_id actual_held_type_id original_markers partial_nodes raw_complete completed_native_error_snapshots snapshot original_receipt_and_writer_rows capture_append_or_injection_error_id capture_append_or_injection_error_type_id opaque_originals_owned_until_process_exit').split())
+GRAPH_KEYS=set(('schema held_root original_marker_roots nodes held_object_id held_type_id receipt_object_id writer_rows_object_id complete identity_verdict_recorded foreign_formatting').split())
+TRACE_KEYS=set(('schema root_object_id objects complete foreign_formatting').split())
+OBJECT_KEYS=set(('object_id type_id type args cause_id context_id suppress_context frames').split())
+FRAME_KEYS=set(('code_id globals_id filename name qualname firstlineno lineno lasti pinned_parser_names').split())
+ROW_IDS=('SOURCE_ADMISSION_BEFORE_MODELS','E04-stop-write-secondary','E04-stop-write-secondary','H02-legacy-comparison-failure-handoff','A21-pending-VALIDATION','PREFIX_DIMENSION_OBSERVATIONS')
+
+def mapping(value,keys,code='SCHEMA_KEYS'):
+    require(type(value) is dict and set(value)==set(keys),code)
+    return value
+
+def sequence(value,length=None,kind=tuple,code='SEQUENCE'):
+    require(type(value) is kind and (length is None or len(value)==length),code)
+    return value
+
+def integer(value,nullable=False):
+    require((nullable and value is None) or (type(value) is int and 0<value<(1<<128)),'OBSERVED_ID')
+
+def equal(left,right,code='VALUE'):
+    require(exact(left,right),code)
+
+def chunks(value,limit):
+    sequence(value)
+    require(value and len(value)<=256,'CHUNKS_ARITY')
+    require(all(type(b) is bytes and 0<len(b)<=65536 for b in value),'CHUNKS_ATOMS')
+    require(all(len(b)==65536 for b in value[:-1]),'CHUNKS_ORDER')
+    require(sum(map(len,value))<=limit,'CHUNKS_BOUND')
+    return b''.join(value)
+
+class Audit:
+    def __init__(self):
+        self.decoded_bytes=0;self.decoded_nodes=0;self.documents=0
+        self.rows=[]
+    def parse(self,raw,limit=16777216):
+        # Independent audit aggregate limits are additional conservative stops.
+        self.decoded_bytes+=len(raw);self.documents+=1
+        require(self.decoded_bytes<=16777216 and self.documents<=256,'AUDIT_AGGREGATE')
+        value=decode(raw,limit);dims=dimensions(value)
+        self.decoded_nodes+=dims['nodes'];require(self.decoded_nodes<=200000,'AUDIT_NODES')
+        equal(dims['canonical_bytes_observed'],len(raw),'INDEPENDENT_LENGTH')
+        self.rows.append({'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'dimensions':dims})
+        return value
+    def journal(self,records,expected):
+        sequence(records,len(expected),list)
+        result=[];total=0
+        for row,name in zip(records,expected):
+            sequence(row,3);equal(row[0],name,'ROW_ORDER')
+            require(type(row[1]) is int and 0<row[1]<=1048576,'ROW_SIZE')
+            raw=chunks(row[2],1048576);equal(len(raw),row[1],'ROW_LENGTH')
+            value=self.parse(raw,1048576);sequence(value)
+            require(value and type(value[0]) is str,'ROW_SHAPE');equal(value[0],name,'ROW_ID')
+            result.append(value);total+=len(raw)
+        require(total<=1572864,'JOURNAL_BOUND')
+        return result,total
+
+def _trace_objects(value,tags,parser_id=None):
+    integer(value['root_object_id']);objects=sequence(value['objects']);require(0<len(objects)<=8,'TRACE_NODE_BOUND')
+    ids=[];code_aliases={}
+    for obj in objects:
+        mapping(obj,OBJECT_KEYS);integer(obj['object_id']);integer(obj['type_id']);ids.append(obj['object_id'])
+        require(obj['type'] in tags,'TRACE_TYPE_TAG')
+        
+        if obj['type']=='ORIGINAL_ELFAdmissionError':require(parser_id is None or obj['type_id']==parser_id,'TRACE_PARSER_CLASS_ID')
+        elif parser_id is not None:require(obj['type_id']!=parser_id,'TRACE_NONPARSER_TYPE_ID')
+        sequence(obj['args']);integer(obj['cause_id'],True);integer(obj['context_id'],True)
+        require(type(obj['suppress_context']) is bool,'TRACE_SUPPRESSION')
+        frames=sequence(obj['frames']);require(len(frames)<=64,'TRACE_FRAME_BOUND')
+        for frame in frames:
+            mapping(frame,FRAME_KEYS);integer(frame['code_id']);integer(frame['globals_id'])
+            require(all(type(frame[k]) is str and len(frame[k])<=65536 for k in ('filename','name','qualname')),'TRACE_FRAME_STRINGS')
+            require(all(type(frame[k]) is int for k in ('firstlineno','lineno','lasti')) and frame['firstlineno']>0 and frame['lineno']>=frame['firstlineno'] and frame['lasti']>=0,'TRACE_FRAME_OFFSETS')
+            code_signature=tuple(frame[k] for k in ('filename','name','qualname','firstlineno'))
+            if frame['code_id'] in code_aliases:equal(code_signature,code_aliases[frame['code_id']],'FRAME_CODE_ID_COHERENCE')
+            else:code_aliases[frame['code_id']]=code_signature
+            sequence(frame['pinned_parser_names']);require(all(type(n) is str for n in frame['pinned_parser_names']),'TRACE_PARSER_NAMES')
+    require(len(set(ids))==len(ids) and value['root_object_id'] in ids,'TRACE_IDS')
+    require(all(obj[k] is None or obj[k] in ids for obj in objects for k in ('cause_id','context_id')),'TRACE_LINK')
+    # Reachability of exception cause/context graph, with cycles represented by IDs.
+    byid={obj['object_id']:obj for obj in objects};todo=[value['root_object_id']];seen=set()
+    while todo:
+        n=todo.pop()
+        if n in seen:continue
+        seen.add(n);todo.extend(byid[n][k] for k in ('cause_id','context_id') if byid[n][k] is not None)
+    equal(seen,set(ids),'TRACE_REACHABILITY')
+    return byid
+
+
+def error_trace(value):
+    # Core producer errors.snapshot: exactly five keys, no early-v2 union.
+    mapping(value,TRACE_KEYS);equal(value['schema'],'h25-gap-native-error-trace-v1')
+    equal(value['complete'],True);equal(value['foreign_formatting'],False)
+    return _trace_objects(value,('ORIGINAL_ELFAdmissionError','OTHER_OPAQUE_EXCEPTION_TYPE'))
+
+def early_trace(value,available=None,class_id=None):
+    # Adapter/host _early_error_snapshot: exactly seven keys and distinct tags.
+    mapping(value,TRACE_KEYS|{'original_parser_class_available','original_parser_class_id'})
+    equal(value['schema'],'h25-gap-native-error-trace-v2');equal(value['complete'],True);equal(value['foreign_formatting'],False)
+    present=value['original_parser_class_available'];pid=value['original_parser_class_id']
+    require(type(present) is bool,'EARLY_CLASS_FLAG');integer(pid,not present)
+    require(present is True or pid is None,'EARLY_CLASS_ID')
+    if available is not None:equal(present,available,'EARLY_CLASS_FLAG_BINDING');equal(pid,class_id,'EARLY_CLASS_ID_BINDING')
+    tags=('ORIGINAL_ELFAdmissionError','BUILTIN_RuntimeError','OTHER_OPAQUE_EXCEPTION_TYPE') if present else ('BUILTIN_RuntimeError','OTHER_OPAQUE_EXCEPTION_TYPE')
+    return _trace_objects(value,tags,pid)
+
+def graph(value):
+    mapping(value,GRAPH_KEYS);equal(value['schema'],'h25-legacy-returned-ownership-v4')
+    equal(value['complete'],True);equal(value['identity_verdict_recorded'],False);equal(value['foreign_formatting'],False)
+    nodes=sequence(value['nodes'],kind=list);require(0<len(nodes)<=512,'GRAPH_NODE_BOUND')
+    markers=sequence(value['original_marker_roots'],3)
+    for pair,label in zip(markers,('write','close','late')):sequence(pair,2);equal(pair[0],label,'MARKER_ORDER')
+    roots=[value['held_root']]+[p[1] for p in markers];seen=set();order=[];maxdepth=0;aliases={};type_tags={};type_ids={}
+    def visit(index,depth):
+        nonlocal maxdepth
+        require(type(index) is int and 0<=index<len(nodes) and index not in seen and depth<=16,'GRAPH_EDGE')
+        seen.add(index);order.append(index);maxdepth=max(maxdepth,depth)
+        row=sequence(nodes[index],4,list);oid,tid,tag,payload=row;integer(oid);integer(tid)
+        require(type(tag) is str,'GRAPH_TAG')
+        edges=[]
+        if tag in ('NONE','BOOL','INT','STR','BYTES'):
+            expected={'NONE':type(None),'BOOL':bool,'INT':int,'STR':str,'BYTES':bytes}[tag]
+            require(type(payload) is expected,'GRAPH_SCALAR_TYPE');dimensions(payload)
+            signature=(tid,tag,payload)
+        elif tag in ('TUPLE','LIST','DICT'):
+            sequence(payload,kind=list if tag=='LIST' else tuple)
+            if tag=='DICT':
+                for pair in payload:sequence(pair,2);edges.extend(pair)
+            else:edges.extend(payload)
+            require(all(type(e) is int and index<e<len(nodes) for e in edges),'GRAPH_PREORDER_EDGE')
+            signature=(tid,tag,tuple(nodes[e][0] for e in edges))
+        elif tag=='NATIVE_ERROR':
+            objects=error_trace(payload);equal(payload['root_object_id'],oid,'GRAPH_ERROR_ID');equal(objects[oid]['type_id'],tid,'GRAPH_ERROR_TYPE_ID');signature=(tid,tag,payload)
+        elif tag=='OPAQUE':equal(payload,None,'OPAQUE_PAYLOAD');signature=(tid,tag,None)
+        else:raise Rejected('GRAPH_TAG')
+        if oid in aliases:equal(signature,aliases[oid],'GRAPH_ALIAS_ID')
+        else:aliases[oid]=signature
+        if tag in ('NONE','BOOL','INT','STR','BYTES','TUPLE','LIST','DICT'):
+            if tag in type_tags:equal(type_tags[tag],tid,'GRAPH_TYPE_TAG_ID')
+            if tid in type_ids:equal(type_ids[tid],tag,'GRAPH_TYPE_TAG_ID')
+            type_tags[tag]=tid;type_ids[tid]=tag
+        for edge in edges:visit(edge,depth+1)
+    for root in roots:visit(root,0)
+    equal(order,list(range(len(nodes))),'GRAPH_FOREST_PREORDER')
+    for key in ('held_object_id','held_type_id','receipt_object_id','writer_rows_object_id'):integer(value[key])
+    equal(nodes[value['held_root']][0],value['held_object_id'],'HELD_ID');equal(nodes[value['held_root']][1],value['held_type_id'],'HELD_TYPE_ID')
+    return {'nodes_observed':len(nodes),'max_depth_observed':maxdepth,'roots_observed':4}
+
+def sidecar(value,snapshot=None):
+    mapping(value,SIDE_KEYS);equal(value['raw_complete'],True);equal(value['opaque_originals_owned_until_process_exit'],True)
+    snap=value['snapshot'];dims=graph(snap)
+    if snapshot is not None:equal(snap,snapshot,'SNAPSHOT_ROW_BINDING')
+    equal(value['partial_nodes'],snap['nodes'],'PARTIAL_NODE_BINDING');equal(value['actual_held_object_id'],snap['held_object_id']);equal(value['actual_held_type_id'],snap['held_type_id'])
+    sequence(value['original_markers'],3)
+    for row,pair in zip(value['original_markers'],snap['original_marker_roots']):
+        sequence(row,3);equal(row[0],pair[0]);node=snap['nodes'][pair[1]];equal(row[1],node[0]);equal(row[2],node[1]);equal(node[2],'NATIVE_ERROR','MARKER_EXCEPTION')
+        objects=error_trace(node[3]);root=objects[node[0]]
+        equal(root['args'],({'write':('model raw writer',),'close':('model cleanup',),'late':('model late graph',)}[row[0]]),'MARKER_MESSAGE')
+    for trace in sequence(value['completed_native_error_snapshots']):error_trace(trace)
+    equal(value['completed_native_error_snapshots'],tuple(n[3] for n in snap['nodes'] if n[2]=='NATIVE_ERROR'),'COMPLETE_CORE_SNAPSHOTS')
+    sequence(value['original_receipt_and_writer_rows'],2);sequence(value['original_receipt_and_writer_rows'][1],kind=list)
+    integer(value['capture_append_or_injection_error_id'],True);integer(value['capture_append_or_injection_error_type_id'],True)
+    # Selected E04 holder is the complete five-slot literal graph.
+    root=snap['nodes'][snap['held_root']];equal(root[2],'TUPLE');sequence(root[3],5)
+    held=[snap['nodes'][n] for n in root[3]];equal(held[0][2],'NATIVE_ERROR');equal(held[1][2],'TUPLE');equal(held[2][2],'NONE');equal(held[3][2],'DICT');equal(held[4][2],'NONE')
+    require(value['original_markers'][0][1] in [snap['nodes'][n][0] for n in held[1][3]],'WRITE_SECONDARY_ALIAS')
+    return dims
+
+def terminal(value,audit,outer=False):
+    mapping(value,TERMINAL_KEYS);equal(value['schema'],'h25-gap41-terminal-raw-v3')
+    equal(value['native_or_full_union_admission'],False);equal(value['opaque_objects_retained_until_process_exit'],True)
+    equal(value['all_nonterminal_known_cleanup_attempts_before_encoding'],True)
+    for k in ('pending_flags','known_fd_tokens','pending_acquisitions','close_attempted','close_confirmed','unknown_acquisition'):
+        sequence(value[k],4 if k=='pending_flags' else 5)
+    for k in ('pending_flags','pending_acquisitions','close_attempted','close_confirmed','unknown_acquisition'):
+        require(all(type(v) is bool for v in value[k]),'TERMINAL_FLAG_TYPE')
+    for k in ('pending_error_id','pending_return_id','pending_builder_id','first_primary_id','original_parser_class_id'):integer(value[k],True)
+    sequence(value['error_slots']);sequence(value['native_error_typed_records'])
+    for row in value['error_slots']:sequence(row,2);require(type(row[0]) is str,'ERROR_LABEL');integer(row[1])
+    for row in value['native_error_typed_records']:
+        sequence(row,2);integer(row[0]);trace=audit.parse(row[1],65536);early_trace(trace,value['original_parser_class_available'],value['original_parser_class_id']);equal(trace['root_object_id'],row[0],'TRACE_OWNER_ID')
+    results={}
+    for row in sequence(value['pending_values_typed_chunks']):
+        sequence(row,3);require(row[0] in ('actual-return','builder-return') and row[0] not in results,'PENDING_VALUE_ORDER');integer(row[1]);results[row[0]]=audit.parse(chunks(row[2],2097152),2097152)
+        equal(row[1],value['pending_return_id' if row[0]=='actual-return' else 'pending_builder_id'],'PENDING_ID')
+    if outer:
+        equal(tuple(results),('actual-return','builder-return'),'PENDING_VALUE_ORDER')
+        equal(value['error_slots'],());equal(value['first_primary_id'],None);equal(value['overflow'],None)
+        equal(value['pending_flags'],(False,True,True,False));equal(value['pending_raw_typed_chunks'],())
+        equal(value['evidence_incomplete'],False);equal(value['quarantined'],False);equal(value['original_root_ready'],True)
+        equal(value['original_parser_registry_available'],True);equal(value['original_parser_class_available'],True)
+        equal(value['reserved_terminal_token_retained_until_bounded_artifact_write'],True)
+        # The preopened artifact descriptor can remain live at this capture instant.
+        require(all(v is None for v in value['known_fd_tokens'][:4]) and type(value['known_fd_tokens'][4]) is int,'TERMINAL_CAPTURE_TOKENS')
+    return results
+
+def legacy_row(row,audit,mode):
+    sequence(row,5);equal(row[:2],('E04-stop-write-secondary','LEGACY_RAW_BEFORE_COMPARE'))
+    receipt=row[2];mapping(receipt,('schema status phase cases_complete calls_attempted raw_capture qualification_complete native_authority performance_gain_claimed sink_close sink_receipt').split())
+    for k,v in {'schema':'h25-gap41-observations-v1','status':'STOP','phase':'COMPARE_RETAINED_RAW','cases_complete':0,'calls_attempted':1,'raw_capture':'DURABLE','qualification_complete':False,'native_authority':False,'performance_gain_claimed':False}.items():equal(receipt[k],v,'LEGACY_RECEIPT')
+    equal(receipt['sink_close'],{'directory_closed':True,'model_only':True});equal(receipt['sink_receipt'],{'model_only':True,'records':5})
+    writers=sequence(row[3],5);equal(tuple(p[0] for p in writers),('START','PLAN','INPUT','RAW','STOP'),'WRITER_ORDER')
+    docs=[]
+    for item in writers:sequence(item,2);docs.append(audit.parse(item[1],2097152))
+    start,plan,inp,raw,stop=docs
+    equal(start,{'schema':'h25-gap41-start-v1','mode':mode,'cases':41,'calls':66,'fixture_constructions':76,'intended_returns':31,'intended_exact_rejects':35,'native_authority':False,'original_201_and_all202_and_runtime_union_required':True},'START_PARAMETERS')
+    mapping(plan,('schema case_index case_id actual_builder_return validation').split());equal(plan['schema'],'h25-gap-plan-raw-v1');equal(plan['case_index'],0);equal(plan['case_id'],'positive-base');equal(plan['validation'],'NOT_APPLIED');sequence(plan['actual_builder_return'],2)
+    check_base_plan(plan['actual_builder_return']);actual_plan=plan['actual_builder_return'][0];mapping(actual_plan,('schema id spec steps mutation_provenance input_inverse input_sha256 observations native_authority production_image_claim plan_sha256').split());equal(actual_plan['id'],'positive-base');equal(actual_plan['native_authority'],False);equal(actual_plan['production_image_claim'],False)
+    for d,schema in ((inp,'h25-gap-step-input-v1'),(raw,'h25-gap-step-raw-v1')):
+        mapping(d,('schema case_id step_index entry args actual_input_sha256 final_plan_sha256 outcome').split() if schema=='h25-gap-step-input-v1' else ('schema case_id step_index entry full_typed_args_after_call input_sha256_before input_sha256_after actual_whole_outcome final_plan_sha256 validation').split());equal(d['schema'],schema);equal(d['case_id'],'positive-base');equal(d['step_index'],0);equal(d['entry'],'admit_service_elf');equal(d['final_plan_sha256'],actual_plan['plan_sha256'])
+    equal(inp['args'],actual_plan['steps'][0]['args'],'SOURCE_POSITIVE_ARGUMENTS');equal(inp['actual_input_sha256'],canonical_hash(('admit_service_elf',inp['args'])),'INDEPENDENT_INPUT_HASH');equal(inp['args'],raw['full_typed_args_after_call'],'STEP_ARGUMENTS');equal(inp['actual_input_sha256'],raw['input_sha256_before']);equal(raw['input_sha256_before'],raw['input_sha256_after'],'INPUT_MUTATION');equal(raw['actual_whole_outcome'],('RETURN',{'whole':17}),'ACTUAL_MODEL_RETURN');equal(raw['validation'],'NOT_APPLIED');equal(inp['outcome'],'NOT_RETURNED')
+    mapping(stop,('schema status phase raw_capture cases_complete calls_attempted primary_exception_id secondary_exception_ids actual_error_id actual_return_retained pending_record_bytes prior_durable_pin_count qualification_complete foreign_exception_formatting').split());equal(stop['schema'],'h25-gap41-stop-v1');equal(stop['status'],'STOP');equal(stop['phase'],'COMPARE_RETAINED_RAW');equal(stop['calls_attempted'],1);equal(stop['qualification_complete'],False)
+    equal(stop['raw_capture'],'DURABLE');equal(stop['cases_complete'],0);equal(stop['pending_record_bytes'],None);equal(stop['foreign_exception_formatting'],False);equal(stop['secondary_exception_ids'],());equal(stop['actual_error_id'],None);equal(stop['actual_return_retained'],True);equal(stop['prior_durable_pin_count'],4);sequence(row[4],2);equal(row[4][0],'h25-legacy-returned-ownership-v4');graph(row[4][1]);heldroot=row[4][1]['nodes'][row[4][1]['held_root']];equal(stop['primary_exception_id'],row[4][1]['nodes'][heldroot[3][0]][0],'STOP_PRIMARY_GRAPH_ID')
+    check_selected_held(row[4][1]);return {'receipt':receipt,'writers':writers,'snapshot':row[4][1],'documents':docs}
+
+def verify_prefix(raw,stdout,metadata,contract):
+    mapping(metadata,PREFIX_METADATA_KEYS);check_metadata_literals(metadata,contract);audit=Audit();outer=audit.parse(raw);results=terminal(outer,audit,True);parent=outer['parent_receipt'];require(type(parent) is dict,'PARENT_RECEIPT')
+    model=results['actual-return'];mapping(parent,('status scope model_results raw_observation_rows raw_observation_bytes actual_command_sha256 mode normalized_stage_sha256 native_or_full_union_admission').split());mapping(model,('schema scope diagnostic_status ordinary_E04_occurrences H02_internal_E04_occurrences genuine_H02_occurrences representative_pending_occurrences host_full_serializer_requested base_fixture_constructions fake_dispatch_calls original_first50_included complete_model complete99case_qualification fullscience gain target_parser_calls native_calls compiler_calls ordinary_E04 genuine_H02 pending capture_observations').split());equal(parent['model_results'],model,'ACTUAL_RETURN_PARENT');equal(parent['mode'],contract['mode']);equal(parent['actual_command_sha256'],contract['command_sha256']);equal(parent['normalized_stage_sha256'],contract['normalized_stage_sha256']);equal(parent['native_or_full_union_admission'],False)
+    equal(model['capture_observations']['snapshots'],tuple(metadata['capture_observations']['snapshots']),'SNAPSHOT_PROJECTION_TYPE')
+    # Only the final JSON projection changes the two-row tuple to a list.
+    projected=dict(model['capture_observations']);projected['snapshots']=list(projected['snapshots']);equal(projected,metadata['capture_observations'],'CAPTURE_JSON_PROJECTION')
+    expected_counts={'ordinary_E04_occurrences':1,'H02_internal_E04_occurrences':1,'genuine_H02_occurrences':1,'representative_pending_occurrences':1,'host_full_serializer_requested':1,'base_fixture_constructions':2,'fake_dispatch_calls':2,'original_first50_included':False,'complete_model':False,'complete99case_qualification':False,'fullscience':False,'gain':False,'target_parser_calls':0,'native_calls':0,'compiler_calls':0}
+    for k,v in expected_counts.items():equal(model[k],v,'PREFIX_SCOPE')
+    equal(parent['status'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY');equal(parent['scope'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY');equal(model['ordinary_E04'],(('E04-stop-write-secondary','MODEL_FIRST_STOP_ONLY',('START','PLAN','INPUT','RAW','STOP')),),'ORDINARY_RESULT');equal(model['genuine_H02'],('H02-legacy-comparison-failure-handoff','MODEL_BRANCH_ONLY',{'additional_fixture_families':1,'additional_fake_dispatch_calls':1,'target_parser_calls':0,'native_calls':0,'durability_qualified':False}),'H02_RESULT');equal(model['schema'],'h25-prefix-capture-results-v1');equal(model['scope'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY');equal(model['diagnostic_status'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY')
+    journal=results['builder-return'];rows,total=audit.journal(journal,ROW_IDS)
+    equal(parent['raw_observation_rows'],6);equal(parent['raw_observation_bytes'],total)
+    admission=rows[0];sequence(admission,2);expected_admission=contract['source_admission'];equal(admission[1],expected_admission,'SOURCE_BINDING')
+    ordinary=legacy_row(rows[1],audit,contract['mode']);injected=legacy_row(rows[2],audit,contract['mode'])
+    for left,right in zip(ordinary['documents'][:4],injected['documents'][:4]):equal(left,right,'TWO_SOURCE_FIXED_INPUTS')
+    sides=sequence(outer['model_raw_ownership_v4'],2)
+    for index,(side,legacy) in enumerate(zip(sides,(ordinary,injected))):
+        g=sidecar(side,legacy['snapshot']);equal(side['original_receipt_and_writer_rows'][0],legacy['receipt']);equal(tuple(side['original_receipt_and_writer_rows'][1]),legacy['writers'])
+        observation=metadata['capture_observations']['snapshots'][index];mapping(observation,('slot encoded_bytes_observed dimensions native_graph_dimensions actual_snapshot_object_id actual_held_object_id raw_complete').split());equal(observation['slot'],index);equal(observation['raw_complete'],True);equal(observation['encoded_bytes_observed'],dimensions(legacy['snapshot'])['canonical_bytes_observed']);equal(g,observation['native_graph_dimensions'],'GRAPH_DIMENSIONS');equal(dimensions(legacy['snapshot']),observation['dimensions'],'SNAPSHOT_DIMENSIONS');equal(side['actual_held_object_id'],observation['actual_held_object_id'],'OBSERVED_HELD_ID')
+        require(type(observation['actual_snapshot_object_id']) is int and observation['actual_snapshot_object_id']>0,'OBSERVED_SNAPSHOT_ID')
+    observations=metadata['capture_observations']['snapshots'];require(observations[0]['actual_snapshot_object_id']!=observations[1]['actual_snapshot_object_id'] and observations[0]['actual_held_object_id']!=observations[1]['actual_held_object_id'],'DISTINCT_LIVE_OWNERS_SERIALIZED_IDS');equal(sides[0]['capture_append_or_injection_error_id'],None);equal(sides[0]['capture_append_or_injection_error_type_id'],None);equal(sides[0]['phase'],'ORIGINAL_ORACLES_AFTER_RAW');equal(sides[1]['phase'],'H02_INJECTION_AFTER_RAW')
+    h02=rows[3];sequence(h02,3);equal(h02[:2],('H02-legacy-comparison-failure-handoff','MODEL_RAW_BEFORE_COMPARE'));actual=sequence(h02[2],7);equal(actual[1],('H02 source-fixed comparison failure after raw custody',));equal(actual[2:4],(2,3));equal(actual[4],actual[5],'H02_LOG_ID')
+    hraw=chunks(actual[6],16777216);hdoc=audit.parse(hraw);hvalues=terminal(hdoc,audit);equal(hdoc['parent_receipt'],{'scope':'MODEL_BRANCH_ONLY'});integer(actual[0]);runtime_type=sides[0]['original_markers'][0][2];check_h02_links(actual,runtime_type,hdoc['first_primary_id'],sides[1]['capture_append_or_injection_error_id'],sides[1]['capture_append_or_injection_error_type_id'],outer['pending_builder_id']);equal(actual[0],runtime_type,'H02_CAUGHT_TYPE_ID');equal(hdoc['first_primary_id'],sides[1]['capture_append_or_injection_error_id'],'H02_CAPTURE_PRIMARY');equal(actual[0],sides[1]['capture_append_or_injection_error_type_id'],'H02_CAPTURE_TYPE');equal(outer['pending_builder_id'],actual[5],'OUTER_H02_LOG_ID');check_terminal_selected(hdoc,'h02',audit,runtime_type,outer['original_parser_class_id']);check_terminal_selected(outer,'outer',audit,runtime_type,outer['original_parser_class_id'],hdoc['first_primary_id']);equal(hdoc['evidence_incomplete'],True);equal(hdoc['pending_builder_id'],actual[4]);equal(hvalues['builder-return'],journal[:3],'H02_RETAINED_PREFIX');equal(hdoc['model_raw_ownership_v4'],outer['model_raw_ownership_v4'],'H02_CUSTODY')
+    ownership=metadata['capture_observations']['ownership'];equal(dimensions(hdoc['model_raw_ownership_v4'])['canonical_bytes_observed'],ownership['value_bytes_observed'],'OWNERSHIP_VALUE_LENGTH');equal(dimensions(hdoc),ownership['H02_document_dimensions'],'H02_DIMENSIONS');equal(len(hraw),ownership['H02_full_raw_bytes_observed']);equal(len(chunks(journal[3][2],1048576)),ownership['H02_row_bytes_observed']);equal(dimensions(hdoc['model_raw_ownership_v4']),ownership['dimensions'],'OWNERSHIP_DIMENSIONS')
+    equal(dimensions('model_raw_ownership_v4')['canonical_bytes_observed']+ownership['value_bytes_observed'],ownership['field_bytes_observed'],'OWNERSHIP_FIELD_BYTES')
+    pending=rows[4];sequence(pending,6);equal(pending[:2],('A21-pending-VALIDATION','MODEL_RAW_BEFORE_COMPARE'));events,projection,counters,extra=pending[2:];sequence(events);sequence(extra,3);equal(extra[0],1,'PENDING_EXIT')
+    po=metadata['capture_observations']['pending'];equal(po['label'],'A21-pending-VALIDATION');equal(model['pending'],[('A21-pending-VALIDATION','MODEL_BRANCH_ONLY',counters)],'PENDING_RESULT');equal(counters,po['counters'],'PENDING_COUNTERS');equal(event_census(events,extra[1],extra[2]),counters,'INDEPENDENT_EVENT_COUNTERS');equal(len(events),po['events_observed']);equal(counters['native_calls'],0);equal(counters['os_calls'],0)
+    pd=audit.parse(extra[1]);ps=audit.parse(extra[2],2097152);mapping(ps,('schema status artifact all_known_tokens_consumed original_parser_class_available original_parser_class_id close_attempted close_confirmed unknown_acquisition quarantined first_primary_id all_error_slot_ids late_native_error_typed_records evidence_incomplete no_full_caller_or_native_admission opaque_objects_retained_until_process_exit').split());equal(ps['schema'],'h25-gap41-terminal-artifact-receipt-v3');equal(ps['all_known_tokens_consumed'],True);equal(ps['no_full_caller_or_native_admission'],True);equal(dimensions(pd),po['artifact_dimensions'],'PENDING_ARTIFACT_DIMENSIONS');equal(dimensions(ps),po['stdout_dimensions'],'PENDING_STDOUT_DIMENSIONS');equal(len(extra[1]),po['artifact_bytes_observed']);equal(len(extra[2]),po['stdout_bytes_observed'])
+    require(type(pd) is dict and pd['schema']=='h25-gap41-terminal-raw-v3','PENDING_TERMINAL');equal(chunks(pd['pending_raw_typed_chunks'],16777216),b'pending_VALIDATION','PENDING_LITERAL_BYTES');pv=terminal(pd,audit);check_terminal_selected(pd,'pending',audit,runtime_type,None);check_pending_projection(projection,pd,ps,extra[1],extra[2],runtime_type);equal(pv['actual-return'],{'whole':17});equal(pv['builder-return'],('builder-result',17))
+    mapping(projection,('errors primary_id overflow_id tokens pending attempted confirmed unknown incomplete quarantined flags').split());require(all(t is None for t in projection['tokens']),'PENDING_TOKENS');equal(projection['flags'],pd['pending_flags']);equal(projection['primary_id'],pd['first_primary_id'])
+    before=metadata['capture_observations']['journal_before_dimension_row'];equal(before['rows_observed'],5);equal(before['raw_bytes_observed'],sum(r[1] for r in journal[:5]));equal(dimensions(journal[:5]),before['records_DATA_dimensions'],'JOURNAL_DIMENSIONS')
+    equal(rows[5],('PREFIX_DIMENSION_OBSERVATIONS','PREFIX_CAPTURE_DIAGNOSTIC_ONLY',model['capture_observations']),'EPILOGUE')
+    equal(metadata['prior_stdout_bytes'],len(stdout),'STDOUT_METADATA_LENGTH');equal(metadata['original_root_sha256'],expected_admission['root_sha256']);equal(metadata['source_manifest_sha256'],expected_admission['manifest_sha256']);equal(metadata['execution_approval_sha256'],expected_admission['execution_approval_sha256']);equal(metadata['actual_command_sha256'],expected_admission['command_sha256']);equal(metadata['normalized_stage_sha256'],expected_admission['normalized_stage_sha256']);equal(dimensions(outer),metadata['host_dimensions'],'HOST_DIMENSIONS');equal(metadata['artifact_bytes'],len(raw));equal(metadata['artifact_sha256'],hashlib.sha256(raw).hexdigest())
+    std=audit.parse(stdout,2097152);check_stdout_selected(std,outer,raw,True);mapping(std,('schema scope complete_model fullscience gain status artifact all_known_tokens_consumed original_parser_class_available original_parser_class_id close_attempted close_confirmed unknown_acquisition quarantined first_primary_id all_error_slot_ids late_native_error_typed_records evidence_incomplete no_full_caller_or_native_admission opaque_objects_retained_until_process_exit').split());equal(std['schema'],'h25-prefix-diagnostic-artifact-receipt-v1');equal(std['status'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY');equal(std['scope'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY');equal(std['complete_model'],False);equal(std['fullscience'],False);equal(std['gain'],False);equal(std['all_known_tokens_consumed'],True);equal(std['all_error_slot_ids'],());equal(std['late_native_error_typed_records'],());equal(std['artifact']['intended_bytes'],len(raw));equal(std['artifact']['sha256'],metadata['artifact_sha256']);equal(std['original_parser_class_id'],outer['original_parser_class_id'],'PARSER_ID_SERIALIZED_BINDING')
+    return {'decision':'EXACT_PREFIX_SERIALIZED_DATA_OBSERVED','scope':'Three selected outer occurrences plus source admission and dimension epilogue only','mode':contract['mode'],'journal_rows':list(ROW_IDS),'independent_documents':audit.documents,'independent_decoded_bytes':audit.decoded_bytes,'independent_nodes':audit.decoded_nodes,'documents':audit.rows,'native_identity_proved':False,'trusted_source_lifetime_proof_separate':True,'complete99case_qualification':False,'full52prefix_qualification':False,'current_runtime_profile_qualified':False,'native_header_FFI_fullcaller_admission':False,'fullscience':False,'gain':False,'controls_waived':False}
+
+
+
+BASE_SECTIONS = (('', 0, 0, 0, 0, 0, 0, 0, 0, 0), ('.rodata', 1, 2, 1280, 1280, 9, 0, 0, 1, 0), ('.hash', 5, 2, 1536, 1536, 20, 4, 0, 8, 4), ('.gnu.hash', 1879048182, 2, 1568, 1568, 32, 4, 0, 8, 0), ('.dynsym', 11, 2, 1792, 1792, 48, 5, 1, 8, 24), ('.dynstr', 3, 2, 2048, 2048, 30, 0, 0, 1, 0), ('.gnu.version', 1879048191, 2, 2304, 2304, 4, 4, 0, 2, 2), ('.rela.dyn', 4, 2, 2560, 2560, 48, 4, 9, 8, 24), ('.text', 1, 6, 4096, 4096, 32, 0, 0, 16, 0), ('.data', 1, 3, 8192, 8192, 64, 0, 0, 8, 0), ('.dynamic', 6, 3, 8448, 8448, 192, 5, 0, 8, 16), ('.strtab', 3, 0, 0, 12800, 0, 0, 0, 1, 0), ('.symtab', 2, 0, 0, 13056, 96, 11, 3, 8, 24), ('.shstrtab', 3, 0, 0, 12288, 0, 0, 0, 1, 0))
+
+# New source-only reference from declared ELF byte layout; no fixture import.
+# All bytes remain DATA; this function never writes/loads an ELF image.
+
+def canonical_parts(value):
+    """Fresh streaming literal grammar construction for hash/control witnesses.
+
+    Not the producer encoder and not the decoder. Literal known-byte controls
+    separately pin these formulas; a roundtrip is never the sole oracle.
+    """
+    nodes=[0];total=[0]
+    def walk(x,depth):
+        nodes[0]+=1;require(nodes[0]<=200000 and depth<=16,'HASH_BOUND');k=type(x)
+        if x is None:yield b'n'
+        elif k is bool:yield b'y' if x else b'z'
+        elif k is int:
+            require(-(2**64-1)<=x<=2**64-1,'HASH_INTEGER');yield b'i'+str(x).encode('ascii')+b';'
+        elif k in (str,bytes):
+            raw=x.encode('utf8') if k is str else x;require(len(raw)<=65536,'HASH_ATOM');yield (b's' if k is str else b'b')+str(len(raw)).encode('ascii')+b':';yield raw
+        elif k in (tuple,list,dict):
+            require(len(x)<=(4096 if k is dict else 16384),'HASH_CONTAINER');yield {tuple:b't',list:b'l',dict:b'd'}[k]+str(len(x)).encode('ascii')+b':'
+            if k is dict:
+                require(all(type(n) is str for n in x),'HASH_KEY')
+                for key in sorted(x):yield from walk(key,depth+1);yield from walk(x[key],depth+1)
+            else:
+                for child in x:yield from walk(child,depth+1)
+        else:raise Rejected('HASH_TYPE')
+    for piece in walk(value,0):
+        total[0]+=len(piece);require(total[0]<=16777216,'HASH_WIRE');yield piece
+
+def canonical_hash(value):
+    digest=hashlib.sha256()
+    for piece in canonical_parts(value):digest.update(piece)
+    return digest.hexdigest()
+
+def sealed(unsigned):
+    require(type(unsigned) is dict and 'receipt_sha256' not in unsigned,'CHECKSUM_UNSIGNED')
+    result=dict(unsigned);result['receipt_sha256']=canonical_hash(unsigned);return result
+
+def reference_base():
+    # New field-width writer, rather than execution/copy of pack_into producer.
+    cells=bytearray(0x3780)
+    def numbers(at,widths,values,signed=()):
+        require(len(widths)==len(values),'REFERENCE_LAYOUT')
+        for i,(width,n) in enumerate(zip(widths,values)):
+            require(type(n) is int,'REFERENCE_INTEGER');cells[at:at+width]=n.to_bytes(width,'little',signed=i in signed);at+=width
+    cells[:16]=b'\x7fELF\x02\x01\x01\x00'+b'\x00'*8
+    numbers(16,(2,2,4,8,8,8,4,2,2,2,2,2,2),(3,62,1,0,64,0x3400,0,64,56,6,64,14,13))
+    programs=((1,4,0,0,0,0xB00,0xB00,4096),(1,5,0x1000,0x1000,0x1000,32,32,4096),(1,6,0x2000,0x2000,0x2000,4096,4096,4096),(2,6,0x2100,0x2100,0x2100,192,192,8),(0x6474E551,6,0,0,0,0,0,16),(0x6474E552,4,0x2000,0x2000,0x2000,4096,4096,1))
+    for i,row in enumerate(programs):numbers(64+56*i,(4,4,8,8,8,8,8,8),row)
+    cells[0x500:0x509]=b'field_id\x00';numbers(0x600,(4,)*5,(1,2,1,0,0))
+    name='PyInit__h25_field_service_v1';h=5381
+    for byte in name.encode('ascii'):h=(h*33+byte)&0xffffffff
+    bloom=2**(h%64)|2**((h>>5)%64)
+    numbers(0x620,(4,4,4,4,8,4,4),(1,1,1,5,bloom,1,h|1))
+    dynstr=b'\x00'+name.encode('ascii')+b'\x00';cells[0x800:0x800+len(dynstr)]=dynstr
+    numbers(0x718,(4,1,1,2,8,8),(1,0x12,0,8,0x1000,1));numbers(0x900,(2,2),(0,1))
+    numbers(0xA00,(8,8,8),(0x2000,8,0x500),signed=(2,));numbers(0xA18,(8,8,8),(0x2008,8,0x1010),signed=(2,))
+    cells[0x1000]=cells[0x1010]=0xC3;numbers(0x2010,(4,),(1,))
+    dynamic=((5,0x800),(6,0x700),(10,len(dynstr)),(11,24),(4,0x600),(0x6FFFFEF5,0x620),(0x6FFFFFF0,0x900),(7,0xA00),(8,48),(9,24),(0x6FFFFFF9,2),(0,0))
+    for i,row in enumerate(dynamic):numbers(0x2100+i*16,(8,8),row,signed=(0,))
+    strings=b'\x00h25_fixture_target\x00h25_fixture_methods\x00'+name.encode('ascii')+b'\x00';cells[0x3200:0x3200+len(strings)]=strings
+    for at,row in ((0x3318,(1,2,0,8,0x1010,1)),(0x3330,(20,1,0,9,0x2000,64)),(0x3348,(40,0x12,0,8,0x1000,1))):numbers(at,(4,1,1,2,8,8),row)
+    shstrings=b'\x00';offsets={'':0}
+    for section in BASE_SECTIONS[1:]:offsets[section[0]]=len(shstrings);shstrings+=section[0].encode('ascii')+b'\x00'
+    cells[0x3000:0x3000+len(shstrings)]=shstrings
+    for i,row in enumerate(BASE_SECTIONS):
+        section,typ,flags,address,offset,size,link,info,align,entsize=row
+        size={'.dynstr':len(dynstr),'.strtab':len(strings),'.shstrtab':len(shstrings)}.get(section,size)
+        numbers(0x3400+i*64,(4,4,8,8,8,8,4,4,8,8),(offsets[section],typ,flags,address,offset,size,link,info,align,entsize))
+    policy={'schema':'h25-static-elf-policy-v2','source_closure_sha256':'1'*64,'compiler_closure_sha256':'2'*64,'link_profile_sha256':'3'*64,'build_receipt_sha256':'4'*64,'expected_exports':(name,),'needed':(),'required_local_functions':('h25_fixture_target',),'required_local_objects':('h25_fixture_methods',),'method_tables':({'symbol':'h25_fixture_methods','entries':(('field_id','h25_fixture_target',1,None),)},),'pointer_slots':(),'page_profile':{'schema':'h25-amd64-page-profile-v1','page_size':4096}}
+    raw=bytes(cells);digest=hashlib.sha256(raw).hexdigest()
+    receipt={'schema':'h25-elf-profile-v2','static_only':True,'sha256':digest,'bytes':0x3780,'policy_sha256':canonical_hash(policy),'source_closure_sha256':'1'*64,'compiler_closure_sha256':'2'*64,'link_profile_sha256':'3'*64,'build_receipt_sha256':'4'*64,'needed':(),'imports':(),'exports':((name,0x1000,1),),'page_size':4096,'relro_nominal':(0x2000,0x3000),'effective_relro':(0x2000,0x3000),'version_requirements':(),'phdr_offset':64,'native_segments':((0,0xB00,4),(0x1000,0x1020,5),(0x2000,0x3000,6)),'initializer':(name,0x1000,1),'loads':((0,0,0xB00,0xB00,4),(0x1000,0x1000,32,32,5),(0x2000,0x2000,4096,4096,6)),'relocations':((0x2000,8,0,0x500),(0x2008,8,0,0x1010)),'hash_reachability':((1,),(1,))}
+    args=(raw,digest,policy);step={'entry':'admit_service_elf','args':args,'input_sha256':canonical_hash(('admit_service_elf',args)),'expected_disposition':'ACCEPT','expected_return':sealed(receipt),'expected_error':None}
+    spec={'id':'positive-base','family':'base','mutation':None,'obligations':(),'paired_positive':None,'expected_disposition':'ACCEPT','expected_error':None}
+    plan={'schema':'h25-elf-gap-pure-case-v1','id':'positive-base','spec':spec,'steps':(step,),'mutation_provenance':{'mutation':None},'input_inverse':None,'input_sha256':canonical_hash((('admit_service_elf',args),)),'observations':0,'native_authority':False,'production_image_claim':False}
+    plan['plan_sha256']=canonical_hash(plan)
+    return plan,None
+
+def check_base_plan(bundle):
+    sequence(bundle,2);actual,baseline=bundle;equal(baseline,None,'BASELINE_MEMBER');expected,_=reference_base();mapping(actual,expected.keys(),'PLAN_KEYS')
+    # Each field has a distinct negative control and a complete source value.
+    for key in expected:equal(actual[key],expected[key],'PLAN_FIELD:'+key)
+    step=actual['steps'][0]
+    equal(hashlib.sha256(step['args'][0]).hexdigest(),step['args'][1],'RAW_ARGUMENT_DIGEST')
+    equal(canonical_hash(step['args'][2]),step['expected_return']['policy_sha256'],'POLICY_DIGEST')
+    equal(canonical_hash((step['entry'],step['args'])),step['input_sha256'],'STEP_DIGEST')
+    equal(canonical_hash(((step['entry'],step['args']),)),actual['input_sha256'],'PLAN_INPUT_DIGEST')
+    equal(canonical_hash({k:v for k,v in actual.items() if k!='plan_sha256'}),actual['plan_sha256'],'PLAN_DIGEST')
+    unsigned={k:v for k,v in step['expected_return'].items() if k!='receipt_sha256'}
+    equal(canonical_hash(unsigned),step['expected_return']['receipt_sha256'],'STATIC_RECEIPT_DIGEST')
+    return expected
+
+
+# Complete selected DATA predicates; native provenance remains explicitly separate.
+
+def check_selected_held(snapshot):
+    nodes=snapshot['nodes'];holder=nodes[snapshot['held_root']];sequence(holder[3],5)
+    primary,secondary,actual_error,returned,pending=[nodes[n] for n in holder[3]]
+    equal(primary[2],'NATIVE_ERROR');objects=error_trace(primary[3]);root=objects[primary[0]]
+    equal(root['args'],('complete typed actual return differs',),'HELD_PRIMARY_MESSAGE');equal(root['cause_id'],None);equal(root['context_id'],None);equal(root['suppress_context'],False)
+    sequence(secondary[3],1);write=nodes[secondary[3][0]];equal(write[2],'NATIVE_ERROR');wr=error_trace(write[3])[write[0]]
+    equal(wr['args'],('model raw writer',));equal(wr['context_id'],primary[0],'WRITE_PRIMARY_CONTEXT');equal(wr['cause_id'],None);equal(wr['suppress_context'],False)
+    equal(actual_error[2:],[ 'NONE',None]);equal(pending[2:],['NONE',None]);equal(returned[2],'DICT');sequence(returned[3],1)
+    key,val=[nodes[n] for n in returned[3][0]];equal(key[2:],['STR','whole'],'HELD_RETURN_KEY');equal(val[2:],['INT',17],'HELD_RETURN_VALUE')
+    runtime_type=primary[1];require(runtime_type not in {n[1] for n in nodes if n[2] not in ('NATIVE_ERROR','OPAQUE')},'RUNTIME_VS_LITERAL_TYPE_DATA')
+    known={}
+    for node in nodes:
+        if node[2]=='NATIVE_ERROR':
+            for oid,obj in error_trace(node[3]).items():
+                selected_runtime_core_metadata(obj,runtime_type)
+                if oid in known:equal(obj,known[oid],'CORE_ERROR_ALIAS_OBJECT')
+                else:known[oid]=obj
+                for frame in obj['frames']:equal(frame['pinned_parser_names'],(),'NO_SELECTED_PARSER_FRAMES')
+    for name,index in snapshot['original_marker_roots']:
+        n=nodes[index];equal(n[1],runtime_type,'RUNTIME_ERROR_TYPE_DATA');trace=error_trace(n[3]);o=trace[n[0]]
+        equal(o['type_id'],runtime_type);equal(o['type'],'OTHER_OPAQUE_EXCEPTION_TYPE')
+        if name!='write':equal(o['context_id'],None);equal(o['cause_id'],None);equal(o['frames'],())
+
+
+def check_terminal_selected(doc,role,audit,runtime_type,parser_id,error_id=None):
+    mapping(doc,TERMINAL_KEYS)
+    for key,value in {'schema':'h25-gap41-terminal-raw-v3','overflow':None,'pending_error_id':None,'root_internal_uncertainty':None,'pending_acquisitions':(False,)*5,'unknown_acquisition':(False,)*5,'quarantined':False,'all_nonterminal_known_cleanup_attempts_before_encoding':True,'opaque_objects_retained_until_process_exit':True,'native_or_full_union_admission':False}.items():equal(doc[key],value,'TERMINAL_FIELD:'+role+':'+key)
+    available=role!='pending'
+    if available:integer(parser_id);require(parser_id!=runtime_type,'DISTINCT_SERIALIZED_ERROR_CLASSES')
+    equal(doc['original_parser_registry_available'],available);equal(doc['original_parser_class_available'],available);equal(doc['original_parser_class_id'],parser_id)
+    equal(doc['original_root_ready'],role=='outer');equal(doc['last_source_path'],'/usr/bin/python3.12' if role=='outer' else None,'LAST_SOURCE_PATH')
+    equal(doc['reserved_terminal_token_retained_until_bounded_artifact_write'],role!='h02')
+    equal(doc['evidence_incomplete'],role=='h02')
+    equal(tuple(row[0] for row in doc['pending_values_typed_chunks']),('builder-return',) if role=='h02' else ('actual-return','builder-return'),'PENDING_SERIALIZED_ORDER')
+    flags={'outer':(False,True,True,False),'h02':(False,False,True,False),'pending':(False,True,True,True)}[role];equal(doc['pending_flags'],flags,'PENDING_FLAGS:'+role)
+    attempts={'outer':(True,True,True,False,False),'h02':(False,)*5,'pending':(True,False,False,False,False)}[role];equal(doc['close_attempted'],attempts,'CAPTURE_ATTEMPTS:'+role);equal(doc['close_confirmed'],attempts,'CAPTURE_CONFIRMED:'+role)
+    if role=='h02':equal(doc['known_fd_tokens'],(None,)*5);equal(doc['pending_return_id'],None);equal(doc['parent_receipt'],{'scope':'MODEL_BRANCH_ONLY'})
+    else:
+        equal(doc['known_fd_tokens'][:4],(None,)*4);require(type(doc['known_fd_tokens'][4]) is int and doc['known_fd_tokens'][4]>=3,'CAPTURE_ARTIFACT_FD')
+        if role=='pending':equal(doc['known_fd_tokens'][4],12);equal(doc['parent_receipt'],None);equal(doc['model_raw_ownership_v4'],())
+    if role!='pending':equal(doc['pending_raw_typed_chunks'],())
+    if role=='outer':equal(doc['error_slots'],());equal(doc['first_primary_id'],None)
+    else:
+        integer(doc['first_primary_id']);label='H02-delivered-comparison-failure' if role=='h02' else 'main-delivered-primary';equal(doc['error_slots'],((label,doc['first_primary_id']),),'TERMINAL_ERROR_SLOT')
+    traces=sequence(doc['native_error_typed_records'],1)
+    tid=traces[0][0];integer(tid);expected=error_id if role=='outer' else doc['first_primary_id'];equal(tid,expected,'TERMINAL_TRACE_PRIMARY')
+    trace=audit.parse(traces[0][1],65536);objects=early_trace(trace,available,parser_id);root=objects[tid]
+    equal(root['type'],'BUILTIN_RuntimeError','EARLY_RUNTIME_ERROR_TAG');equal(root['type_id'],runtime_type,'EARLY_RUNTIME_TYPE_DATA');equal(root['cause_id'],None);equal(root['context_id'],None);equal(root['suppress_context'],False)
+    for obj in objects.values():
+        for frame in obj['frames']:equal(frame['pinned_parser_names'],(),'NO_SELECTED_PARSER_FRAMES')
+    equal(root['args'],('model injected I/O',) if role=='pending' else ('H02 source-fixed comparison failure after raw custody',),'EARLY_ERROR_ARGS')
+
+
+def check_stdout_selected(std,terminal_doc,raw,outer):
+    keys=('schema status artifact all_known_tokens_consumed original_parser_class_available original_parser_class_id close_attempted close_confirmed unknown_acquisition quarantined first_primary_id all_error_slot_ids late_native_error_typed_records evidence_incomplete no_full_caller_or_native_admission opaque_objects_retained_until_process_exit').split()
+    if outer:keys+=['scope','complete_model','fullscience','gain']
+    mapping(std,keys)
+    equal(std['schema'],'h25-prefix-diagnostic-artifact-receipt-v1' if outer else 'h25-gap41-terminal-artifact-receipt-v3')
+    equal(std['status'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY' if outer else 'STOP_INCOMPLETE')
+    if outer:
+        equal(std['scope'],'PREFIX_CAPTURE_DIAGNOSTIC_ONLY')
+        for k in ('complete_model','fullscience','gain'):equal(std[k],False)
+    artifact=std['artifact'];mapping(artifact,('name created intended_bytes sha256 readback_complete close_attempted close_confirmed directory_fsync_complete maximum_bytes ordinary_stdout_maximum_bytes').split())
+    expected={'name':'gap-terminal-v2.typed','created':True,'intended_bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'readback_complete':True,'close_attempted':True,'close_confirmed':True,'directory_fsync_complete':True,'maximum_bytes':16777216,'ordinary_stdout_maximum_bytes':2097152}
+    equal(artifact,expected,'ARTIFACT_RECEIPT_COMPLETE')
+    equal(std['all_known_tokens_consumed'],True);equal(std['late_native_error_typed_records'],());equal(std['unknown_acquisition'],(False,)*5);equal(std['quarantined'],False);equal(std['evidence_incomplete'],False);equal(std['no_full_caller_or_native_admission'],True);equal(std['opaque_objects_retained_until_process_exit'],True)
+    equal(std['original_parser_class_available'],outer);equal(std['original_parser_class_id'],terminal_doc['original_parser_class_id']);equal(std['first_primary_id'],terminal_doc['first_primary_id']);equal(std['all_error_slot_ids'],terminal_doc['error_slots'])
+    attempts=(True,True,True,False,True) if outer else (True,False,False,False,True);equal(std['close_attempted'],attempts,'FINAL_CLOSE_ATTEMPTS');equal(std['close_confirmed'],attempts,'FINAL_CLOSE_CONFIRMED')
+
+
+def check_pending_projection(projection,pd,ps,raw,stdout,runtime_type):
+    mapping(projection,('errors primary_id overflow_id tokens pending attempted confirmed unknown incomplete quarantined flags').split());primary=pd['first_primary_id']
+    equal(projection['errors'],(('main-delivered-primary',primary,runtime_type),),'PENDING_ERROR_TYPE_DATA');equal(projection['primary_id'],primary);equal(projection['overflow_id'],None);equal(projection['tokens'],(None,)*5);equal(projection['pending'],(False,)*5);equal(projection['attempted'],(True,False,False,False,True));equal(projection['confirmed'],projection['attempted']);equal(projection['unknown'],(False,)*5);equal(projection['incomplete'],False);equal(projection['quarantined'],False);equal(projection['flags'],(False,True,True,True))
+    check_stdout_selected(ps,pd,raw,False)
+
+
+def check_metadata_literals(metadata,contract):
+    expected={'schema':'h25-prefix-capture-diagnostic-queue-receipt-v1','status':'PREFIX_CAPTURE_DIAGNOSTIC_ONLY','diagnostic_status':'PREFIX_CAPTURE_DIAGNOSTIC_ONLY','scope':'PREFIX_CAPTURE_DIAGNOSTIC_ONLY','lane':'elf-gap-prefix-diagnostic-v1','mode':contract['mode'],'ordinary_E04_occurrences':1,'H02_internal_E04_occurrences':1,'genuine_H02_occurrences':1,'representative_pending_occurrences':1,'host_full_serializer_occurrences':1,'base_fixture_constructions':2,'fake_dispatch_calls':2,'original_first50_included':False,'complete_model':False,'complete99case_qualification':False,'fullscience':False,'gain':False,'target_parser_calls':0,'native_field_calls':0,'compiler_calls':0,'prior_terminal_cleanup_complete':True,'receipt_epoch_success_requires_authenticated_runner_exit_zero':True,'normalized_stage_is_not_actual_full_stage':True,'parent_independent_prefix_outcome_review_required':True,'native_or_full_union_admission':False,'performance_claimed':False}
+    for k,v in expected.items():equal(metadata[k],v,'METADATA_LITERAL:'+k)
+
+
+def check_h02_links(actual,runtime_type,primary,capture_id,capture_type,outer_builder):
+    sequence(actual,7)
+    for value in (actual[0],actual[4],actual[5],runtime_type,primary,capture_id,capture_type,outer_builder):integer(value)
+    equal(actual[0],runtime_type,'H02_CAUGHT_TYPE_ID');equal(actual[1],('H02 source-fixed comparison failure after raw custody',));equal(actual[2:4],(2,3));equal(actual[4],actual[5],'H02_LOG_ID');equal(primary,capture_id,'H02_CAPTURE_PRIMARY');equal(capture_type,runtime_type,'H02_CAPTURE_TYPE');equal(outer_builder,actual[5],'OUTER_H02_LOG_ID');chunks(actual[6],16777216)
+
+
+def selected_runtime_core_metadata(obj,runtime_type):
+    # All selected core objects are exact RuntimeError, including primary
+    # clones reached through the write marker's context. Generic core schemas
+    # retain ORIGINAL/OTHER; this additional predicate belongs only here.
+    equal(obj['type_id'],runtime_type,'SELECTED_RUNTIME_TYPE_ID')
+    equal(obj['type'],'OTHER_OPAQUE_EXCEPTION_TYPE','SELECTED_RUNTIME_CORE_TAG')
+    equal(obj['suppress_context'],False,'SELECTED_RUNTIME_SUPPRESSION')
+
+
+# Exact serialized ModelIO protocol for pending_VALIDATION/prepare_exit failure.
+# These synthetic constants are ModelIO15/124, not host OS open flags.
+
+def expected_pending_events(artifact,stdout):
+    require(type(artifact) is bytes and type(stdout) is bytes,'EVENT_INPUT_TYPE')
+    require(0<len(artifact)<=16777216 and 0<len(stdout)<=2097152,'EVENT_INPUT_BOUND')
+    result=[];counts={}
+    def cp(name):counts[name]=counts.get(name,0)+1;result.append(('checkpoint',name,counts[name]))
+    def op(row,*names):result.append(row);[cp(name) for name in names]
+    op(('open','/model-output',15,0,None),'parent_open','parent_open_delivery')
+    op(('fstat',10),'parent_stat')
+    op(('open','gap-terminal-v2.typed',124,384,10),'artifact_open','artifact_open_delivery')
+    op(('fstat',12),'artifact_stat');op(('fsync',10),'parent_fsync')
+    cp('prepare_entry');cp('prepare_exit');op(('close',10),'parent_close')
+    cp('early_guard');cp('terminal_entry');cp('terminal_encode')
+    for unused in range(6):cp('early_guard')
+    for start in range(0,len(artifact),65536):
+        chunk=artifact[start:start+65536];op(('write',12,len(chunk),hashlib.sha256(chunk).hexdigest()),'artifact_write')
+    op(('fsync',12),'artifact_fsync');op(('lseek',12,0,0),'artifact_seek','seek')
+    position=0
+    while True:
+        requested=min(65536,len(artifact)+1-position);op(('read',12,requested),'artifact_read','read')
+        count=min(requested,max(0,len(artifact)-position));position+=count
+        if count==0:break
+    op(('fstat',12),'artifact_stat');op(('close',12),'artifact_close')
+    cp('early_guard');cp('stdout_encode');cp('early_guard');cp('early_guard')
+    for start in range(0,len(stdout),65536):
+        chunk=stdout[start:start+65536];op(('write',1,len(chunk),hashlib.sha256(chunk).hexdigest()),'stdout_write')
+    require(len(result)<=32768,'EVENT_BOUND');return tuple(result)
+
+def event_census(events,artifact,stdout):
+    sequence(events);require(len(events)<=32768,'EVENT_BOUND')
+    files={1:stdout,12:artifact};positions={1:0,12:0};written={1:0,12:0}
+    opened=[];closed=[];checkpoints={};readbytes=writebytes=requested=0
+    live={1};next_open=0;first_close=False
+    for row in events:
+        sequence(row);require(row and type(row[0]) is str,'EVENT_SHAPE');kind=row[0]
+        require(kind in ('checkpoint','open','close','fstat','fsync','lseek','read','write'),'EVENT_KIND')
+        if kind=='checkpoint':
+            sequence(row,3);require(type(row[1]) is str and type(row[2]) is int,'CHECKPOINT_DOMAIN');checkpoints[row[1]]=checkpoints.get(row[1],0)+1;equal(row[2],checkpoints[row[1]],'CHECKPOINT_ORDER');continue
+        if kind=='open':
+            sequence(row,5);require(not first_close,'ACQUIRE_AFTER_CLOSE')
+            require(type(row[1]) is str and type(row[2]) is int and type(row[3]) is int and (row[4] is None or type(row[4]) is int),'OPEN_NATIVE_TYPES')
+            expected=(('open','/model-output',15,0,None),('open','gap-terminal-v2.typed',124,384,10))
+            require(next_open<2,'EXTRA_OPEN');equal(row,expected[next_open],'OPEN_FIXED_FIELDS');fd=10 if next_open==0 else 12;live.add(fd);next_open+=1;opened.append(row[1]);continue
+        require(len(row)>=2 and type(row[1]) is int,'FD_EXACT_INT');fd=row[1]
+        require(fd in (1,10,12),'FD_DOMAIN');require(fd in live,'LATE_IO')
+        if kind=='close':
+            sequence(row,2);require(fd in (10,12) and fd not in closed,'CLOSE_ORDER');first_close=True;closed.append(fd);live.remove(fd)
+        elif kind in ('fstat','fsync'):
+            sequence(row,2);require(fd in (10,12),'METADATA_FD')
+        elif kind=='lseek':
+            sequence(row,4);require(fd==12 and type(row[2]) is int and row[2]==0 and type(row[3]) is int and row[3]==0,'SEEK_EXACT_FIELDS');positions[fd]=0
+        elif kind=='write':
+            sequence(row,4);require(fd in files and type(row[2]) is int and row[2]>0 and type(row[3]) is str,'WRITE_NATIVE_FIELDS');n,digest=row[2:];pos=positions[fd];piece=files[fd][pos:pos+n];equal(len(piece),n,'WRITE_LENGTH');equal(hashlib.sha256(piece).hexdigest(),digest,'WRITE_DATA_HASH');positions[fd]+=n;written[fd]=max(written[fd],positions[fd]);requested+=n;writebytes+=n
+        else:
+            sequence(row,3);require(fd==12 and type(row[2]) is int and row[2]>0,'READ_NATIVE_FIELDS');n=row[2];actual=min(n,max(0,len(files[fd])-positions[fd]));positions[fd]+=actual;readbytes+=actual
+    equal(opened,['/model-output','gap-terminal-v2.typed'],'OPEN_ORDER');equal(closed,[10,12],'CLOSE_ORDER');equal(live,{1},'LIVE_MODEL_FDS');equal(written,{1:len(stdout),12:len(artifact)},'COMPLETE_WRITE_BYTES')
+    equal(events,expected_pending_events(artifact,stdout),'EVENT_PROTOCOL_CHECKPOINT_RELATIONS')
+    return {'events':len(events),'read_bytes':readbytes,'write_bytes':writebytes,'requested_write_bytes':requested,'stored_bytes':sum(written.values()),'open_calls':len(opened),'close_calls':len(closed),'os_calls':0,'native_calls':0}
+
+
+CONTROL_IDS = ['depth-full-cap', 'byte-atom-boundary', 'string-character-bound', 'none', 'true', 'false', 'zero', 'negative', 'wide', 'unicode', 'zero-string', 'binary', 'zero-bytes', 'tuple', 'tuple-exact', 'list-exact', 'empty-dict', 'dict-order', 'empty-input', 'unknown-tag', 'negative-zero', 'leading-zero', 'plus-int', 'empty-int', 'no-int-end', 'integer-overflow', 'length-leading-zero', 'negative-length', 'bytes-cap', 'string-byte-cap', 'truncated-bytes', 'utf8-overlong', 'utf8-surrogate', 'trailing', 'tuple-truncated', 'collection-cap', 'dict-nonstring', 'dict-duplicate', 'dict-descending', 'restricted-depth', 'restricted-nodes', 'restricted-wire', 'graph-wrong-held-id', 'graph-marker-order', 'graph-alias-disagreement', 'graph-root-reuse', 'graph-extra-field', 'valid-flat-graph', 'graph-key-census', 'valid-single-chunk', 'chunk-tuple-list-distinction', 'empty-chunks', 'short-nonfinal-chunk', 'chunk-wrong-atom-type', 'valid-journal-literal', 'journal-declared-length', 'journal-label-order', 'terminal-missing-all-fields', 'trace-missing-all-fields', 'core-v1-positive', 'early-v2-positive', 'core-reject-early-schema', 'early-reject-core-schema', 'core-reject-builtin-tag', 'early-false-with-parser-id', 'early-int-availability', 'early-original-without-class', 'early-bool-class-id', 'hash-none', 'hash-dictionary', 'hash-ordered-tuple', 'event-bool-fd', 'event-bool-whence', 'event-bool-open-flags', 'event-invalid-open-flags', 'plan-complete-positive', 'plan-baseline-member', 'plan-field-schema', 'plan-field-id', 'plan-field-spec', 'plan-field-steps', 'plan-field-mutation_provenance', 'plan-field-input_inverse', 'plan-field-input_sha256', 'plan-field-observations', 'plan-field-native_authority', 'plan-field-production_image_claim', 'plan-field-plan_sha256', 'plan-spec-id', 'plan-spec-family', 'plan-spec-mutation', 'plan-spec-obligations', 'plan-spec-paired_positive', 'plan-spec-expected_disposition', 'plan-spec-expected_error', 'plan-step-entry', 'plan-step-args', 'plan-step-input_sha256', 'plan-step-expected_disposition', 'plan-step-expected_return', 'plan-step-expected_error', 'plan-static-schema', 'plan-static-static_only', 'plan-static-sha256', 'plan-static-bytes', 'plan-static-policy_sha256', 'plan-static-source_closure_sha256', 'plan-static-compiler_closure_sha256', 'plan-static-link_profile_sha256', 'plan-static-build_receipt_sha256', 'plan-static-needed', 'plan-static-imports', 'plan-static-exports', 'plan-static-page_size', 'plan-static-relro_nominal', 'plan-static-effective_relro', 'plan-static-version_requirements', 'plan-static-phdr_offset', 'plan-static-native_segments', 'plan-static-initializer', 'plan-static-loads', 'plan-static-relocations', 'plan-static-hash_reachability', 'plan-static-receipt_sha256', 'event-full-protocol-positive', 'event-protocol-bool-fd', 'event-protocol-bool-whence', 'event-protocol-flags', 'event-protocol-mode', 'event-protocol-dirfd', 'event-protocol-seek-offset', 'event-protocol-checkpoint-relation', 'event-protocol-acquisition-after-close', 'event-protocol-late-io', 'event-protocol-close-order', 'event-protocol-write-digest', 'terminal-component-positive', 'terminal-field-overflow', 'terminal-field-pending_error_id', 'terminal-field-root_internal_uncertainty', 'terminal-field-pending_acquisitions', 'terminal-field-unknown_acquisition', 'terminal-field-quarantined', 'terminal-field-all_nonterminal_known_cleanup_attempts_before_encoding', 'terminal-field-opaque_objects_retained_until_process_exit', 'terminal-field-native_or_full_union_admission', 'terminal-field-original_root_ready', 'terminal-field-last_source_path', 'terminal-field-reserved_terminal_token_retained_until_bounded_artifact_write', 'terminal-field-evidence_incomplete', 'terminal-field-pending_flags', 'terminal-field-close_attempted', 'terminal-field-close_confirmed', 'terminal-field-known_fd_tokens', 'terminal-field-pending_return_id', 'terminal-field-parent_receipt', 'plan-observations-bool', 'plan-native-authority-int', 'plan-consistent-rehashed-raw-mutation', 'h02-link-positive', 'h02-link-type', 'h02-link-bool-type', 'h02-link-builder', 'h02-link-primary', 'h02-link-outer-builder', 'generic-core-original-tag-positive', 'graph-native-error-type-positive', 'graph-native-error-type-negative', 'selected-runtime-core-positive', 'selected-runtime-core-type-negative', 'selected-runtime-core-tag-negative', 'selected-runtime-close-suppression-negative', 'selected-runtime-late-suppression-negative', 'selected-runtime-context-positive', 'selected-runtime-context-type-negative', 'selected-runtime-context-tag-negative', 'selected-runtime-context-suppression-negative', 'coupled-primary-metadata-positive', 'coupled-primary-type-tag-across-aliases-negative']
+
+
+# Literal byte fixtures and independent expectations; SOURCE ONLY, never run by author.
+GRAMMAR_CONTROLS=(
+ ('depth-full-cap',b't1:'*33+b'n',None,'DEPTH_BOUND',{}),
+ ('byte-atom-boundary',b'b65536:'+b'x'*65536,b'x'*65536,None,{}),
+ ('string-character-bound',b's65537:'+b'a'*65537,None,'STRING_BOUND',{}),
+ ('none',b'n',None,None,{}),('true',b'y',True,None,{}),('false',b'z',False,None,{}),
+ ('zero',b'i0;',0,None,{}),('negative',b'i-17;',-17,None,{}),
+ ('wide',b'i340282366920938463463374607431768211455;',340282366920938463463374607431768211455,None,{}),
+ ('unicode',b's2:\xc3\xa9','\u00e9',None,{}),('zero-string',b's0:','',None,{}),
+ ('binary',b'b3:\x00\xffx',b'\x00\xffx',None,{}),('zero-bytes',b'b0:',b'',None,{}),
+ ('tuple',b't2:nyi1;',None,'TRAILING',{}),
+ ('tuple-exact',b't2:ny',(None,True),None,{}),('list-exact',b'l2:ny',[None,True],None,{}),
+ ('empty-dict',b'd0:',{},None,{}),('dict-order',b'd2:s1:ai1;s1:bb1:x',{'a':1,'b':b'x'},None,{}),
+ ('empty-input',b'',None,'WIRE_BOUND',{}),('unknown-tag',b'p',None,'TAG',{}),
+ ('negative-zero',b'i-0;',None,'NUMBER_CANONICAL',{}),('leading-zero',b'i01;',None,'NUMBER_CANONICAL',{}),
+ ('plus-int',b'i+1;',None,'NUMBER_SYNTAX',{}),('empty-int',b'i;',None,'NUMBER_SYNTAX',{}),
+ ('no-int-end',b'i1',None,'NUMBER_TERMINATOR',{}),('integer-overflow',b'i340282366920938463463374607431768211456;',None,'INTEGER_BOUND',{}),
+ ('length-leading-zero',b'b01:x',None,'NUMBER_CANONICAL',{}),('negative-length',b'b-1:x',None,'NUMBER_SYNTAX',{}),
+ ('bytes-cap',b'b65537:',None,'ATOM_BOUND',{}),('string-byte-cap',b's262145:',None,'ATOM_BOUND',{}),
+ ('truncated-bytes',b'b2:x',None,'TRUNCATED_ATOM',{}),('utf8-overlong',b's2:\xc0\xaf',None,'UTF8',{}),
+ ('utf8-surrogate',b's3:\xed\xa0\x80',None,'UTF8',{}),('trailing',b'nn',None,'TRAILING',{}),
+ ('tuple-truncated',b't2:n',None,'TRUNCATED',{}),('collection-cap',b't16385:',None,'CONTAINER_BOUND',{}),
+ ('dict-nonstring',b'd1:i1;n',None,'DICT_KEY_TYPE',{}),('dict-duplicate',b'd2:s1:ans1:an',None,'DICT_KEY_ORDER',{}),
+ ('dict-descending',b'd2:s1:bns1:an',None,'DICT_KEY_ORDER',{}),
+ ('restricted-depth',b't1:t1:n',None,'DEPTH_BOUND',{'depth_limit':1}),
+ ('restricted-nodes',b't2:nn',None,'NODE_BOUND',{'node_limit':2}),
+ ('restricted-wire',b'i1;',None,'WIRE_BOUND',{'limit':2}),
+)
+# A four-root flat scalar forest with repeated serialized identity1/type2.
+# Generic graph helper accepts scalar marker roots; actual-prefix sidecar requires
+# the three marker nodes be NATIVE_ERROR with exact messages.
+GRAPH_LITERAL=(
+ b'd11:s8:completeys18:foreign_formattingzs14:held_object_idi1;s9:held_rooti0;'
+ b's12:held_type_idi2;s25:identity_verdict_recordedzs5:nodesl4:'
+ b'l4:i1;i2;s4:NONEnl4:i1;i2;s4:NONEnl4:i1;i2;s4:NONEnl4:i1;i2;s4:NONEn'
+ b's21:original_marker_rootst3:t2:s5:writei1;t2:s5:closei2;t2:s4:latei3;'
+ b's17:receipt_object_idi3;s6:schemas32:h25-legacy-returned-ownership-v4'
+ b's21:writer_rows_object_idi4;')
+SCHEMA_CONTROLS=(
+ ('graph-wrong-held-id','graph',GRAPH_LITERAL.replace(b'held_object_idi1;',b'held_object_idi9;',1),'HELD_ID'),
+ ('graph-marker-order','graph',GRAPH_LITERAL.replace(b's5:write',b's5:wrong',1),'MARKER_ORDER'),
+ ('graph-alias-disagreement','graph',GRAPH_LITERAL.replace(b'l4:i1;i2;s4:NONEn',b'l4:i1;i2;s3:INTi0;',1),'GRAPH_ALIAS_ID'),
+ ('graph-root-reuse','graph',GRAPH_LITERAL.replace(b't2:s5:writei1;',b't2:s5:writei0;',1),'GRAPH_EDGE'),
+ ('graph-extra-field','graph',b'd1:s1:xn','SCHEMA_KEYS'),
+ ('valid-flat-graph','graph',GRAPH_LITERAL,None),
+ ('graph-key-census','graph',b'd0:','SCHEMA_KEYS'),
+ ('valid-single-chunk','chunks',b't1:b1:n',None),
+ ('chunk-tuple-list-distinction','chunks',b'l1:b1:n','SEQUENCE'),
+ ('empty-chunks','chunks',b't0:','CHUNKS_ARITY'),
+ ('short-nonfinal-chunk','chunks',b't2:b1:nb1:n','CHUNKS_ORDER'),
+ ('chunk-wrong-atom-type','chunks',b't1:s1:n','CHUNKS_ATOMS'),
+ ('valid-journal-literal','journal',b'l1:t3:s6:SOURCEi12;t1:b12:t1:s6:SOURCE',None),
+ ('journal-declared-length','journal',b'l1:t3:s6:SOURCEi11;t1:b12:t1:s6:SOURCE','ROW_LENGTH'),
+ ('journal-label-order','journal',b'l1:t3:s6:WRONG!i12;t1:b12:t1:s6:SOURCE','ROW_ORDER'),
+ ('terminal-missing-all-fields','terminal',b'd0:','SCHEMA_KEYS'),
+ ('trace-missing-all-fields','trace',b'd0:','SCHEMA_KEYS'),
+)
+
+def run_literal_controls(record):
+    """Future parent execution only. Retain each RAW fixture before its oracle.
+
+    Outcomes have independently authored expected codes/native values; no
+    roundtrip, producer encoder, original decoder or expected value generation.
+    """
+    completed=[]
+    for name,raw,expected,expected_code,knobs in GRAMMAR_CONTROLS:
+        record({'kind':'CONTROL_RAW_BEFORE_ORACLE','name':name,'scope':'grammar','raw_hex':raw.hex(),'raw_bytes':len(raw),'raw_sha256':hashlib.sha256(raw).hexdigest(),'expected_code':expected_code})
+        code=None;value=None
+        try:value=decode(raw,**knobs)
+        except Rejected as error:code=error.code
+        record({'kind':'CONTROL_OBSERVED','name':name,'code':code})
+        equal(code,expected_code,'CONTROL_CODE:'+name)
+        if expected_code is None:equal(value,expected,'CONTROL_VALUE:'+name)
+        completed.append(name)
+    for name,operation,raw,expected_code in SCHEMA_CONTROLS:
+        record({'kind':'CONTROL_RAW_BEFORE_ORACLE','name':name,'scope':operation,'raw_hex':raw.hex(),'raw_bytes':len(raw),'raw_sha256':hashlib.sha256(raw).hexdigest(),'expected_code':expected_code})
+        code=None
+        try:
+            value=decode(raw)
+            if operation=='graph':graph(value)
+            elif operation=='chunks':chunks(value,1048576)
+            elif operation=='journal':Audit().journal(value,('SOURCE',))
+            elif operation=='terminal':terminal(value,Audit())
+            elif operation=='trace':error_trace(value)
+            else:raise Rejected('CONTROL_OPERATION')
+        except Rejected as error:code=error.code
+        record({'kind':'CONTROL_OBSERVED','name':name,'code':code})
+        equal(code,expected_code,'CONTROL_CODE:'+name);completed.append(name)
+    completed.extend(run_v2_extra_controls(record))
+    equal(completed,CONTROL_IDS,'COMPLETE_CONTROL_INVENTORY')
+    return completed
+
+
+# V2 controls supplement every preserved V1 ID, without target execution.
+CORE_TRACE_LITERAL=(b'd5:s8:completeys18:foreign_formattingzs7:objectst1:d8:s4:argst1:s1:xs8:cause_idns10:context_idns6:framest0:s9:object_idi7;s16:suppress_contextzs4:types27:OTHER_OPAQUE_EXCEPTION_TYPEs7:type_idi9;s14:root_object_idi7;s6:schemas29:h25-gap-native-error-trace-v1')
+EARLY_TRACE_LITERAL=(b'd7:s8:completeys18:foreign_formattingzs7:objectst1:d8:s4:argst1:s1:xs8:cause_idns10:context_idns6:framest0:s9:object_idi7;s16:suppress_contextzs4:types20:BUILTIN_RuntimeErrors7:type_idi9;s31:original_parser_class_availablezs24:original_parser_class_idns14:root_object_idi7;s6:schemas29:h25-gap-native-error-trace-v2')
+V2_LITERAL_CONTROLS=(
+ ('core-v1-positive','core',CORE_TRACE_LITERAL,None),
+ ('early-v2-positive','early',EARLY_TRACE_LITERAL,None),
+ ('core-reject-early-schema','core',EARLY_TRACE_LITERAL,'SCHEMA_KEYS'),
+ ('early-reject-core-schema','early',CORE_TRACE_LITERAL,'SCHEMA_KEYS'),
+ ('core-reject-builtin-tag','core',CORE_TRACE_LITERAL.replace(b's27:OTHER_OPAQUE_EXCEPTION_TYPE',b's20:BUILTIN_RuntimeError'),'TRACE_TYPE_TAG'),
+ ('early-false-with-parser-id','early',EARLY_TRACE_LITERAL.replace(b'original_parser_class_idn',b'original_parser_class_idi11;'),'EARLY_CLASS_ID'),
+ ('early-int-availability','early',EARLY_TRACE_LITERAL.replace(b'original_parser_class_availablez',b'original_parser_class_availablei0;'),'EARLY_CLASS_FLAG'),
+ ('early-original-without-class','early',EARLY_TRACE_LITERAL.replace(b's20:BUILTIN_RuntimeError',b's26:ORIGINAL_ELFAdmissionError'),'TRACE_TYPE_TAG'),
+ ('early-bool-class-id','early',EARLY_TRACE_LITERAL.replace(b'original_parser_class_idn',b'original_parser_class_idy'),'OBSERVED_ID'),
+ ('hash-none','hash',b'n',None),('hash-dictionary','hash',b'd1:s1:ai1;',None),('hash-ordered-tuple','hash',b't2:yi17;',None),
+ ('event-bool-fd','events',b't1:t4:s5:writeyi1;s1:x','FD_EXACT_INT'),
+ ('event-bool-whence','events',b't1:t4:s5:lseeki12;i0;z','LATE_IO'),
+ ('event-bool-open-flags','events',b't1:t5:s4:opens13:/model-outputyi0;n','OPEN_NATIVE_TYPES'),
+ ('event-invalid-open-flags','events',b't1:t5:s4:opens13:/model-outputi14;i0;n','OPEN_FIXED_FIELDS'),
+)
+PLAN_FIELDS=('schema','id','spec','steps','mutation_provenance','input_inverse','input_sha256','observations','native_authority','production_image_claim','plan_sha256')
+SPEC_FIELDS=('id','family','mutation','obligations','paired_positive','expected_disposition','expected_error')
+STEP_FIELDS=('entry','args','input_sha256','expected_disposition','expected_return','expected_error')
+STATIC_FIELDS=('schema','static_only','sha256','bytes','policy_sha256','source_closure_sha256','compiler_closure_sha256','link_profile_sha256','build_receipt_sha256','needed','imports','exports','page_size','relro_nominal','effective_relro','version_requirements','phdr_offset','native_segments','initializer','loads','relocations','hash_reachability','receipt_sha256')
+EVENT_MUTATIONS=('bool-fd','bool-whence','flags','mode','dirfd','seek-offset','checkpoint-relation','acquisition-after-close','late-io','close-order','write-digest')
+TERMINAL_FIELDS=('overflow','pending_error_id','root_internal_uncertainty','pending_acquisitions','unknown_acquisition','quarantined','all_nonterminal_known_cleanup_attempts_before_encoding','opaque_objects_retained_until_process_exit','native_or_full_union_admission','original_root_ready','last_source_path','reserved_terminal_token_retained_until_bounded_artifact_write','evidence_incomplete','pending_flags','close_attempted','close_confirmed','known_fd_tokens','pending_return_id','parent_receipt')
+
+def control_wire(value):return b''.join(canonical_parts(value))
+
+def terminal_component_fixture():
+    obj={'object_id':7,'type_id':9,'type':'BUILTIN_RuntimeError','args':('H02 source-fixed comparison failure after raw custody',),'cause_id':None,'context_id':None,'suppress_context':False,'frames':()}
+    trace={'schema':'h25-gap-native-error-trace-v2','root_object_id':7,'original_parser_class_available':True,'original_parser_class_id':11,'objects':(obj,),'complete':True,'foreign_formatting':False}
+    return {'schema':'h25-gap41-terminal-raw-v3','parent_receipt':{'scope':'MODEL_BRANCH_ONLY'},'model_raw_ownership_v4':(),'error_slots':(('H02-delivered-comparison-failure',7),),'first_primary_id':7,'overflow':None,'native_error_typed_records':((7,control_wire(trace)),),'pending_values_typed_chunks':(('builder-return',20,(b'l0:',)),),'pending_raw_typed_chunks':(),'pending_flags':(False,False,True,False),'pending_error_id':None,'pending_return_id':None,'pending_builder_id':20,'known_fd_tokens':(None,)*5,'pending_acquisitions':(False,)*5,'close_attempted':(False,)*5,'close_confirmed':(False,)*5,'unknown_acquisition':(False,)*5,'quarantined':False,'evidence_incomplete':True,'last_source_path':None,'original_root_ready':False,'root_internal_uncertainty':None,'original_parser_registry_available':True,'original_parser_class_available':True,'original_parser_class_id':11,'all_nonterminal_known_cleanup_attempts_before_encoding':True,'reserved_terminal_token_retained_until_bounded_artifact_write':False,'opaque_objects_retained_until_process_exit':True,'native_or_full_union_admission':False}
+
+def run_v2_extra_controls(record):
+    completed=[]
+    def case(name,op,raw,expected_code=None,expected_hash=None):
+        record({'kind':'CONTROL_RAW_BEFORE_ORACLE','name':name,'scope':op,'raw_hex':raw.hex(),'raw_bytes':len(raw),'raw_sha256':hashlib.sha256(raw).hexdigest(),'expected_code':expected_code})
+        code=None;value=None
+        try:
+            value=decode(raw)
+            if op=='core':error_trace(value)
+            elif op=='early':early_trace(value)
+            elif op=='hash':equal(canonical_hash(value),expected_hash,'KNOWN_LITERAL_HASH')
+            elif op=='plan':check_base_plan(value)
+            elif op=='events':event_census(value,b'x',b'y')
+            elif op=='terminal-component':check_terminal_selected(value,'h02',Audit(),9,11)
+            elif op=='h02-links':check_h02_links(*value)
+            else:raise Rejected('CONTROL_OPERATION')
+        except Rejected as error:code=error.code
+        record({'kind':'CONTROL_OBSERVED','name':name,'code':code});equal(code,expected_code,'CONTROL_CODE:'+name);completed.append(name)
+    for name,op,raw,code in V2_LITERAL_CONTROLS:
+        # Expected hash comes from the independently fixed literal RAW bytes.
+        case(name,op,raw,code,hashlib.sha256(raw).hexdigest() if op=='hash' else None)
+    plan,baseline=reference_base();case('plan-complete-positive','plan',control_wire((plan,baseline)))
+    case('plan-baseline-member','plan',control_wire((plan,())), 'BASELINE_MEMBER')
+    for key in PLAN_FIELDS:
+        changed=dict(plan);changed[key]=('MUTANT',);case('plan-field-'+key,'plan',control_wire((changed,None)),'PLAN_FIELD:'+key)
+    for key in SPEC_FIELDS:
+        changed=dict(plan);inner=dict(plan['spec']);inner[key]=('MUTANT',);changed['spec']=inner;case('plan-spec-'+key,'plan',control_wire((changed,None)),'PLAN_FIELD:spec')
+    for group,fields in (('step',STEP_FIELDS),('static',STATIC_FIELDS)):
+        for key in fields:
+            changed=dict(plan);step=dict(plan['steps'][0])
+            if group=='step':step[key]=('MUTANT',)
+            else:inner=dict(step['expected_return']);inner[key]=('MUTANT',);step['expected_return']=inner
+            changed['steps']=(step,);case('plan-'+group+'-'+key,'plan',control_wire((changed,None)),'PLAN_FIELD:steps')
+    base=expected_pending_events(b'x',b'y');case('event-full-protocol-positive','events',control_wire(base))
+    for kind in EVENT_MUTATIONS:
+        rows=list(base);code='EVENT_PROTOCOL_CHECKPOINT_RELATIONS'
+        if kind=='bool-fd':i=next(i for i,r in enumerate(rows) if r[0]=='write');r=list(rows[i]);r[1]=True;rows[i]=tuple(r);code='FD_EXACT_INT'
+        elif kind=='bool-whence':i=next(i for i,r in enumerate(rows) if r[0]=='lseek');r=list(rows[i]);r[3]=False;rows[i]=tuple(r);code='SEEK_EXACT_FIELDS'
+        elif kind in ('flags','mode','dirfd'):
+            i=next(i for i,r in enumerate(rows) if r[0]=='open' and r[1]=='gap-terminal-v2.typed');r=list(rows[i]);r[{'flags':2,'mode':3,'dirfd':4}[kind]]=0;rows[i]=tuple(r);code='OPEN_FIXED_FIELDS'
+        elif kind=='seek-offset':i=next(i for i,r in enumerate(rows) if r[0]=='lseek');r=list(rows[i]);r[2]=1;rows[i]=tuple(r);code='SEEK_EXACT_FIELDS'
+        elif kind=='checkpoint-relation':i=next(i for i,r in enumerate(rows) if r[:2]==('checkpoint','prepare_entry'));rows[i]=('checkpoint','wrong_prepare',1)
+        elif kind=='acquisition-after-close':i=next(i for i,r in enumerate(rows) if r[0]=='close');rows.insert(i+1,('open','/model-output',15,0,None));code='ACQUIRE_AFTER_CLOSE'
+        elif kind=='late-io':i=next(i for i,r in enumerate(rows) if r[:2]==('close',12));rows.insert(i+1,('read',12,1));code='LATE_IO'
+        elif kind=='close-order':i=next(i for i,r in enumerate(rows) if r[:2]==('close',10));rows[i]=('close',12);code='LATE_IO'
+        else:i=next(i for i,r in enumerate(rows) if r[0]=='write');r=list(rows[i]);r[3]='0'*64;rows[i]=tuple(r);code='WRITE_DATA_HASH'
+        case('event-protocol-'+kind,'events',control_wire(tuple(rows)),code)
+    term=terminal_component_fixture();case('terminal-component-positive','terminal-component',control_wire(term))
+    for key in TERMINAL_FIELDS:
+        changed=dict(term);changed[key]=('MUTANT',);code='VALUE'
+        if key in ('overflow','pending_error_id','root_internal_uncertainty','pending_acquisitions','unknown_acquisition','quarantined','all_nonterminal_known_cleanup_attempts_before_encoding','opaque_objects_retained_until_process_exit','native_or_full_union_admission'):code='TERMINAL_FIELD:h02:'+key
+        elif key=='last_source_path':code='LAST_SOURCE_PATH'
+        elif key=='pending_flags':code='PENDING_FLAGS:h02'
+        elif key=='close_attempted':code='CAPTURE_ATTEMPTS:h02'
+        elif key=='close_confirmed':code='CAPTURE_CONFIRMED:h02'
+        case('terminal-field-'+key,'terminal-component',control_wire(changed),code)
+
+    changed=dict(plan);changed['observations']=False;case('plan-observations-bool','plan',control_wire((changed,None)),'PLAN_FIELD:observations')
+    changed=dict(plan);changed['native_authority']=0;case('plan-native-authority-int','plan',control_wire((changed,None)),'PLAN_FIELD:native_authority')
+    # Coupled mutant recalculates every copied digest; literal source bytes must
+    # still defeat it. No immutable target artifact is changed.
+    changed=dict(plan);step=dict(plan['steps'][0]);raw,digest,policy=step['args'];raw=bytes((raw[0]^1,))+raw[1:];digest=hashlib.sha256(raw).hexdigest();step['args']=(raw,digest,policy);returned=dict(step['expected_return']);returned['sha256']=digest;returned['receipt_sha256']=canonical_hash({k:v for k,v in returned.items() if k!='receipt_sha256'});step['expected_return']=returned;step['input_sha256']=canonical_hash((step['entry'],step['args']));changed['steps']=(step,);changed['input_sha256']=canonical_hash(((step['entry'],step['args']),));changed['plan_sha256']=canonical_hash({k:v for k,v in changed.items() if k!='plan_sha256'});case('plan-consistent-rehashed-raw-mutation','plan',control_wire((changed,None)),'PLAN_FIELD:steps')
+    h=((9,('H02 source-fixed comparison failure after raw custody',),2,3,20,20,(b'n',)),9,7,7,9,20)
+    case('h02-link-positive','h02-links',control_wire(h))
+    for label,position,value,code in (('type',0,8,'H02_CAUGHT_TYPE_ID'),('bool-type',0,True,'OBSERVED_ID'),('builder',4,21,'H02_LOG_ID')):
+        row=list(h[0]);row[position]=value;case('h02-link-'+label,'h02-links',control_wire((tuple(row),)+h[1:]),code)
+    row=list(h);row[2]=8;case('h02-link-primary','h02-links',control_wire(tuple(row)),'H02_CAPTURE_PRIMARY')
+    row=list(h);row[5]=21;case('h02-link-outer-builder','h02-links',control_wire(tuple(row)),'OUTER_H02_LOG_ID')
+    completed.extend(run_v3_controls(record))
+    return completed
+
+
+# V3 fixed literal witnesses for the two precise V2 source omissions.
+# Core/early schemas remain distinct; no actual artifact is interpreted here.
+PRIMARY_OBJECT_LITERAL=(b'd8:s4:argst1:s36:complete typed actual return differss8:cause_idns10:context_idns6:framest0:s9:object_idi7;s16:suppress_contextzs4:types27:OTHER_OPAQUE_EXCEPTION_TYPEs7:type_idi9;')
+WRITE_OBJECT_LITERAL=(b'd8:s4:argst1:s16:model raw writers8:cause_idns10:context_idi7;s6:framest0:s9:object_idi8;s16:suppress_contextzs4:types27:OTHER_OPAQUE_EXCEPTION_TYPEs7:type_idi9;')
+PRIMARY_CORE_LITERAL=(b'd5:s8:completeys18:foreign_formattingzs7:objectst1:'+PRIMARY_OBJECT_LITERAL+b's14:root_object_idi7;s6:schemas29:h25-gap-native-error-trace-v1')
+CONTEXT_CORE_LITERAL=(b'd5:s8:completeys18:foreign_formattingzs7:objectst2:'+WRITE_OBJECT_LITERAL+PRIMARY_OBJECT_LITERAL+b's14:root_object_idi8;s6:schemas29:h25-gap-native-error-trace-v1')
+CLOSE_CORE_LITERAL=CORE_TRACE_LITERAL.replace(b't1:s1:x',b't1:s13:model cleanup')
+LATE_CORE_LITERAL=CORE_TRACE_LITERAL.replace(b't1:s1:x',b't1:s16:model late graph')
+GRAPH_ERROR_LITERAL=(b'd11:s8:completeys18:foreign_formattingzs14:held_object_idi7;s9:held_rooti0;s12:held_type_idi9;s25:identity_verdict_recordedzs5:nodesl4:l4:i7;i9;s12:NATIVE_ERROR'+CORE_TRACE_LITERAL+b'l4:i1;i2;s4:NONEnl4:i1;i2;s4:NONEnl4:i1;i2;s4:NONEns21:original_marker_rootst3:t2:s5:writei1;t2:s5:closei2;t2:s4:latei3;s17:receipt_object_idi3;s6:schemas32:h25-legacy-returned-ownership-v4s21:writer_rows_object_idi4;')
+V3_LITERAL_CONTROLS=(
+ ('generic-core-original-tag-positive','core',CORE_TRACE_LITERAL.replace(b's27:OTHER_OPAQUE_EXCEPTION_TYPE',b's26:ORIGINAL_ELFAdmissionError'),None),
+ ('graph-native-error-type-positive','graph',GRAPH_ERROR_LITERAL,None),
+ ('graph-native-error-type-negative','graph',GRAPH_ERROR_LITERAL.replace(b's7:type_idi9;',b's7:type_idi10;',1),'GRAPH_ERROR_TYPE_ID'),
+ ('selected-runtime-core-positive','selected-core',PRIMARY_CORE_LITERAL,None),
+ ('selected-runtime-core-type-negative','selected-core',PRIMARY_CORE_LITERAL.replace(b's7:type_idi9;',b's7:type_idi10;'),'SELECTED_RUNTIME_TYPE_ID'),
+ ('selected-runtime-core-tag-negative','selected-core',PRIMARY_CORE_LITERAL.replace(b's27:OTHER_OPAQUE_EXCEPTION_TYPE',b's26:ORIGINAL_ELFAdmissionError'),'SELECTED_RUNTIME_CORE_TAG'),
+ ('selected-runtime-close-suppression-negative','selected-core',CLOSE_CORE_LITERAL.replace(b'suppress_contextz',b'suppress_contexty'),'SELECTED_RUNTIME_SUPPRESSION'),
+ ('selected-runtime-late-suppression-negative','selected-core',LATE_CORE_LITERAL.replace(b'suppress_contextz',b'suppress_contexty'),'SELECTED_RUNTIME_SUPPRESSION'),
+ ('selected-runtime-context-positive','selected-core',CONTEXT_CORE_LITERAL,None),
+ ('selected-runtime-context-type-negative','selected-core',CONTEXT_CORE_LITERAL.replace(PRIMARY_OBJECT_LITERAL,PRIMARY_OBJECT_LITERAL.replace(b's7:type_idi9;',b's7:type_idi10;')),'SELECTED_RUNTIME_TYPE_ID'),
+ ('selected-runtime-context-tag-negative','selected-core',CONTEXT_CORE_LITERAL.replace(PRIMARY_OBJECT_LITERAL,PRIMARY_OBJECT_LITERAL.replace(b's27:OTHER_OPAQUE_EXCEPTION_TYPE',b's26:ORIGINAL_ELFAdmissionError')),'SELECTED_RUNTIME_CORE_TAG'),
+ ('selected-runtime-context-suppression-negative','selected-core',CONTEXT_CORE_LITERAL.replace(PRIMARY_OBJECT_LITERAL,PRIMARY_OBJECT_LITERAL.replace(b'suppress_contextz',b'suppress_contexty')),'SELECTED_RUNTIME_SUPPRESSION'),
+)
+
+def run_v3_controls(record):
+    completed=[]
+    def one(name,scope,raw,expected):
+        record({'kind':'CONTROL_RAW_BEFORE_ORACLE','name':name,'scope':scope,'raw_hex':raw.hex(),'raw_bytes':len(raw),'raw_sha256':hashlib.sha256(raw).hexdigest(),'expected_code':expected})
+        observed=None
+        try:
+            value=decode(raw)
+            if scope=='graph':graph(value)
+            elif scope=='core':error_trace(value)
+            elif scope=='selected-core':
+                for obj in error_trace(value).values():selected_runtime_core_metadata(obj,9)
+            elif scope=='selected-core-bundle':
+                sequence(value,2)
+                # Two separately literal traces contain a primary root/context
+                # clone. Class/tag changes are made consistently in all copies.
+                for trace_raw in value:
+                    for obj in error_trace(decode(trace_raw)).values():selected_runtime_core_metadata(obj,9)
+            else:raise Rejected('CONTROL_OPERATION')
+        except Rejected as error:observed=error.code
+        record({'kind':'CONTROL_OBSERVED','name':name,'code':observed});equal(observed,expected,'CONTROL_CODE:'+name);completed.append(name)
+    for name,scope,raw,expected in V3_LITERAL_CONTROLS:one(name,scope,raw,expected)
+    one('coupled-primary-metadata-positive','selected-core-bundle',control_wire((PRIMARY_CORE_LITERAL,CONTEXT_CORE_LITERAL)),None)
+    changed=PRIMARY_OBJECT_LITERAL.replace(b's7:type_idi9;',b's7:type_idi10;').replace(b's27:OTHER_OPAQUE_EXCEPTION_TYPE',b's26:ORIGINAL_ELFAdmissionError')
+    # The fixture carrier is newly serialized DATA. Runtime RAW/hash transport
+    # is charged and retained, never a copied original artifact digest.
+    one('coupled-primary-type-tag-across-aliases-negative','selected-core-bundle',control_wire((PRIMARY_CORE_LITERAL.replace(PRIMARY_OBJECT_LITERAL,changed),CONTEXT_CORE_LITERAL.replace(PRIMARY_OBJECT_LITERAL,changed))),'SELECTED_RUNTIME_TYPE_ID')
+    return completed
+
+
+# Stable-I/O caller boundary. No privileged helper/issuer or native fault PASS.
+class IOCustody:
+    def __init__(self):
+        # Allocation precedes every native descriptor acquisition.
+        self.slots=[[None,False,False,False,False] for unused in range(8)]
+        self.errors=[None]*16;self.labels=[None]*16;self.count=0
+        self.first=[None];self.overflow=[None]
+    def remember(self,error,label):
+        if self.first[0] is None:self.first[0]=error
+        if self.count<16:
+            self.errors[self.count]=error;self.labels[self.count]=label;self.count+=1
+        elif self.overflow[0] is None:self.overflow[0]=error
+    def open(self,slot,path,flags,mode=0,dir_fd=None):
+        cell=self.slots[slot]
+        require(cell[0] is None and not cell[1] and not cell[2] and not cell[3],'IO_SLOT_NOT_REUSABLE')
+        cell[4]=False;cell[1]=True
+        try:cell[0]=os.open(path,flags,mode,dir_fd=dir_fd)
+        except BaseException as error:
+            # Potential native acquisition without delivered fd remains UNKNOWN.
+            # Never infer/reconstruct/retry it; parent teardown owns this gap.
+            cell[2]=True;self.remember(error,'open');raise
+        else:cell[1]=False
+        return cell[0]
+    def close(self,slot):
+        cell=self.slots[slot];fd=cell[0]
+        if fd is None:return
+        cell[0]=None;cell[3]=True
+        try:os.close(fd)
+        except BaseException as error:cell[2]=True;self.remember(error,'close')
+        else:cell[4]=True;cell[3]=False
+    def cleanup(self):
+        # No failed close is retried; other known descriptors still get a turn.
+        for slot in reversed(range(8)):self.close(slot)
+    def raise_first(self):
+        if self.first[0] is not None:raise self.first[0]
+
+IO_CUSTODY=IOCustody()
+
+def stable_read(path,expected,limit):
+    # Pieces/digest/owner exist before open; actual errors are strongly retained
+    # before metadata/formatting. Exact stable-I/O scope is not a race proof.
+    pieces=[];digest=hashlib.sha256();count=0;after_fd=None;p=Path(path)
+    def ident(st):return (st.st_dev,st.st_ino,st.st_mode,st.st_nlink,st.st_uid,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+    try:
+        require(p.is_absolute() and p.resolve()==p,'INPUT_CANONICAL_PATH');before=p.lstat()
+        require(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode)==expected['mode'] and before.st_nlink==1 and before.st_uid==os.getuid(),'INPUT_IDENTITY')
+        require(before.st_size==expected['bytes'] and 0<=before.st_size<=limit,'INPUT_SIZE')
+        descriptor=IO_CUSTODY.open(0,p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        require(ident(os.fstat(descriptor))==ident(before),'INPUT_OPEN_DRIFT')
+        while count<before.st_size:
+            piece=os.read(descriptor,min(65536,before.st_size-count));require(type(piece) is bytes and 0<len(piece)<=65536,'INPUT_SHORT_READ');pieces.append(piece);count+=len(piece);digest.update(piece)
+        require(os.read(descriptor,1)==b'','INPUT_GROWTH');after_fd=os.fstat(descriptor)
+        require(ident(before)==ident(after_fd)==ident(p.lstat()),'INPUT_DRIFT');equal(digest.hexdigest(),expected['sha256'],'INPUT_SHA')
+    except BaseException as error:IO_CUSTODY.remember(error,'stable-read')
+    finally:IO_CUSTODY.close(0)
+    IO_CUSTODY.raise_first();return b''.join(pieces)
+
+def json_native(raw):
+    def pairs(rows):
+        d={}
+        for k,v in rows:require(type(k) is str and k not in d,'JSON_DUPLICATE');d[k]=v
+        return d
+    def bad(value):raise Rejected('JSON_CONSTANT')
+    value=json.loads(raw.decode('utf8','strict'),object_pairs_hook=pairs,parse_constant=bad);count=0
+    def scan(x,depth):
+        nonlocal count
+        count+=1;require(count<=200000 and depth<=32,'JSON_BOUND');k=type(x)
+        if x is None or k is bool:return
+        if k is int:require(x.bit_length()<=128,'JSON_INTEGER');return
+        if k is float:require(math.isfinite(x),'JSON_FLOAT');return
+        if k is str:require(len(x)<=65536,'JSON_STRING');return
+        require(k in (dict,list) and len(x)<=16384,'JSON_TYPE')
+        if k is dict:
+            for key,v in x.items():require(type(key) is str and len(key)<=65536,'JSON_KEY');scan(v,depth+1)
+        else:
+            for v in x:scan(v,depth+1)
+    scan(value,0);return value
+
+def durable_new(out,name,raw):
+    require(type(name) is str and '/' not in name and type(raw) is bytes and len(raw)<=16777216,'OUTPUT_BOUND')
+    expected=hashlib.sha256(raw).hexdigest();readback=hashlib.sha256();position=count=0
+    try:
+        fd=IO_CUSTODY.open(3,name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,IO_CUSTODY.slots[1][0])
+        while position<len(raw):
+            n=os.write(fd,raw[position:position+65536]);require(type(n) is int and n>0,'OUTPUT_SHORT_WRITE');position+=n
+        os.fsync(fd);os.lseek(fd,0,0)
+        while count<len(raw):
+            chunk=os.read(fd,min(65536,len(raw)-count));require(type(chunk) is bytes and chunk,'OUTPUT_READBACK_SHORT');count+=len(chunk);readback.update(chunk)
+        require(os.read(fd,1)==b'','OUTPUT_READBACK_EXTRA');equal(readback.hexdigest(),expected,'OUTPUT_READBACK_HASH')
+        st=os.fstat(fd);require(stat.S_ISREG(st.st_mode) and stat.S_IMODE(st.st_mode)==0o600 and st.st_nlink==1 and st.st_uid==os.getuid() and st.st_size==len(raw),'OUTPUT_READBACK_IDENTITY')
+        os.fsync(IO_CUSTODY.slots[1][0])
+    except BaseException as error:IO_CUSTODY.remember(error,'new-write-readback-fsync')
+    finally:IO_CUSTODY.close(3)
+    IO_CUSTODY.raise_first()
+
+
+def main():
+    parser=argparse.ArgumentParser(description='Independent exact-prefix DATA oracle V2; no runtime/native qualification')
+    for name in ('mode','output','source-sha256','contract-sha256'):parser.add_argument('--'+name,required=True,**({'choices':('normal','optimized')} if name=='mode' else {}))
+    args=parser.parse_args();began=time.monotonic();cpu0=time.process_time();completed=[];out=None;journal_bytes=0
+    source=Path(__file__).resolve();contract_path=source.parent/'INPUT-CONTRACT.json'
+    report={'schema':'independent-exact-prefix-DATA-outcome-v2','status':'STOP','mode':args.mode,'source_sha256':args.source_sha256,'contract_sha256':args.contract_sha256,'full99_fit':False,'full52prefix_qualification':False,'runtime_profile_qualified':False,'native_identity_proved':False,'fullcaller_admitted':False,'fullscience':False,'gain':False,'execution_grant_created':False,'all_costs_settled':False,'native_fault_totality_qualified':False}
+    source_expected={'mode':0o444,'bytes':source.stat().st_size,'sha256':args.source_sha256};contract_expected={'mode':0o444,'bytes':contract_path.stat().st_size,'sha256':args.contract_sha256}
+    def record(value):
+        nonlocal journal_bytes
+        raw=(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True)+'\n').encode('ascii');journal_bytes+=len(raw);require(journal_bytes<=4194304,'CONTROL_JOURNAL_BOUND');position=0
+        while position<len(raw):
+            n=os.write(IO_CUSTODY.slots[2][0],raw[position:position+65536]);require(type(n) is int and n>0,'JOURNAL_SHORT_WRITE');position+=n
+        os.fsync(IO_CUSTODY.slots[2][0])
+    try:
+        stable_read(source,source_expected,1048576);spec=json_native(stable_read(contract_path,contract_expected,1048576));require(spec['grants_execution'] is False,'INERT_CONTRACT');inventory_expected=spec['control_inventory'];inventory=json_native(stable_read(inventory_expected['path'],inventory_expected,1048576));equal(inventory['ids'],CONTROL_IDS,'PARAMETERIZED_CONTROL_IDS');equal(inventory['count'],len(CONTROL_IDS),'PARAMETERIZED_CONTROL_COUNT')
+        out=Path(args.output);require(out.is_absolute() and out.parent.resolve()==out.parent and not out.is_relative_to(Path(spec['round_root'])),'EXTERNAL_OUTPUT');require(out.name and all(c.isalnum() or c in '-_' for c in out.name),'OUTPUT_NAME')
+        parent=IO_CUSTODY.open(5,out.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        os.mkdir(out.name,0o700,dir_fd=parent);os.fsync(parent)
+        directory=IO_CUSTODY.open(1,out.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=parent)
+        st=os.fstat(directory);require(stat.S_ISDIR(st.st_mode) and stat.S_IMODE(st.st_mode)==0o700 and st.st_uid==os.getuid(),'OUTPUT_DIRECTORY');IO_CUSTODY.close(5);IO_CUSTODY.raise_first()
+        # Journal owner/outer cleanup try already exists before this acquisition.
+        IO_CUSTODY.open(2,'observations.jsonl',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,directory)
+        for path,row in spec['source_pins'].items():stable_read(path,row,1048576)
+        inputs=spec['inputs'][args.mode];retained={}
+        for name,row in inputs.items():
+            data=stable_read(row['path'],row,16777216 if name=='artifact' else 2097152 if name=='stdout' else 65536);durable_new(out,'RAW-'+name+('.typed' if name in ('artifact','stdout') else '.json'),data);retained[name]=data;record({'kind':'INPUT_RAW_BEFORE_ORACLE','name':name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'mode':args.mode})
+        completed=run_literal_controls(record)
+        metadata=json_native(retained['metadata']);equal(metadata,spec['modes'][args.mode]['metadata'],'EXACT_METADATA_CUSTODY');root=json_native(retained['root_receipt']);equal(root['command'],spec['modes'][args.mode]['actual_command'],'ACTUAL_MODE_COMMAND');equal(root['status'],'PASS');equal(root['exit'],0)
+        outcome=verify_prefix(retained['artifact'],retained['stdout'],metadata,spec['modes'][args.mode]);record({'kind':'SEMANTIC_OBSERVATION','outcome':outcome})
+        for row in inputs.values():stable_read(row['path'],row,16777216)
+        for path,row in spec['source_pins'].items():stable_read(path,row,1048576)
+        stable_read(source,source_expected,1048576);stable_read(contract_path,contract_expected,1048576);stable_read(inventory_expected['path'],inventory_expected,1048576)
+        report.update(status='EXACT_PREFIX_SERIALIZED_DATA_OBSERVED',controls_completed=completed,outcome=outcome)
+        report['observed_internal_wall_before_receipt_seconds']=time.monotonic()-began;report['observed_internal_CPU_before_receipt_seconds']=time.process_time()-cpu0;report['internal_receipt_and_cleanup_tail_excluded']=True
+        durable_new(out,'receipt.json',(json.dumps(report,sort_keys=True,indent=2)+'\n').encode('ascii'))
+    except BaseException as error:IO_CUSTODY.remember(error,'body-primary')
+    finally:
+        # Fsync failure never prevents a known descriptor close or other cleanup.
+        if IO_CUSTODY.slots[2][0] is not None:
+            try:os.fsync(IO_CUSTODY.slots[2][0])
+            except BaseException as error:IO_CUSTODY.remember(error,'journal-final-fsync')
+        IO_CUSTODY.cleanup()
+    IO_CUSTODY.raise_first()
+    print(json.dumps({'status':report['status'],'mode':args.mode,'output':str(out),'controls':len(completed),'native_identity_proved':False,'full99_fit':False,'fullscience':False,'gain':False},sort_keys=True))
+
+if __name__=='__main__':main()

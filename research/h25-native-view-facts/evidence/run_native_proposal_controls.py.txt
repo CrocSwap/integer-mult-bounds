@@ -1,0 +1,186 @@
+"""Verification envelope for two frozen new mocked-constructor controls.
+
+External parent: timeout TERM at 45 seconds, KILL after 5 seconds, one owned
+group, immutable 64-second reservation and unconditional final accounting.
+Children keep that group. No production entry or actual kernel probe is run.
+"""
+from pathlib import Path
+import hashlib
+import json
+import os
+import resource
+import selectors
+import signal
+import stat
+import subprocess
+import time
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/caller-proof-construction-20261106T2330Z'
+B = R / 'proof/native-entry-invariants'
+D = R / 'verification-native'
+COMPILER = Path('/usr/bin/x86_64-linux-gnu-gcc-13')
+PINS = {
+    B / 'proposal/science_view_entry.c': 'e1740fc6c901e09477ff0d934a920ca51dfe1a4b199d14e3433e155f1ef30fb2',
+    B / 'controls/changed_policy_control.c': '5a2529728985028865276d116f5c567e3c613e4f8f0356f9070857206318c2eb',
+    B / 'controls/native_fact_control.c': 'b7b7cfe5ebbebead55791b121b2fdb5e15d2736aafaa4a2e781e99de44ffd5fd',
+    COMPILER: '1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26'}
+CAP = 65536
+
+
+def save(path, value):
+    with path.open('x') as stream:
+        json.dump(value, stream, indent=2, sort_keys=True)
+        stream.write('\n')
+    path.chmod(0o444)
+
+
+def error_value(error, site):
+    return {'site': site, 'type': type(error).__name__, 'message': str(error)}
+
+
+def verify_pins():
+    for path, expected in PINS.items():
+        value = path.lstat()
+        if not stat.S_ISREG(value.st_mode) or value.st_size > 2 * 1024 * 1024:
+            raise ValueError('bounded regular reviewed source/tool')
+        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise ValueError('reviewed source/tool changed: ' + str(path))
+
+
+def limits(cpu):
+    resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu))
+    resource.setrlimit(resource.RLIMIT_AS, (536870912, 536870912))
+    resource.setrlimit(resource.RLIMIT_FSIZE, (4194304, 4194304))
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
+
+
+def run(name, argv, wall, cpu, expected_stdout=None):
+    folder = D / name
+    folder.mkdir()
+    errors = []
+    streams = {}
+    counts = {'stdout': 0, 'stderr': 0}
+    eof = set()
+    process = None
+    selector = None
+    known_wait = False
+    body_ok = False
+    started = time.monotonic()
+    def attempt(site, function):
+        try:
+            return function()
+        except BaseException as error:
+            errors.append(error_value(error, site))
+            return None
+    try:
+        verify_pins()
+        for key in counts:
+            streams[key] = (folder / (key + '.raw')).open('xb', buffering=0)
+        save(folder / 'START.json', {'state': 'BIRTH_PENDING', 'argv': argv,
+            'child_wall_seconds': wall, 'CPU_seconds': cpu, 'AS_bytes': 536870912,
+            'FSIZE_bytes': 4194304, 'raw_cap_each': CAP,
+            'inherits_external_guard_process_group': os.getpgrp()})
+        process = subprocess.Popen(argv, cwd=W,
+            env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C', 'LANG': 'C',
+                 'TMPDIR': str(D / 'scratch')},
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            close_fds=True, preexec_fn=lambda: limits(cpu))
+        save(folder / 'BIRTH.json', {'pid': process.pid,
+            'inherits_external_guard_process_group': os.getpgrp()})
+        selector = selectors.DefaultSelector()
+        for key, pipe in (('stdout', process.stdout), ('stderr', process.stderr)):
+            os.set_blocking(pipe.fileno(), False)
+            selector.register(pipe, selectors.EVENT_READ, key)
+        end = time.monotonic() + wall
+        while selector.get_map():
+            remaining = end - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('owned child/EOF deadline')
+            for item, _ in selector.select(min(0.1, remaining)):
+                key = item.data
+                block = os.read(item.fileobj.fileno(), min(4096, CAP + 1 - counts[key]))
+                if not block:
+                    selector.unregister(item.fileobj)
+                    eof.add(key)
+                    continue
+                # Persist each prefix before the next read. An outer kill must
+                # not erase captured bytes held only in Python memory.
+                written = streams[key].write(block)
+                if written != len(block):
+                    raise OSError('short raw capture write')
+                counts[key] += len(block)
+                if counts[key] > CAP:
+                    raise ValueError('raw cap exceeded; prefix retained')
+        process.wait(timeout=max(0.001, end - time.monotonic()))
+        known_wait = True
+        if process.returncode != 0 or eof != set(counts):
+            raise ValueError('control/tool did not complete with zero exit and both EOFs')
+        verify_pins()
+        body_ok = True
+    except BaseException as error:
+        errors.append(error_value(error, 'body'))
+        if process is not None and not known_wait:
+            attempt('kill-owned-unreaped-child', process.kill)
+            if attempt('wait-owned-child', lambda: process.wait(timeout=2)) is not None:
+                known_wait = True
+    finally:
+        if selector is not None:
+            attempt('selector-close', selector.close)
+        if process is not None:
+            for pipe in (process.stdout, process.stderr):
+                if pipe is not None:
+                    attempt('pipe-close', pipe.close)
+        for key, stream in streams.items():
+            attempt('raw-' + key + '-close', stream.close)
+            attempt('raw-' + key + '-freeze', lambda key=key: (folder / (key + '.raw')).chmod(0o444))
+    if expected_stdout is not None and body_ok and not errors:
+        try:
+            if (folder / 'stdout.raw').read_bytes() != expected_stdout or (folder / 'stderr.raw').read_bytes() != b'':
+                raise ValueError('exact new control terminal bytes')
+        except BaseException as error:
+            errors.append(error_value(error, 'terminal-bytes'))
+    row = {'name': name, 'complete': body_ok and not errors, 'errors': errors,
+        'returncode': None if process is None else process.returncode,
+        'known_wait': known_wait, 'EOF': sorted(eof), 'raw_bytes': counts,
+        'wall_seconds': time.monotonic() - started}
+    save(folder / 'RESULT.json', row)
+    return row
+
+
+def main():
+    admission = json.loads((R / 'control/NATIVE-PROPOSAL-CONTROL-ADMISSION-v1.json').read_text())
+    if admission['guard_sha256'] != hashlib.sha256(Path(__file__).read_bytes()).hexdigest() or admission['execution_GO'] is not True:
+        raise ValueError('exact reviewed parent component admission')
+    D.mkdir(exist_ok=False)
+    (D / 'scratch').mkdir(mode=0o700)
+    rows = []
+    for stem, expected in (('changed_policy_control', b''),
+                           ('native_fact_control', b'unselected native fact control: finite operation oracles passed\n')):
+        binary = D / stem
+        row = run('compile-' + stem,
+            [str(COMPILER), '-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
+             '-Wno-error=misleading-indentation', str(B / 'controls' / (stem + '.c')),
+             '-o', str(binary)], 15, 10)
+        rows.append(row)
+        if not row['complete']:
+            break
+        binary.chmod(0o500)
+        save(D / (stem + '-BINARY-PIN.json'), {'bytes': binary.stat().st_size,
+            'sha256': hashlib.sha256(binary.read_bytes()).hexdigest()})
+        row = run('run-' + stem, [str(binary)], 2, 1, expected)
+        rows.append(row)
+        if not row['complete']:
+            break
+    result = {'status': 'PASS' if len(rows) == 4 and all(row['complete'] for row in rows) else 'FAILED_NO_RETRY',
+        'steps': rows, 'new_control_sources': 2, 'production_entry_executed': False,
+        'kernel_or_namespace_probe': False, 'original_caller_execution': False,
+        'whole_source_accepted': False, 'original_credit_delta': 0}
+    save(D / 'RESULT.json', result)
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result['status'] == 'PASS' else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

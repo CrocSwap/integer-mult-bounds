@@ -1,0 +1,415 @@
+"""Fail-closed parent capability verifier. NO production issuer/adapter is present.
+Only the actual reviewed launch/inventory bootstrap may populate _BINDINGS after
+independent source integration. Public caller dictionaries cannot issue authority.
+Future controls source-port private bindings; that is not launch/kernel credit.
+"""
+import hashlib
+import os
+import stat
+import subprocess
+import types
+import sys
+from collections import namedtuple
+import native_io_custody as native_io
+from plain_boundary import need, plain_copy, fd_number
+
+_BINDINGS = ()
+_ORIGINAL_POPEN = subprocess.Popen
+_ORIGINAL_INIT = type.__getattribute__(_ORIGINAL_POPEN, "__dict__")["__init__"]
+_ORIGINAL_POLL = type.__getattribute__(_ORIGINAL_POPEN, "__dict__")["poll"]
+_ORIGINAL_WAITPID = os.waitpid
+_ORIGINAL_WAITSTATUS = os.waitstatus_to_exitcode
+_ORIGINAL_DICT = type.__getattribute__(_ORIGINAL_POPEN, "__dict__")["__dict__"]
+
+
+class ParentCapability:
+    __slots__ = ()
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("actual parent launch/inventory issuer is not installed")
+
+
+# Immutable source-owned records; the public opaque capability has no writable
+# fields. Forging a namedtuple or a Popen does not enroll it in _BINDINGS.
+ParentBinding = namedtuple("ParentBinding", "authority_sha256 subprocess_path subprocess_sha256 popen_class "
+    "popen_init popen_init_code popen_poll popen_poll_code waitpid registry lease_fd lease_identity "
+    "lease_lock_line lease_owner_pid inventory_sha256 closure_sha256 domain_sha256 native_lifetime_token "
+    "dispatch dispatch_code")
+ProcessEntry = namedtuple("ProcessEntry", "process pid returncode wait_observation native_start_identity source_registry_generation")
+
+
+def active_binding():
+    need(type(_BINDINGS) is tuple and len(_BINDINGS) == 1, "actual parent capability issuer/adapter absent")
+    pair = _BINDINGS[0]
+    need(type(pair) is tuple and len(pair) == 2 and type(pair[0]) is ParentCapability
+         and type(pair[1]) is ParentBinding, "actual parent binding shape")
+    return pair[0]
+
+
+def source_hash(path,custody=None):
+    raw=native_io.source_bytes(path,errors=custody,site="authority-source-hash")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _legacy_authenticate(capability, cfg, lease_fd, custody=None):
+    fd_number(lease_fd)
+    cfg = plain_copy(cfg, max_nodes=4096, max_depth=16, max_text=1048576)
+    need(type(capability) is ParentCapability and type(_BINDINGS) is tuple,
+         "unissued parent capability")
+    matches = [pair[1] for pair in _BINDINGS if type(pair) is tuple and len(pair) == 2
+               and pair[0] is capability and type(pair[1]) is ParentBinding]
+    need(len(matches) == 1, "unissued parent capability")
+    binding = matches[0]
+    need(type(binding.native_lifetime_token) is object, "native lifetime capability absent")
+    need(type(binding.authority_sha256) is str and binding.authority_sha256 == cfg["authority_review_sha256"],
+         "parent authority source binding")
+    need(type(binding.lease_fd) is int and binding.lease_fd == lease_fd, "parent passed FD ownership binding")
+    identity = binding.lease_identity
+    need(type(identity) is tuple and len(identity) == 2 and all(type(v) is int for v in identity)
+         and identity == (cfg["writer_lease"]["device"],cfg["writer_lease"]["inode"]), "parent lease source identity")
+    for key in ("inventory", "closure", "domain"):
+        val = object.__getattribute__(binding, key + "_sha256")
+        need(type(val) is str and val == cfg[key]["sha256"], "parent continuous inventory/source binding")
+    need(type(binding.lease_owner_pid) is int and binding.lease_owner_pid > 0
+         and type(binding.lease_lock_line) is bytes and len(binding.lease_lock_line) <= 512,
+         "parent native lease observation")
+    need(binding.popen_class is _ORIGINAL_POPEN and binding.popen_init is _ORIGINAL_INIT
+         and binding.popen_poll is _ORIGINAL_POLL and binding.waitpid is _ORIGINAL_WAITPID,
+         "authenticated original process primitive identity")
+    need(type(_ORIGINAL_INIT) is types.FunctionType and type(_ORIGINAL_POLL) is types.FunctionType
+         and _ORIGINAL_INIT.__code__ is binding.popen_init_code
+         and _ORIGINAL_POLL.__code__ is binding.popen_poll_code,
+         "authenticated process primitive code identity")
+    class_dict = type.__getattribute__(_ORIGINAL_POPEN, "__dict__")
+    need(class_dict["__init__"] is _ORIGINAL_INIT and class_dict["poll"] is _ORIGINAL_POLL
+         and class_dict["__dict__"] is _ORIGINAL_DICT,
+         "original Popen class primitive replaced")
+    need(type(binding.subprocess_path) is str and type(binding.subprocess_sha256) is str
+         and source_hash(binding.subprocess_path,custody) == binding.subprocess_sha256,
+         "authenticated subprocess source digest")
+    module_dict = types.ModuleType.__getattribute__(subprocess, "__dict__")
+    need(module_dict.get("Popen") is _ORIGINAL_POPEN and module_dict.get("__file__") == binding.subprocess_path,
+         "original subprocess module binding")
+    return binding
+
+
+def process_map(binding, measured):
+    need(type(binding) is ParentBinding and type(_BINDINGS) is tuple
+         and any(type(pair) is tuple and len(pair) == 2 and binding is pair[1] for pair in _BINDINGS),
+         "unissued parent capability")
+    need(type(measured) is dict and dict.__len__(measured) <= 128, "exact bounded PID map")
+    # Complete key walk BEFORE hashing/get/set work or any process attribute.
+    for pid in dict.__iter__(measured):
+        need(type(pid) is int and 0 < pid <= 2147483647, "exact native PID key")
+    need(type(binding.registry) is tuple and len(binding.registry) <= 128, "parent registry source type/cap")
+    issued = {}
+    for entry in tuple.__iter__(binding.registry):
+        need(type(entry) is ProcessEntry, "parent registry original entry type")
+        need(type(entry.pid) is int and 0 < entry.pid <= 2147483647 and entry.pid not in issued,
+             "parent registry PID type/unique")
+        need(type(entry.process) is _ORIGINAL_POPEN and type(entry.returncode) is int,
+             "parent registry original Popen type")
+        need(type(entry.wait_observation) is tuple and len(entry.wait_observation) == 2
+             and all(type(v) is int for v in entry.wait_observation)
+             and entry.wait_observation[0] == entry.pid
+             and _ORIGINAL_WAITSTATUS(entry.wait_observation[1]) == entry.returncode,
+             "parent genuine reap observation missing")
+        need(type(entry.native_start_identity) is tuple and len(entry.native_start_identity) == 4
+             and all(type(v) is int and v > 0 for v in entry.native_start_identity)
+             and entry.native_start_identity[0] == entry.pid
+             and type(entry.source_registry_generation) is object,
+             "parent launch/start/registry capability missing")
+        issued[entry.pid] = entry
+    need(set(issued) == set(measured), "parent registry exact PID union")
+    for pid, process in dict.items(measured):
+        entry = issued[pid]
+        # Registry object identity BEFORE accessing any process state. An exact
+        # forged but unregistered Popen is rejected here; its properties never run.
+        need(process is entry.process and type(process) is _ORIGINAL_POPEN, "unregistered original Popen identity")
+        state = object.__getattribute__(process, "__dict__")
+        need(type(state) is dict, "original Popen state dictionary")
+        # No self.poll() or substituted per-instance method is invoked. Genuine
+        # parent reap provenance is required, and only exact native state is read.
+        pid_value, code_value = dict.get(state, "pid"), dict.get(state, "returncode")
+        need(type(pid_value) is int and type(code_value) is int and pid_value == pid
+             and code_value == entry.returncode, "original Popen native reaped state mismatch")
+        need("poll" not in state and "_internal_poll" not in state, "Popen instance primitive replaced")
+    return issued
+
+
+def fdinfo_bytes(fd,custody=None):
+    fd_number(fd)
+    ctx=native_io.new_context("authority-fdinfo",custody)
+    fault=ctx.emergency
+    fault.kind="AUTHORITY-FDINFO"
+    try:
+        slot=native_io.acquire(ctx,"/proc/self/fdinfo/"+str(fd),
+            os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,"fdinfo-open")
+        raw=bytearray()
+        while len(raw)<=4096:
+            block=native_io.read(ctx,slot,min(1024,4097-len(raw)),"fdinfo-read")
+            if not block:break
+            raw.extend(block)
+        need(len(raw)<=4096,"fdinfo byte cap")
+        return bytes(raw)
+    except BaseException as error:
+        fault.actual=error
+        fault.traceback=BaseException.__traceback__.__get__(error,type(error))
+        fault.occupied=True
+        if ctx.primary is None:
+            ctx.primary,ctx.primary_tb=error,fault.traceback
+        try:
+            native_io._commit(ctx,fault)
+        except BaseException as secondary:
+            ctx.journal_fault.actual=secondary
+            ctx.journal_fault.traceback=BaseException.__traceback__.__get__(secondary,type(secondary))
+            ctx.journal_fault.occupied=True
+            ctx.quarantine=True
+        raise BaseException.with_traceback(ctx.primary,ctx.primary_tb)
+    finally:
+        native_io.finish(ctx)
+
+
+def fdinfo_lock(fd,custody=None):
+        raw = fdinfo_bytes(fd,custody)
+        rows = [row for row in raw.splitlines() if row.startswith(b"lock:")]
+        need(len(rows) == 1, "passed FD has no unique held FLOCK")
+        parts = rows[0].split()
+        need(len(parts) == 9 and parts[0] == b"lock:" and parts[2:5] == [b"FLOCK",b"ADVISORY",b"WRITE"]
+             and parts[7:] == [b"0",b"EOF"], "passed FD is not held exclusive FLOCK")
+        # Normalize ordinal, preserving owner and exact kernel device/inode token.
+        return b" ".join(parts[2:])
+
+
+def _legacy_verify_lease_history(binding, fd, custody=None):
+    fd_number(fd)
+    observed = fdinfo_lock(fd,custody)
+    need(observed == binding.lease_lock_line, "passed OFD current EX/history observation mismatch")
+    parts = observed.split()
+    need(parts[3].isdigit() and int(parts[3]) == binding.lease_owner_pid,
+         "parent lease owner provenance mismatch")
+    return observed
+
+
+# The joined route is a different source-private authority branch. Historical
+# Popen capability checks above remain intact; no forged Popen or empty process
+# map is substituted for their contract.
+_OWNER = None
+_FORK = None
+_JOINED_BINDINGS = ()
+_NATIVE_FORK = os.fork
+_NATIVE_GETPID, _NATIVE_GETPPID = os.getpid, os.getppid
+
+
+class JoinedCapability:
+    __slots__ = ()
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("joined authority is issued only by actual C2")
+
+
+JoinedBinding = namedtuple("JoinedBinding", "authority_sha256 lease_fd lease_identity lease_lock_line "
+    "lease_owner_pid inventory_sha256 closure_sha256 domain_sha256 registry generation config "
+    "owner_pid borrower_pid fork_ticket event_pin")
+
+
+def bind_actual_owner(controller, active, ctx, lease, registry, guardian, issuer):
+    """Called by the fixed C2 body after its genuine A2 getter, never from DATA."""
+    global _OWNER
+    need(_OWNER is None and _FORK is None, "one joined owner per private image")
+    frame = sys._getframe(1)
+    try:
+        need(type(controller) is types.ModuleType and frame.f_globals is controller.__dict__
+             and frame.f_code is controller.__dict__["run_composed"].__code__,
+             "actual C2 owning callsite required")
+    finally:
+        del frame
+    # This invokes the original A2 private record verifier in the parent. The
+    # child never invokes this call, the context or the owner lease methods.
+    call = controller.actual_context_ports(active, ctx)
+    need(call("native_lease_for_controller", controller) is lease,
+         "same original actual A2 EX object required")
+    observation = lease.verify()
+    need(lease.phase == "EX_HELD" and type(lease.fd) is int,
+         "genuine original held EX required")
+    need(registry.owner_context is ctx, "actual registry owner identity")
+    _OWNER = dict(controller=controller, active=active, ctx=ctx, lease=lease,
+        registry=registry, guardian=guardian, issuer=issuer, call=call,
+        pid=_NATIVE_GETPID(), generation=object(), observation=observation,
+        phase="OPEN", capability=None, binding=None, fork_entered=False,
+        parent_readback=False, borrower_retired=False)
+    return _OWNER["generation"]
+
+
+def owner_verified():
+    need(_OWNER is not None and _NATIVE_GETPID() == _OWNER["pid"],
+         "genuine same-process C2 owner required")
+    need(_OWNER["phase"] not in ("RELEASED", "UNCERTAIN"), "owner continuation unavailable")
+    registry = _OWNER['registry']
+    if registry.phase == 'SEALED':
+        held = _OWNER['call']('native_lease_for_controller',_OWNER['controller'],registry,'RETENTION')
+    elif _OWNER['controller'].FIRST[0] is not None:
+        held = _OWNER['call']('native_lease_for_controller',_OWNER['controller'],registry,'CLEANUP')
+    else:
+        held = _OWNER['call']('native_lease_for_controller',_OWNER['controller'])
+    need(held is _OWNER["lease"],
+         "original EX object changed")
+    _OWNER["lease"].verify()
+    return _OWNER
+
+
+def issue_sealed(config, event_pin):
+    """Issue only after the actual registered writer machine irreversibly seals."""
+    global _JOINED_BINDINGS
+    owner = owner_verified()
+    need(owner["phase"] == "OPEN" and owner["capability"] is None,
+         "one irreversible retention capability")
+    need(owner["registry"].phase == "SEALED", "actual sealed writer registry required")
+    cfg = plain_copy(config, max_nodes=8192, max_depth=24, max_text=8388608)
+    event_pin = plain_copy(event_pin)
+    need(type(event_pin) is dict and set(event_pin) == {'path','sha256'},
+         'actual finalized event external pin')
+    lease = owner["lease"]
+    info = os.fstat(lease.fd)
+    need((info.st_dev, info.st_ino) == (cfg["writer_lease"]["device"], cfg["writer_lease"]["inode"]),
+         "original EX config association")
+    cap = object.__new__(JoinedCapability)
+    binding = JoinedBinding(cfg["authority_review_sha256"], lease.fd,
+        (info.st_dev, info.st_ino), fdinfo_lock(lease.fd), owner["pid"],
+        cfg["inventory"]["sha256"], cfg["closure"]["sha256"], cfg["domain"]["sha256"],
+        owner["registry"], owner["generation"], cfg, owner["pid"], None, None, event_pin)
+    owner["capability"], owner["binding"], owner["phase"] = cap, binding, "SEALED"
+    _JOINED_BINDINGS = ((cap, binding),)
+    return cap
+
+
+def joined_binding(capability):
+    need(type(capability) is JoinedCapability and len(_JOINED_BINDINGS) == 1
+         and _JOINED_BINDINGS[0][0] is capability, "unissued joined capability")
+    binding = _JOINED_BINDINGS[0][1]
+    need(type(binding) is JoinedBinding, "source-private joined binding type")
+    return binding
+
+
+def begin_fork(capability):
+    global _FORK
+    owner = owner_verified()
+    binding = joined_binding(capability)
+    need(owner["phase"] == "SEALED" and not owner["fork_entered"] and _FORK is None,
+         "one actual no-exec borrower fork")
+    # The irreversible latch precedes pipes, files, import, native fork and all
+    # other fallible retention preparation in the fixed caller.
+    owner["fork_entered"], owner["phase"] = True, "BIRTH_PENDING"
+    _FORK = dict(token=object(), capability=capability, binding=binding,
+        parent_pid=owner["pid"], phase="PENDING", child_pid=None,
+        actual_fork_return=None, primary=None, wait=None, close_known=False)
+    return _FORK
+
+
+def fork_returned(ticket, actual):
+    need(ticket is _FORK and ticket["phase"] == "PENDING", "private actual fork branch required")
+    ticket["actual_fork_return"] = actual  # actual native return before projection
+    need(type(actual) is int and actual >= 0 and os.fork is _NATIVE_FORK,
+         "original fork primitive/return")
+    if actual == 0:
+        need(_NATIVE_GETPID() != ticket["parent_pid"] and _NATIVE_GETPPID() == ticket["parent_pid"],
+             "actual immediate child/parent required")
+        ticket["child_pid"], ticket["phase"] = _NATIVE_GETPID(), "BORROWER"
+    else:
+        need(_NATIVE_GETPID() == ticket["parent_pid"], "actual fork parent required")
+        ticket["child_pid"], ticket["phase"] = actual, "PARENT_WAIT"
+    return ticket
+
+
+def mark_fork_uncertain(ticket, error):
+    if ticket is _FORK:
+        if ticket["primary"] is None:
+            ticket["primary"] = error
+        ticket["phase"] = "UNCERTAIN"
+    if _OWNER is not None:
+        _OWNER["phase"] = "UNCERTAIN"
+
+
+def is_joined_binding(binding):
+    return (type(binding) is JoinedBinding and len(_JOINED_BINDINGS) == 1
+            and _JOINED_BINDINGS[0][1] is binding)
+
+
+def authenticate(capability, cfg, lease_fd, custody=None):
+    if type(capability) is not JoinedCapability:
+        return _legacy_authenticate(capability, cfg, lease_fd, custody)
+    binding = joined_binding(capability)
+    cfg = plain_copy(cfg, max_nodes=8192, max_depth=24, max_text=8388608)
+    need(cfg == binding.config and lease_fd == binding.lease_fd,
+         "same fixed joined arguments required")
+    need(binding.registry.phase == "SEALED", "sealed source registry changed")
+    if _NATIVE_GETPID() == binding.owner_pid:
+        owner_verified()
+    else:
+        need(_FORK is not None and _FORK["capability"] is capability
+             and _FORK["phase"] == "BORROWER" and _FORK["actual_fork_return"] == 0
+             and _FORK["child_pid"] == _NATIVE_GETPID()
+             and _NATIVE_GETPPID() == binding.owner_pid,
+             "source-private actual fork child required; copied owner never used")
+    return binding
+
+
+def verify_lease_history(binding, fd, custody=None):
+    if not is_joined_binding(binding):
+        return _legacy_verify_lease_history(binding, fd, custody)
+    need(type(fd) is int and fd == binding.lease_fd, "same original EX descriptor")
+    if _NATIVE_GETPID() != binding.owner_pid:
+        need(_FORK is not None and _FORK["phase"] == "BORROWER"
+             and _FORK["actual_fork_return"] == 0 and _NATIVE_GETPPID() == binding.owner_pid,
+             "borrower parent no longer live; protected reads prohibited")
+    else:
+        owner_verified()
+    info = os.fstat(fd)
+    need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1
+         and (info.st_dev, info.st_ino) == binding.lease_identity,
+         "same inherited original EX OFD identity")
+    observed = fdinfo_lock(fd, custody)
+    need(observed == binding.lease_lock_line, "continuous original EX history differs")
+    return observed
+
+
+def borrowed_arguments(capability):
+    binding = joined_binding(capability)
+    authenticate(capability, binding.config, binding.lease_fd)
+    need(_FORK is not None and _FORK["phase"] == "BORROWER", "fixed fork borrower entry only")
+    return plain_copy(binding.config, max_nodes=8192, max_depth=24, max_text=8388608), binding.lease_fd, binding.authority_sha256
+
+
+def borrower_import_allowed():
+    """Fixed cached-only import gate; no copied owner/context/lease call."""
+    need(_FORK is not None and _FORK['phase'] == 'BORROWER'
+         and _FORK['actual_fork_return'] == 0
+         and _FORK['child_pid'] == _NATIVE_GETPID()
+         and _FORK['parent_pid'] == _NATIVE_GETPPID()
+         and _FORK['binding'].registry.phase == 'SEALED',
+         'actual fixed child may use previously authenticated cached helpers only')
+    return True
+
+
+def is_current_borrower():
+    return (_FORK is not None and _FORK['phase'] == 'BORROWER'
+        and _FORK['actual_fork_return'] == 0 and _FORK['child_pid'] == _NATIVE_GETPID()
+        and _FORK['parent_pid'] == _NATIVE_GETPPID())
+
+
+def parent_completed(capability, actual_wait, captures_closed, readback):
+    owner = owner_verified()
+    joined_binding(capability)
+    need(_FORK is not None and _FORK["phase"] == "PARENT_WAIT"
+         and type(actual_wait) is tuple and len(actual_wait) == 2
+         and actual_wait[0] == _FORK["child_pid"] and type(actual_wait[1]) is int,
+         "genuine actual borrower wait required")
+    _FORK["wait"] = actual_wait
+    need(captures_closed is True and readback is True, "full parent readback/known FD retirement required")
+    owner["borrower_retired"], owner["parent_readback"], owner["phase"] = True, True, "READBACK"
+    return True
+
+
+def require_release_ready():
+    owner = owner_verified()
+    need(owner["phase"] == "READBACK" and owner["borrower_retired"] and owner["parent_readback"],
+         "retention incomplete; release cannot imply source completion")
+    return True

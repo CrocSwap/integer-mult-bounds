@@ -1,0 +1,353 @@
+--- a/implementation/native/science_view_entry.c
++++ b/implementation/native/science_view_entry.c
+@@ -6,6 +6,9 @@
+  * See VIEW-ENTRY-CONTRACT-v1.md for the fixed argv, external trust premises,
+  * Linux-v6.12 source basis and the still-unassociated Q_sigma environment.
+  * No metadata broker, supplied descriptor, compatible flag or ACL stripping.
++ * Both routes select CONFIG_BINFMT_MISC=n, CONFIG_COREDUMP=n and
++ * CONFIG_MODULES=n. Genuine native qualification must associate that exact
++ * semantic kernel subject; neither this entry nor JSON data detects it.
+  */
+ #define _GNU_SOURCE
+ #include <errno.h>
+@@ -41,9 +44,6 @@
+ #error The entry is the reviewed native LP64 x86-64 ABI only
+ #endif
+ _Static_assert(sizeof(void *) == 8 && sizeof(long) == 8, "LP64 required");
+-#if !defined(SYS_fsopen) || !defined(SYS_fsconfig)
+-#error Selected Linux x86-64 build headers must declare fsopen and fsconfig syscall numbers
+-#endif
+ 
+ /* Selected v6.12 UAPI shapes, intentionally independent of libc header age. */
+ struct sv_mount_attr { uint64_t attr_set, attr_clr, propagation, userns_fd; };
+@@ -56,10 +56,6 @@
+ #define SV_MOVE_TO_EMPTY 0x40U
+ #define SV_MOUNT_RDONLY UINT64_C(1)
+ #define SV_MOUNT_NOSUID UINT64_C(2)
+-/* Linux-v6.12 include/uapi/linux/mount.h values. Local names avoid requiring
+- * mutually varying libc/kernel mount-header enum definitions in one TU. */
+-#define SV_FSOPEN_CLOEXEC 1U
+-#define SV_FSCONFIG_CMD_CREATE 6U
+ #define SV_FS_EXEC (UINT64_C(1)<<0)
+ #define SV_FS_WRITE (UINT64_C(1)<<1)
+ #define SV_FS_READ (UINT64_C(1)<<2)
+@@ -84,6 +80,41 @@
+ /* Native x86-64 Linux-v6.12 syscall table. This metadata operation is safe
+  * under the same final mount-write checks as chmod/fchmod/fchmodat. */
+ #define SV_NR_FCHMODAT2 452
++#define SV_NR_STATMOUNT 457
++#define SV_NR_LISTMOUNT 458
++#define SV_NR_LSM_LIST_MODULES 461
++#define SV_MAX_MOUNTS 128U
++#define SV_MAX_QUERIES 288U
++#define SV_MOUNT_IDMAP UINT64_C(0x00100000)
++#define SV_STATMOUNT_MASK UINT64_C(0x63)
++#define SV_STATX_MASK 0x4103U
++struct sv_mnt_request { uint32_t size, spare; uint64_t id, param, ns; };
++struct sv_statmount_head {
++    uint32_t size, opts; uint64_t mask;
++    uint32_t dev_major, dev_minor; uint64_t magic;
++    uint32_t sb_flags, fs_type; uint64_t id, parent;
++    uint32_t old_id, old_parent; uint64_t attr, propagation, peer, master, from;
++    uint32_t root, point; uint64_t ns, spare[49];
++};
++struct sv_statmount_buffer { struct sv_statmount_head h; char str[64]; };
++struct sv_statx_time { int64_t sec; uint32_t nsec; int32_t reserved; };
++struct sv_statx {
++    uint32_t mask, blocksize; uint64_t attr;
++    uint32_t links, uid, gid; uint16_t mode, spare;
++    uint64_t ino, size, blocks, attr_mask; struct sv_statx_time times[4];
++    uint32_t rdev_major, rdev_minor, dev_major, dev_minor;
++    uint64_t mount_id, tail[13];
++};
++_Static_assert(sizeof(struct sv_mnt_request)==32,"v6.12 request ABI");
++_Static_assert(sizeof(struct sv_statmount_head)==512,"v6.12 statmount head");
++_Static_assert(offsetof(struct sv_statmount_buffer,str)==512,"statmount string base");
++_Static_assert(sizeof(struct sv_statx)==256&&offsetof(struct sv_statx,mount_id)==144,"v6.12 statx ABI");
++enum sv_fs_class { SV_FS_UNKNOWN, SV_FS_LOCAL, SV_FS_PROC, SV_FS_DEVICE, SV_FS_AUX };
++struct sv_mount_row { struct sv_statmount_head h; char type[16]; enum sv_fs_class class; };
++struct sv_census { size_t count; struct sv_mount_row row[SV_MAX_MOUNTS]; };
++static struct sv_census mounts_before, mounts_after;
++static unsigned native_queries_started, native_queries_completed;
++static bool lsm_checked, topology_checked;
+ 
+ extern char **environ;
+ enum sv_fd_state { SV_UNUSED, SV_PENDING, SV_OPEN, SV_RETIRED, SV_CLOSED, SV_FAILED, SV_UNCERTAIN };
+@@ -95,7 +126,6 @@
+ static bool uncertain, error_overflow, user_entered, mount_entered;
+ static bool root_private, root_readonly, artifact_attached, usage_attached;
+ static bool landlocked, filtered;
+-static bool dispatch_attempted, dispatch_created, dispatch_context_closed;
+ static uid_t uid;
+ static gid_t gid;
+ static int stdin_status_flags;
+@@ -114,6 +144,26 @@
+     errno = EPROTO;
+     return failed(site);
+ }
++/* Non-FD acquisitions have a separate fixed attempt budget. Reserve before
++ * the syscall; a failed syscall's errno is recorded before cleanup. */
++static bool begin_query(void) {
++    if(native_queries_started==SV_MAX_QUERIES){errno=E2BIG;return failed("native-query-capacity");}
++    native_queries_started++;return true;
++}
++static bool query_result(long result,const char *site) {
++    if(result<0)return failed(site);native_queries_completed++;return true;
++}
++static bool valid_lsm_result(long count,uint32_t bytes,const uint64_t ids[2]) {
++    return count==2&&bytes==16&&((ids[0]==100&&ids[1]==110)||(ids[0]==110&&ids[1]==100));
++}
++static bool read_lsm_stack(void) {
++    uint64_t ids[2]={0,0};uint32_t bytes=sizeof ids;
++    if(!begin_query())return false;
++    long result=syscall(SV_NR_LSM_LIST_MODULES,ids,&bytes,0U);
++    if(!query_result(result,"actual-lsm-list-modules"))return false;
++    if(!require(valid_lsm_result(result,bytes,ids),"exact-capability-landlock-active-stack"))return false;
++    lsm_checked=true;return true;
++}
+ static int reserve(const char *site) {
+     if (fd_count == SV_MAX_FDS) { errno=EMFILE; failed("fd-registry-capacity"); return -1; }
+     size_t slot=fd_count++;
+@@ -337,14 +387,6 @@
+     return true;
+ }
+ 
+-static bool core_profile(void) {
+-    struct rlimit inherited,selected={1,1},actual;
+-    if(getrlimit(RLIMIT_CORE,&inherited)<0)return failed("inherited-core-limit");
+-    if(!require(inherited.rlim_max==RLIM_INFINITY||inherited.rlim_max>=1,"core-one-compatible-inherited-hard-limit"))return false;
+-    if(setrlimit(RLIMIT_CORE,&selected)<0)return failed("install-core-one-profile");
+-    if(getrlimit(RLIMIT_CORE,&actual)<0)return failed("core-one-readback");
+-    return require(actual.rlim_cur==1&&actual.rlim_max==1,"exact-protected-core-one-profile");
+-}
+ static bool write_mapping(const char *path,const char *bytes,size_t count,const char *site) {
+     int fd=opened(path,O_WRONLY|O_NOFOLLOW,site);if(fd<0)return false;
+     /* A proc ID-map write is one operation, never a partial-write retry. */
+@@ -368,34 +410,6 @@
+     if(mount(NULL,"/",NULL,MS_REC|MS_PRIVATE,NULL)<0)return failed("recursive-private-root");
+     root_private=true;return true;
+ }
+-static bool create_private_binfmt_dispatch(void) {
+-    /* The selected operating TCB is Linux-v6.12 CONFIG_BINFMT_MISC=y with
+-     * successful built-in filesystem registration. This is a precise source
+-     * selection, never a supplied flag or host-support claim: get_fs_type must
+-     * find the registered implementation without request_module. Actual image
+-     * association is a separate mandatory parent admission before execution.
+-     *
+-     * In our fresh user namespace bm_fill_super initializes an empty list and
+-     * publishes user_ns->binfmt_misc. No fsmount/visible mount is constructed.
+-     * Closing this unattached context drops its superblock, not that namespace
+-     * instance. It continues to shadow every ancestor handler until userns
+-     * destruction; later creation/registration/import is denied by lockdown.
+-     */
+-    if(!require(user_entered&&mount_entered&&root_private&&!dispatch_attempted&&
+-        !root_readonly&&!landlocked&&!filtered,"once-private-dispatch-before-view-and-lockdown"))return false;
+-    int slot=reserve("private-binfmt-fsopen");if(slot<0)return false;
+-    dispatch_attempted=true;
+-    int context=acquired(slot,syscall(SYS_fsopen,"binfmt_misc",SV_FSOPEN_CLOEXEC));
+-    if(context<0)return false;
+-    bool created=true;
+-    if(syscall(SYS_fsconfig,context,SV_FSCONFIG_CMD_CREATE,NULL,NULL,0)<0) {
+-        /* Save the actual create errno BEFORE the once-close can replace it. */
+-        created=failed("private-binfmt-fsconfig-create");
+-    } else dispatch_created=true;
+-    bool closed=close_once(context);
+-    if(closed)dispatch_context_closed=true;
+-    return created&&closed&&!uncertain;
+-}
+ static int clone_mount(int fd,const char *site) {
+     int slot=reserve(site);if(slot<0)return -1;
+     return acquired(slot,syscall(SYS_open_tree,fd,"",SV_EMPTY_PATH|SV_OPEN_TREE_CLONE|O_CLOEXEC));
+@@ -463,22 +477,133 @@
+     if(errno!=ENOENT)return failed("science-leaf-absence-query");
+     return true;
+ }
++/* This finite catalogue selects sigma0; it does not assert that arbitrary
++ * operations on every listed filesystem are harmless. LOCAL is the selected
++ * ext4/tmpfs ordinary-file class; PROC/DEVICE are joined to their exact roles.
++ * AUX mounts are catalogued but receive no writable clone or special grant.
++ * Delegated and unanalysed filesystem classes take a paid setup failure. */
++static enum sv_fs_class fs_class(const char *name) {
++    if(!strcmp(name,"ext4")||!strcmp(name,"tmpfs"))return SV_FS_LOCAL;
++    if(!strcmp(name,"proc"))return SV_FS_PROC;
++    if(!strcmp(name,"devtmpfs")||!strcmp(name,"devpts"))return SV_FS_DEVICE;
++    if(!strcmp(name,"sysfs")||!strcmp(name,"cgroup2"))return SV_FS_AUX;
++    return SV_FS_UNKNOWN;
++}
++static const struct sv_mount_row *mount_row(const struct sv_census *c,uint64_t id) {
++    for(size_t i=0;i<c->count;i++)if(c->row[i].h.id==id)return &c->row[i];return NULL;
++}
++static bool decode_mount(const struct sv_statmount_buffer *b,uint64_t id,struct sv_mount_row *out) {
++    if(!require(b->h.size>512&&b->h.size<=sizeof *b&&
++        (b->h.mask&SV_STATMOUNT_MASK)==SV_STATMOUNT_MASK&&b->h.id==id&&id&&b->h.ns,
++        "statmount-complete-basic-type-namespace"))return false;
++    size_t strings=b->h.size-512;
++    if(!require(b->h.fs_type<strings,"statmount-type-offset"))return false;
++    const char *name=b->str+b->h.fs_type;
++    const char *end=memchr(name,0,strings-b->h.fs_type);
++    if(!require(end&&end!=name&&(size_t)(end-name)<sizeof out->type,"statmount-bounded-type"))return false;
++    memset(out,0,sizeof *out);out->h=b->h;memcpy(out->type,name,(size_t)(end-name));out->class=fs_class(out->type);
++    return require(out->class!=SV_FS_UNKNOWN&&!(out->h.attr&SV_MOUNT_IDMAP)&&
++        out->h.propagation==MS_PRIVATE&&!out->h.peer&&!out->h.master,
++        "selected-nonidmapped-private-mount-class");
++}
++static bool census(struct sv_census *out) {
++    uint64_t ids[SV_MAX_MOUNTS+1]={0};
++    struct sv_mnt_request req={.size=sizeof req,.id=UINT64_MAX};
++    if(!begin_query())return false;
++    long n=syscall(SV_NR_LISTMOUNT,&req,ids,(size_t)SV_MAX_MOUNTS+1,0U);
++    if(!query_result(n,"complete-listmount"))return false;
++    if(!require(n>0&&(unsigned long)n<=SV_MAX_MOUNTS,"listmount-unsaturated-bound"))return false;
++    out->count=(size_t)n;
++    for(size_t i=0;i<out->count;i++) {
++        if(!require(ids[i]&&(i==0||ids[i]>ids[i-1]),"listmount-distinct-ascending-ids"))return false;
++        req=(struct sv_mnt_request){.size=sizeof req,.id=ids[i],.param=SV_STATMOUNT_MASK};
++        struct sv_statmount_buffer b={0};
++        if(!begin_query())return false;
++        long result=syscall(SV_NR_STATMOUNT,&req,&b,sizeof b,0U);
++        if(!query_result(result,"actual-statmount-basic-type-namespace")||
++            !require(result==0,"statmount-zero-success")||!decode_mount(&b,ids[i],&out->row[i]))return false;
++        if(i&&!require(out->row[i].h.ns==out->row[0].h.ns,"one-actual-private-mount-namespace"))return false;
++    }
++    return true;
++}
++static bool graph_rooted(const struct sv_census *c,uint64_t root) {
++    if(!require(mount_row(c,root)!=NULL,"actual-root-mount-in-census"))return false;
++    for(size_t i=0;i<c->count;i++) {
++        uint64_t next=c->row[i].h.id;size_t steps=0;
++        while(next!=root&&steps<c->count) {
++            const struct sv_mount_row *r=mount_row(c,next);
++            if(!require(r&&r->h.parent!=next,"reachable-mount-parent"))return false;
++            next=r->h.parent;steps++;
++        }
++        if(!require(next==root,"mount-parent-chain-terminates-at-actual-root"))return false;
++    }
++    return true;
++}
++static bool join_object(int fd,const struct sv_census *c,enum sv_fs_class expected,uint64_t *id) {
++    /* statx invokes vfs_getattr: original T1 already qualifies these actual
++     * ordinary/proc/device objects. The safe census precedes this later join. */
++    struct stat st;struct sv_statx sx={0};
++    if(!stat_fd(fd,&st,"join-object-fstat")||!begin_query())return false;
++    long result=syscall(SYS_statx,fd,"",AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW,SV_STATX_MASK,&sx);
++    if(!query_result(result,"join-object-statx-unique-mount"))return false;
++    if(!require(result==0&&(sx.mask&SV_STATX_MASK)==SV_STATX_MASK&&sx.mount_id&&
++        sx.ino==(uint64_t)st.st_ino&&sx.mode==(uint16_t)st.st_mode&&
++        sx.dev_major==major(st.st_dev)&&sx.dev_minor==minor(st.st_dev),"statx-actual-object-and-unique-id"))return false;
++    const struct sv_mount_row *r=mount_row(c,sx.mount_id);
++    if(!require(r&&r->class==expected,"held-object-selected-mount-class"))return false;
++    if(expected==SV_FS_PROC&&!require(r->h.magic==SV_PROC_MAGIC,"joined-genuine-proc-superblock"))return false;
++    *id=sx.mount_id;return true;
++}
++static bool same_mount_backing(const struct sv_mount_row *a,const struct sv_mount_row *b) {
++    return a->h.dev_major==b->h.dev_major&&a->h.dev_minor==b->h.dev_minor&&
++        a->h.magic==b->h.magic&&a->h.sb_flags==b->h.sb_flags&&a->h.ns==b->h.ns&&
++        a->class==b->class&&!strcmp(a->type,b->type);
++}
++static bool exact_view_relation(uint64_t root,uint64_t art,uint64_t use,uint64_t ac,uint64_t uc) {
++    if(!require(mounts_before.count<=SV_MAX_MOUNTS-2&&mounts_after.count==mounts_before.count+2&&
++        ac!=uc&&!mount_row(&mounts_before,ac)&&!mount_row(&mounts_before,uc),"exactly-two-new-clone-ids"))return false;
++    for(size_t i=0;i<mounts_before.count;i++) {
++        const struct sv_mount_row *a=&mounts_before.row[i],*b=mount_row(&mounts_after,a->h.id);
++        if(!require(b&&same_mount_backing(a,b)&&a->h.parent==b->h.parent&&
++            b->h.attr==(a->h.attr|SV_MOUNT_RDONLY|SV_MOUNT_NOSUID),"base-mount-only-readonly-nosuid-change"))return false;
++    }
++    const struct sv_mount_row *a=mount_row(&mounts_before,art),*u=mount_row(&mounts_before,use);
++    const struct sv_mount_row *ca=mount_row(&mounts_after,ac),*cu=mount_row(&mounts_after,uc);
++    if(!require(a&&u&&ca&&cu&&same_mount_backing(a,ca)&&same_mount_backing(u,cu)&&
++        ca->h.parent==art&&cu->h.parent==use&&ca->h.attr==(a->h.attr|SV_MOUNT_NOSUID)&&
++        cu->h.attr==(u->h.attr|SV_MOUNT_NOSUID),"exact-owned-clone-backing-parent-and-flags"))return false;
++    return graph_rooted(&mounts_after,root);
++}
+ static bool make_view(char **argv) {
+     /* Open all writable-clone sources only AFTER copy_mnt_ns has remapped root
+      * and cwd, so no retained path points into the parent's writable mounts. */
+     int art=-1,use=-1,cwd=-1;
+     if(!validate_owned_paths(argv,&art,&use,&cwd))return false;
++    int root=opened("/",O_PATH|O_DIRECTORY|O_NOFOLLOW,"copied-root-handle");if(root<0)return false;
++    int anchors[5];const char *paths[5]={"/proc","/dev/null",argv[2],argv[6],argv[28]};
++    const char *sites[5]={"association-proc-root","association-devnull","association-entry","association-time","association-python"};
++    for(size_t i=0;i<5;i++){anchors[i]=role_open(paths[i],O_PATH,sites[i]);if(anchors[i]<0)return false;}
++    if(!census(&mounts_before)||!require(mounts_before.count<=SV_MAX_MOUNTS-2,"reserve-two-mount-slots"))return false;
++    int handles[9]={root,cwd,art,use,anchors[0],anchors[1],anchors[2],anchors[3],anchors[4]};
++    enum sv_fs_class classes[9]={SV_FS_LOCAL,SV_FS_LOCAL,SV_FS_LOCAL,SV_FS_LOCAL,SV_FS_PROC,SV_FS_DEVICE,SV_FS_LOCAL,SV_FS_LOCAL,SV_FS_LOCAL};
++    uint64_t ids[9];
++    for(size_t i=0;i<9;i++)if(!join_object(handles[i],&mounts_before,classes[i],&ids[i]))return false;
++    if(!graph_rooted(&mounts_before,ids[0]))return false;
+     int artclone=clone_mount(art,"detached-artifact-mount");if(artclone<0)return false;
+     int useclone=clone_mount(use,"detached-usage-mount");if(useclone<0)return false;
+     if(!mount_attributes(artclone,SV_MOUNT_NOSUID,0,"artifact-clone-nosuid")||
+         !mount_attributes(useclone,SV_MOUNT_NOSUID,0,"usage-clone-nosuid"))return false;
+-    int root=opened("/",O_PATH|O_DIRECTORY|O_NOFOLLOW,"copied-root-handle");if(root<0)return false;
+     if(!mount_attributes(root,SV_MOUNT_RDONLY|SV_MOUNT_NOSUID,SV_RECURSIVE,"recursive-readonly-nosuid-copied-tree"))return false;
+     root_readonly=true;
+     if(!attach_mount(artclone,art,"attach-exact-writable-artifact"))return false;
+     artifact_attached=true;
+     if(!attach_mount(useclone,use,"attach-exact-writable-usage"))return false;
+     usage_attached=true;
++    uint64_t ac,uc;
++    if(!census(&mounts_after)||!join_object(artclone,&mounts_after,SV_FS_LOCAL,&ac)||
++        !join_object(useclone,&mounts_after,SV_FS_LOCAL,&uc)||!exact_view_relation(ids[0],ids[2],ids[3],ac,uc))return false;
++    topology_checked=true;
++    for(size_t i=0;i<5;i++)if(!close_once(anchors[i]))return false;
+     /* Re-resolve through final paths. Do not fchdir a pre-attachment handle. */
+     int final_cwd=role_open(cwd_path,O_PATH|O_DIRECTORY,"final-view-cwd");if(final_cwd<0)return false;
+     struct stat a,u,c,r;
+@@ -570,14 +695,12 @@
+         !SV_EQ(0x003d0f00U,0,1)||!SV_RET(SV_ALLOW)||
+         !SV_EQ(0x00004111U,0,1)||!SV_RET(SV_ALLOW)||
+         !SV_EQ(0x01200011U,0,1)||!SV_RET(SV_ALLOW)||!SV_RET(SV_DENY)||!SV_LOAD_NR())return false;
+-    /* setrlimit affects self only; CORE is sealed even against lowering to 0. */
+-    if(!SV_EQ(SYS_setrlimit,0,4)||!SV_LOAD_ARG(0)||!SV_EQ(RLIMIT_CORE,0,1)||
+-        !SV_RET(SV_DENY)||!SV_RET(SV_ALLOW)||!SV_LOAD_NR())return false;
+-    /* prlimit64 pid_t normalizes to low32. Only pid=0; a CORE query has NULL
+-     * new_limit in both pointer words. Other self resources retain arguments. */
+-    if(!SV_EQ(SYS_prlimit64,0,12)||!SV_LOAD_ARG(0)||!SV_EQ(0,1,0)||!SV_RET(SV_DENY)||
+-        !SV_LOAD_ARG(1)||!SV_EQ(RLIMIT_CORE,0,6)||!SV_LOAD_ARG(2)||!SV_EQ(0,1,0)||
+-        !SV_RET(SV_DENY)||!SV_LOAD_ARG_HI(2)||!SV_EQ(0,1,0)||!SV_RET(SV_DENY)||
++    /* Core dumping is compiled out on both routes. Preserve ordinary self
++     * setrlimit arguments, including CORE; kernel hard-limit checks apply. */
++    if(!allow_number(SYS_setrlimit))return false;
++    /* The original selected resource wrappers use pid=0 (self). Preserve all
++     * query/mutation arguments. Nonzero process targets remain unavailable. */
++    if(!SV_EQ(SYS_prlimit64,0,4)||!SV_LOAD_ARG(0)||!SV_EQ(0,1,0)||!SV_RET(SV_DENY)||
+         !SV_RET(SV_ALLOW)||!SV_LOAD_NR())return false;
+     /* fcntl retains ordinary descriptor/lock/pipe commands, never ownership,
+      * signal delivery, leases or notification. */
+@@ -651,14 +774,14 @@
+     char out[SV_REPORT_CAP];size_t used=0;
+ #define APPEND(...) do { int amount=snprintf(out+used,sizeof out-used,__VA_ARGS__); \
+     if(amount<0||(size_t)amount>=sizeof out-used){uncertain=true;goto emit;} used+=(size_t)amount; } while(0)
+-    APPEND("{\"schema\":\"h25-native-view-setup-failure-v1\",\"exit\":78,\"science_started\":false,\"uncertain\":%s,\"error_overflow\":%s,\"user_entered\":%s,\"mount_entered\":%s,\"root_private\":%s,\"root_readonly\":%s,\"artifact_attached\":%s,\"usage_attached\":%s,\"landlocked\":%s,\"filtered\":%s,\"private_dispatch_attempted\":%s,\"private_dispatch_created\":%s,\"private_dispatch_context_closed\":%s,\"errors\":[",
++    APPEND("{\"schema\":\"h25-native-view-setup-failure-v1\",\"exit\":78,\"science_started\":false,\"uncertain\":%s,\"error_overflow\":%s,\"user_entered\":%s,\"mount_entered\":%s,\"root_private\":%s,\"root_readonly\":%s,\"artifact_attached\":%s,\"usage_attached\":%s,\"landlocked\":%s,\"filtered\":%s,\"errors\":[",
+         uncertain?"true":"false",error_overflow?"true":"false",user_entered?"true":"false",mount_entered?"true":"false",
+-        root_private?"true":"false",root_readonly?"true":"false",artifact_attached?"true":"false",usage_attached?"true":"false",landlocked?"true":"false",filtered?"true":"false",
+-        dispatch_attempted?"true":"false",dispatch_created?"true":"false",dispatch_context_closed?"true":"false");
++        root_private?"true":"false",root_readonly?"true":"false",artifact_attached?"true":"false",usage_attached?"true":"false",landlocked?"true":"false",filtered?"true":"false");
+     for(size_t i=0;i<error_count;i++)APPEND("%s{\"site\":\"%s\",\"errno\":%d}",i?",":"",errors[i].site,errors[i].number);
+     APPEND("],\"resources\":[");
+     for(size_t i=0;i<fd_count;i++)APPEND("%s{\"site\":\"%s\",\"fd\":%d,\"state\":%d}",i?",":"",fds[i].site,fds[i].fd,(int)fds[i].state);
+-    APPEND("],\"namespace_release_requires_actual_process_exit\":true,\"native_exit_tail\":\"OPEN_NOT_ZERO\"}\n");
++    APPEND("],\"lsm_checked\":%s,\"topology_checked\":%s,\"mounts_before\":%zu,\"mounts_after\":%zu,\"native_queries_started\":%u,\"native_queries_completed\":%u,\"namespace_release_requires_actual_process_exit\":true,\"native_exit_tail\":\"OPEN_NOT_ZERO\"}\n",
++        lsm_checked?"true":"false",topology_checked?"true":"false",mounts_before.count,mounts_after.count,native_queries_started,native_queries_completed);
+ emit:
+     /* No formatter invokes an external process; positive partial writes
+      * advance exactly once. A failed report cannot manufacture completion. */
+@@ -684,7 +807,7 @@
+     return true;
+ }
+ int main(int argc,char **argv) {
+-    bool okay=native_start()&&argv_shape(argc,argv)&&core_profile();
++    bool okay=read_lsm_stack()&&native_start()&&argv_shape(argc,argv);
+     uint64_t entry_bytes=0,time_bytes=0;struct stat self_image,entry_image,time_image;
+     int self=-1,entry=-1,timed=-1;
+     if(okay)okay=require(decimal(argv[4],&entry_bytes)&&decimal(argv[8],&time_bytes),"exact-image-byte-counts");
+@@ -699,7 +822,7 @@
+      * stdin is explicitly reestablished by make_view; pipes retain only the
+      * selected relay-writer authority. */
+     close_all();if(uncertain||error_count)okay=false;
+-    if(okay)okay=enter_namespaces()&&create_private_binfmt_dispatch()&&make_view(argv)&&drop_privilege()&&install_landlock();
++    if(okay)okay=enter_namespaces()&&make_view(argv)&&drop_privilege()&&install_landlock();
+     close_all();if(uncertain||error_count)okay=false;
+     if(okay)okay=fd_census();
+     /* Re-open authenticated time in the FINAL view for a second stable hash;

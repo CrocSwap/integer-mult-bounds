@@ -425,3 +425,7 @@ The [exact-head delta](pr-intake-evidence/queue-nov10c-20261110.json) retains or
 ## November 10 delta intake, chunk D
 
 The [exact-head delta](pr-intake-evidence/queue-nov10d-20261110.json) retains original sources and attribution with explicit scientific obligations. See each entry for archive versus revision status. No selected-frontier change.
+
+## November 10 delta intake, chunk E
+
+The [exact-head delta](pr-intake-evidence/queue-nov10e-20261110.json) retains original sources and attribution with explicit scientific obligations. See each entry for archive versus revision status. No selected-frontier change.

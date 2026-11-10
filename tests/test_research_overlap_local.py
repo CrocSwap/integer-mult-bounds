@@ -122,6 +122,34 @@ class LocalOverlapCoverageTests(unittest.TestCase):
                          ["research/kept/README.md"])
         self.assertFalse(report["coverage"]["local"]["complete_head_inventory"])
 
+    def test_head_inventory_keeps_literal_paths_and_regular_modes(self):
+        package = "research/space κ\t\npackage"
+        readme = f"{package}/README.md"
+        self.write(readme, "needle executable note")
+        self.write(f"{package}/TASK.json", '{"scope": "needle task"}')
+        self.write(f"{package}/vendor/TASK.json", "nested needle is out of scope")
+        self.write("research/other/NOTES.md", "arbitrary needle is out of scope")
+        # A committed symlink is not a regular HEAD note. Use the index so
+        # this also works without filesystem symlink support.
+        self.git("add", ".")
+        self.git("update-index", "--chmod=+x", readme)
+        blob = self.git("rev-parse", f":{package}/TASK.json").strip()
+        self.git("update-index", "--add", "--cacheinfo",
+                 f"120000,{blob},research/link/README.md")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                 "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false",
+                 "commit", "-qm", "literal paths and modes")
+        report = self.report("needle")
+        coverage = report["coverage"]["local"]
+        self.assertEqual(coverage["head"], self.git("rev-parse", "HEAD").strip())
+        self.assertEqual(coverage["head_records"], 7)
+        self.assertTrue(coverage["complete_head_inventory"])
+        self.assertEqual(report["matches_total"], 7)
+        (self.root / readme).unlink()
+        coverage = self.report("needle")["coverage"]["local"]
+        self.assertEqual(coverage["unsearched_head_paths"], [readme])
+        self.assertFalse(coverage["complete_head_inventory"])
+
     def test_skipped_symlink_cannot_count_as_a_searched_head_note(self):
         note = self.root / "research/kept/README.md"
         note.unlink()

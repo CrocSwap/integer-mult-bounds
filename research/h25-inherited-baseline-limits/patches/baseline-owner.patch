@@ -1,0 +1,72 @@
+--- baseline_owner_v1.py@6837
++++ baseline_owner_v1.py@supervisor-amendment
+@@ -44,7 +44,27 @@
+ DRIVER_SHA = '5b963a5f108b334a627e68001c80b9843fb300c7394693e72f34ce0a6050e6f1'
+ RUNNER_SHA = 'bd882e3dadb1b6aeaa63ee824f1a1c58f8ef2546b6840a2bffa46885a184d3eb'
+ QUEUE_SHA = '1348a7b4d7cc1f9fef556f5e0abdaf04411a998afdcd574d7812c76ab37dcf68'
+-PROTOCOL_SHA = '883c4b51c2d07413bc8ed600b48780cd4617ac1dd1e09681de9c03b84332f390'
++PROTOCOL_SHA = '53dcff53cc15c01f546c937fb66f47339bb5b99ccb530fa5b1782f31de37518f'
++
++
++# Inherited-limit calculation reused from PR #6830, head 39fcd67c991bd72918080b1d2c02feb3d679206d.
++# Kept local to the baseline closure so B does not import candidate bootstrap.
++def root_address_space_limits(inherited, requested_bytes, infinity=-1):
++    """Preserve the enclosing hard cap and every lower inherited Root bound.
++
++    requested_bytes remains the original admitted upper bound. C2's selected
++    lower hard limit cannot legally be raised by its unprivileged child.
++    """
++    schema.need(type(requested_bytes) is int and 0 < requested_bytes <= 1024 ** 3,
++         'original admitted Root AS upper bound')
++    schema.need(type(inherited) is tuple and len(inherited) == 2 and
++         all(type(value) is int and (value >= 0 or value == infinity) for value in inherited),
++         'exact inherited Root AS limits')
++    soft, hard = inherited
++    schema.need(hard == infinity or (soft != infinity and soft <= hard), 'ordered inherited Root AS limits')
++    hard = requested_bytes if hard == infinity else min(hard, requested_bytes)
++    soft = hard if soft == infinity else min(soft, hard)
++    return soft, hard
+ 
+ 
+ class BaselineDeadline(RuntimeError):
+@@ -318,6 +338,10 @@
+         run['stage_before'] = _stage(local_plan, state['errors'], state)
+         # Reject oversized complete-custody records BEFORE any child launch.
+         run['source_bytes_before'] = _source_custody_bytes(state, run['source_before'], run['stage_before'])
++        inherited_address_space = tuple(_GETRLIMIT(resource.RLIMIT_AS))
++        run['inherited_address_space_limits'] = inherited_address_space
++        run['installed_root_address_space_limits'] = root_address_space_limits(
++            inherited_address_space, row['address_space_bytes'], resource.RLIM_INFINITY)
+         run['domain'] = domain.create_domain(state['unknown_owner'])
+         launch = {'schema': 'h25-owned-fixed-root-launch-v2', 'case_id': state['case_id'],
+             'mode': 'assertions-on', 'role': producer_role,
+@@ -326,7 +350,10 @@
+             'stage_sha256': STAGE_SHA, 'entry_sha256': ENTRY_SHA, 'runner_sha256': RUNNER_SHA, 'parent_file_limits': list(run['file_limits']),
+             'new_session': True, 'close_fds': True, 'pass_fds': [],
+             'root_seconds': row['root_seconds'], 'rss_bytes': row['rss_bytes'],
+-            'address_space_bytes': row['address_space_bytes']}
++            'address_space_bytes': row['address_space_bytes'],
++            'inherited_address_space_limits': list(run['inherited_address_space_limits']),
++            'installed_root_address_space_limits': list(run['installed_root_address_space_limits']),
++            'lower_inherited_AS_preserved': True}
+         run['launch'] = copying.write_once(row['evidence_directory'] + '/LAUNCH.json',
+             schema.canonical(launch), error_owner=state['errors'])
+         for index, name in enumerate(('stdout.raw', 'stderr.raw')):
+@@ -339,7 +366,7 @@
+                 os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+             run['acquisition_in_flight'] = False
+             state['unknown_owner']['pending'][0] = False
+-        setter, kind, limits = _SETRLIMIT, resource.RLIMIT_AS, (row['address_space_bytes'], row['address_space_bytes'])
++        setter, kind, limits = _SETRLIMIT, resource.RLIMIT_AS, run['installed_root_address_space_limits']
+         def child_limit():
+             setter(kind, limits)
+         schema.need(_GETTIMER(signal.ITIMER_REAL) == (0.0, 0.0), 'existing parent timer cannot be replaced')
+@@ -414,6 +441,8 @@
+                     'root spawn or raw stream ownership incomplete')
+         run['terminal'] = domain.terminal_facts(run['domain'])
+         schema.need(tuple(_GETRLIMIT(resource.RLIMIT_FSIZE)) == run['file_limits'], 'parent file limit drift')
++        schema.need(tuple(_GETRLIMIT(resource.RLIMIT_AS)) == run['inherited_address_space_limits'],
++                    'parent address-space limit drift')
+         run['phase'] = 'JOINED'
+         state['phase'] = 'PRODUCER_JOINED'
+         _guard(state)

@@ -1,0 +1,315 @@
+"""Fair bounded pipe-to-file relay, selected by the authenticated parent loader.
+
+Only read endpoints are nonblocking. Child stdio writers keep blocking semantics.
+Every descriptor has a pre-registered linear owner; uncertain close is never
+replayed. EOF is a stream observation, never proof of native writer retirement.
+This module is source only until the original separate execution admission.
+"""
+import hashlib
+import os
+from pathlib import Path
+import select
+import stat
+import time
+
+CAP = 2 * 1024 * 1024
+CHUNK = 65536
+
+
+def need(value, message):
+    if not value:
+        raise RuntimeError(message)
+
+
+class RegistryOwner:
+    """Adapt genuine parent registry FD ownership without creating another owner."""
+    def __init__(self, registry, attempt):
+        self.registry, self.attempt = registry, attempt
+        self.custody=registry.synchronous_writer(attempt,'relay-raw-custody',attempt.layout.supervision_root/'root.stdout.raw')
+        self.custody['kind'],self.custody['object']='relay-owner',self
+    def bind(self,relay):
+        self.custody['object']=relay  # Retain actual relay and raw errors until parent exit.
+    def retired(self,known):
+        self.custody['state']='CLOSED' if known else 'UNKNOWN'
+    def pending(self, role, path=None):
+        row = self.registry.fd_pending(self.attempt, role)
+        row['kind'], row['path'] = 'relay-fd', path
+        return row
+    def acquired(self, row, fd):
+        previous=row['state']
+        row['object'],row['state']=fd,'OWNED'  # Actual native return before validator.
+        need(previous=='PENDING' and type(fd) is int and fd>=0,'known actual registered relay descriptor')
+    def failed(self, row, error):
+        self.registry.fd_unknown(row, error)
+    def close(self, row):
+        self.registry.fd_close(row)
+    def remember(self, error):
+        self.registry.capture_error(self.attempt, error)
+
+
+class LocalOwner:
+    """Runner-local raw owners; their terminal projection remains DATA to parent."""
+    def __init__(self, state, remember):
+        self.state, self.remember_error = state, remember
+    def pending(self, role, path=None):
+        need(len(self.state['fds']) < 64 and self.state['overflow'] is None and
+             not any(r['state'] == 'UNKNOWN' for r in self.state['fds']),
+             'runner descriptor custody unavailable')
+        row = {'role':role, 'path':path, 'object':None, 'state':'PENDING',
+               'primary':None, 'secondary':None, 'close_attempted':False}
+        self.state['fds'].append(row)
+        return row
+    def bind(self,relay):
+        self.state['relay']=relay
+    def retired(self,known):
+        pass  # Actual descriptor rows remain in the runner's strong state.
+    def acquired(self, row, fd):
+        previous=row['state']
+        row['object'],row['state']=fd,'OWNED'  # Actual native return before validator.
+        need(previous=='PENDING' and type(fd) is int and fd>=0,'one actual runner descriptor return')
+    def failed(self, row, error):
+        row['primary'], row['state'] = error, 'UNKNOWN'
+        self.remember(error)
+    def close(self, row):
+        need(row['state'] == 'OWNED' and type(row['object']) is int,
+             'one known runner descriptor close')
+        fd, row['object'], row['state'], row['close_attempted'] = row['object'], None, 'CLOSING', True
+        try:
+            os.close(fd)
+        except BaseException as error:
+            row['secondary'], row['state'] = error, 'UNKNOWN'
+            self.remember(error)
+            raise
+        row['state'] = 'CLOSED'
+    def remember(self, error):
+        self.remember_error(error)
+
+
+class BoundedRelay:
+    def __init__(self, paths, owner, role):
+        need(type(paths) is tuple and len(paths) == 2 and
+             all(type(p) is type(Path('/')) and p.is_absolute() for p in paths),
+             'two exact absolute capture paths')
+        self.owner, self.role, self.rows, self.turn = owner, role, [], 0
+        self.primary, self.traceback, self.secondary = None, None, [None] * 16
+        self.retired, self.setup_complete = False, False
+        self.owner.bind(self)
+        # Allocate stream records BEFORE any native file/pipe operation.
+        for index, path in enumerate(paths):
+            self.rows.append({'path':path, 'capture':None, 'reader':None, 'writer':None,
+                'pipe_return':None, 'identity':None, 'retained':0, 'observed':0,
+                'discarded':0, 'overflow':False, 'eof':False, 'write_uncertain':False,
+                'final_bytes':None, 'sha256':hashlib.sha256(), 'index':index})
+    def remember(self, error):
+        if self.primary is None:
+            self.primary = error
+            self.traceback = BaseException.__dict__['__traceback__'].__get__(error, BaseException)
+        elif error is not self.primary:
+            for index, old in enumerate(self.secondary):
+                if old is error:
+                    break
+                if old is None:
+                    self.secondary[index] = error
+                    break
+            else:
+                pass  # Saturation remains non-successful through the first raw error.
+        try:
+            self.owner.remember(error)
+        except BaseException as secondary:
+            for index,old in enumerate(self.secondary):
+                if old is secondary:
+                    break
+                if old is None:
+                    self.secondary[index]=secondary
+                    break
+    def open(self):
+        need(not self.setup_complete and not self.retired and self.primary is None,
+             'one relay setup')
+        try:
+            for row in self.rows:
+                ticket = self.owner.pending(self.role + '-capture-' + str(row['index']), row['path'])
+                row['capture'] = ticket
+                try:
+                    fd = os.open(row['path'], os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                                 os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+                except BaseException as error:
+                    ticket['primary'] = error
+                    self.owner.failed(ticket, error)
+                    raise
+                self.owner.acquired(ticket, fd)  # Actual handle before fchmod/fstat.
+                os.fchmod(fd, 0o600)
+                info = os.fstat(fd)
+                need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600 and
+                     info.st_uid == os.getuid() and info.st_nlink == 1 and info.st_size == 0,
+                     'exclusive owned regular0600 empty capture')
+                current = row['path'].lstat()
+                need((info.st_dev, info.st_ino) == (current.st_dev, current.st_ino),
+                     'actual exclusive capture inode')
+                row['identity'] = (info.st_dev, info.st_ino)
+                row['reader'] = self.owner.pending(self.role + '-pipe-read-' + str(row['index']))
+                row['writer'] = self.owner.pending(self.role + '-pipe-write-' + str(row['index']))
+                try:
+                    pair = os.pipe2(os.O_CLOEXEC)
+                except BaseException as error:
+                    row['reader']['primary'] = row['writer']['primary'] = error
+                    self.owner.failed(row['reader'], error)
+                    self.owner.failed(row['writer'], error)
+                    raise
+                row['pipe_return'] = pair  # Retain actual pair before any validation.
+                row['reader']['object'],row['reader']['state']=pair[0],'OWNED'
+                row['writer']['object'],row['writer']['state']=pair[1],'OWNED'
+                need(type(pair) is tuple and len(pair)==2 and
+                     all(type(fd) is int and fd>=0 for fd in pair),'actual returned pipe pair')
+                os.set_blocking(pair[0], False)  # Never change the writer's O_NONBLOCK.
+                need(not os.get_blocking(pair[0]) and os.get_blocking(pair[1]),
+                     'nonblocking relay reader and blocking child writer')
+            self.setup_complete = True
+            return self
+        except BaseException as error:
+            self.remember(error)
+            raise
+    def writers(self):
+        need(self.setup_complete and not self.retired and self.primary is None,
+             'complete owned relay before launch')
+        return tuple(row['writer']['object'] for row in self.rows)
+    def close_writers(self):
+        first = None
+        for row in self.rows:
+            ticket = row['writer']
+            if ticket is not None and ticket['state'] == 'OWNED':
+                try:
+                    self.owner.close(ticket)
+                except BaseException as error:
+                    self.remember(error)
+                    first = error if first is None else first
+        if first is not None:
+            raise first
+    def overflowed(self):
+        return any(row['overflow'] for row in self.rows)
+    def eof_complete(self):
+        return all(row['eof'] for row in self.rows)
+    def _write_prefix(self, row, block):
+        room = CAP - row['retained']
+        prefix = block[:room]
+        position = 0
+        while position < len(prefix):
+            try:
+                count = os.write(row['capture']['object'], prefix[position:])
+            except BaseException:
+                row['write_uncertain'] = True
+                raise
+            need(type(count) is int and 0 < count <= len(prefix) - position,
+                 'relay partial-write progress and returned count')
+            row['sha256'].update(prefix[position:position + count])
+            position += count
+            row['retained'] += count
+        row['discarded'] += len(block) - len(prefix)
+        if len(block) > len(prefix):
+            row['overflow'] = True  # Exactly CAP bytes alone never signals overflow.
+    def pump(self, timeout=0.0):
+        need(self.setup_complete and not self.retired and self.primary is None,
+             'relay draining requires known resources')
+        need(type(timeout) in (int, float) and 0 <= timeout <= 0.05,
+             'bounded fair relay wait')
+        active = [row for row in self.rows if row['reader']['state'] == 'OWNED']
+        if not active:
+            return
+        try:
+            ready, _, _ = select.select([row['reader']['object'] for row in active], [], [], timeout)
+            # One bounded read per ready stream per call; alternate first stream.
+            ordered = self.rows[self.turn:] + self.rows[:self.turn]
+            self.turn = (self.turn + 1) % len(self.rows)
+            for row in ordered:
+                ticket = row['reader']
+                if ticket['state'] != 'OWNED' or ticket['object'] not in ready:
+                    continue
+                # At the boundary read one extra byte to distinguish overflow.
+                amount = CHUNK if row['overflow'] else min(CHUNK, max(1, CAP - row['retained'] + 1))
+                try:
+                    block = os.read(ticket['object'], amount)
+                except BlockingIOError:
+                    continue
+                if not block:
+                    self.owner.close(ticket)
+                    row['eof'] = True
+                    continue
+                row['observed'] += len(block)
+                self._write_prefix(row, block)
+        except BaseException as error:
+            self.remember(error)
+            raise
+    def drain_until(self, deadline):
+        # Caller must first retire real writers. EOF alone does not retire them.
+        while not self.eof_complete() and self.primary is None and time.monotonic() < deadline:
+            self.pump(min(0.01, max(0.0, deadline - time.monotonic())))
+        return self.eof_complete()
+    def retire(self):
+        """One bounded close pass. No numeric descriptor is retried after failure."""
+        need(not self.retired, 'one irreversible relay retirement')
+        self.retired = True
+        first = None
+        for row in self.rows:
+            for name in ('writer', 'reader', 'capture'):
+                ticket = row[name]
+                if ticket is None or ticket['state'] != 'OWNED':
+                    continue
+                if name == 'capture':
+                    try:
+                        info = os.fstat(ticket['object'])
+                        row['final_bytes'] = info.st_size
+                        need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600 and
+                             info.st_uid == os.getuid() and info.st_nlink == 1 and
+                             (info.st_dev, info.st_ino) == row['identity'] and info.st_size <= CAP,
+                             'physical capture bound and original owned inode')
+                        named=row['path'].lstat()
+                        need((named.st_dev,named.st_ino,named.st_mode,named.st_uid,named.st_nlink,named.st_size)==
+                             (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_nlink,info.st_size),
+                             'capture path still names the original relay-only inode')
+                        need(info.st_size == row['retained'] and not row['write_uncertain'],
+                             'complete known relay write prefix')
+                        os.fsync(ticket['object'])
+                    except BaseException as error:
+                        self.remember(error)
+                        first = error if first is None else first
+                try:
+                    self.owner.close(ticket)
+                except BaseException as error:
+                    self.remember(error)
+                    first = error if first is None else first
+        resources=[row[name] for row in self.rows for name in ('capture','reader','writer') if row[name] is not None]
+        self.owner.retired(all(row['state'] in ('CLOSED','NOT_ENTERED') for row in resources))
+        if first is not None:
+            raise first
+    def snapshot(self):
+        resources = [row[name] for row in self.rows for name in ('capture','reader','writer')
+                     if row[name] is not None]
+        return {'schema':'joined-bounded-relay-v1', 'cap_bytes_each':CAP,
+            'nonblocking_readers_only':True, 'fair_read_quantum_bytes':CHUNK,
+            'setup_complete':self.setup_complete, 'retired':self.retired,
+            'all_descriptors_known_closed':self.retired and len(resources) == 6 and
+                all(ticket['state'] == 'CLOSED' for ticket in resources),
+            'eof_complete':self.eof_complete(), 'overflow':self.overflowed(),
+            'raw_error_present':self.primary is not None,
+            'streams':[{'path':str(row['path']), 'bytes':row['retained'],
+                'observed_bytes':row['observed'], 'discarded_bytes':row['discarded'],
+                'overflow':row['overflow'], 'eof':row['eof'], 'final_bytes':row['final_bytes'],
+                'write_uncertain':row['write_uncertain'], 'sha256':row['sha256'].hexdigest()}
+                for row in self.rows],
+            'writer_lifetime_proof':False}
+
+
+def compiler_file_limits(inherited, infinity=-1):
+    """The existing guardian/archive H=512MiB, preserving lower hard refusal.
+
+    This explicitly reconciles the enclosing2MiB stream soft limit with the
+    unchanged cold child16MiB prerequisite and original58MiB witness. Only the
+    relay supplies the2MiB physical stream bound. H is not a complete-tree fit.
+    """
+    cap = 536870912
+    need(type(inherited) is tuple and len(inherited) == 2 and
+         all(type(v) is int and (v >= 0 or v == infinity) for v in inherited),
+         'exact inherited FSIZE pair')
+    soft, hard = inherited
+    need(hard == infinity or (soft != infinity and soft <= hard), 'ordered inherited FSIZE')
+    need(hard == infinity or hard >= cap, 'original guardian H hard prerequisite; no owner hard-limit increase')
+    return cap, cap

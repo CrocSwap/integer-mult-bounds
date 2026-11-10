@@ -1,0 +1,773 @@
+"""SOURCE ONLY: current ACTIVE publisher, known close then fixed controller exec.
+Actual C/F/A modules and immutable bindings come from a separately authenticated
+fixed bootstrap. This code neither authenticates loaded images by JSON nor
+creates a native grant. Controller obtains its NEW actual EX after this owner
+returns from release_for_exec; no native context or FD crosses exec."""
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import sys
+import time
+from types import ModuleType
+
+ELIGIBILITY_PATH = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-successor-eligibility-v1/historical_eligibility.py')
+ELIGIBILITY_PIN = {'bytes':8682,'sha256':'bb60f3e93979fd43993a8655d3a3a82e23d74e361f7560857f975fc970607a63'}
+ELIGIBILITY = [None]
+SUCCESSOR_ACTIVE = ('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/IndependentPrefixDATASuccessorV1-EXECUTION-BARRIER', '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/runs/IndependentPrefixDATASuccessorV1-EXECUTION-QUARANTINE', '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/validation/IndependentPrefixDATAComposedV1-EXECUTION-BARRIER', '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/runtime/fresh-metered-round-v1/controller-quarantines/IndependentPrefixDATAComposedV1')
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+ROOT = W / 'outputs/h25-data-handling-20261028'
+NAME = 'IndependentPrefixDATAComposedV1'
+PUBLISHER_BUDGET_NS, PUBLISHER_CONTEXT = [None], [None]
+LOCK = W / 'outputs/h25-bookkeeping-swarm-20261028/runtime/science.lock'
+ONCE = ROOT / 'validation/IndependentPrefixDATAComposedV1-METADATA-LAUNCH'
+STDOUT = ROOT / 'validation/IndependentPrefixDATAComposedV1-COMMAND.stdout.raw'
+STDERR = ROOT / 'validation/IndependentPrefixDATAComposedV1-COMMAND.stderr.raw'
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+INITIAL_PATH = ('/usr/lib/python312.zip', '/usr/lib/python3.12', '/usr/lib/python3.12/lib-dynload')
+FIRST = [None]
+SECONDARY = [None] * 16
+UNKNOWN = [False]
+STARTED = [None]
+
+
+class LaunchStop(RuntimeError):
+    pass
+
+
+def need(value, message):
+    if not value:
+        raise LaunchStop(message)
+
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+    elif error is not FIRST[0]:
+        for index in range(16):
+            if SECONDARY[index] is error:
+                break
+            if SECONDARY[index] is None:
+                SECONDARY[index] = error
+                break
+        else:
+            UNKNOWN[0] = True
+    return FIRST[0]
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True,
+                       allow_nan=False) + '\n').encode('ascii')
+
+
+def checkpoint():
+    need(not UNKNOWN[0], 'unknown IO: no further acquisition/publication/exec')
+    if STARTED[0] is not None and PUBLISHER_BUDGET_NS[0] is not None:
+        now = time.monotonic_ns()
+        need(type(now) is int and now >= STARTED[0] and now-STARTED[0] <= PUBLISHER_BUDGET_NS[0],
+             'necessary local integer-ns bound; whole enclosing body remains external')
+    need(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024 <= 1073741824,
+         'necessary observed envelope RSS1GiB; not whole concurrent forest measurement')
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_uid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def owned_parent(path):
+    need(path.is_absolute() and path.parent.resolve(strict=True) == path.parent,
+         'canonical absolute parent required')
+    info = path.parent.lstat()
+    need(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid() and
+         not (stat.S_IMODE(info.st_mode) & 0o022), 'owned non-group/world-writable parent required')
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid)
+
+
+def successor_module(io, may_load):
+    if ELIGIBILITY[0] is None:
+        need(may_load, 'historical module missing after lease release; no new source read')
+        raw = io.read(ELIGIBILITY_PATH,65536,ELIGIBILITY_PIN)
+        module = ModuleType('exact_successor_historical_eligibility_v1')
+        module.__dict__.update(__file__=str(ELIGIBILITY_PATH),__package__=None,__spec__=None)
+        exec(compile(raw,str(ELIGIBILITY_PATH),'exec',dont_inherit=True),module.__dict__)
+        ELIGIBILITY[0] = module
+    return ELIGIBILITY[0]
+
+
+def historical_names(io,path,cap):
+    # Explicit owned iterator; no hidden listdir FD or source-reader broadening.
+    holder, primary, result = [None,'PENDING'],None,[]
+    try:
+        holder[0] = os.scandir(path)
+        holder[1] = 'OWNED'
+        for entry in holder[0]:
+            checkpoint()
+            need(len(result) < cap, 'bounded historical directory membership')
+            result.append(entry.name)
+    except BaseException as error:
+        if holder[1] == 'PENDING':
+            UNKNOWN[0] = True
+        primary = remember(error)
+    finally:
+        if holder[1] == 'OWNED':
+            holder[1] = 'CLOSE_ENTERED'
+            try:
+                holder[0].close()
+                holder[1] = 'CLOSE_RETURNED'
+            except BaseException as error:
+                holder[1] = 'CLOSE_UNKNOWN'
+                UNKNOWN[0] = True
+                primary = remember(error)
+    if primary is not None:
+        raise primary
+    return result
+
+
+def verify_metadata_lease(io,lease,birth):
+    need(lease is not None and lease[1] == 'OWNED', 'actual metadata descriptor still owned')
+    current = os.fstat(lease[0])
+    need(stat.S_ISREG(current.st_mode) and current.st_uid == os.getuid() and current.st_nlink == 1 and
+         LOCK.resolve(strict=True) == LOCK and identity(current) == identity(LOCK.lstat()) and
+         fcntl.fcntl(lease[0],fcntl.F_GETFD) & fcntl.FD_CLOEXEC, 'current real canonical EX descriptor')
+    info = io.read(Path('/proc/self/fdinfo/'+str(lease[0])),16384,proc=True).decode('ascii')
+    fields = dict(line.split(':',1) for line in info.splitlines() if ':' in line)
+    need(int(fields['ino'].strip()) == current.st_ino and
+         any('FLOCK' in line and 'WRITE' in line and (' '+str(os.getpid())+' ') in line
+             for line in info.splitlines() if line.startswith('lock:')), 'actual metadata EX/inode missing')
+    current_stat = io.read(Path('/proc/self/stat'),8192,proc=True).decode('ascii')
+    def generation(value):
+        end = value.rfind(') ')
+        need(end >= 0, 'metadata process stat shape')
+        return value[:value.find(' ')],value[end+2:].split()[19]
+    need(generation(current_stat) == generation(birth), 'metadata process generation changed')
+
+
+def markers_clear(io,phase,ctx=None,cleanup_ns=0,journal=None,released=False):
+    need(SOURCE_BINDING[0] is not None and GUARDIAN_BINDING[0] is not None, 'fixed live G before marker admission')
+    gm, gc = GUARDIAN_BINDING[0]
+    cfg = SOURCE_BINDING[0][3]
+    gm.verify_association(gc, 'PUBLISHER', cfg['request'], cfg['manual_entry']['provenance']['original_start_pin'], phase)
+    module = successor_module(io,phase == 'PREPARE')
+    if phase == 'UNDER_EX':
+        need(ctx is not None,'actual privately acquired ACTIVE publisher context required')
+        ctx.check(0,cleanup_ns)
+        module.full_snapshot(lambda path,row: io.read_historical(Path(path),row['bytes'],row),
+                             lambda path,cap: historical_names(io,path,cap),SUCCESSOR_ACTIVE)
+        ctx.check(0,cleanup_ns)
+    else:
+        need(phase in ('PREPARE','POST_RELEASE'),'exact successor publisher phase')
+        if phase == 'POST_RELEASE':
+            need(released is True and journal is not None and journal[1] == 'CLOSED' and
+                 all(row[1] in ('FREE','CLOSED') for row in io.slots),
+                 'actual release_for_exec returned and all publisher handles known closed')
+        module.layout_only(SUCCESSOR_ACTIVE)  # No historical content after release.
+
+
+class Handles:
+    """Preallocated direct descriptor ownership, one close attempt, no FD handoff."""
+    def __init__(self):
+        self.slots = [[None, 'FREE'] for unused in range(8)]
+
+    def acquire(self, path, flags, mode=0o600):
+        checkpoint()
+        slot = next(row for row in self.slots if row[1] in ('FREE', 'CLOSED'))
+        slot[0], slot[1] = None, 'PENDING'
+        try:
+            slot[0] = os.open(path, flags | os.O_NOFOLLOW | os.O_CLOEXEC, mode)
+            slot[1] = 'OWNED'
+            return slot
+        except BaseException as error:
+            slot[1] = 'UNKNOWN'
+            UNKNOWN[0] = True
+            remember(error)
+            raise
+
+    def close(self, slot):
+        need(slot[1] == 'OWNED', 'descriptor cannot be closed twice or from unknown phase')
+        slot[1] = 'CLOSING'
+        try:
+            os.close(slot[0])
+            slot[1] = 'CLOSED'
+        except BaseException as error:
+            slot[1] = 'UNKNOWN'
+            UNKNOWN[0] = True
+            remember(error)
+            raise
+
+    def close_all(self):
+        for slot in reversed(self.slots):
+            if slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    remember(error)
+
+    def read(self, path, cap, expected=None, proc=False):
+        checkpoint()
+        if not proc:
+            owned_parent(path)
+        before = path.lstat()
+        if not proc:
+            need(stat.S_ISREG(before.st_mode) and before.st_uid == os.getuid() and
+                 before.st_nlink == 1 and before.st_size <= cap and
+                 stat.S_IMODE(before.st_mode) == 0o444, 'exact frozen regular0444 metadata/source required')
+        slot, raw, primary = None, bytearray(), None
+        try:
+            slot = self.acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+            if not proc:
+                need(identity(os.fstat(slot[0])) == identity(before), 'opened metadata identity differs')
+            while True:
+                checkpoint()
+                chunk = os.read(slot[0], min(65536, cap + 1 - len(raw)))
+                if not chunk:
+                    break
+                raw.extend(chunk)
+                need(len(raw) <= cap, 'bounded metadata read exceeded')
+            if not proc:
+                need(identity(os.fstat(slot[0])) == identity(before) == identity(path.lstat()),
+                     'metadata/source changed during read')
+        except BaseException as error:
+            primary = remember(error)
+        finally:
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    primary = remember(error)
+        if primary is not None:
+            raise primary
+        result = bytes(raw)
+        if expected is not None:
+            need(len(result) == expected['bytes'] and hashlib.sha256(result).hexdigest() == expected['sha256'],
+                 'exact source length/hash differs')
+        return result
+
+    def read_historical(self, path, cap, expected):
+        need(str(path) in ELIGIBILITY[0].PINS and expected == ELIGIBILITY[0].PINS[str(path)],
+             'fixed historical leaf only')
+        proc = False
+        checkpoint()
+        if not proc:
+            owned_parent(path)
+        before = path.lstat()
+        if not proc:
+            need(stat.S_ISREG(before.st_mode) and before.st_uid == os.getuid() and
+                 before.st_nlink == 1 and before.st_size <= cap and
+                 stat.S_IMODE(before.st_mode) == expected['mode'], 'exact frozen regular0444 metadata/source required')
+        slot, raw, primary = None, bytearray(), None
+        try:
+            slot = self.acquire(path, os.O_RDONLY | os.O_NONBLOCK)
+            if not proc:
+                need(identity(os.fstat(slot[0])) == identity(before), 'opened metadata identity differs')
+            while True:
+                checkpoint()
+                chunk = os.read(slot[0], min(65536, cap + 1 - len(raw)))
+                if not chunk:
+                    break
+                raw.extend(chunk)
+                need(len(raw) <= cap, 'bounded metadata read exceeded')
+            if not proc:
+                need(identity(os.fstat(slot[0])) == identity(before) == identity(path.lstat()),
+                     'metadata/source changed during read')
+        except BaseException as error:
+            primary = remember(error)
+        finally:
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    primary = remember(error)
+        if primary is not None:
+            raise primary
+        result = bytes(raw)
+        if expected is not None:
+            need(len(result) == expected['bytes'] and hashlib.sha256(result).hexdigest() == expected['sha256'],
+                 'exact source length/hash differs')
+        return result
+
+
+    def write(self, slot, raw, check=True):
+        need(slot[1] == 'OWNED' and type(raw) is bytes, 'known direct output descriptor required')
+        offset = 0
+        while offset < len(raw):
+            if check:
+                checkpoint()
+            count = os.write(slot[0], raw[offset:])
+            need(type(count) is int and count > 0, 'short zero write')
+            offset += count
+        os.fsync(slot[0])
+
+    def sync_directory(self, path):
+        need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical directory sync')
+        before = path.lstat()
+        need(stat.S_ISDIR(before.st_mode) and before.st_uid == os.getuid() and
+             not (stat.S_IMODE(before.st_mode) & 0o022), 'owned directory sync required')
+        slot, primary = None, None
+        try:
+            slot = self.acquire(path, os.O_RDONLY | os.O_DIRECTORY)
+            need(os.fstat(slot[0]).st_dev == before.st_dev and os.fstat(slot[0]).st_ino == before.st_ino,
+                 'directory sync identity differs')
+            os.fsync(slot[0])
+        except BaseException as error:
+            primary = remember(error)
+        finally:
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    primary = remember(error)
+        if primary is not None:
+            raise primary
+
+    def publish(self, path, raw, expected):
+        parent = owned_parent(path)
+        slot, primary = None, None
+        try:
+            slot = self.acquire(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+            self.write(slot, raw)
+            os.fchmod(slot[0], 0o444)
+            os.fsync(slot[0])
+            info = os.fstat(slot[0])
+            need(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_uid == os.getuid() and
+                 stat.S_IMODE(info.st_mode) == 0o444, 'published file metadata differs')
+        except BaseException as error:
+            primary = remember(error)
+        finally:
+            if slot is not None and slot[1] == 'OWNED':
+                try:
+                    self.close(slot)
+                except BaseException as error:
+                    primary = remember(error)
+        if primary is not None:
+            raise primary
+        need(owned_parent(path) == parent, 'publication parent changed')
+        self.sync_directory(path.parent)
+        need(self.read(path, 131072, expected) == raw, 'published exact bytes differ')
+        return {'path': str(path), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(), 'mode': 0o444}
+
+
+def sha_text(value):
+    need(type(value) is str and len(value) == 64 and all(c in '0123456789abcdef' for c in value),
+         'review digest must be a configured exact SHA256')
+
+
+
+
+
+
+def clean_launch(io):
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3, 12) and sys.base_prefix == '/usr', 'selected clean CPython required')
+    need(sys.flags.optimize == 0 and sys.flags.no_site == sys.flags.no_user_site ==
+         sys.flags.dont_write_bytecode == 1 and sys.flags.safe_path and
+         sys.flags.ignore_environment == sys.flags.isolated == sys.flags.hash_randomization == 0 and
+         tuple(sys.path) == INITIAL_PATH and dict(os.environ) == ENV and os.getcwd() == str(W),
+         'exact clean launch flags/path/env/cwd differ')
+    need(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0) and
+         signal.getsignal(signal.SIGALRM) == signal.SIG_DFL, 'incompatible live signal owner')
+    status = io.read(Path('/proc/self/status'), 65536, proc=True).decode('ascii')
+    values = dict(line.split(':', 1) for line in status.splitlines() if ':' in line)
+    need(int(values['Umask'].strip(), 8) == 0o077 and values['Threads'].strip() == '1',
+         'single parent task and inherited umask0077 required')
+    for fd, path in ((1, STDOUT), (2, STDERR)):
+        owned_parent(path)
+        info = os.fstat(fd)
+        need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600 and
+             info.st_uid == os.getuid() and info.st_nlink == 1 and info.st_size == 0 and
+             identity(info) == identity(path.lstat()), 'fresh exact captured regular0600 stdout/stderr required')
+    return {'pid': os.getpid(), 'umask': 0o077, 'single_task': True, 'stdio_paths': [str(STDOUT), str(STDERR)]}
+
+
+def errors(phase, io):
+    def item(error):
+        if error is None:
+            return None
+        frames, tb = [], error.__traceback__
+        while tb is not None and len(frames) < 16:
+            frames.append({'file': tb.tb_frame.f_code.co_filename, 'line': tb.tb_lineno})
+            tb = tb.tb_next
+        return {'type': type(error).__name__, 'frames': frames,
+                'native_errno': error.errno if isinstance(error, OSError) else None}
+    return {'schema': 'exact-DATA-launch-STOP-v1', 'phase': phase, 'pid': os.getpid(),
+            'primary': item(FIRST[0]), 'secondary': [item(e) for e in SECONDARY if e is not None],
+            'unknown': UNKNOWN[0], 'actual_descriptor_phases': io.slots,
+            'no_retry_or_original_domain_reads': True, 'all_costs_settled': False,
+            'failed_command_or_unknown_cleanup_requires_registered_parent_review': True}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SOURCE_BINDING = [None]
+GUARDIAN_BINDING = [None]
+RUNTIME_PATH_BOUND = [False]
+NS = 1_000_000_000
+BODY_LIMIT_NS = 180 * NS
+ADMIN_POLICY = 'startup-and-final-publication-two-second-administrative-debit-v1'
+ADMIN_DEBIT_NS = 2 * NS
+
+
+def bind_runtime_paths(admin_root):
+    global ONCE, STDOUT, STDERR
+    selected = W / 'outputs/caller-refusal-repair-20261106T2119Z/runtime/admin/IndependentPrefixDATAComposedV1'
+    need(RUNTIME_PATH_BOUND[0] is False and type(admin_root) is str and admin_root == str(selected),
+         'one fixed actual publisher admin/capture destination')
+    RUNTIME_PATH_BOUND[0] = True
+    ONCE = selected / 'P'
+    STDOUT, STDERR = selected / 'K/PUBLISHER.stdout.raw', selected / 'K/PUBLISHER.stderr.raw'
+
+
+def bind_sources(actual_C, actual_F, actual_A, contract, *, guardian=None):
+    """Trusted fixed bootstrap only, inside the enclosing genuine outer body.
+
+    Actual loaded-source/native authentication precedes this call externally.
+    Module type/JSON/hash checks are necessary consistency, not authentication.
+    No lease is opened and no caller-supplied callback becomes an IO provider.
+    """
+    need(SOURCE_BINDING[0] is None and guardian is not None, 'one immutable actual source/G binding per actor')
+    GUARDIAN_BINDING[0] = guardian
+    need(all(type(x) is ModuleType for x in (actual_C, actual_F, actual_A)),
+         'actual selected source module objects, never JSON owner proxies')
+    actual_F.plain(contract)
+    saved = actual_F.decode(canonical(contract))
+    SOURCE_BINDING[0] = (actual_C, actual_F, actual_A, saved)
+
+
+def composition_binding(role):
+    need(SOURCE_BINDING[0] is not None, 'separately authenticated fixed bootstrap binding absent')
+    C, F, A, cfg = SOURCE_BINDING[0]
+    F.exact(cfg, ('schema','role','name','phase','candidate_document_sha256','request',
+        'manual_entry','approved_opening','expected_head_pin','source_pins','plan_pin',
+        'admission_pin','operating_TCB_pin','clock_profile_pin','actor_profile_pin',
+        'source_policy_pin','resource_policy_pin','current_profile_pin','selected_packet_pin',
+        'whole_body_bill_pin','complete_work_review_pin','derived_role_profile_pin','publisher_argv',
+        'controller_argv','handoff_path','cleanup_reservation_ns','body_reservation_ns',
+        'administrative_policy','administrative_debit_ns','complete_delivery_scope_sha256'))
+    need(cfg['schema'] == 'fresh-composed-source-private-binding-v1' and cfg['role'] == role and
+         cfg['name'] == NAME and cfg['phase'] in ('INITIAL','FULL'), 'exact actor/name/phase binding')
+    F.digest(cfg['candidate_document_sha256']); F.digest(cfg['complete_delivery_scope_sha256'])
+    need(type(cfg['body_reservation_ns']) is int and 0 < cfg['body_reservation_ns'] <= BODY_LIMIT_NS and
+         type(cfg['cleanup_reservation_ns']) is int and 0 < cfg['cleanup_reservation_ns'] < cfg['body_reservation_ns'],
+         'same complete-body integer-ns reservation including nested work and cleanup')
+    need(cfg['administrative_policy'] == ADMIN_POLICY and cfg['administrative_debit_ns'] == ADMIN_DEBIT_NS and
+         type(cfg['administrative_debit_ns']) is int, 'separate administrative convention, not measured physical bound')
+    need(type(cfg['source_pins']) is dict and set(cfg['source_pins']) >=
+         {'C','F','A','capture','publisher','fee','outer','capture_bootstrap','publisher_bootstrap','controller_bootstrap',
+          'inner_meter','pre_m','guardian_channel','private_loader','layout','attempt_registry',
+          'production_issuer','parent_authority','postrun_hook','fork_borrower','archive','oracle',
+          'actual_consumer','error_custody','native_io_custody','plain_boundary','reuse_v2'},
+         'complete selected source DAG; no easier replacement actor')
+    for row in cfg['source_pins'].values():
+        F.pin(row); need(row['mode'] == 0o444, 'actual frozen source mode0444, not obsolete0664')
+    for key in ('plan_pin','admission_pin','operating_TCB_pin','clock_profile_pin','actor_profile_pin',
+                'source_policy_pin','resource_policy_pin','current_profile_pin','expected_head_pin',
+                'selected_packet_pin','whole_body_bill_pin','complete_work_review_pin','derived_role_profile_pin'):
+        F.pin(cfg[key])
+    need(cfg['source_pins']['F']['sha256'] == cfg['approved_opening']['funding_source_sha256'],
+         'selected generic current-opening F source binding')
+    F.validate_pre_entry_provenance(cfg['manual_entry']['provenance'], NAME,
+        cfg['candidate_document_sha256'], cfg['body_reservation_ns'])
+    need(cfg['manual_entry']['request'] == cfg['request'] and cfg['request']['label'] == NAME and
+         cfg['request']['command_sha256'] == cfg['candidate_document_sha256'] and
+         cfg['request']['body_reservation_ns'] == cfg['body_reservation_ns'],
+         'same original enclosing manual/formal operation, never a new cheaper identity')
+    need(cfg['request']['policy_sha256'] == cfg['resource_policy_pin']['sha256'],
+         'same live registered administrative policy, not a separate cheap declaration')
+    if cfg['phase'] == 'INITIAL':
+        need(cfg['request']['phase_release_sha256'] is None,'INITIAL has no invented FULL release')
+    else:
+        F.digest(cfg['request']['phase_release_sha256'])
+    need(cfg['handoff_path'] == str(ROOT) + '/control/fresh-metered-round-v1/_handoff-intents/' + NAME + '.json',
+         'fixed handoff metadata path; no inherited FD or serialized owner')
+    for key, source in (('publisher_argv','publisher_bootstrap'),('controller_argv','controller_bootstrap')):
+        argv = cfg[key]
+        need(type(argv) is list and 6 <= len(argv) <= 64 and all(type(x) is str and 0 < len(x) <= 4096 for x in argv) and
+             argv[:5] == ['/usr/bin/python3.12','-S','-s','-P','-B'] and
+             argv[5] == cfg['source_pins'][source]['path'], 'fixed clean source-bootstrap argv, not arbitrary target')
+    need('--handoff-path' in cfg['controller_argv'] and cfg['handoff_path'] in cfg['controller_argv'],
+         'fixed bootstrap reads predetermined intent and revalidates under NEW actual EX')
+    return C, F, A, cfg
+
+
+def binding():
+    return composition_binding('PUBLISHER')
+
+
+def admission_check(raw):
+    # Exact controller public schema, supplied only by the later actual parent
+    # one-use admission. No such artifact or True grant is authored here.
+    C, F, A, cfg = binding()
+    value = F.decode(raw)
+    fixed = {'schema':'fresh-composed-controller-admission-v1',
+        'grants_execution':True,'plan_sha256':cfg['plan_pin']['sha256'],
+        'controller_source_sha256':cfg['source_pins']['C']['sha256'],
+        'active_source_sha256':cfg['source_pins']['A']['sha256'],
+        'funding_source_sha256':cfg['source_pins']['F']['sha256'],
+        'operating_TCB_sha256':cfg['operating_TCB_pin']['sha256'],
+        'case_clock_premises_sha256':cfg['clock_profile_pin']['sha256'],
+        'closed_registered_writer_scope_admitted':True,
+        'no_admin_replacement_or_alias_or_interposition':True,'complete_case_seconds':180,
+        'selected_packet_sha256':cfg['selected_packet_pin']['sha256'],
+        'whole_body_bill_sha256':cfg['whole_body_bill_pin']['sha256'],
+        'complete_work_review_sha256':cfg['complete_work_review_pin']['sha256'],
+        'derived_role_profile_sha256':cfg['derived_role_profile_pin']['sha256'],
+        'resource_and_funding_scope_admitted':True}
+    F.exact(value,tuple(fixed))
+    need(all(type(value[k]) is type(v) and value[k] == v for k,v in fixed.items()),
+         'original strict actual controller admission remains mandatory; DATA not native authority')
+    return value
+
+
+def run(source_sha):
+    STARTED[0] = time.monotonic_ns()
+    io, ctx, journal = Handles(), None, None
+    phase, stdout_valid, count, total = 'BOOTSTRAP', False, 0, 0
+    released, release_entered = False, False
+    def event(value, check=True):
+        nonlocal count, total
+        raw = canonical(value)
+        need(len(raw) <= 8192 and count < 32 and total + len(raw) <= 131072, 'bounded launch journal cap')
+        io.write(journal, raw, check)
+        count, total = count + 1, total + len(raw)
+    try:
+        C, F, A, cfg = binding()
+        need(RUNTIME_PATH_BOUND[0] is True, 'fixed publisher runtime destinations bound before work')
+        PUBLISHER_BUDGET_NS[0] = cfg['body_reservation_ns']
+        markers_clear(io,'PREPARE')
+        launch = clean_launch(io)
+        stdout_valid = True
+        own_path = Path(__file__).absolute()
+        sha_text(source_sha)
+        own = cfg['source_pins']['publisher']
+        need(own['path'] == str(own_path) and own['sha256'] == source_sha and own['mode'] == 0o444,
+             'actual publisher source/pin/frozen mode')
+        io.read(own_path,131072,own)
+        # This invokes only the selected actual C/F/A source API; no copied C.IO,
+        # private-method attachment, JSON capability or second manual flock.
+        open_owner = A.bind_api(C,F,role='PUBLISHER',expected_head_pin=cfg['expected_head_pin'],
+            approved_opening=cfg['approved_opening'],approved_manual_entry=cfg['manual_entry'],
+            guardian=GUARDIAN_BINDING[0])
+        phase = 'ACTUAL_PUBLISHER_ACQUIRE_ENTERED'
+        ctx = open_owner()  # Actual new GlobalLease/EX, not historical lease DATA.
+        phase = 'ACTUAL_PUBLISHER_HELD'
+        ctx.begin(cfg['request'])
+        ctx.check(0,cfg['cleanup_reservation_ns'])
+        markers_clear(io,'UNDER_EX',ctx=ctx,cleanup_ns=cfg['cleanup_reservation_ns'])
+        owned_parent(ONCE)
+        os.mkdir(ONCE,0o700)
+        io.sync_directory(ONCE.parent)
+        journal = io.acquire(ONCE/'LAUNCH.jsonl',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_APPEND)
+        io.sync_directory(ONCE)
+        current = ctx.current_binding()
+        event({'schema':'fresh-composed-publisher-start-v1','phase':phase,'launch':launch,
+            'current_binding_DATA_only':current,'original_manual_entry':cfg['manual_entry']['provenance'],
+            'whole_body_reservation_ns':cfg['body_reservation_ns'],'nested_clock_not_additive':True,
+            'physical_final_publication':'OPEN_NOT_ZERO','all_costs_settled':False})
+        # Metadata is the exact new plan/admission/source policy, not old queue
+        # rows, old ledger debt, or a substituted smaller payload.
+        payloads = []
+        for key in ('plan_pin','admission_pin','source_policy_pin','resource_policy_pin',
+                    'operating_TCB_pin','clock_profile_pin','actor_profile_pin','current_profile_pin',
+                    'selected_packet_pin','whole_body_bill_pin','complete_work_review_pin','derived_role_profile_pin'):
+            row = cfg[key]
+            raw = io.read(Path(row['path']),131072,row)
+            if key == 'admission_pin':
+                admission_check(raw)
+            if key == 'resource_policy_pin':
+                selected_policy = F.decode(raw)
+                F.exact(selected_policy,('schema','round_id','command_sha256','administrative_debit_ns',
+                    'scope','adoption_sha256','claims_physical_upper_bound'))
+                need(selected_policy['schema'] == 'fresh-round-admin-policy-v1' and
+                     selected_policy['round_id'] == 'fresh-metered-round-v1' and
+                     selected_policy['command_sha256'] == cfg['candidate_document_sha256'] and
+                     type(selected_policy['administrative_debit_ns']) is int and
+                     selected_policy['administrative_debit_ns'] == ADMIN_DEBIT_NS and
+                     selected_policy['scope'] == 'STARTUP_AND_FINAL_METADATA_PUBLICATION_ONLY' and
+                     selected_policy['claims_physical_upper_bound'] is False,
+                     'actual pinned policy is the same separate2s administrative convention')
+                F.digest(selected_policy['adoption_sha256'])
+            if key in ('plan_pin','admission_pin','source_policy_pin'):
+                suffix = {'plan_pin':'PLAN','admission_pin':'ADMISSION','source_policy_pin':'SOURCE-POLICY'}[key]
+                destination = ROOT/'control'/(NAME+'-'+suffix+'.json')
+                need(not os.path.lexists(destination),'new exact metadata destination exists; no overwrite')
+                payloads.append((destination,raw,row))
+        need(sum(len(raw) for dst,raw,row in payloads) <= 131072,'complete new metadata publication bound')
+        for dst,raw,row in payloads:
+            ctx.check(0,cfg['cleanup_reservation_ns'])
+            event({'phase':'PUBLISHING_EXACT_NEW_METADATA','destination':str(dst),'source':row})
+            observed = io.publish(dst,raw,row)
+            event({'phase':'EXACT_NEW_METADATA_READBACK_RETURNED','observed':observed})
+        for dst,raw,row in payloads:
+            need(io.read(Path(row['path']),131072,row) == raw and io.read(dst,131072,row) == raw,
+                 'final immutable template and actual published bytes differ')
+        need(str(ROOT/'control'/(NAME+'-PLAN.json')) in cfg['controller_argv'] and
+             str(ROOT/'control'/(NAME+'-ADMISSION.json')) in cfg['controller_argv'],
+             'controller argv consumes exact new publications, not old namespace')
+        for key in ('C','F','A','controller_bootstrap'):
+            row = cfg['source_pins'][key]
+            io.read(Path(row['path']),131072,row)
+        io.read(own_path,131072,own)
+        markers_clear(io,'UNDER_EX',ctx=ctx,cleanup_ns=cfg['cleanup_reservation_ns'])
+        ctx.check(0,cfg['cleanup_reservation_ns'])
+        argv = list(cfg['controller_argv'])
+        event({'status':'EXEC_INTENT_ONLY_NOT_OBSERVED','argv':argv,'environment':ENV,
+            'metadata_local_elapsed_ns':time.monotonic_ns()-STARTED[0],
+            'one_enclosing_body_not_additive':True,'native_capability_transferred':False,
+            'controller_must_NEW_acquire_and_adopt_exact_pending':True})
+        phase = 'ACTIVE_HANDOFF_AND_KNOWN_CLOSE_ENTERED'
+        release_entered = True
+        handoff = ctx.release_for_exec()
+        released = True  # Set only after genuine API returns from actual known close.
+        need(handoff['path'] == cfg['handoff_path'] and handoff['mode'] == 0o444,
+             'exact intent metadata only; no returned descriptor/owner')
+        event({'status':'ACTUAL_PUBLISHER_RELEASE_RETURNED_EXEC_NOT_OBSERVED',
+            'handoff_pin_DATA_only':handoff,'metadata_fd_passed':False})
+        io.close(journal)
+        need(not UNKNOWN[0] and all(row[1] in ('FREE','CLOSED') for row in io.slots),
+             'all publisher handles actually known closed before exec')
+        markers_clear(io,'POST_RELEASE',journal=journal,released=released)
+        checkpoint()
+        phase = 'EXEC_ENTERED_NO_RETURN_EXPECTED'
+        GUARDIAN_BINDING[0][1].exec_expect()
+        os.set_inheritable(198, True)  # Sole fixed P->C2 exec continuation.
+        os.execve('/usr/bin/python3.12',argv,ENV)
+        raise LaunchStop('exec unexpectedly returned')
+    except BaseException as error:
+        remember(error)
+        if journal is not None and journal[1] == 'OWNED':
+            try:
+                event({**errors(phase,io),'ACTX_release_API_entered':release_entered,
+                    'ACTX_known_release_returned':released,
+                    'ACTX_unreleased_or_unknown_retained':ctx is not None and not released,
+                    'native_context_not_restored_from_this_DATA':True},check=False)
+            except BaseException as secondary:
+                remember(secondary)
+    finally:
+        if ctx is not None and not released:
+            # ACTIVE owns exactly one close attempt. Failed release_for_exec may
+            # already have entered close: never blindly replay a numeric FD.
+            # The actual context remains strongly rooted for external teardown.
+            PUBLISHER_CONTEXT[0] = ctx
+            if not release_entered:
+                release_entered = True
+                try:
+                    ctx.release()
+                    released = True  # Actual one close API returned, not a JSON claim.
+                except BaseException as secondary:
+                    remember(secondary)
+        io.close_all()
+    if stdout_valid:
+        try:
+            raw = canonical({**errors(phase,io),'ACTX_release_API_entered':release_entered,
+                'ACTX_known_release_returned':released,
+                'ACTX_unreleased_or_unknown_retained':ctx is not None and not released,
+                'native_context_not_restored_from_this_DATA':True})
+            need(len(raw) <= 8192,'bounded failure stream projection')
+            offset = 0
+            while offset < len(raw):
+                n = os.write(2,raw[offset:])
+                need(type(n) is int and 0 < n <= len(raw)-offset,'captured stderr progress')
+                offset += n
+            os.fsync(2)
+        except BaseException as error:
+            remember(error)
+    return 78
+
+
+def main():
+    try:
+        need(len(sys.argv) == 3 and sys.argv[1] == '--source-sha256', 'exact source-pinned envelope CLI required')
+        return run(sys.argv[2])
+    except BaseException as error:
+        remember(error)
+        return 78
+
+
+# PROPOSAL ONLY: failure-only transport over existing parent-captured FD2.
+# This does NOT admit unsafe parent directories or bypass clean_launch. Every
+# original admission check, failure return, lease and execution path is unchanged.
+def _failure_diagnostic_entry():
+    result = main()
+    if result == 0 or FIRST[0] is None:
+        return result
+    try:
+        # Independent error-transport identity only. Original owned_parent and
+        # full clean_launch checks remain mandatory and may be the failure itself.
+        # No descriptor acquisition/close/lease or new output path is introduced.
+        info = os.fstat(2)
+        path_info = STDERR.lstat()
+        transport_valid = (STDERR.is_absolute() and
+            STDERR.parent.resolve(strict=True) == STDERR.parent and
+            stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and
+            info.st_nlink == 1 and stat.S_IMODE(info.st_mode) == 0o600 and
+            info.st_size == 0 and identity(info) == identity(path_info))
+        if not transport_valid:
+            return result  # Failed/unknown transport cannot authorize a write.
+        def actual_error(error):
+            if error is None:
+                return None
+            label = 'OPAQUE_UNCLASSIFIED_EXCEPTION_NO_FORMATTING'
+            known = False
+            for cls, name in ((LaunchStop, 'LaunchStop'), (ValueError, 'ValueError'),
+                (RuntimeError, 'RuntimeError'), (TypeError, 'TypeError'),
+                (OSError, 'OSError'), (PermissionError, 'PermissionError'),
+                (FileNotFoundError, 'FileNotFoundError'), (FileExistsError, 'FileExistsError'),
+                (BlockingIOError, 'BlockingIOError'), (InterruptedError, 'InterruptedError'),
+                (MemoryError, 'MemoryError'), (AssertionError, 'AssertionError')):
+                if type(error) is cls:
+                    label, known = name, True
+                    break
+            args = BaseException.__dict__['args'].__get__(error, BaseException)
+            safe_args = None
+            if known and type(args) is tuple and len(args) <= 4 and all(
+                item is None or type(item) is int and -(1<<64) <= item < (1<<64) or
+                type(item) is str and len(item) <= 512 for item in args):
+                safe_args = list(args)
+            frames = []
+            tb = BaseException.__dict__['__traceback__'].__get__(error, BaseException)
+            while tb is not None and len(frames) < 16:
+                frames.append({'file': tb.tb_frame.f_code.co_filename,
+                    'line': tb.tb_lineno, 'function': tb.tb_frame.f_code.co_name})
+                tb = tb.tb_next
+            return {'exact_type_label': label, 'native_args': safe_args, 'frames': frames}
+        record = {'schema': 'failure-only-bootstrap-diagnostic-proposal-v1',
+            'original_result': result, 'primary': actual_error(FIRST[0]),
+            'secondary': [actual_error(e) for e in SECONDARY if e is not None],
+            'diagnostic_transport_only_not_admission': True,
+            'original_checks_or_result_changed': False, 'unknown_IO_retained': UNKNOWN[0],
+            'no_new_FD_lease_source_or_original_domain_read': True,
+            'all_costs_settled': False, 'no_retry_or_execution_authority': True}
+        raw = canonical(record)
+        need(len(raw) <= 8192, 'bounded bootstrap diagnostic')
+        offset = 0
+        while offset < len(raw):
+            count = os.write(2, raw[offset:])
+            need(type(count) is int and 0 < count <= len(raw)-offset, 'bootstrap diagnostic write progress')
+            offset += count
+        os.fsync(2)
+    except BaseException as secondary:
+        remember(secondary)  # Actual original FIRST is never replaced or formatted.
+    return result
+
+
+if __name__ == '__main__':
+    sys.exit(_failure_diagnostic_entry())

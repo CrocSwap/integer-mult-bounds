@@ -1,0 +1,141 @@
+Counted exact modular multiplication and shared NTT butterflies
+
+Scope
+This contribution supplies literal programs for the nine-instruction WordRAM model
+in tcslib, an independent Python interpreter, executable evidence and informal
+universal proofs. It does not instantiate the Lean compiler theorem and is not
+Lean-checked. Its fixed modulus does not establish an asymptotic multiplication
+bound or a new kappa. The sharing optimization is standard; no novelty claim.
+
+1. Exact machine, ABI and charged constants
+Fix W=64 and p=65537. Words have arithmetic modulo 2^64. Conditional branches
+interpret their operand as a signed two's-complement integer. Only the actual
+one/add/sub/mul/load/store/bltz/accept/reject instructions are accepted. The
+programs use direct-address arithmetic and branches, so need no implicit address
+loads. Interpreter masking and sign conversion implement word semantics; they
+are not extra target instructions. There is no target div, shift or remainder.
+
+Scratch S={8,9,10,11,20,...,35}; constants cell 20+i hold p*2^i, zero is cell 10,
+one is cell 11, temporary subtraction is cell 9, retained product is cell 8.
+Setup is one(11), zero=one-one, one(20), 16 doublings of cell 20, add one,
+then 15 doublings into the remaining cells: exactly 35 instructions. The caller
+may supply arbitrarily dirty scratch. Cleanup clears every scratch cell except
+cell 10, which has remained zero: exactly 19 instructions. No initial zero memory
+assumption is needed. A final accept is one charged instruction.
+
+The modular multiply ABI is inputs cells 0,1; output cell 3. The butterfly ABI is
+inputs u,b,w at 0,1,2; outputs plus,minus at 3,4. Inputs are in [0,p). Outputs
+start arbitrarily dirty. Inputs and every cell outside S union outputs are
+unchanged, including negative addresses and arbitrary dirty far memory. All
+scratch ends zero. A finite Python dictionary tests sample far addresses; the
+universal frame claim follows separately because every write target in the
+literal text is an explicitly listed cell and branches make no memory writes.
+
+For composition Builder permits caller-selected nonreserved cells. Butterfly
+outputs must be fresh/disjoint from inputs; mul may overwrite one operand since
+the initial multiplication reads both before writing. Constants remain live
+between setup and cleanup. Fresh twiddles must be supplied as input ABI or built
+with Builder.literal: 1 instruction for zero and bit_length(n)+popcount(n)-1
+for positive n<2^63. No twiddle construction or caller-side routing is free.
+A direct copy is a charged add(dst,src,zero), one instruction. Python generation,
+looping and allocation are not charged target work unless translated to emitted
+instructions. A fully unrolled fixed-size program has literal immediate cell
+addresses; a variable-size runtime implementation requires further work.
+
+2. Universal modular multiplication invariant
+For 0<=a,b<p, x=a*b <=65536^2=2^32 <p*2^16. Emit mul(output,a,b). Then for
+i=15,14,...,0 perform:
+  tmp := x - p*2^i
+  if tmp<0 branch past the next instruction
+  x := tmp + zero
+This is three literal instructions; the third executes precisely when the
+subtraction is nonnegative. At stage entry 0<=x<p*2^(i+1). If x<p*2^i the branch
+keeps x in [0,p*2^i). Otherwise subtracting p*2^i gives the same interval. The
+residue modulo p is invariant. Induction leaves 0<=x<p and x congruent to ab,
+hence x=ab mod p. All products, thresholds and signed differences have absolute
+value at most 2^32; W=64 therefore makes every signed comparison faithful and
+there is no product truncation. This proof covers all p^2 input pairs.
+
+The chosen subtractions are exactly the binary expansion of q=floor(ab/p),
+where 0<=q<=65535. Thus the modular-multiply body has 49 static instructions and
+33+popcount(q) dynamic instructions: one product, 32 subtract/branch instructions,
+and popcount(q) copies. The complete generic-cleanup program has 104 static
+instructions and 88+popcount(q)<=104 dynamic instructions, including halt. The
+extra clearing of unused retained cell 8 is deliberately counted.
+
+3. Sharing gives a paid machine saving
+For u,b,w in [0,p), let v=bw mod p. The fused butterfly computes v once and
+returns ((u+v) mod p,(u-v) mod p). The reference unfused program computes the
+same v twice, once for each output, with identical setup/cleanup/output ABI.
+The latter is a deliberately explicit recomputation baseline, not an assertion
+about the existing project's best implementation.
+
+Sum uses x=u+v in [0,2p-2], followed by one threshold-p reduction. Difference
+uses x=u+p-v in [1,2p-1], followed by one threshold-p reduction. Each therefore
+needs at most one subtraction. The difference is congruent to u-v modulo p.
+No signed overflow occurs. The output blocks cost 7+c_plus+c_minus dynamic
+instructions, where c_plus=1[u+v>=p] and c_minus=1[u>=v]. Their static cost is 9.
+
+Write h=popcount(floor(bw/p)), c=c_plus+c_minus. The fused body costs 40+h+c;
+the duplicated body costs 73+2h+c. With setup, cleanup and accept:
+  fused:     95+h+c <=113; static length 113;
+  duplicated:128+2h+c<=162; static length 162;
+  exact saving: 33+h instructions, between 33 and 49.
+All upper bounds are attained by u=b=w=65536. The improvement pays the retained
+v's initialization, use and erasure. It removes a complete reduction as well as
+a multiplication. A repeated-butterfly program pays setup/cleanup only once;
+the caller must also pay its literal constants, routing, array loads/stores,
+normalization, output delivery and any other kernel work. This local saving is
+not a whole-job complexity or kappa comparison.
+
+4. FastPoly syntax application
+The independent circuit_sharing.py mirrors the wire/mul/add/sub/fork/bind
+fragment of FastPoly.Cost.Circuit; it does not import Lean or claim to be a
+checked port. The duplicated syntax is fork(add(u,mul(b,w)),sub(u,mul(b,w))).
+The shared syntax is bind(mul(b,w),fork(add(inl(u),inr(0)),sub(inl(u),inr(0)))).
+Evaluating bind extends the original environment by the producer's output.
+Both expressions therefore evaluate to (u+bw,u-bw) in every ring, directly by
+the defining equations. The gates recurrence gives two multiplications and two
+additions for the duplicated syntax, one multiplication and two additions for
+the shared syntax. This is a fixed syntax for every input, respecting the
+RealizesFamily quantifier order. RAM reduction/framing costs are then charged
+separately as above; FastPoly gate counts are never called RAM instruction costs.
+
+5. Evidence and exact remaining formalization boundary
+verify_wordram.py checks all 65,537 b at a=65,536, crossing every quotient q from
+0 to 65,535, plus 5,096 edge/random butterfly triples with dirty scratch and far
+memory. It checks exact outputs, dynamic formulas, accepted halt, failure to halt
+with one step less, write frames, scratch cleanup and signed indirect addressing.
+circuit_sharing.py checks 2,197 signed integer triples and modular evaluations.
+These are finite regression tests; the invariant arguments above provide the
+separate informal universal claims.
+
+A direct Lean proof should encode these exact emitted instruction lists as
+List WordRAM.Instr, instantiate InRange 64 for each signed intermediate, compose
+steps_straight/effect_mul/steps_bltz/Steps.trans for each block, and finish with
+exec_of_steps, accept and the write-set frame theorem. This direct route avoids
+inventing a Light compilation correspondence. compileProgram_correct has distinct
+Light.Exec, Fits and Input hypotheses; it is not applied here, and its constant
+compiler overhead cannot be identified with these hand-assembled exact counts.
+The Python-to-Lean interpreter refinement and exact literal-program proofs remain
+unformalized. No success of a Lean build or axiom audit is asserted.
+
+6. Attribution
+Shilun-Allan-Li/tcslib revision 3a211c0cd7725e077637fff97931909731a3f1f4,
+TCSlib/Programs/WordRAM/Basic.lean (Instr, exec, loadWords);
+TCSlib/Programs/WordRAM/Steps.lean (steps_straight, effect_mul, steps_bltz,
+agreeOutside_effects); TCSlib/Programs/Light/Compiler/WholeProgram.lean
+(compileProgram_correct). These files credit Anthropic, PBC, Apache-2.0,
+vendored from anthropics/formal-math 3sum-apsp revision
+e1a4e6508154ea59f030480661590a9fe3018011 with listed local changes.
+
+Thomas Ahle's thomasahle/fast-polynomials revision
+09a36b0e7a6c153462bd43b91d4a3bb7ac886bef,
+FastPoly/Cost/Circuit.lean (Circuit.bind, Circuit.eval, Circuit.gates, let1),
+FastPoly/Cost/MultiplicationProgram.lean (RealizesFamily). The source files are
+references, not copied upstream proof code. Refer to upstream LICENSE for terms.
+
+This package's Python code and proofs are original independent descriptions.
+Neither shared butterfly computation nor binary modular reduction is claimed
+new. The useful contribution is a concrete, fully counted executable integration
+with exact contracts, overflow ranges, dirty-memory frames and regression evidence.

@@ -1,0 +1,92 @@
+/* UNEXECUTED source controls. Compile/run only after independent source GO
+ * and the parent's guarded component admission. Includes the ACTUAL owner;
+ * mocks only native syscall/close boundaries, never namespaces or kernel state.
+ * These controls cannot establish Linux semantics or runtime compatibility. */
+#define syscall dispatch_mock_syscall
+#define close dispatch_mock_close
+#define main dispatch_unused_native_main
+#include "../../implementation/native/science_view_entry.c"
+#undef main
+#undef close
+#undef syscall
+#include <stdarg.h>
+
+static int failures,opens,creates,closes,open_error,create_error,close_error;
+static bool publish_then_fail,published;
+static void check(bool value,const char *site) {
+    if(!value){fprintf(stderr,"control failure: %s\n",site);failures++;}
+}
+long dispatch_mock_syscall(long nr,...) {
+    va_list ap;va_start(ap,nr);long result=-1;
+    if(nr==SYS_fsopen) {
+        const char *name=va_arg(ap,const char *);unsigned flags=va_arg(ap,unsigned);
+        opens++;
+        check(fd_count==1&&fds[0].state==SV_PENDING,"reserve precedes fsopen");
+        check(dispatch_attempted&&user_entered&&mount_entered&&root_private,"fresh setup owns call");
+        check(!strcmp(name,"binfmt_misc")&&flags==1U,"exact fsopen subject and CLOEXEC");
+        check(!root_readonly&&!landlocked&&!filtered,"setup precedes view and lockdown");
+        if(open_error)errno=open_error;else result=7;
+    } else if(nr==SYS_fsconfig) {
+        int fd=va_arg(ap,int);unsigned command=va_arg(ap,unsigned);
+        void *key=va_arg(ap,void *),*value=va_arg(ap,void *);int auxiliary=va_arg(ap,int);
+        creates++;
+        check(opens==1&&fd==7&&command==6U&&!key&&!value&&auxiliary==0,"exact once-only CREATE");
+        check(fds[0].state==SV_OPEN&&fds[0].fd==7,"acquire visible before CREATE");
+        if(publish_then_fail||!create_error)published=true;
+        if(create_error)errno=create_error;else result=0;
+    } else {check(false,"unexpected native syscall");errno=ENOSYS;}
+    va_end(ap);return result;
+}
+int dispatch_mock_close(int fd) {
+    closes++;
+    check(fd==7&&fds[0].state==SV_RETIRED,"retirement precedes one close");
+    if(create_error)check(error_count==1&&errors[0].number==create_error&&
+        !strcmp(errors[0].site,"private-binfmt-fsconfig-create"),"raw create primary precedes close");
+    if(close_error){errno=close_error;return -1;}return 0;
+}
+static void reset_control(void) {
+    memset(fds,0,sizeof fds);memset(errors,0,sizeof errors);
+    fd_count=error_count=0;uncertain=error_overflow=false;
+    user_entered=mount_entered=root_private=true;
+    root_readonly=landlocked=filtered=false;
+    dispatch_attempted=dispatch_created=dispatch_context_closed=false;
+    opens=creates=closes=open_error=create_error=close_error=0;
+    publish_then_fail=published=false;errno=0;
+}
+int main(void) {
+    reset_control();
+    check(create_private_binfmt_dispatch(),"successful setup result");
+    check(opens==1&&creates==1&&closes==1&&published,"one acquisition/create/retirement");
+    check(dispatch_created&&dispatch_context_closed&&fds[0].state==SV_CLOSED&&!uncertain&&!error_count,"success states");
+    check(!create_private_binfmt_dispatch()&&opens==1&&creates==1&&closes==1,"duplicate invocation blocked");
+
+    reset_control();open_error=ENODEV;
+    check(!create_private_binfmt_dispatch(),"fsopen failure stops");
+    check(opens==1&&!creates&&!closes&&fds[0].state==SV_FAILED&&error_count==1&&errors[0].number==ENODEV,"negative acquisition has no close or create");
+
+    reset_control();create_error=EACCES;
+    check(!create_private_binfmt_dispatch(),"CREATE failure stops");
+    check(opens==1&&creates==1&&closes==1&&!dispatch_created&&dispatch_context_closed&&
+        error_count==1&&errors[0].number==EACCES&&fds[0].state==SV_CLOSED,"failed create retains actual primary");
+
+    reset_control();create_error=EACCES;close_error=EINTR;publish_then_fail=true;
+    check(!create_private_binfmt_dispatch(),"partial-publication plus uncertain close stops");
+    check(published&&!dispatch_created&&!dispatch_context_closed&&uncertain&&
+        error_count==2&&errors[0].number==EACCES&&errors[1].number==EINTR&&
+        !strcmp(errors[1].site,"close-once")&&fds[0].state==SV_UNCERTAIN,"partial publication not declared absent or retired");
+    close_all();check(closes==1,"uncertain close is never retried");
+
+    reset_control();close_error=EIO;
+    check(!create_private_binfmt_dispatch()&&dispatch_created&&!dispatch_context_closed&&uncertain,"successful publication plus close failure stops");
+    close_all();check(closes==1&&error_count==1&&errors[0].number==EIO,"single close error retained without retry");
+
+    reset_control();mount_entered=false;
+    check(!create_private_binfmt_dispatch()&&!opens&&!creates&&!closes,"wrong namespace ordering blocks native call");
+
+    reset_control();root_readonly=true;
+    check(!create_private_binfmt_dispatch()&&!opens,"late setup blocked");
+
+    reset_control();fd_count=SV_MAX_FDS;
+    check(!create_private_binfmt_dispatch()&&!opens&&error_count==1&&errors[0].number==EMFILE,"fixed FD capacity stops before acquisition");
+    return failures?1:0;
+}

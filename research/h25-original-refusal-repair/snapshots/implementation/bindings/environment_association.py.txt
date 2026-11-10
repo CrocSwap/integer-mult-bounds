@@ -1,0 +1,802 @@
+"""Concrete original-observation association at the authenticated C2 boundary.
+
+This source performs no work on import.  The fixed private loader is the only
+factory caller.  Later, an actual C2 invocation may observe its selected objects
+using genuinely acquired descriptors.  A failed Q proof withholds *this view*;
+it is neither an input refusal nor an invented result of the original caller.
+
+The finite sufficient branch covers empty copied/inherited attributes, ordinary
+same-ID owner/other permissions, and attribute-free executable images.  It also
+admits an original outer-retention attribute refusal on an existing, uncopied
+backing object.  Nonempty copied/inherited/native attributes remain explicit
+consequence obligations; they are never silently removed or treated as PASS.
+Native mount restrictions, installed-image/ABI association, original controls,
+writer retirement, seal, native TCB, and the original retention oracle remain
+independent owning checks.  The source review states the conditional implication;
+authoring it issues no current-environment observation or execution permission.
+"""
+from collections import namedtuple
+import hashlib
+import json
+import os
+import stat
+import sys
+from types import ModuleType, FunctionType
+import native_io_custody as native_io
+
+W = '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453'
+R = W + '/outputs/caller-refusal-repair-20261106T2119Z'
+LOADER_PATH = R + '/implementation/bindings/private_loader.py'
+LOADER_NAME = '_s03_fixed_entry_private_loader'
+MAX_OBJECTS, MAX_CASES, MAX_ENTRIES, MAX_DEPTH = 64, 512, 4096, 32
+MAX_PATH, MAX_NAME, MAX_ATTRIBUTES = 4096, 255, 64
+MAX_ATTRIBUTE_BYTES, MAX_ATTRIBUTE_TOTAL = 65536, 1048576
+MAX_FILE_BYTES, MAX_TOTAL_BYTES = 536870912, 2147483648
+MAX_RECORD_BYTES, CHUNK = 8388608, 65536
+MAX_LAUNCH_BYTES = 8192
+_GETPID, _GETUID, _GETEUID = os.getpid, os.getuid, os.geteuid
+_GETGID, _GETEGID, _GETGROUPS = os.getgid, os.getegid, os.getgroups
+_GETRESUID, _GETRESGID = os.getresuid, os.getresgid
+_FSTAT, _STAT = os.fstat, os.stat
+_LISTXATTR, _GETXATTR = os.listxattr, os.getxattr
+_LIVE = []
+
+AttributeObservation = namedtuple('AttributeObservation', 'name value sha256')
+ObjectObservation = namedtuple('ObjectObservation',
+    'object_id path relative kind identity attributes sha256 bytes mode')
+CredentialObservation = namedtuple('CredentialObservation',
+    'pid uid euid gid egid resuid resgid groups status security')
+CaseObservation = namedtuple('CaseObservation',
+    'case_id source_tuple_sha256 profile_sha256 credentials objects ancestors effect counters')
+ViewDecision = namedtuple('ViewDecision',
+    'case_id disposition evidence_sha256 premises unresolved original_result')
+
+EFFECTS = frozenset(('EMPTY_ATTRIBUTE_POSITIVE', 'OUTER_EXISTING_ATTRIBUTE_REFUSAL',
+    'BYTE_CONTROL', 'MODE_CONTROL', 'OPTIMIZED_ENTRY_REFUSAL',
+    'LIVE_THREAD_REFUSAL', 'CUSTODY_CONTROL'))
+CONSUMERS = frozenset(('copytree', 'copystat', 'create', 'exec', 'load',
+    'retention', 'fixture', 'custody'))
+CASE_KEYS = frozenset(('id', 'kind', 'objects', 'effect', 'fixture',
+    'original_consumer', 'original_refusal'))
+SELECTION_KEYS = frozenset(('schema', 'source_tuple_sha256', 'profile_sha256',
+    'source_origins', 'creation_parents', 'executables', 'negative_fixtures',
+    'retained_root', 'cases'))
+OBJECT_KEYS = frozenset(('id', 'path', 'kind', 'pin', 'consumers'))
+STATUS_FIELDS = ('Uid', 'Gid', 'Groups', 'CapInh', 'CapPrm', 'CapEff',
+    'CapBnd', 'CapAmb', 'NoNewPrivs', 'Seccomp', 'Umask')
+
+
+class AssociationError(RuntimeError):
+    """A source/owner/observation transport error, never a scientific refusal."""
+
+
+class LaunchAssociation:
+    __slots__ = ()
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError('a launch association is issued by the actual C2 observer')
+
+
+def need(value, message):
+    if value is not True:
+        raise AssociationError(message)
+
+
+def canonical(value):
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                      ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+    need(len(raw) <= MAX_RECORD_BYTES, 'bounded association record')
+    return raw
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def digest(value):
+    return sha(canonical(value))
+
+
+def text(value, cap=256):
+    need(type(value) is str and 0 < len(value) <= cap and '\x00' not in value,
+         'exact bounded observation text')
+    return value
+
+
+def absolute(value):
+    text(value, MAX_PATH)
+    need(value.startswith('/') and os.path.normpath(value) == value and
+         all(part not in ('.', '..') for part in value.split('/')), 'normalized absolute object path')
+    return value
+
+
+def hex_digest(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact SHA256')
+    return value
+
+
+def signature(info):
+    # These are current within-invocation facts, never historical golden inodes.
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid,
+            info.st_gid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _validate_pin(pin, path, kind):
+    if pin is None:
+        need(kind in ('tree', 'directory'), 'every selected regular image has an exact pin')
+        return
+    need(type(pin) is dict and set(pin) == {'path', 'bytes', 'sha256', 'mode'},
+         'original four-field source pin')
+    need(pin['path'] == path and type(pin['bytes']) is int and
+         0 <= pin['bytes'] <= MAX_TOTAL_BYTES and type(pin['mode']) is int and
+         0 <= pin['mode'] <= 0o7777, 'bounded source pin values')
+    hex_digest(pin['sha256'])
+
+
+def _validate_object(row):
+    need(type(row) is dict and set(row) == OBJECT_KEYS, 'exact selected object record')
+    text(row['id']); absolute(row['path'])
+    need(row['kind'] in ('file', 'tree', 'directory'), 'finite observed object kind')
+    _validate_pin(row['pin'], row['path'], row['kind'])
+    need(type(row['consumers']) is list and 0 < len(row['consumers']) <= len(CONSUMERS)
+         and all(type(v) is str and v in CONSUMERS for v in row['consumers']) and
+         len(set(row['consumers'])) == len(row['consumers']), 'source-derived finite consumers')
+
+
+def _validate_selection(selection, bundle):
+    need(type(selection) is dict and set(selection) == SELECTION_KEYS and
+         selection['schema'] == 'environment-selection-v1', 'exact source-owned environment selection')
+    need(hex_digest(selection['source_tuple_sha256']) == digest(bundle.manifest['source_pins'])
+         and hex_digest(selection['profile_sha256']) == digest(bundle.manifest['profiles']),
+         'same detached selected source tuple and operating profiles')
+    rows = []
+    for group in ('source_origins', 'creation_parents', 'executables', 'negative_fixtures'):
+        values = selection[group]
+        need(type(values) is list and len(values) <= MAX_OBJECTS,
+             'bounded selected object category')
+        if group != 'negative_fixtures':
+            need(len(values) > 0, 'original source/create/loader origins are required')
+        for row in values:
+            _validate_object(row)
+            if group == 'creation_parents':
+                need(row['kind'] == 'directory' and 'create' in row['consumers'],
+                     'genuine creation-parent role')
+            if group == 'executables':
+                need(row['kind'] == 'file' and any(v in row['consumers'] for v in ('exec', 'load')),
+                     'exact executable/library image role')
+            rows.append(row)
+    retained = selection['retained_root']
+    _validate_object(retained)
+    need(retained['kind'] == 'tree' and 'retention' in retained['consumers'],
+         'the complete original outer retained tree remains selected')
+    rows.append(retained)
+    need(len(rows) <= MAX_OBJECTS and len({row['id'] for row in rows}) == len(rows),
+         'bounded unique complete selected object union')
+    # A genuine existing retained root may also be the nearest creation
+    # ancestor for a prospective artifact leaf.  Distinct source-owned roles
+    # may name that same object; each actually acquired FD is still closed once.
+    ids = {row['id'] for row in rows}
+    cases = selection['cases']
+    need(type(cases) is list and 0 < len(cases) <= MAX_CASES, 'finite original case map')
+    seen = set()
+    for case in cases:
+        need(type(case) is dict and set(case) == CASE_KEYS, 'exact original case descriptor')
+        text(case['id']); text(case['original_consumer'], 1024)
+        need(case['id'] not in seen and case['kind'] in ('positive', 'negative') and
+             case['effect'] in EFFECTS, 'unique source-derived original case/effect')
+        seen.add(case['id'])
+        need(type(case['objects']) is list and 0 < len(case['objects']) <= MAX_OBJECTS and
+             all(type(key) is str and key in ids for key in case['objects']) and
+             len(set(case['objects'])) == len(case['objects']), 'exact case object subset')
+        need(case['fixture'] is None or (type(case['fixture']) is str and case['fixture'] in ids),
+             'actual original negative fixture identity')
+        need(case['original_refusal'] is None or
+             (type(case['original_refusal']) is str and 0 < len(case['original_refusal']) <= 1024),
+             'original refusal is descriptive data only')
+        if case['kind'] == 'positive':
+            need(case['effect'] == 'EMPTY_ATTRIBUTE_POSITIVE' and
+                 case['fixture'] is None and case['original_refusal'] is None,
+                 'positive branch does not invent a refusal')
+        else:
+            need(case['original_refusal'] is not None, 'negative keeps original first-consumer description')
+        if case['effect'] == 'OUTER_EXISTING_ATTRIBUTE_REFUSAL':
+            need(case['kind'] == 'negative' and case['fixture'] is not None and
+                 case['original_consumer'] in ('retention.oracle.collect', 'retention.archive.scan'),
+                 'original outer attribute-refusal case only')
+    # Defensive source-owned copy: later mutation of detached DATA cannot alter Q.
+    return json.loads(canonical(selection).decode('ascii')), rows
+
+
+def _authenticate(bundle):
+    loader = sys.modules.get(LOADER_NAME)
+    need(type(loader) is ModuleType and loader.__dict__.get('__file__') == LOADER_PATH,
+         'actual fixed private loader module')
+    cls = loader.__dict__.get('PrivateBundle')
+    need(type(cls) is type and type(bundle) is cls and bundle.role == 'CONTROLLER'
+         and bundle._pid == _GETPID() and any(bundle is value for value in loader.RETAINED),
+         'actual enrolled same-process CONTROLLER bundle')
+    module = sys.modules.get(__name__)
+    need(type(module) is ModuleType and module.__dict__ is globals() and
+         bundle.modules.get('environment_association') is module and
+         bundle.check('environment_association') is module,
+         'selected private source module and exact functions/globals')
+    # read_fixed and load are the original source-currentness mechanism.  Calling
+    # this factory does not accept any external numeric descriptor as authority.
+    bundle.check('native_io_custody')
+    need(bundle.modules.get('native_io_custody') is native_io,
+         'same source-authenticated native/error custody image')
+    return loader
+
+
+def open_parent(bundle):
+    """The loader's exact method is the authenticated source-owning callsite."""
+    loader = _authenticate(bundle)
+    frame = sys._getframe(1)
+    try:
+        method = type.__getattribute__(type(bundle), '__dict__').get('associate_environment')
+        need(type(method) is FunctionType and method.__globals__ is loader.__dict__ and
+             frame.f_globals is loader.__dict__ and frame.f_code is method.__code__ and
+             frame.f_locals.get('self') is bundle, 'actual fixed loader association callsite')
+    finally:
+        del frame
+    need(not any(value._bundle is bundle for value in _LIVE), 'one association including failed observations')
+    selection, unused = _validate_selection(bundle.contract['environment_association'], bundle)
+    value = object.__new__(ParentAssociation)
+    value._bundle, value._selection = bundle, selection
+    value._pid, value._closed = _GETPID(), False
+    value._io = native_io.process_context()
+    value._anchors, value._observations, value._decisions, value._tokens = {}, {}, {}, []
+    value._tickets = []
+    value._budget = {'entries': 0, 'file_bytes': 0, 'xattr_bytes': 0}
+    value._counts = {'opens': 0, 'open_attempts': 0, 'read_bytes': 0, 'read_calls': 0, 'xattr_bytes': 0,
+                     'objects': 0, 'scans': 0, 'launch_records': 0}
+    _LIVE.append(value)
+    return value
+
+
+class ParentAssociation:
+    __slots__ = ('_bundle', '_selection', '_pid', '_closed', '_io', '_anchors',
+                 '_observations', '_decisions', '_tokens', '_counts', '_budget', '_tickets')
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError('parent associations are issued only at the actual loader boundary')
+
+    def _owner(self):
+        need(any(self is row for row in _LIVE) and self._pid == _GETPID() and
+             self._closed is False, 'live same-process source-owned association')
+        _authenticate(self._bundle)
+        native_io.stop_if_failed(self._io)
+
+    def _call(self, site, function, *args, **kwargs):
+        return native_io.call_native(self._io, 'ENV:' + site, function, *args, **kwargs)
+
+    def _capture(self, error, site):
+        if self._io.primary is not error:
+            native_io.capture(self._io, error, 'ENVIRONMENT-ASSOCIATION', site)
+        return self._io.primary
+
+    def _actual_owner(self, case_id=None, sealed=False):
+        authority = self._bundle.load('parent_authority')
+        owner = authority.owner_verified()
+        registry = owner['registry']
+        need(owner['controller'] is self._bundle.C and
+             str(registry.layout.source) == self._selection['retained_root']['path'],
+             'actual original C2 EX owner and complete retained-source layout')
+        if sealed:
+            need(registry.phase == 'SEALED', 'original irreversible source seal')
+        elif case_id is not None:
+            attempt = registry.attempt(case_id)
+            registry.assert_open(attempt, launch=True)
+            if not any(ticket['attempt'] is attempt for unused, ticket in self._tickets):
+                ticket = registry._resource(attempt, 'original-environment-observation', 'environment-association')
+                # The attempt owns this actual source-private container before
+                # any acquisition.  Every nested descriptor has native_io's own
+                # reserve/return/error/one-close custody in addition to this edge.
+                ticket['object'], ticket['state'] = self, 'OWNED'
+                self._tickets.append((registry, ticket))
+        return owner
+
+    def _acquire(self, path, flags, parent=None):
+        self._counts['open_attempts'] += 1
+        index = native_io._acquire_native(self._io, path, flags, 0o600, parent,
+                                         'ENV:observation-descriptor')
+        self._counts['opens'] += 1
+        return native_io.descriptor(self._io, index)
+
+    def _close(self, fd):
+        known = native_io.close_fd(fd)
+        if known is not True:
+            native_io.stop_if_failed(self._io)
+            need(False, 'environment descriptor did not reach a known one-close result')
+
+    def _open(self, path, kind):
+        absolute(path)
+        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+        parent = self._acquire('/', flags)
+        if path == '/':
+            need(kind != 'file', 'root is a directory')
+            return parent
+        try:
+            for part in os.path.dirname(path).split('/')[1:]:
+                if part:
+                    child = self._acquire(part, flags, parent)
+                    self._close(parent)
+                    parent = child
+            fd = self._acquire(os.path.basename(path), os.O_RDONLY | os.O_NOFOLLOW |
+                os.O_CLOEXEC | os.O_NONBLOCK | (os.O_DIRECTORY if kind != 'file' else 0),
+                parent)
+            return fd
+        finally:
+            self._close(parent)
+
+    def _attributes(self, fd):
+        names = self._call('listxattr', _LISTXATTR, fd)
+        need(type(names) is list and len(names) <= MAX_ATTRIBUTES and
+             all(type(name) is str and 0 < len(name.encode('utf8')) <= MAX_NAME for name in names)
+             and len(set(names)) == len(names), 'bounded actual native attribute-name list')
+        result, amount = [], 0
+        for name in sorted(names):
+            value = self._call('getxattr', _GETXATTR, fd, name)
+            need(type(value) is bytes and len(value) <= MAX_ATTRIBUTE_BYTES,
+                 'bounded actual native attribute value')
+            amount += len(value)
+            need(amount <= MAX_ATTRIBUTE_TOTAL, 'per-object attribute byte bound')
+            self._budget['xattr_bytes'] += len(value)
+            need(self._budget['xattr_bytes'] <= MAX_ATTRIBUTE_TOTAL,
+                 'complete association attribute byte bound')
+            result.append(AttributeObservation(name, value, sha(value)))
+        self._counts['xattr_bytes'] += amount
+        need(sorted(names) == sorted(self._call('listxattr-after', _LISTXATTR, fd)),
+             'native attribute-name list stable during value read')
+        # Values are reread, so a stable inode/ctime alone never authenticates them.
+        for row in result:
+            again = self._call('getxattr-after', _GETXATTR, fd, row.name)
+            self._counts['xattr_bytes'] += len(again)
+            need(again == row.value,
+                 'native attribute value stable during read')
+        return tuple(result)
+
+    def _file_bytes(self, fd, before):
+        need(0 <= before.st_size <= MAX_FILE_BYTES, 'source-derived file byte bound')
+        state, count = hashlib.sha256(), 0
+        while True:
+            self._counts['read_calls'] += 1
+            block = native_io.read_fd(fd, min(CHUNK, before.st_size + 1 - count))
+            if not block:
+                break
+            need(type(block) is bytes, 'actual native file bytes')
+            count += len(block)
+            self._counts['read_bytes'] += len(block)
+            self._budget['file_bytes'] += len(block)
+            need(self._budget['file_bytes'] <= MAX_TOTAL_BYTES,
+                 'complete association source byte bound')
+            need(count <= before.st_size, 'observed file grew during read')
+            state.update(block)
+        need(count == before.st_size, 'observed file shortened during read')
+        return state.hexdigest(), count
+
+    def _node(self, object_id, path, relative, fd, before, file_hash=True):
+        kind = 'directory' if stat.S_ISDIR(before.st_mode) else 'file'
+        need(kind == 'directory' or stat.S_ISREG(before.st_mode),
+             'observation supports only original regular/directory objects')
+        self._budget['entries'] += 1
+        need(self._budget['entries'] <= MAX_ENTRIES, 'complete association object count bound')
+        attrs = self._attributes(fd)
+        content, amount = (None, 0)
+        if kind == 'file' and file_hash:
+            content, amount = self._file_bytes(fd, before)
+        need(signature(before) == signature(self._call('fstat-after', _FSTAT, fd)),
+             'actual descriptor stable through complete observation')
+        self._counts['objects'] += 1
+        return ObjectObservation(object_id, path, relative, kind, signature(before),
+                                 attrs, content, amount, stat.S_IMODE(before.st_mode))
+
+    def _tree(self, row, fd):
+        result, total, identities = [], [0], set()
+
+        def visit(parent_fd, relative, depth):
+            need(depth <= MAX_DEPTH, 'finite original tree depth')
+            before = self._call('tree-fstat', _FSTAT, parent_fd)
+            result.append(self._node(row['id'], row['path'], relative, parent_fd, before))
+            need(len(result) <= MAX_ENTRIES, 'bounded complete object tree')
+            if not stat.S_ISDIR(before.st_mode):
+                total[0] += before.st_size
+                need(total[0] <= MAX_TOTAL_BYTES, 'bounded complete origin bytes')
+                return
+            names = []
+            with native_io.scandir_fd(parent_fd) as listing:
+                for entry in listing:
+                    name = entry.name
+                    need(type(name) is str and name not in ('', '.', '..') and
+                         '/' not in name and '\x00' not in name and
+                         len(name.encode('utf8')) <= MAX_NAME, 'bounded original tree component')
+                    names.append(name)
+                    need(len(names) <= MAX_ENTRIES, 'bounded original directory')
+            need(len(set(names)) == len(names), 'unique native directory components')
+            for name in sorted(names):
+                child_relative = name if not relative else relative + '/' + name
+                need(len(child_relative.encode('utf8')) <= MAX_PATH, 'bounded relative observation path')
+                info = self._call('tree-lstat', _STAT, name, dir_fd=parent_fd, follow_symlinks=False)
+                need(stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode),
+                     'original retained/source tree has no symlink or special object')
+                flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK
+                if stat.S_ISDIR(info.st_mode):
+                    flags |= os.O_DIRECTORY
+                child = self._acquire(name, flags, parent_fd)
+                try:
+                    opened = self._call('tree-opened-fstat', _FSTAT, child)
+                    need(signature(info) == signature(opened), 'actual tree descriptor/path association')
+                    key = (opened.st_dev, opened.st_ino)
+                    need(key not in identities, 'no hidden selected-tree alias')
+                    identities.add(key)
+                    visit(child, child_relative, depth + 1)
+                    need(signature(opened) == signature(self._call('tree-final-path', _STAT,
+                         name, dir_fd=parent_fd, follow_symlinks=False)), 'selected tree path remained current')
+                finally:
+                    self._close(child)
+            need(signature(before) == signature(self._call('tree-final-directory', _FSTAT, parent_fd)),
+                 'directory stable throughout bounded observation')
+
+        visit(fd, '', 0)
+        self._counts['scans'] += 1
+        return tuple(result)
+
+    def _object(self, row, mutable_retained=False):
+        fd = self._open(row['path'], row['kind'])
+        keep = False
+        try:
+            before = self._call('object-fstat', _FSTAT, fd)
+            need((row['kind'] == 'file' and stat.S_ISREG(before.st_mode)) or
+                 (row['kind'] != 'file' and stat.S_ISDIR(before.st_mode)), 'actual selected object type')
+            existing = self._anchors.get(row['id'])
+            if existing is not None:
+                held = signature(self._call('held-anchor', _FSTAT, existing[0]))
+                observed = signature(before)
+                if mutable_retained:
+                    # Science intentionally adds children to this same retained
+                    # backing directory.  Original before/after custody starts
+                    # only at the later original seal, not at this prelaunch read.
+                    need(row['id'] == self._selection['retained_root']['id'],
+                         'only the original retained root has a prospective writable interval')
+                    held = (held[0], held[1], held[2], held[4], held[5])
+                    observed = (observed[0], observed[1], observed[2], observed[4], observed[5])
+                need(held == observed,
+                     'actual source-owned anchor still names selected current object')
+            values = self._tree(row, fd) if row['kind'] == 'tree' else (
+                self._node(row['id'], row['path'], '', fd, before),)
+            if row['pin'] is not None:
+                pin = row['pin']
+                if row['kind'] == 'file':
+                    need(values[0].sha256 == pin['sha256'] and values[0].bytes == pin['bytes'] and
+                         values[0].mode == pin['mode'], 'actual original selected bytes/mode pin')
+                else:
+                    projection = [{'path': value.relative, 'kind': value.kind, 'mode': value.mode,
+                        'bytes': value.bytes, 'sha256': value.sha256} for value in values]
+                    need(digest(projection) == pin['sha256'] and sum(v.bytes for v in values) == pin['bytes']
+                         and values[0].mode == pin['mode'], 'actual selected complete tree projection')
+            if existing is None:
+                self._anchors[row['id']] = (fd, signature(before), row['path'], row['kind'])
+                keep = True
+            else:
+                self._anchors[row['id']] = (existing[0], signature(before), row['path'], row['kind'])
+            return values
+        finally:
+            if not keep:
+                self._close(fd)
+
+    def _status(self):
+        # Genuine numeric PID path, never /proc/self symlink traversal.  Proc
+        # regular files conventionally have st_size=0, so the read has its own cap.
+        path = '/proc/' + str(self._pid) + '/status'
+        fd = self._open(path, 'file')
+        try:
+            info = self._call('status-fstat', _FSTAT, fd)
+            need(stat.S_ISREG(info.st_mode), 'actual native proc status regular file')
+            raw = bytearray()
+            while len(raw) <= CHUNK:
+                self._counts['read_calls'] += 1
+                block = native_io.read_fd(fd, min(4096, CHUNK + 1 - len(raw)))
+                if not block:
+                    break
+                raw.extend(block)
+                self._counts['read_bytes'] += len(block)
+            need(len(raw) <= CHUNK, 'bounded actual native proc status')
+            observed = {}
+            for line in bytes(raw).decode('ascii', 'strict').splitlines():
+                key, sep, value = line.partition(':')
+                if sep and key in STATUS_FIELDS:
+                    need(key not in observed, 'unique actual credential-status field')
+                    observed[key] = ' '.join(value.split())
+            need(set(observed) == set(STATUS_FIELDS), 'complete actual credential/status facts')
+            return tuple((key, observed[key]) for key in STATUS_FIELDS)
+        finally:
+            self._close(fd)
+
+    def _credentials(self):
+        value = CredentialObservation(self._pid, self._call('uid', _GETUID),
+            self._call('euid', _GETEUID), self._call('gid', _GETGID),
+            self._call('egid', _GETEGID), self._call('resuid', _GETRESUID),
+            self._call('resgid', _GETRESGID), tuple(self._call('groups', _GETGROUPS)),
+            self._status(), self._security_subject())
+        need(all(type(v) is int and 0 <= v <= 4294967295 for v in
+             (value.uid, value.euid, value.gid, value.egid, *value.resuid, *value.resgid, *value.groups))
+             and len(value.resuid) == len(value.resgid) == 3 and len(value.groups) <= 65536,
+             'exact bounded genuine credential values')
+        need(tuple(int(x) for x in dict(value.status)['Uid'].split())[:3] ==
+             (value.uid, value.euid, value.resuid[2]) and
+             tuple(int(x) for x in dict(value.status)['Gid'].split())[:3] ==
+             (value.gid, value.egid, value.resgid[2]) and
+             tuple(int(x) for x in dict(value.status)['Groups'].split()) == value.groups,
+             'native syscalls and genuine proc credential fields agree')
+        return value
+
+    def _security_subject(self):
+        """Retain the genuine current LSM subject; profile consequence is separate.
+
+        Empty parent directory xattrs alone do not prove arbitrary LSM creation
+        effects or exec-domain transitions.  Current-image/profile association
+        must preserve this original subject and the relevant creation policy.
+        """
+        fd = self._open('/proc/' + str(self._pid) + '/attr/current', 'file')
+        try:
+            info = self._call('security-subject-fstat', _FSTAT, fd)
+            need(stat.S_ISREG(info.st_mode), 'genuine proc security-subject record')
+            raw = bytearray()
+            while len(raw) <= 4096:
+                self._counts['read_calls'] += 1
+                block = native_io.read_fd(fd, min(1024, 4097 - len(raw)))
+                if not block:
+                    break
+                raw.extend(block)
+                self._counts['read_bytes'] += len(block)
+            need(len(raw) <= 4096, 'bounded actual process security subject')
+            return bytes(raw)
+        finally:
+            self._close(fd)
+
+    def _case(self, case_id):
+        text(case_id)
+        values = [row for row in self._selection['cases'] if row['id'] == case_id]
+        need(len(values) == 1, 'exact original selected case identity')
+        return values[0]
+
+    def _rows(self):
+        return tuple(row for key in ('source_origins', 'creation_parents', 'executables',
+            'negative_fixtures') for row in self._selection[key]) + (self._selection['retained_root'],)
+
+    def _ancestors(self):
+        paths = {'/'}
+        for row in self._rows():
+            path = os.path.dirname(row['path'])
+            while path != '/':
+                paths.add(path)
+                need(len(paths) <= 256, 'finite complete origin/creation/image ancestor union')
+                path = os.path.dirname(path)
+        values = []
+        for path in sorted(paths):
+            fd = self._open(path, 'directory')
+            try:
+                before = self._call('ancestor-fstat', _FSTAT, fd)
+                values.append(self._node('@ancestor', path, '', fd, before))
+            finally:
+                self._close(fd)
+        return tuple(values)
+
+    def observe(self, case_id):
+        self._owner()
+        case = self._case(case_id)
+        need(not any(row[1] == case_id for row in self._tokens),
+             'no new observation acquisition after this original case launch token')
+        try:
+            self._actual_owner(case_id)
+            self._budget = {'entries': 0, 'file_bytes': 0, 'xattr_bytes': 0}
+            first_credentials = self._credentials()
+            ancestors = self._ancestors()
+            objects = tuple(value for row in self._rows() for value in self._object(row,
+                mutable_retained=row['id'] == self._selection['retained_root']['id']))
+            need(len(objects) <= MAX_ENTRIES, 'bounded complete original object union')
+            last_credentials = self._credentials()
+            need(first_credentials == last_credentials, 'credentials stable across object association')
+            record = CaseObservation(case_id, self._selection['source_tuple_sha256'],
+                self._selection['profile_sha256'], first_credentials, objects, ancestors, case['effect'],
+                tuple(sorted(self._counts.items())))
+            # No rewriting of a raw original receipt or external oracle occurs.
+            self._observations[case_id] = record
+            self._decisions.pop(case_id, None)
+            return record
+        except BaseException as error:
+            self._capture(error, 'observe')
+            raise BaseException.with_traceback(self._io.primary, self._io.primary_tb)
+
+    def _data(self, record):
+        credentials = dict(record.credentials._asdict())
+        credentials['security'] = {'bytes': len(record.credentials.security),
+                                   'sha256': sha(record.credentials.security)}
+        return {'schema': 'joined-current-environment-observation-v1',
+            'case_id': record.case_id, 'source_tuple_sha256': record.source_tuple_sha256,
+            'profile_sha256': record.profile_sha256,
+            'credentials': credentials, 'effect': record.effect,
+            'objects': [{'object_id': v.object_id, 'path': v.path, 'relative': v.relative,
+                'kind': v.kind, 'identity': v.identity, 'mode': v.mode, 'bytes': v.bytes,
+                'sha256': v.sha256, 'attributes': [{'name': a.name, 'bytes': len(a.value),
+                'sha256': a.sha256} for a in v.attributes]} for v in record.objects],
+            'ancestors': [{'path': v.path, 'identity': v.identity, 'mode': v.mode,
+                'attributes': [{'name': a.name, 'bytes': len(a.value), 'sha256': a.sha256}
+                for a in v.attributes]} for v in record.ancestors],
+            'counters': dict(record.counters)}
+
+    def qualify(self, case_id):
+        """A finite Q result for this view, never an original caller disposition."""
+        self._owner()
+        case = self._case(case_id)
+        need(case_id in self._observations, 'genuine observations precede view qualification')
+        record = self._observations[case_id]
+        unresolved, premises = [], []
+        cred, status = record.credentials, dict(record.credentials.status)
+        if not (cred.uid == cred.euid and cred.gid == cred.egid and
+                cred.resuid == (cred.uid,) * 3 and cred.resgid == (cred.gid,) * 3 and
+                tuple(int(x) for x in status['Uid'].split()) == (cred.uid,) * 4 and
+                tuple(int(x) for x in status['Gid'].split()) == (cred.gid,) * 4):
+            unresolved.append('credential transitions require original loader/permission consequence analysis')
+        if any(int(status[key], 16) != 0 for key in ('CapInh', 'CapPrm', 'CapEff', 'CapAmb')):
+            unresolved.append('original nonzero process capabilities require exec/credential consequence analysis')
+        rows = {row['id']: row for row in self._rows()}
+        creation = {row['id'] for row in self._selection['creation_parents']}
+        origins = {row['id'] for row in self._selection['source_origins']}
+        executables = {row['id'] for row in self._selection['executables']}
+        fixture = rows.get(case['fixture'])
+        retained_path = self._selection['retained_root']['path']
+        attribute_refusal = case['effect'] == 'OUTER_EXISTING_ATTRIBUTE_REFUSAL'
+        nonempty_fixture = False
+        for value in record.objects + record.ancestors:
+            row = rows.get(value.object_id, {'consumers': ['custody']})
+            # Path traversal requires search; a reached tree scan additionally
+            # requires read access.  Every ancestor is actually opened nofollow.
+            needed = (0o100 if value.object_id == '@ancestor' else 0o500) if value.kind == 'directory' else 0o400
+            if value.object_id in creation:
+                if not (value.identity[4] == cred.euid and value.mode & 0o700 == 0o700):
+                    unresolved.append('creation parent lacks same-ID owner rwx: ' + value.path)
+            elif value.identity[4] == cred.euid:
+                if value.mode & needed != needed:
+                    unresolved.append('original owner access requires consequence analysis: ' + value.path)
+            elif value.mode & (needed >> 6) != (needed >> 6):
+                unresolved.append('nonowner group-sensitive access requires consequence analysis: ' + value.path)
+            if value.object_id in executables:
+                if value.mode & 0o6000:
+                    unresolved.append('set-ID executable mode requires original loader consequence analysis: ' + value.path)
+                if 'exec' in row['consumers']:
+                    bit = 0o100 if value.identity[4] == cred.euid else 0o001
+                    if not value.mode & bit:
+                        unresolved.append('original executable access is group-sensitive: ' + value.path)
+            if value.attributes:
+                actual_path = value.path + ('/' + value.relative if value.relative else '')
+                fixture_path = None if fixture is None else fixture['path']
+                on_fixture = fixture_path is not None and (actual_path == fixture_path or
+                    actual_path.startswith(fixture_path + '/'))
+                # This branch never copies metadata: the very same backing inode
+                # remains in the complete retained tree for the OUTER original
+                # oracle.  It does not cover an ACL silently omitted by copy2.
+                is_fixture_record = value.object_id == case['fixture']
+                allowed = (attribute_refusal and on_fixture and
+                    actual_path.startswith(retained_path + '/') and
+                    value.object_id not in origins | creation | executables and
+                    (is_fixture_record or value.object_id == self._selection['retained_root']['id']) and
+                    set(row['consumers']) <= {'retention', 'fixture', 'custody'})
+                if allowed:
+                    nonempty_fixture = True
+                else:
+                    unresolved.append('nonempty attribute consequence unresolved at original consumers: ' +
+                        actual_path + ':' + ','.join(a.name for a in value.attributes))
+        if attribute_refusal:
+            if not nonempty_fixture:
+                unresolved.append('the original outer attribute-refusal condition is absent or copied')
+            premises.append('existing uncopied retained fixture remains the original outer oracle object')
+        else:
+            premises.append('actually observed copied origins, creation parents, images and retained objects have empty attributes')
+        premises.extend(('same-ID owner or other permission route is independent of unmapped supplementary groups',
+            'unchanged original scientific/control consumers retain bytes, modes, order and raw errors',
+            'original native TCB/currentness and interval writer/seal custody remain owning checks',
+            'installed stdlib/kernel/loader and native view mechanism association remain separate profile obligations'))
+        # ADMITTED is scoped to this finite metadata/permission association.  It
+        # grants neither original scientific success nor global execution GO.
+        decision = ViewDecision(case_id, 'UNPROVED' if unresolved else 'ADMITTED',
+            digest(self._data(record)), tuple(premises), tuple(dict.fromkeys(unresolved)), 'UNISSUED')
+        self._decisions[case_id] = decision
+        return decision
+
+    def bind_launch(self, case_id):
+        self._owner()
+        need(not any(row[1] == case_id for row in self._tokens), 'one native launch association per original case')
+        before = self._observations.get(case_id)
+        need(before is not None, 'actual original observations required')
+        after = self.observe(case_id)
+        need(before.credentials == after.credentials and before.objects == after.objects and
+             before.ancestors == after.ancestors,
+             'all original metadata/bytes/identity facts remain current at launch')
+        decision = self.qualify(case_id)
+        need(decision.disposition == 'ADMITTED', 'private view has no proved association for this environment')
+        token = object.__new__(LaunchAssociation)
+        self._tokens.append([token, case_id, after, decision, False])
+        return token
+
+    def launch_record(self, token):
+        self._owner()
+        found = [row for row in self._tokens if row[0] is token]
+        need(type(token) is LaunchAssociation and len(found) == 1 and found[0][4] is False,
+             'genuine same-process unconsumed association token')
+        row = found[0]
+        row[4] = True  # Retire before fallible encoding; no retry after uncertainty.
+        observed, decision = row[2], row[3]
+        for fd, identity, path, kind in self._anchors.values():
+            need(signature(self._call('launch-held-anchor', _FSTAT, fd)) == identity,
+                 'genuine owned anchor current at native handoff')
+            current = self._open(path, kind)
+            try:
+                need(signature(self._call('launch-current-path', _FSTAT, current)) == identity,
+                     'original nofollow selected path still names the genuine held anchor')
+            finally:
+                self._close(current)
+        result = {'schema': 'joined-native-view-association-v1', 'case_id': row[1],
+            'source_tuple_sha256': observed.source_tuple_sha256,
+            'profile_sha256': observed.profile_sha256,
+            'parent_pid': self._pid, 'uid': observed.credentials.uid, 'gid': observed.credentials.gid,
+            'evidence_sha256': decision.evidence_sha256}
+        result['association_sha256'] = digest(result)
+        need(len(canonical(result)) <= MAX_LAUNCH_BYTES, 'bounded exact native association handoff')
+        self._retire_observation_owners(row[1])
+        self._counts['launch_records'] += 1
+        return result
+
+    def observe_retained(self):
+        """Actual outer observations only; never replaces the original oracle."""
+        self._owner()
+        try:
+            self._actual_owner(sealed=True)
+            self._budget = {'entries': 0, 'file_bytes': 0, 'xattr_bytes': 0}
+            return self._object(self._selection['retained_root'], mutable_retained=True)
+        except BaseException as error:
+            self._capture(error, 'outer-retained')
+            raise BaseException.with_traceback(self._io.primary, self._io.primary_tb)
+
+    def state_data(self):
+        # Raw exception objects and attribute values stay in their original owners.
+        return {'schema': 'joined-association-state-v1', 'pid': self._pid,
+            'closed': self._closed, 'cases_observed': tuple(self._observations),
+            'view_decisions': [value._asdict() for value in self._decisions.values()],
+            'launches': len(self._tokens), 'counters': dict(self._counts),
+            'native_custody': native_io.state_data(self._io), 'execution_permission': False}
+
+    def close(self):
+        need(any(self is row for row in _LIVE) and self._pid == _GETPID() and not self._closed,
+             'one actual parent observation-owner close')
+        self._closed = True
+        self._retire_observation_owners()
+
+    def _retire_observation_owners(self, case_id=None):
+        """Known closure before an original PASS terminal, including all failures."""
+        # Continue each distinct known close after an earlier close failure; the
+        # accepted native owner never retries an uncertain numeric descriptor.
+        for index in range(len(self._io.slots) - 1, -1, -1):
+            slot = self._io.slots[index]
+            if slot.site == 'ENV:observation-descriptor' and slot.status == 'OWNED':
+                try:
+                    native_io.close_slot(self._io, index, 'environment-finalizer')
+                except BaseException as error:
+                    self._capture(error, 'anchor-close')
+        unknown = any(slot.site == 'ENV:observation-descriptor' and
+            slot.status not in ('FREE', 'CLOSED', 'UNACQUIRED') for slot in self._io.slots)
+        for registry, ticket in self._tickets:
+            if case_id is not None and ticket['attempt'].label != case_id:
+                continue
+            if ticket['state'] == 'CLOSED':
+                continue
+            ticket['object'] = None
+            ticket['state'] = 'UNKNOWN' if unknown or self._io.quarantine else 'CLOSED'
+            ticket['aliases_closed'] = not unknown and not self._io.quarantine
+            if ticket['state'] == 'UNKNOWN':
+                registry.quarantine(self._io.primary)
+        if not unknown and not self._io.quarantine:
+            self._anchors.clear()
+        if self._io.primary is not None:
+            raise BaseException.with_traceback(self._io.primary, self._io.primary_tb)

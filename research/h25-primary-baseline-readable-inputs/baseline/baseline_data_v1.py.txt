@@ -1,0 +1,107 @@
+"""Bounded common JSON and unchanged predecessor finite receipt predicates.
+No candidate control module, implementation, profile or bootstrap is imported.
+"""
+import json
+import math
+import epoch_schema_v5 as schema
+_TYPE, _LEN = type, len
+MAX_JSON_NODES = 200000
+MAX_JSON_BYTES = 4 * 1024 * 1024
+
+def _pairs(pairs):
+    schema.need(_TYPE(pairs) is list and _LEN(pairs) <= 8192, 'receipt JSON object bound')
+    result = {}
+    for key, value in pairs:
+        schema.need(_TYPE(key) is str and _LEN(key) <= 65536 and key not in result,
+                    'receipt duplicate/foreign/oversize key')
+        result[key] = value
+    return result
+
+
+
+def _reject(value):
+    raise schema.EpochStop('nonfinite receipt JSON constant')
+
+
+
+def _plain(value, budget, depth=0):
+    schema.need(depth <= 40 and budget[0] > 0, 'receipt JSON node/depth bound')
+    budget[0] -= 1
+    kind = _TYPE(value)
+    if value is None or kind is bool:
+        return
+    if kind is int:
+        schema.need(value.bit_length() <= 4096, 'receipt integer bound')
+        return
+    if kind is float:
+        schema.need(math.isfinite(value), 'nonfinite receipt number')
+        return
+    if kind is str:
+        schema.need(_LEN(value) <= 65536, 'receipt string bound')
+        budget[1] += _LEN(value)
+        schema.need(budget[1] <= MAX_JSON_BYTES, 'receipt text budget')
+        return
+    schema.need(kind in (list, dict) and _LEN(value) <= 8192, 'receipt exact collection bound')
+    if kind is dict:
+        for key, item in value.items():
+            schema.need(_TYPE(key) is str, 'receipt exact key required')
+            _plain(key, budget, depth + 1)
+            _plain(item, budget, depth + 1)
+    else:
+        for item in value:
+            _plain(item, budget, depth + 1)
+
+
+
+def decode(raw):
+    schema.need(_TYPE(raw) is bytes and 0 < _LEN(raw) <= MAX_JSON_BYTES, 'receipt raw byte bound')
+    value = json.loads(raw.decode('ascii'), object_pairs_hook=_pairs, parse_constant=_reject)
+    schema.need(_TYPE(value) is dict, 'receipt top-level exact object required')
+    _plain(value, [MAX_JSON_NODES, 0])
+    return value
+
+
+
+def encode(value):
+    _plain(value, [MAX_JSON_NODES, 0])
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True,
+                     allow_nan=False).encode('ascii') + b'\n'
+    schema.need(_LEN(raw) <= MAX_JSON_BYTES, 'receipt canonical byte bound')
+    return raw
+
+
+
+def same_json(left, right):
+    # Both operands are exact bounded JSON-native data. Canonical bytes retain
+    # bool/int/float distinctions that Python nested equality otherwise loses.
+    return encode(left) == encode(right)
+
+
+
+def _legacy_controls(result, expected):
+    schema.exact(expected, ('original_counts', 'original_fixture_sha256',
+        'original_v2_counts', 'original_v2_stream', 'new_controls'))
+    schema.digest(expected['original_fixture_sha256'])
+    native = result['original_controls']
+    schema.need(_TYPE(native) is dict and native.get('status') == 'FINITE_NATIVE_GF2_CONTROLS_PASS' and
+        same_json(native.get('counts'), expected['original_counts']) and
+        native.get('fixture_sha256') == expected['original_fixture_sha256'] and
+        _TYPE(native.get('micro_repetitions')) is int and native['micro_repetitions'] == 128 and
+        native.get('independent_oracle') ==
+        'Dense binary lists, descending pivots, addition modulo 2; no packed/source/native helpers',
+        'original native independent outcome projection differs')
+    schema.need(_TYPE(native.get('micro_fixtures')) is int and native['micro_fixtures'] > 0 and
+        _TYPE(native.get('native_and_fallback_calls')) is dict and
+        all(_TYPE(value) is int and value > 0 for value in native['native_and_fallback_calls'].values()),
+        'original native and fallback paths not represented')
+    v2 = native.get('v2_controls')
+    schema.need(_TYPE(v2) is dict and v2.get('status') == 'V2_RUNTIME_AND_COMPLEMENT_STREAM_PASS' and
+        same_json(v2.get('counts'), expected['original_v2_counts']) and
+        same_json(v2.get('complement_fixture_stream'), expected['original_v2_stream']) and
+        _TYPE(v2.get('modified_helper_invocations')) is int and v2['modified_helper_invocations'] == 0,
+        'original runtime/ordered-complement independent projection differs')
+    # The expected complete new-control tree is an independently approved input
+    # before launch.  It is never learned from this result or an earlier PASS.
+    schema.need(same_json(result['new_controls'], expected['new_controls']),
+                'complete original bookkeeping control return differs')
+
