@@ -66,8 +66,8 @@ regenerates.
 From the repository root, with CPython 3.12:
 
 ```sh
-~/git/integer-mult-bounds/.venv/bin/python3.12 -I -W error -B research/bit-stock-band-threshold/verify.py
-~/git/integer-mult-bounds/.venv/bin/python3.12 -I -O -W error -B research/bit-stock-band-threshold/verify.py
+python3.12 -I -W error -B research/bit-stock-band-threshold/verify.py
+python3.12 -I -O -W error -B research/bit-stock-band-threshold/verify.py
 python3.12 -B scripts/research_package.py --package research/bit-stock-band-threshold
 ```
 
