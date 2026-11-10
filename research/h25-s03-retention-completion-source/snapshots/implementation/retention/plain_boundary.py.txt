@@ -1,0 +1,60 @@
+"""Bounded exact-native data boundary; no foreign protocols are invoked."""
+import math
+
+
+def need(ok, reason):
+    if not ok:
+        raise ValueError(reason)
+
+
+def plain_copy(value, max_nodes=131072, max_depth=32, max_text=8388608):
+    """Check types before iteration/hash/serialization; return independent JSON data."""
+    for cap in (max_nodes, max_depth, max_text):
+        need(type(cap) is int and cap > 0, "plain boundary cap")
+    nodes, text, active = 0, 0, set()
+    def string(item):
+        nonlocal text
+        need(type(item) is str, "plain string/key exact type")
+        need(len(item) <= max_text - text, "plain text cap")
+        encoded = str.encode(item, "utf-8", "strict")
+        text += len(encoded)
+        need(text <= max_text, "plain text cap")
+        return item
+    def visit(item, depth):
+        nonlocal nodes
+        nodes += 1
+        need(nodes <= max_nodes and depth <= max_depth, "plain node/depth cap")
+        kind = type(item)
+        if item is None or kind is bool:
+            return item
+        if kind is str:
+            return string(item)
+        if kind is int:
+            need(int.bit_length(item) <= 128, "plain integer bit cap")
+            return item
+        if kind is float:
+            need(math.isfinite(item), "plain nonfinite float")
+            return item
+        need(kind is dict or kind is list, "plain exact-native tree type")
+        identity = id(item)
+        need(identity not in active, "plain cycle")
+        active.add(identity)
+        try:
+            if kind is dict:
+                need(dict.__len__(item) <= max_nodes - nodes, "plain container cap")
+                result = {}
+                # Exact dict iteration does not hash/compare its delivered keys.
+                for key, val in dict.items(item):
+                    key = string(key)  # exact str BEFORE inserting/hashing key
+                    result[key] = visit(val, depth + 1)
+                return result
+            need(list.__len__(item) <= max_nodes - nodes, "plain container cap")
+            return [visit(val, depth + 1) for val in list.__iter__(item)]
+        finally:
+            active.remove(identity)
+    return visit(value, 0)
+
+
+def fd_number(value):
+    need(type(value) is int and 0 <= value <= 2147483647, "exact native FD integer required")
+    return value

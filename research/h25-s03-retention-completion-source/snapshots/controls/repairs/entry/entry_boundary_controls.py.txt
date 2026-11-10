@@ -1,0 +1,357 @@
+"""UNEXECUTED whole-source entry controls; only the parent may admit a run.
+
+The selected entry, loader and original C2 source execute whole in fresh private
+modules. Native limits, loader filesystem and actual owner are counted fakes.
+This checks source interfaces/error ordering, never a current grant, owner,
+installed image, native limit effect, complete operation or numerical fit.
+"""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import stat
+from types import ModuleType, SimpleNamespace
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/s03-completion-repair-20261105T1139Z'
+MANIFEST = R / 'implementation/bindings/SOURCE-MANIFEST-v2.json'
+PATHS = {
+    'controller_bootstrap':R/'implementation/bootstrap/controller_entry.py',
+    'private_loader':R/'implementation/bindings/private_loader.py',
+    'C':R/'implementation/controller/composed_controller.py',
+}
+CAP = 268435456
+
+
+def check(ok, reason):
+    if ok is not True:
+        raise RuntimeError('entry control: ' + reason)
+
+
+def thrown(call):
+    try:
+        call()
+    except BaseException as error:
+        return error
+    raise RuntimeError('entry control: required rejection did not occur')
+
+
+def module(raw, key):
+    result = ModuleType('_s03_actual_entry_control_' + key)
+    result.__file__ = str(PATHS[key])
+    exec(compile(raw, result.__file__, 'exec', dont_inherit=True), result.__dict__)
+    return result
+
+
+def selected_sources(expected_bytes, expected_sha256):
+    raw = MANIFEST.read_bytes()
+    check(len(raw) == expected_bytes and hashlib.sha256(raw).hexdigest() == expected_sha256,
+          'exact separately selected manifest')
+    manifest = json.loads(raw)
+    check(manifest['source_only'] is True and manifest['execution_permission'] is False,
+          'source manifest has no grant')
+    result, pins = {}, {}
+    for key, path in PATHS.items():
+        pin = manifest['source_pins'][key]
+        check(type(pin) is dict and set(pin) == {'path','bytes','sha256','mode'} and
+              pin['path'] == str(path) and pin['mode'] == 0o444,
+              'exact selected source path and full pin')
+        before = path.lstat()
+        check(path.resolve(strict=True) == path and stat.S_ISREG(before.st_mode) and
+              stat.S_IMODE(before.st_mode) == 0o444 and before.st_nlink == 1,
+              'immutable selected whole source')
+        body = path.read_bytes()
+        check(path.lstat() == before and len(body) == pin['bytes'] and
+              hashlib.sha256(body).hexdigest() == pin['sha256'], 'complete source pin')
+        result[key], pins[key] = body, pin
+    return result, pins
+
+
+class LimitPort:
+    RLIMIT_AS = 9
+    RLIM_INFINITY = -1
+
+    def __init__(self, inherited, events=None, fault=None, readback=None):
+        self.limits, self.events = inherited, [] if events is None else events
+        self.fault, self.readback, self.read_count = fault, readback, 0
+
+    def getrlimit(self, kind):
+        check(kind == self.RLIMIT_AS, 'only AS port read')
+        self.read_count += 1
+        name = 'as-read-before' if self.read_count == 1 else 'as-read-after'
+        self.events.append(name)
+        if self.fault is not None and self.fault[0] == name:
+            raise self.fault[1]
+        return self.readback if self.read_count > 1 and self.readback is not None else self.limits
+
+    def setrlimit(self, kind, limits):
+        check(kind == self.RLIMIT_AS, 'only AS port set')
+        self.events.append(('as-set',limits))
+        if self.fault is not None and self.fault[0] == 'as-set':
+            raise self.fault[1]
+        self.limits = limits
+
+
+def limit_controls(raw):
+    entry = module(raw, 'controller_bootstrap')
+    cases = [
+        ('inherited-1GiB',(1073741824,1073741824),(CAP,CAP)),
+        ('inherited-infinity',(-1,-1),(CAP,CAP)),
+        ('lower-soft',(100663296,1073741824),(100663296,CAP)),
+        ('lower-soft-and-hard',(67108864,134217728),(67108864,134217728)),
+        ('lower-soft-infinite-hard',(67108864,-1),(67108864,CAP)),
+        ('zero-limits',(0,0),(0,0)),
+        ('selected-already',(CAP,CAP),(CAP,CAP)),
+    ]
+    results = []
+    for label, inherited, wanted in cases:
+        port = LimitPort(inherited)
+        check(entry.install_c2_as_limit(port) == wanted, label + ' result')
+        check(port.events == ['as-read-before',('as-set',wanted),'as-read-after'],
+              label + ' exact one-set readback sequence')
+        results.append(label)
+    for position, expected in (
+        ('as-read-before',['as-read-before']),
+        ('as-set',['as-read-before',('as-set',(CAP,CAP))]),
+        ('as-read-after',['as-read-before',('as-set',(CAP,CAP)),'as-read-after']),
+    ):
+        error = RuntimeError('synthetic ' + position)
+        port = LimitPort((1073741824,1073741824), fault=(position,error))
+        check(thrown(lambda:entry.install_c2_as_limit(port)) is error,
+              position + ' actual exception identity')
+        check(port.events == expected, position + ' no retry or later effect')
+        results.append(position + '-failure')
+    for actual in ((CAP+1,CAP+1),(CAP-1,CAP),(CAP,CAP-1),[CAP,CAP],(True,CAP)):
+        port = LimitPort((1073741824,1073741824), readback=actual)
+        thrown(lambda:entry.install_c2_as_limit(port))
+        check(len(port.events) == 3, 'bad readback stops after one set')
+        results.append('reject-readback-' + repr(actual))
+    for inherited in ((-2,CAP),(True,CAP),(CAP+1,CAP),(-1,CAP),[CAP,CAP]):
+        port = LimitPort(inherited)
+        thrown(lambda:entry.install_c2_as_limit(port))
+        check(port.events == ['as-read-before'], 'bad inherited limit has no setter')
+        results.append('reject-inherited-' + repr(inherited))
+    return results
+
+
+class VirtualPath:
+    filesystem = None
+
+    def __init__(self, path):
+        self.path = str(path)
+
+    def __str__(self):
+        return self.path
+
+    def __eq__(self, other):
+        return self.path == str(other)
+
+    def is_absolute(self):
+        return self.path.startswith('/')
+
+    def resolve(self, strict=False):
+        return self
+
+    def lstat(self):
+        return self.filesystem.info(self.path)
+
+
+class MemoryFiles:
+    O_RDONLY, O_NOFOLLOW, O_CLOEXEC, O_NONBLOCK = 0, 1, 2, 4
+
+    def __init__(self, rows, events):
+        self.rows, self.events, self.opened = rows, events, {}
+        self.next_fd, self.read_fault = 500, None
+
+    def getuid(self):
+        return 1000
+
+    def info(self, path):
+        raw, mode = self.rows[str(path)]
+        return SimpleNamespace(st_dev=1,st_ino=sorted(self.rows).index(str(path))+10,
+            st_mode=stat.S_IFREG|mode,st_nlink=1,st_uid=1000,st_size=len(raw),
+            st_mtime_ns=1,st_ctime_ns=1)
+
+    def open(self, path, flags):
+        path = str(path)
+        check(flags == 7 and path in self.rows, 'fixed read-only fake open')
+        self.next_fd += 1
+        self.opened[self.next_fd] = [path,0]
+        self.events.append(('read-open',path))
+        return self.next_fd
+
+    def fstat(self, fd):
+        return self.info(self.opened[fd][0])
+
+    def read(self, fd, cap):
+        path, offset = self.opened[fd]
+        self.events.append(('read-data',path))
+        if self.read_fault is not None:
+            raise self.read_fault
+        part = self.rows[path][0][offset:offset+cap]
+        self.opened[fd][1] += len(part)
+        return part
+
+    def close(self, fd):
+        path = self.opened.pop(fd)[0]
+        self.events.append(('read-close',path))
+
+
+def fixture(raws):
+    entry = module(raws['controller_bootstrap'], 'controller_bootstrap')
+    loader = module(raws['private_loader'], 'private_loader')
+    controller = module(raws['C'], 'C')
+    events, cfg, rows = [], {}, {}
+    args = {}
+    for key, body in (('plan',b'{"source":"plan"}\n'),('admission',b'{"source":"admission"}\n')):
+        template = str(R/'controls/repairs/entry/SYNTHETIC'/key)
+        published = str(controller.ROOT/'control'/(controller.NAME+'-'+key.upper()+'.json'))
+        cfg[key+'_pin'] = {'path':template,'bytes':len(body),
+                          'sha256':hashlib.sha256(body).hexdigest(),'mode':0o444}
+        rows[template] = (body,0o444)
+        rows[published] = (body,0o444)
+        args['--'+key] = published
+    files = MemoryFiles(rows,events)
+    class SelectedVirtualPath(VirtualPath):
+        filesystem = files
+    loader.Path, loader.os = SelectedVirtualPath, files
+    return entry, loader, controller, cfg, args, files, events
+
+
+def pin_controls(raws):
+    results = []
+    entry, loader, controller, cfg, args, files, events = fixture(raws)
+    pins = entry.authenticate_c2_pins(loader,cfg,args,controller)
+    for key, pin in zip(('plan','admission'),pins):
+        check(set(pin) == {'path','bytes','sha256'} and pin['path'] == args['--'+key] and
+              pin['bytes'] == cfg[key+'_pin']['bytes'] and
+              pin['sha256'] == cfg[key+'_pin']['sha256'], 'exact three-field projection')
+        controller.exact_pin(pin)
+        thrown(lambda:controller.exact_pin(cfg[key+'_pin']))
+        check(cfg[key+'_pin']['mode'] == 0o444, 'original pin mode remains present')
+    check([row[1] for row in events if row[0] == 'read-open'] ==
+          [cfg['plan_pin']['path'],args['--plan'],cfg['admission_pin']['path'],args['--admission']],
+          'all four actual loader complete reads precede projection')
+    check(not files.opened, 'no synthetic descriptor remains')
+    results.append('full-four-field-readback-to-real-original-exact-pin')
+    for label in ('missing-mode','extra-field','mode0400','admission-mode0600',
+                  'template-sha-mismatch','actual-content-mismatch','actual-mode0400',
+                  'wrong-published-destination','actual-read-error'):
+        entry, loader, controller, cfg, args, files, events = fixture(raws)
+        if label == 'missing-mode':
+            del cfg['plan_pin']['mode']
+        elif label == 'extra-field':
+            cfg['plan_pin']['extra'] = False
+        elif label == 'mode0400':
+            cfg['plan_pin']['mode'] = 0o400
+        elif label == 'admission-mode0600':
+            cfg['admission_pin']['mode'] = 0o600
+        elif label == 'template-sha-mismatch':
+            cfg['plan_pin']['sha256'] = '0'*64
+        elif label == 'actual-content-mismatch':
+            body, mode = files.rows[args['--plan']]
+            files.rows[args['--plan']] = (b'X'+body[1:],mode)
+        elif label == 'actual-mode0400':
+            body, unused = files.rows[args['--plan']]
+            files.rows[args['--plan']] = (body,0o400)
+        elif label == 'wrong-published-destination':
+            args['--plan'] += '.WRONG'
+        else:
+            files.read_fault = RuntimeError('synthetic actual metadata read')
+        error = thrown(lambda:entry.authenticate_c2_pins(loader,cfg,args,controller))
+        if files.read_fault is not None:
+            check(error is files.read_fault and loader.FIRST[0] is error,
+                  'actual loader read fault identity retained')
+        if label == 'wrong-published-destination':
+            check(events == [], 'bad destination rejected before any read')
+        check(not files.opened, label + ' retires known fake descriptor')
+        results.append(label)
+    return results
+
+
+def main_seam(raws, fault=None):
+    entry, loader, original_C, cfg, args, files, events = fixture(raws)
+    ctx = SimpleNamespace(adopt_handoff=lambda:events.append('adopt-handoff'))
+    release_error = RuntimeError('synthetic original owner release')
+    def release():
+        events.append('release')
+        if fault == 'read-and-release':
+            raise release_error
+    ctx.release = release
+    request = {'synthetic':'original request DATA'}
+    cfg.update(handoff_path='/SYNTHETIC/HANDOFF',request=request,approved_opening={})
+    args['--handoff-path'] = cfg['handoff_path']
+    handoff = {'source_role':'PUBLISHER','destination_role':'CONTROLLER',
+               'request':request,'native_capability_transferred':False,'head_pin':{}}
+    same_joined, result = object(), object()
+    def run_composed(actual_C, actual_A, supervisor, wrapper, queue, envelope,
+                     actual_ctx, start, plan, admission, *, joined):
+        check(actual_ctx is ctx and joined is same_joined and start == 42,
+              'actual entry forwards same owner and fixed joined token')
+        original_C.exact_pin(plan)
+        original_C.exact_pin(admission)
+        events.append('run-composed')
+        return result
+    C = SimpleNamespace(ROOT=original_C.ROOT,NAME=original_C.NAME,
+        configure_joined=lambda *unused:same_joined,run_composed=run_composed)
+    A = SimpleNamespace(bind_api=lambda *unused,**keywords:lambda:ctx)
+    guardian = SimpleNamespace(continuation=lambda *unused:events.append('continuation'))
+    bundle = SimpleNamespace(contract=cfg,C=C,A=A,F=SimpleNamespace(decode=lambda raw:handoff),
+        manual={'provenance':{'original_start_pin':{}}},guardian_pair=object(),
+        guardian=guardian,retention={},runtime={'start_monotonic_ns':42},load=lambda name:object())
+    loader.load_fixed = lambda role:bundle
+    loader.arguments = lambda:args
+    loader.actual_pin = lambda path:(b'hand-off-DATA',{})
+    def transport():
+        events.append('transport')
+        return loader
+    entry.transport = transport
+    entry.resource = LimitPort((1073741824,1073741824),events)
+    if fault == 'limit-set':
+        error = RuntimeError('synthetic C2 limit install')
+        entry.resource.fault = ('as-set',error)
+    elif fault == 'limit-readback':
+        error = RuntimeError('synthetic C2 limit readback')
+        entry.resource.fault = ('as-read-after',error)
+    elif fault == 'read-and-release':
+        error = RuntimeError('synthetic metadata read primary')
+        files.read_fault = error
+    else:
+        error = None
+    if error is None:
+        check(entry.main() is result, 'actual main seam completed')
+        check(events[:4] == ['as-read-before',('as-set',(CAP,CAP)),
+                            'as-read-after','transport'], 'AS bound before loader/owner/full work')
+        check(events[-1] == 'run-composed' and 'release' not in events,
+              'after transfer entry does not release original owner twice')
+        return 'actual-main-positive-same-owner-and-limit-before-transport'
+    check(thrown(entry.main) is error, fault + ' original actual identity')
+    check('run-composed' not in events, fault + ' no protected full-body call')
+    if fault.startswith('limit-'):
+        check('transport' not in events and 'adopt-handoff' not in events,
+              fault + ' stops before loader and native-owner boundary')
+    else:
+        check(entry.FIRST[0] is error and any(item is release_error for item in entry.SECONDARY),
+              'actual first read and secondary release identities held')
+        check(events.count('release') == 1 and not files.opened, 'one known owner release attempt')
+    return 'actual-main-' + fault
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--manifest-bytes',type=int,required=True)
+    parser.add_argument('--manifest-sha256',required=True)
+    args = parser.parse_args()
+    raws, pins = selected_sources(args.manifest_bytes,args.manifest_sha256)
+    results = limit_controls(raws['controller_bootstrap']) + pin_controls(raws)
+    results.extend(main_seam(raws,fault) for fault in
+                   (None,'limit-set','limit-readback','read-and-release'))
+    return {'schema':'s03-entry-actual-source-boundary-control-result-v1',
+        'selected_source_pins':pins,'controls':results,'control_count':len(results),
+        'whole_selected_source_executed_under_counted_fake_ports':True,
+        'actual_current_owner_or_native_grant':False,'native_limit_effect_qualified':False,
+        'full_operation_or_numerical_fit':False,'execution_permission':False}
+
+
+if __name__ == '__main__':
+    print(json.dumps(main(),sort_keys=True))

@@ -1,0 +1,9 @@
+# Evidence and verification scope
+
+The result is written source review. Read PROOF.md with the exact18sourceobjects and10embedded/directcore aliases; compare independently sealed derivation, code and adversarial notes. All controls in section9 are hand-derived and unexecuted. Original author fixture outputs, mutation outcomes, instruction counts and private seals are not independent execution evidence here. No source/own scientific program or kernel ran and no scientific VERIFY hook exists. Known hook-requiring committed/export helpers are not run or claimed for this static package.
+
+Final publication checks use the committed Gitblobs: all payload bytes/modes, exactsourceGit/SHA/lengthpins, eightcanonicalmain bindings/originaltaskcard/ancestry and relativeREADMElinks; a manualtar with an explicitSHA256manifest is read back and every payload compared. These are byte/provenance/export checks, not theorem execution or scientific acceptance. Exact receipts, final package/tree/commit/archive hashes and hosted status belong to the PR/Discussion handoff. Hosted scientific replay must be reported SKIPPED/zero commands rather than converted into a mathematical pass.
+
+The task changed from the original full supplier gate to the released root-preparation source implication; the original gate remains unmet. Sparse/indexed overlap limits, predecessor credit and every remaining assumption are in TASK/README/PROOF. Initialmetadata preparation had one whitespace SyntaxError before any write/execution; correctedmetadata preserves exactsourcebytes. No source or scientific input was altered.
+
+Source's exact10^8/1000 coefficients remain conditional coarse envelopes under namedretained bills, not recertified exactphysicaltariffs. Entry preparationtime is separate/open/nonzero; K_entry isSPACE only. All five selected assumptions and κ/frontier are unchanged.

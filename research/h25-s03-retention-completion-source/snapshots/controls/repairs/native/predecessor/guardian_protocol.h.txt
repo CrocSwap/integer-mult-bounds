@@ -1,0 +1,26 @@
+#ifndef S03_GUARDIAN_PROTOCOL_H
+#define S03_GUARDIAN_PROTOCOL_H
+#include <stdint.h>
+#define G_FD 198
+#define G_WIRE_BYTES 256
+#define G_MAX_ROLES 128
+#define G_MAX_MEMBERS 1024
+#define G_ACK 0x80000000U
+#define G_MAGIC "S03Gv1\0\0"
+enum g_role { ROLE_M=1, ROLE_K=2, ROLE_P=3, ROLE_C2=4, ROLE_ROOT=5, ROLE_B=6, ROLE_FEE=7 };
+enum g_op { REGISTER=1, SPAWN_PENDING=2, CHILD_KNOWN=3, WRITERS_CLOSED=4,
+ SEAL=5, QUEUE_BEGIN=6, QUEUE_END=7, RETENTION_BEGIN=8, ROLE_CLOSED=9,
+ RETIRE=10, EXEC_EXPECT=11, CONTINUE=12 };
+/* Wire is !8s6I3Q32s32s136s, always network byte order. No native struct is
+ * sent: padding, endian and alignment are encoded by explicit accessors.
+ * REGISTER: flags=0; SCM_CREDENTIALS plus exactly one self pidfd; roles M/K/P/C2 only.
+ * SPAWN_PENDING: flags=child role, source_digest=expected fixed source.
+ * CHILD_KNOWN: flags=child role, start_ns=actual child pid after native return, plus actual child pidfd SCM_RIGHTS.
+ * WRITERS_CLOSED: flags=0 and digest=irreversible source registry digest.
+ * ROLE_CLOSED: flags=closed child role (or own role), start_ns=actual child pid.
+ * Root/B never inherit channel FD198 and never send messages.
+ * All requests carry own monotone sequence, actual parent pid and source SHA.
+ * ACK: same op|G_ACK, flags 0/1, start_ns=GSTART, end_ns=G sample,
+ * deadline_ns=min whole/outside/reserved terminal and selected retention cap.
+ * A denied/ambiguous message irreversibly prevents successful seal. */
+#endif

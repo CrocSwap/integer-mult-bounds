@@ -1,0 +1,61 @@
+--- outputs/f4-a4-manual-integration-20261104T0343Z/control/single-repair-before/test_manual_meter_v1.py	2026-11-04 15:07:56.190929312 +1100
++++ outputs/f4-a4-manual-integration-20261104T0343Z/package/controls/test_manual_meter_v1.py	2026-11-04 15:12:21.564513445 +1100
+@@ -129,6 +129,58 @@
+         with self.assertRaises(M.AdapterStop): M.emit_fd1(b'abc')
+         self.assertEqual(writes,[(1,b'abc')])
+ 
++    def test_entry_clock_failure_retains_first_and_detail_without_body(self):
++        # This failure occurs before source loading or native acquisition. Only
++        # the new meter cleanup/projection code runs against ordinary fixtures.
++        saved = (M.time,M.os,M.START[0],M.END[0],M.USED[0],M.ARMED[0],
++                 M.BODY_ATTEMPTED[0],M.FIRST[0],M.SECONDARY[:],M.IO_UNKNOWN[0],M.SLOTS[:],M.plan_shape)
++        original = RuntimeError('first clock failure')
++        calls,writes = [],[]
++        def clock():
++            calls.append(True)
++            if len(calls)==1: raise original
++            return 42
++        def write(fd,raw):
++            writes.append((fd,raw)); return len(raw)
++        try:
++            M.time = SimpleNamespace(monotonic_ns=clock)
++            M.os = SimpleNamespace(write=write,fsync=lambda fd: None)
++            M.START[0],M.END[0],M.USED[0],M.ARMED[0] = None,None,False,False
++            M.BODY_ATTEMPTED[0] = False
++            M.FIRST[0],M.IO_UNKNOWN[0] = None,False
++            M.SECONDARY[:] = [None]*32
++            M.SLOTS[:] = [[None,'FREE',None,False] for unused in range(32)]
++            result = M._run({},'normal','INITIALIZE','PUBLISHER')
++            self.assertEqual(result,78)
++            self.assertIs(M.FIRST[0],original)
++            self.assertTrue(M.USED[0])
++            self.assertFalse(M.BODY_ATTEMPTED[0])
++            self.assertFalse(any(fd==1 for fd,raw in writes))
++            detail = M.strict_json(b''.join(raw for fd,raw in writes if fd==2))
++            self.assertEqual(detail['status'],'STOP')
++            self.assertEqual(detail['errors_after_BODY']['first']['type'],'RuntimeError')
++            self.assertFalse(detail['cleanup_known'])
++            self.assertFalse(detail['execution_permission'])
++            self.assertIsNone(detail['meter_start_pin'])
++            self.assertEqual(len(calls),2)
++            reached = []
++            def forbidden_replay_preparation(*args):
++                reached.append(True)
++                raise AssertionError('replay reached plan/source preparation')
++            M.plan_shape = forbidden_replay_preparation
++            replay = M._run({},'normal','INITIALIZE','PUBLISHER')
++            self.assertEqual(replay,78)
++            self.assertTrue(M.USED[0])
++            self.assertIs(M.FIRST[0],original)
++            self.assertEqual(reached,[])
++            self.assertFalse(M.BODY_ATTEMPTED[0])
++            self.assertFalse(any(fd==1 for fd,raw in writes))
++        finally:
++            (M.time,M.os,M.START[0],M.END[0],M.USED[0],M.ARMED[0],
++             M.BODY_ATTEMPTED[0],M.FIRST[0],secondary,M.IO_UNKNOWN[0],slots,M.plan_shape) = saved
++            M.SECONDARY[:] = secondary
++            M.SLOTS[:] = slots
++
+     def test_loader_rejects_forged_modules_before_any_native_port(self):
+         fake = SimpleNamespace(C=object(),F=object(),A=object())
+         with self.assertRaises(L.AdapterStop):

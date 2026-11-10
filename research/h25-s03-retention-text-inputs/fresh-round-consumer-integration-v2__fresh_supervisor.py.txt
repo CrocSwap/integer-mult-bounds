@@ -1,0 +1,841 @@
+"""Parent-only bounded process supervision; imports no candidate implementation.
+
+The runtime caller must establish the trusted clean launcher before calling us.
+This source was prepared without loading ctypes or running any control.  The
+closed single-threaded child domain is an explicit premise, not a hostile-fork
+sandbox.  Numeric process IDs are never used as signal destinations.
+"""
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+from types import ModuleType, FunctionType, MethodType, GetSetDescriptorType
+
+ROOT = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028')
+NESTED_BASE = ROOT / 'runtime/fresh-metered-round-v1/nested-runs'
+RUNNER_PATH = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/fresh-round-consumer-integration-v2/fresh_runner.py')
+_BOUND_CONTEXTS = {}
+
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+RUNNER_SHA = '686814818b6eea09a13cfd048cca6621b1f278b08461814457185f42d1598b8e'
+QUEUE_SHA = '1348a7b4d7cc1f9fef556f5e0abdaf04411a998afdcd574d7812c76ab37dcf68'
+TCB_SHA = '610492b3fc06baa0560175edc3ba27057de00d00b8fd3d58dbe55e5a371c042a'
+LIBC = '/usr/lib/x86_64-linux-gnu/libc.so.6'
+NATIVE_PINS = {
+    LIBC: '3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf',
+    '/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so': 'aad3e24f186e6c0a1c7efa8f16004f951f527db86f6451d30118657384a456c1',
+    '/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4': '00f593fe192f2851b8ce23b25cec2488d769beb5a8f63e8c9e563071e1075153',
+    '/usr/lib/python3.12/ctypes/__init__.py': '0782592567ad71097198a3afe985ac3e2ea0b9b5e75452402c9460c89a86318a',
+    '/usr/lib/python3.12/ctypes/_endian.py': 'c5d692bdce10dfee242752620061bab684633bc72445a3def484961ef1bdbf3a',
+}
+CHUNK = 65536
+LOG_CAP = 2 * 1024 * 1024
+META_CAP = 256 * 1024
+CLEANUP_SECONDS = 2.0
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def launch_contract():
+    need(sys.executable == '/usr/bin/python3.12', 'Pinned interpreter required')
+    need(sys.flags.no_site == sys.flags.no_user_site == sys.flags.dont_write_bytecode == 1 and
+         sys.flags.safe_path and sys.flags.ignore_environment == sys.flags.isolated ==
+         sys.flags.hash_randomization == 0, 'Trusted no-site safe-path fixed-seed flags required')
+    need(dict(os.environ) == ENV, 'Exact clean environment required')
+    need(tuple(sys.path) == ('/usr/lib/python312.zip', '/usr/lib/python3.12',
+                            '/usr/lib/python3.12/lib-dynload'), 'Initial system stdlib path changed')
+    need(list(Path('/proc/self/task').iterdir()) == [Path('/proc/self/task') / str(os.getpid())],
+         'Exactly one parent task required')
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def stable_file(path, limit, keep=False):
+    """Complete bounded snapshot; no file read can extend a growing snapshot."""
+    path = Path(path)
+    before = path.stat(follow_symlinks=False)
+    need(stat.S_ISREG(before.st_mode) and before.st_size <= limit, 'File type/size bound: ' + str(path))
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    h, count, blocks = hashlib.sha256(), 0, []
+    try:
+        opened = os.fstat(fd)
+        need(identity(before) == identity(opened), 'File changed while opening')
+        while count < opened.st_size:
+            block = os.read(fd, min(CHUNK, opened.st_size - count))
+            need(bool(block), 'Short retained-file read')
+            count += len(block)
+            h.update(block)
+            if keep:
+                blocks.append(block)
+        after_fd = os.fstat(fd)
+    finally:
+        os.close(fd)
+    after = path.stat(follow_symlinks=False)
+    need(identity(before) == identity(after_fd) == identity(after), 'File drift during retained snapshot')
+    row = {'path': str(path), 'sha256': h.hexdigest(), 'bytes': count,
+           'identity': list(identity(after)), 'stable': True, 'read_chunk_bytes': CHUNK}
+    return (row, b''.join(blocks)) if keep else row
+
+
+def read_json(path, limit=META_CAP):
+    row, raw = stable_file(path, limit, True)
+    return json.loads(raw), row
+
+
+def write_new(path, row):
+    raw = json.dumps(row, sort_keys=True, indent=2).encode('ascii') + b'\n'
+    need(len(raw) <= META_CAP, 'Bounded metadata record exceeded')
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+    try:
+        view = memoryview(raw)
+        while view:
+            written = os.write(fd, view)
+            need(written > 0, 'Metadata write made no progress')
+            view = view[written:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def proc(pid):
+    try:
+        with open('/proc/' + str(pid) + '/stat', 'rb') as stream:
+            raw = stream.read(8193)
+        need(len(raw) <= 8192, 'Unexpected process-stat size')
+        end = raw.rfind(b') ')
+        need(end >= 0, 'Malformed process stat')
+        fields = raw[end + 2:].split()
+        return {'pid': int(pid), 'ppid': int(fields[1]), 'pgid': int(fields[2]),
+                'sid': int(fields[3]), 'start_ticks': int(fields[19]),
+                'state': fields[0].decode('ascii'),
+                'rss_bytes': int(fields[21]) * os.sysconf('SC_PAGE_SIZE')}
+    except (FileNotFoundError, ProcessLookupError, PermissionError):
+        return None
+
+
+def census():
+    found = {}
+    with os.scandir('/proc') as entries:
+        for entry in entries:
+            if entry.name.isdecimal():
+                row = proc(int(entry.name))
+                if row is not None:
+                    found[row['pid']] = row
+    return found
+
+
+def generation(row):
+    return row['pid'], row['start_ticks']
+
+
+def children_now():
+    return [row for row in census().values() if row['ppid'] == os.getpid()]
+
+
+def install_subreaper(root):
+    """Called only by the future parent, before any controlled root exists."""
+    launch_contract()
+    need(not children_now(), 'Parent must own no preexisting child processes')
+    tcb, tcb_row = read_json(root / 'control/NATIVE-INITIAL-TCB-v1.json')
+    need(tcb_row['sha256'] == TCB_SHA, 'Accepted initial TCB changed')
+    need(any(row['path'] == LIBC and row['sha256'] == NATIVE_PINS[LIBC]
+             for row in tcb['files']), 'Pinned libc absent from accepted TCB')
+    evidence = {path: stable_file(path, 16 * 1024 * 1024) for path in NATIVE_PINS}
+    need(all(evidence[path]['sha256'] == expected for path, expected in NATIVE_PINS.items()),
+         'Subreaper native/stdlib source supplement changed')
+    # This import and native call have NOT been performed during source authoring.
+    need(Path('/usr/lib/x86_64-linux-gnu/libffi.so.8').resolve() ==
+         Path('/usr/lib/x86_64-linux-gnu/libffi.so.8.1.4'), 'Foreign libffi SONAME resolution')
+    import ctypes
+    need(sys.modules['_ctypes'].__file__ ==
+         '/usr/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so', 'Foreign _ctypes owner')
+    need(ctypes.__file__ == '/usr/lib/python3.12/ctypes/__init__.py', 'Foreign ctypes owner')
+    library = ctypes.CDLL(LIBC, use_errno=True)
+    call = library.prctl
+    call.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+    call.restype = ctypes.c_int
+    prior, actual = ctypes.c_int(), ctypes.c_int()
+    need(call(37, ctypes.addressof(prior), 0, 0, 0) == 0, 'PR_GET_CHILD_SUBREAPER failed')
+    need(call(36, 1, 0, 0, 0) == 0, 'PR_SET_CHILD_SUBREAPER failed')
+    need(call(37, ctypes.addressof(actual), 0, 0, 0) == 0 and actual.value == 1,
+         'Same-process subreaper readback failed')
+    for path, expected in NATIVE_PINS.items():
+        need(stable_file(path, 16 * 1024 * 1024)['sha256'] == expected, 'TCB bytes changed across load')
+    # Retain the CDLL and typed function in the owning parent for its whole queue.
+    return {'pid': os.getpid(), 'prior': prior.value, 'actual': actual.value,
+            'tcb_sha256': TCB_SHA, 'native_source_evidence': evidence,
+            'trust': 'Trusted OS/loader/initial system stdlib; file pins do not authenticate native memory'}, (library, call)
+
+
+
+
+
+def parent_lock(root):
+    lock = (root / 'runtime/parent-queue.lock').open('a')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BaseException:
+        lock.close()
+        raise
+    return lock
+
+
+class ExecutionDeadline(RuntimeError):
+    pass
+
+
+def deadline_handler(signum, frame):
+    raise ExecutionDeadline('Outer execution deadline reached, including Popen/preexec')
+
+
+class OwnedDomain:
+    """Only our new children and their observed descendants enter this domain."""
+    def __init__(self):
+        need(not children_now(), 'Owned child domain was not initially empty')
+        self.rows, self.fds, self.groups, self.reaped = {}, {}, set(), []
+        self.root = None
+        self.parent_group = os.getpgrp()
+        self.parent_session = os.getsid(0)
+
+    def add(self, row):
+        key = generation(row)
+        if key in self.rows:
+            if row['pgid'] != self.parent_group:
+                self.groups.add((row['pgid'], row['sid']))
+            return
+        need(len(self.rows) < 128, 'Owned process observation limit exceeded')
+        need(row['pid'] != os.getpid(), 'Parent cannot enter its own child domain')
+        try:
+            fd = os.pidfd_open(row['pid'], 0)
+        except ProcessLookupError:
+            return
+        current = proc(row['pid'])
+        if current is None or generation(current) != key:
+            os.close(fd)
+            return
+        self.rows[key], self.fds[key] = dict(current), fd
+        # During interrupted Popen a child can briefly precede setsid. Its
+        # individual pidfd is owned; the queue parent group never is.
+        if current['pgid'] != self.parent_group:
+            self.groups.add((current['pgid'], current['sid']))
+
+    def observe(self):
+        all_rows = census()
+        known = {pid for pid, start in self.rows if pid in all_rows and
+                 all_rows[pid]['start_ticks'] == start}
+        for pid in known:
+            self.add(all_rows[pid])
+        changed = True
+        while changed:
+            changed = False
+            for pid, row in all_rows.items():
+                if pid not in known and (row['ppid'] == os.getpid() or row['ppid'] in known):
+                    self.add(row)
+                    if generation(row) in self.rows:
+                        known.add(pid)
+                        changed = True
+        return all_rows, [all_rows[pid] for pid in known]
+
+    def kill_owned(self):
+        self.observe()
+        for key, fd in self.fds.items():
+            current = proc(key[0])
+            if current is not None and generation(current) == key and current['state'] != 'Z':
+                try:
+                    signal.pidfd_send_signal(fd, signal.SIGKILL, None, 0)
+                except ProcessLookupError:
+                    pass
+
+    def cleanup(self, process):
+        start = time.monotonic()
+        seen_after_root = []
+        completed = False
+        while True:
+            _, current = self.observe()
+            if process is not None and process.returncode is not None:
+                seen_after_root.extend(generation(row) for row in current if row['pid'] != process.pid)
+            self.kill_owned()
+            if process is not None:
+                process.poll()
+            for key in list(self.rows):
+                row = proc(key[0])
+                if row is None or generation(row) != key or row['ppid'] != os.getpid():
+                    continue
+                if process is not None and row['pid'] == process.pid:
+                    continue
+                try:
+                    pid, status = os.waitpid(row['pid'], os.WNOHANG)
+                except ChildProcessError:
+                    continue
+                if pid:
+                    self.reaped.append({'pid': pid, 'start_ticks': key[1], 'wait_status': status})
+            all_rows, current = self.observe()
+            occupied = [row for row in all_rows.values() if (row['pgid'], row['sid']) in self.groups]
+            if not current and not occupied and not children_now():
+                completed = True
+                break
+            if time.monotonic() - start >= CLEANUP_SECONDS:
+                break
+            time.sleep(0.01)
+        final_rows = census()
+        remaining = [row for row in final_rows.values() if
+                     generation(row) in self.rows or (row['pgid'], row['sid']) in self.groups or
+                     row['ppid'] == os.getpid()]
+        for fd in self.fds.values():
+            os.close(fd)
+        self.fds.clear()
+        return {'complete': completed and not remaining,
+                'owned_generations': list(self.rows.values()),
+                'groups': [{'pgid': g, 'sid': s} for g, s in sorted(self.groups)],
+                'reaped_adopted': self.reaped,
+                'observed_after_root_exit': [list(key) for key in sorted(set(seen_after_root))],
+                'remaining': remaining, 'cleanup_seconds': time.monotonic() - start,
+                'cleanup_tail_limit_seconds': CLEANUP_SECONDS,
+                'group_empty_proved': completed and not remaining,
+                'signal_method': 'SIGKILL via generation-checked pidfd only; never killpg'}
+
+
+
+
+
+
+
+
+
+
+
+def nested_plain(value, depth=0):
+    if depth > 16:
+        raise ValueError('nested intent depth')
+    kind = type(value)
+    if kind is dict:
+        if len(value) > 64:
+            raise ValueError('nested intent object cap')
+        for key,item in value.items():
+            if type(key) is not str or len(key) > 128:
+                raise ValueError('nested intent exact string key')
+            nested_plain(item,depth+1)
+    elif kind is list:
+        if len(value) > 128:
+            raise ValueError('nested intent list cap')
+        for item in value:
+            nested_plain(item,depth+1)
+    elif kind is str:
+        if len(value) > 2048:
+            raise ValueError('nested intent string cap')
+    elif kind is int:
+        if not 0 <= value <= 9223372036854775807:
+            raise ValueError('nested intent integer bound')
+    elif value is not None and kind is not bool:
+        raise ValueError('nested intent exact builtin DATA')
+
+
+def nested_label(value):
+    if (type(value) is not str or not 1 <= len(value) <= 64 or
+            any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value)):
+        raise ValueError('nested simple label')
+    return value
+
+
+def validate_nested_intent(value):
+    nested_plain(value)
+    keys = {'schema','round_id','outer_label','stage','job','label','stage_sha256','runner_sha256',
+            'parent_pid','parent_start_ticks','whole_body_begin_ns','whole_body_deadline_ns',
+            'body_reservation_ns','nested_allowance_ns','validation_allowance_ns','cleanup_allowance_ns',
+            'active_binding','native_capability','execution_permission'}
+    if type(value) is not dict or set(value) != keys:
+        raise ValueError('exact nested intent schema')
+    if (value['schema'] != 'fresh-active-nested-runner-intent-v1' or
+            value['round_id'] != 'fresh-metered-round-v1' or
+            value['native_capability'] is not False or value['execution_permission'] is not False):
+        raise ValueError('nested intent is DATA only')
+    for key in ('outer_label','stage','job','label'):
+        nested_label(value[key])
+    for key in ('stage_sha256','runner_sha256'):
+        sha = value[key]
+        if type(sha) is not str or len(sha) != 64 or any(c not in '0123456789abcdef' for c in sha):
+            raise ValueError('nested source digest')
+    for key in ('parent_pid','parent_start_ticks','whole_body_begin_ns','whole_body_deadline_ns',
+                'body_reservation_ns','nested_allowance_ns','validation_allowance_ns','cleanup_allowance_ns'):
+        if type(value[key]) is not int or value[key] < 0:
+            raise ValueError('nested exact nonnegative integer')
+    if (value['parent_pid'] == 0 or not 0 < value['body_reservation_ns'] <= 180000000000 or
+            not 0 < value['nested_allowance_ns'] <= 180000000000 or
+            value['validation_allowance_ns'] <= 0 or value['cleanup_allowance_ns'] < 2000000000 or
+            value['whole_body_deadline_ns']-value['whole_body_begin_ns'] != value['body_reservation_ns'] or
+            value['nested_allowance_ns']+value['validation_allowance_ns']+value['cleanup_allowance_ns'] > value['body_reservation_ns']):
+        raise ValueError('nested whole-body necessary allowance')
+    binding = value['active_binding']
+    if (type(binding) is not dict or binding.get('schema') != 'fresh-active-current-binding-v1' or
+            set(binding) != {'schema','request','start','start_pin','head_pin','baseline_registry_pin',
+                            'native_capability','execution_permission'} or
+            binding['native_capability'] is not False or binding['execution_permission'] is not False):
+        raise ValueError('exact source-private current binding observation')
+    request, start = binding['request'], binding['start']
+    if (type(request) is not dict or type(start) is not dict or
+            request.get('label') != value['outer_label'] or start.get('label') != value['outer_label'] or
+            type(request.get('body_reservation_ns')) is not int or
+            request['body_reservation_ns'] != value['body_reservation_ns'] or
+            start.get('command_sha256') != request.get('command_sha256') or
+            start.get('body_reservation_ns') != request['body_reservation_ns']):
+        raise ValueError('nested current reservation DATA correlation')
+    return value
+
+
+def seconds_ceiling_ns(value):
+    need(type(value) in (int,float) and value > 0, 'positive native timing value')
+    numerator,denominator = value.as_integer_ratio() if type(value) is float else (value,1)
+    return (numerator*1000000000+denominator-1)//denominator
+
+
+def same_data(actual, expected):
+    need(type(actual) is type(expected), 'exact source declaration type')
+    if type(expected) is dict:
+        need(all(type(k) is str for k in actual) and set(actual) == set(expected), 'exact source declaration keys')
+        for key in expected:
+            same_data(actual[key],expected[key])
+    elif type(expected) is list:
+        need(len(actual) == len(expected), 'exact source declaration list')
+        for first,second in zip(actual,expected):
+            same_data(first,second)
+    else:
+        need(type(expected) in (str,int,bool,type(None)) and actual == expected, 'exact source declaration value')
+
+
+def bounded_stop_reason(value):
+    # Reject foreign containers/keys before iteration, hashing or JSON callbacks.
+    pending, nodes, text = [(value,0)],0,0
+    while pending:
+        item,depth = pending.pop(); nodes += 1
+        need(nodes <= 512 and depth <= 16, 'bounded STOP reason tree')
+        kind = type(item)
+        if kind is dict:
+            need(len(item) <= 64 and all(type(k) is str and len(k) <= 128 for k in item),
+                 'exact bounded STOP reason keys')
+            text += sum(len(k) for k in item)
+            pending.extend((v,depth+1) for v in item.values())
+        elif kind is list:
+            need(len(item) <= 128, 'bounded STOP reason list')
+            pending.extend((v,depth+1) for v in item)
+        elif kind is str:
+            need(len(item) <= 2048, 'bounded STOP reason string'); text += len(item)
+        elif kind is int:
+            need(0 <= item <= 9223372036854775807, 'bounded STOP reason integer')
+        else:
+            need(item is None or kind is bool, 'exact builtin STOP reason DATA')
+        need(text <= 16384 and len(pending) <= 512, 'bounded STOP reason bytes/nodes')
+    return value
+
+
+def bind_active_run_root(active_module, kernel_module, active_context, *, whole_body_begin_ns, case_contracts):
+    """Trusted fixed bootstrap supplies ACTUAL selected modules/context, never JSON.
+
+    Module/MethodType consistency does not authenticate a fabricated module.
+    The enclosing real meter must supply its genuine pre-preparation START ns.
+    This component neither creates another GlobalLease nor calls its acquire.
+    """
+    need(type(active_module) is ModuleType and type(kernel_module) is ModuleType, 'actual authenticated A/C kernel modules')
+    A,C,ctx = active_module,kernel_module,active_context
+    ag = ModuleType.__getattribute__(A,'__dict__')
+    cg = ModuleType.__getattribute__(C,'__dict__')
+
+    def class_image(cls, methods, *, slotted=False):
+        # Fixed type operations bypass foreign metaclass/instance attribute hooks.
+        need(type(cls) is type, 'ordinary exact kernel/context class')
+        mro = type.__getattribute__(cls,'__mro__')
+        need(len(mro) == 2 and mro[0] is cls and mro[1] is object, 'direct object class only')
+        namespace = type.__getattribute__(cls,'__dict__')
+        keys = tuple(namespace)
+        need(all(type(k) is str for k in keys), 'exact class attribute keys')
+        image = {k:namespace[k] for k in keys}
+        if slotted:
+            need(type(image.get('__slots__')) is tuple and image.get('__slots__') == (),
+                 'source-private empty-slotted context')
+            allowed = {'__module__','__doc__','__slots__','__new__'} | set(methods)
+            need(set(image) == allowed and type(image['__new__']) is staticmethod and
+                 type(image['__new__'].__func__) is FunctionType and
+                 image['__new__'].__func__.__globals__ is ag, 'fixed context class layout')
+        else:
+            need(set(image) == {'__module__','__doc__','__dict__','__weakref__'} | set(methods),
+                 'fixed kernel class layout without special hooks')
+            for name in ('__dict__','__weakref__'):
+                descriptor = image[name]
+                need(type(descriptor) is GetSetDescriptorType and descriptor.__objclass__ is cls and
+                     descriptor.__name__ == name, 'original native instance dictionary descriptor')
+        globals_expected = ag if slotted else cg
+        need(all(type(image[name]) is FunctionType and image[name].__globals__ is globals_expected
+                 for name in methods), 'actual source-bound class functions')
+        return image
+
+    ContextType = type(ctx)
+    context_methods = ('initialize','refresh_opening','current_binding','begin','native_lease_for_controller',
+                       'check','release_for_exec','adopt_handoff','publish_reviewed_close','release')
+    context_image = class_image(ContextType,context_methods,slotted=True)
+    check = MethodType(context_image['check'],ctx)
+    current_binding = MethodType(context_image['current_binding'],ctx)
+    get_lease = MethodType(context_image['native_lease_for_controller'],ctx)
+    key = id(ctx)
+    need(key not in _BOUND_CONTEXTS, 'one consumer binding per actual ACTIVE context; no retry binding')
+    state = {'context':ctx,'phase':'BINDING_ENTERED','failed':False,'first':None,'outer_identity':None,'members':set(),'used':set()}
+    _BOUND_CONTEXTS[key] = state  # Private state precedes fallible native verification.
+    io,IOType,LeaseType = cg['IO'],cg['OwnedIO'],cg['GlobalLease']
+    io_image = class_image(IOType,('__init__','acquire','close','read','names','write'))
+    lease_image = class_image(LeaseType,('__init__','acquire','verify','close'))
+    need(type(io) is IOType, 'same actual original IO singleton')
+
+    def unchanged_class(cls,image):
+        need(type(cls) is type, 'unchanged ordinary metaclass')
+        namespace = type.__getattribute__(cls,'__dict__')
+        keys = tuple(namespace)
+        need(all(type(k) is str for k in keys) and set(keys) == set(image) and
+             all(namespace[k] is image[k] for k in keys), 'no class method/descriptor/special-hook substitution')
+        mro = type.__getattribute__(cls,'__mro__')
+        need(len(mro) == 2 and mro[0] is cls and mro[1] is object, 'unchanged direct class ancestry')
+
+    def plain_instance(value,cls,image,fields):
+        need(type(value) is cls, 'same exact native instance type')
+        unchanged_class(cls,image)
+        values = image['__dict__'].__get__(value,cls)
+        need(type(values) is dict and all(type(k) is str for k in values) and set(values) == fields,
+             'no instance method/special-hook shadows')
+
+    def dispatch_integrity(held=None):
+        need(cg.get('IO') is io and cg.get('OwnedIO') is IOType and cg.get('GlobalLease') is LeaseType,
+             'unchanged actual kernel singleton/classes')
+        unchanged_class(ContextType,context_image)
+        plain_instance(io,IOType,io_image,{'slots'})
+        unchanged_class(LeaseType,lease_image)
+        if held is not None:
+            plain_instance(held,LeaseType,lease_image,{'fd','phase','birth','lock_info'})
+
+    dispatch_integrity()
+    # The authenticated bootstrap must supply the pristine private ACTIVE lease
+    # at FIRST getter entry: A verifies it before returning it. This is not a
+    # pre-getter instance-shadow test or a consumer-created/restored capability.
+    lease = get_lease(C)
+    dispatch_integrity(lease)
+
+    def io_call(name,*args,**kwargs):
+        dispatch_integrity(lease)
+        return io_image[name](io,*args,**kwargs)  # Original unbound dispatch.
+    initial = current_binding()
+    nested_plain(initial); initial = json.loads(json.dumps(initial))
+    need(type(initial) is dict and initial.get('schema') == 'fresh-active-current-binding-v1' and
+         initial.get('native_capability') is False and initial.get('execution_permission') is False,
+         'current binding observation, not owner restoration')
+    outer = nested_label(initial['request']['label'])
+    reservation = initial['request']['body_reservation_ns']
+    need(type(reservation) is int and 0 < reservation <= 180000000000 and
+         type(whole_body_begin_ns) is int and 0 <= whole_body_begin_ns <= time.monotonic_ns(),
+         'actual enclosing meter START/reservation; provenance is caller source obligation')
+    whole_deadline_ns = whole_body_begin_ns + reservation
+    nested_plain(case_contracts)
+    need(type(case_contracts) is list and 0 < len(case_contracts) <= 128, 'fixed finite nested case declarations')
+    declared = {}
+    for item in case_contracts:
+        need(type(item) is dict and set(item) == {'case','validation_allowance_ns','body_closing_allowance_ns'},
+             'exact nested case/validation/closing declaration')
+        row = item['case']
+        need(type(row) is dict and set(row) == {'stage','job','label','stage_sha256'}, 'exact frozen nested case keys')
+        for field in ('stage','job','label'):
+            nested_label(row[field])
+        sha = row['stage_sha256']
+        need(type(sha) is str and len(sha) == 64 and all(c in '0123456789abcdef' for c in sha), 'exact immutable stage digest')
+        need(type(item['validation_allowance_ns']) is int and item['validation_allowance_ns'] > 0 and
+             type(item['body_closing_allowance_ns']) is int and item['body_closing_allowance_ns'] >= 0 and
+             row['label'] not in declared, 'explicit nonzero validation and unique nested identity')
+        declared[row['label']] = json.loads(json.dumps(item))
+    outer_dir = NESTED_BASE / outer
+
+    def verify_native():
+        dispatch_integrity(lease)  # BEFORE A's nested instance self-dispatch.
+        need(C.IO_UNKNOWN[0] is False, 'no uncertain native acquisition')
+        need(lease is get_lease(C), 'same actual source-private native lease')
+        dispatch_integrity(lease)
+        return lease_image['verify'](lease)
+
+    def refresh(nested_ns,cleanup_ns):
+        need(not state['failed'] and _BOUND_CONTEXTS[key] is state and state['context'] is ctx, 'live sole bound consumer')
+        dispatch_integrity(lease)
+        verify_native()
+        observation = check(nested_ns,cleanup_ns)
+        same_data(current_binding(),initial)
+        now = time.monotonic_ns()
+        need(now >= whole_body_begin_ns and now-whole_body_begin_ns+nested_ns+cleanup_ns <= reservation,
+             'complete enclosing body necessary allowance, not local-anchor substitution')
+        return observation
+
+    def sync_dir(path):
+        slot,primary = io_call('acquire',path,os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC),None
+        try:
+            os.fsync(slot[0])
+        except BaseException as error:
+            primary = C.remember(error)
+        finally:
+            if slot[1] == 'OWNED':
+                try:
+                    io_call('close',slot)
+                except BaseException as error:
+                    primary = C.remember(error)
+        if primary is not None:
+            raise primary
+
+    def private_directory(path):
+        info = path.lstat()
+        need(path.resolve(strict=True) == path and stat.S_ISDIR(info.st_mode) and
+             info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700, 'canonical owned nested directory0700')
+        return info.st_dev,info.st_ino,info.st_mode,info.st_uid
+
+    def write_intent(path,value):
+        pin = io_call('write',path,value,cap=16384)
+        slot,primary = io_call('acquire',path,os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC),None
+        try:
+            need(tuple(pin['identity']) == C.identity(os.fstat(slot[0])) == C.identity(path.lstat()), 'same owned intent beforefreeze')
+            os.fchmod(slot[0],0o444); os.fsync(slot[0])
+        except BaseException as error:
+            primary = C.remember(error)
+        finally:
+            if slot[1] == 'OWNED':
+                try:
+                    io_call('close',slot)
+                except BaseException as error:
+                    primary = C.remember(error)
+        if primary is not None:
+            raise primary
+        row,raw = io_call('read',path,16384,0o444,{'bytes':pin['bytes'],'sha256':pin['sha256']},True)
+        sync_dir(path.parent)
+        return row
+
+    def prepare(root,case,evidence,seconds,shared_deadline):
+        need(type(root) is type(ROOT) and type(evidence) is type(ROOT), 'exact concrete root/evidence Path')
+        need(root == ROOT, 'fixed successor root; no ROOT overwrite')
+        need(type(case) is dict and all(type(k) is str for k in case), 'builtin source case keys')
+        selected = {k:case[k] for k in ('stage','job','label','stage_sha256')}
+        label = nested_label(selected['label']); need(label in declared, 'case in immutable declaration')
+        same_data(selected,declared[label]['case'])
+        need(label not in state['used'] and not state['failed'], 'no nested retry or reused label')
+        state['used'].add(label); state['phase'] = 'NESTED_PREPARATION_ENTERED'
+        need(type(seconds) in (int,float) and 0 < seconds <= 190, 'Unadmitted root deadline')
+        root_ns = seconds_ceiling_ns(seconds)
+        validation = declared[label]['validation_allowance_ns']
+        cleanup = 2000000000 + declared[label]['body_closing_allowance_ns']
+        refresh(root_ns+validation,cleanup)
+        need(seconds_ceiling_ns(shared_deadline) <= whole_deadline_ns, 'caller shareddeadline cannot exceed actual enclosing body')
+        need(evidence == outer_dir / (label+'-supervision'), 'exact private supervision destination')
+        if not NESTED_BASE.exists():
+            os.mkdir(NESTED_BASE,0o700); sync_dir(NESTED_BASE.parent)
+        private_directory(NESTED_BASE)
+        if state['outer_identity'] is None:
+            os.mkdir(outer_dir,0o700); sync_dir(NESTED_BASE)
+            state['outer_identity'] = private_directory(outer_dir)
+        need(private_directory(outer_dir) == state['outer_identity'] and
+             set(io_call('names',outer_dir,512)) == state['members'], 'no foreign/orphan nested entry')
+        parent = proc(os.getpid())
+        need(parent is not None, 'actual owning parent generation')
+        intent = dict(selected,schema='fresh-active-nested-runner-intent-v1',round_id='fresh-metered-round-v1',
+            outer_label=outer,runner_sha256=RUNNER_SHA,parent_pid=parent['pid'],parent_start_ticks=parent['start_ticks'],
+            whole_body_begin_ns=whole_body_begin_ns,whole_body_deadline_ns=whole_deadline_ns,
+            body_reservation_ns=reservation,nested_allowance_ns=root_ns,validation_allowance_ns=validation,
+            cleanup_allowance_ns=cleanup,active_binding=initial,native_capability=False,execution_permission=False)
+        validate_nested_intent(intent)
+        intent_path = outer_dir / (label+'-INTENT.json')
+        intent_pin = write_intent(intent_path,intent)
+        state['members'].update((intent_path.name,label,label+'-supervision'))
+        # Last financial/native check before original run_root metadata/native body.
+        # No new funding callbacks occur inside its SIGALRM/Popen/cleanup interval.
+        refresh(root_ns+validation,cleanup)
+        return intent_path,intent_pin
+
+    def reconcile_missing_receipt(root,label,evidence,began,cause,cleanup):
+        # Missing canonical runner receipt remains missing. Only separate DATA is retained.
+        folder = outer_dir / nested_label(label)
+        if (folder / 'receipt.json').exists():
+            return None
+        observation = {'schema':'fresh-nested-missing-receipt-observation-v1','label':label,
+            'status':'STOP','cause':cause,'cleanup':cleanup,'canonical_runner_receipt_absent':True,
+            'runner_completion_claimed':False,'financial_receipt_created':False,
+            'nested_elapsed_seconds_diagnostic':time.monotonic()-began,
+            'covered_only_by_genuine_enclosing_body':True,'execution_permission':False}
+        write_new(evidence/'NESTED-MISSING-RECEIPT.json',observation)
+        return observation
+
+    def stop_supplement(root,label,reason):
+        need(type(root) is type(ROOT), 'exact concrete supplement root Path')
+        label = nested_label(label)  # Exact str BEFORE hash/membership.
+        need(root == ROOT and label in state['used'], 'same actually entered nested role')
+        reason = bounded_stop_reason(reason)
+        verify_native()
+        evidence = outer_dir / (nested_label(label)+'-supervision')
+        write_new(evidence/'NESTED-SUPERVISION-STOP.json',{
+            'schema':'fresh-nested-supervision-stop-observation-v1','label':label,'reason':reason,
+            'financial_receipt_created':False,'cost_accounted_only_by_actual_enclosing_body':True,
+            'execution_permission':False})
+
+    def run_root(root, case, evidence, seconds, shared_deadline, as_bytes=201326592,
+                 rss_bytes=201326592):
+        """One root. Cleanup and stable custody finish before returning to a queue."""
+        intent_path,intent_pin = prepare(root,case,evidence,seconds,shared_deadline)
+        launch_contract()
+        need(stable_file(RUNNER_PATH, META_CAP)['sha256'] == RUNNER_SHA,
+             'Actual root runner changed')
+        need(time.monotonic() + CLEANUP_SECONDS < shared_deadline, 'No reserved cleanup tail remains')
+        command = ['/usr/bin/python3.12', *FLAGS, str(RUNNER_PATH),
+                   case['stage'], case['job'], case['label'], '--intent', str(intent_path),
+                   '--intent-bytes', str(intent_pin['bytes']), '--intent-sha256', intent_pin['sha256']]
+        for value in (case['stage'], case['job'], case['label']):
+            need(type(value) is str and value and all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in value),
+                 'Unsafe case identity')
+        evidence.mkdir()
+        need(type(seconds) in (int, float) and 0 < seconds <= 190, 'Unadmitted root deadline')
+        need(type(as_bytes) is int and 0 < as_bytes <= 1024 ** 3, 'Unadmitted root address-space bound')
+        need(type(rss_bytes) is int and 0 < rss_bytes <= 1024 ** 3, 'Unadmitted aggregate RSS bound')
+        began = time.monotonic()
+        deadline = min(began + seconds, shared_deadline - CLEANUP_SECONDS)
+        domain = OwnedDomain()
+        process, failure, cleanup = None, None, None
+        peak, spawn_entered, captured = 0, False, None
+        setter, limit_kind, limits = resource.setrlimit, resource.RLIMIT_AS, (as_bytes, as_bytes)
+        need(list(Path('/proc/self/task').iterdir()) == [Path('/proc/self/task') / str(os.getpid())],
+             'Root preexec requires exactly one task')
+        def child_limit():
+            setter(limit_kind, limits)
+        old_handler = signal.getsignal(signal.SIGALRM)
+        need(signal.getitimer(signal.ITIMER_REAL) == (0.0, 0.0), 'Parent already has an execution alarm')
+        write_new(evidence / 'LAUNCH.json', {'command': command, 'parent_pid': os.getpid(),
+                  'parent_pgid': os.getpgrp(), 'parent_sid': os.getsid(0),
+                  'root_execution_seconds': seconds, 'address_space_bytes': as_bytes,
+                  'rss_sum_bytes': rss_bytes, 'new_session': True, 'cleanup_reserved_seconds': CLEANUP_SECONDS})
+        try:
+            with (evidence / 'root.stdout.raw').open('xb') as out, (evidence / 'root.stderr.raw').open('xb') as err:
+                signal.signal(signal.SIGALRM, deadline_handler)
+                signal.setitimer(signal.ITIMER_REAL, max(0.000001, deadline - time.monotonic()))
+                try:
+                    spawn_entered = True
+                    process = subprocess.Popen(command, cwd=root, env=dict(ENV), stdout=out,
+                                               stderr=err, start_new_session=True, preexec_fn=child_limit)
+                    # Popen leaves an exited root waitable; capture its generation BEFORE poll.
+                    captured = proc(process.pid)
+                    need(captured is not None and captured['pgid'] == captured['sid'] == process.pid,
+                         'New root process/session identity missing')
+                    domain.root = generation(captured)
+                    domain.add(captured)
+                    write_new(evidence / 'ROOT-PROCESS.json', captured)
+                    while True:
+                        _, current = domain.observe()
+                        peak = max(peak, sum(row['rss_bytes'] for row in current))
+                        need(peak <= rss_bytes, 'Owned process RSS sum exceeded')
+                        need(max((evidence / name).stat().st_size for name in
+                                 ('root.stdout.raw', 'root.stderr.raw')) <= LOG_CAP, 'Outer raw log cap exceeded')
+                        if process.poll() is not None:
+                            break
+                        time.sleep(0.01)
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL, 0)
+                    signal.signal(signal.SIGALRM, old_handler)
+        except BaseException as error:
+            failure = {'type': type(error).__name__, 'message': str(error)[:2048]}
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, old_handler)
+            # This is also required when Popen raised before returning an object.
+            try:
+                cleanup = domain.cleanup(process)
+            except BaseException as cleanup_error:
+                cleanup = {'complete': False, 'group_empty_proved': False,
+                           'owned_generations': list(domain.rows.values()),
+                           'groups': [{'pgid': g, 'sid': sid} for g, sid in sorted(domain.groups)],
+                           'reaped_adopted': domain.reaped, 'observed_after_root_exit': [],
+                           'remaining': 'UNKNOWN_AFTER_CLEANUP_ERROR',
+                           'error': {'type': type(cleanup_error).__name__, 'message': str(cleanup_error)[:2048]}}
+                for fd in domain.fds.values():
+                    os.close(fd)
+                domain.fds.clear()
+        if not cleanup['complete']:
+            failure = failure or {'type': 'CleanupIncomplete', 'message': 'Owned descendants/group remain after bounded cleanup tail'}
+        if time.monotonic() > shared_deadline:
+            failure = failure or {'type': 'SharedDeadline', 'message': 'Shared cap crossed; necessary cleanup charged'}
+        reconciled = reconcile_missing_receipt(root, case['label'], evidence, began,
+                      failure or {'type': 'MissingRootReceipt', 'message': 'Root exited without receipt'}, cleanup)
+        if reconciled is not None:
+            failure = failure or {'type': 'MissingRootReceipt', 'message': 'Missing canonical receipt observed separately; no retry'}
+        logs = {}
+        for name in ('root.stdout.raw', 'root.stderr.raw'):
+            try:
+                logs[name] = stable_file(evidence / name, LOG_CAP)
+            except BaseException as error:
+                failure = failure or {'type': type(error).__name__, 'message': str(error)[:2048]}
+                logs[name] = {'path': str(evidence / name), 'complete_hash': None, 'stable': False}
+        result = {'schema': 'h25-parent-root-supervision-v1', 'label': case['label'],
+                  'status': 'STOP' if failure else 'ROOT_COMPLETED_AND_OWNED_DOMAIN_EMPTY',
+                  'failure': failure, 'spawn_entered': spawn_entered,
+                  'spawn_returned': process is not None, 'captured_root': captured,
+                  'returncode': None if process is None else process.returncode,
+                  'cleanup': cleanup, 'outer_logs': logs, 'sampled_owned_rss_bytes': peak,
+                  'execution_and_cleanup_seconds': time.monotonic() - began,
+                  'root_receipt_reconciled': reconciled is not None,
+                  'no_hostile_fork_or_concurrent_children_claim': True}
+        write_new(evidence / 'SUPERVISION.json', result)
+        return result
+
+    sentinel = object()
+    class BoundConsumers:
+        __slots__ = ()
+        def __new__(cls,key_value):
+            need(key_value is sentinel, 'private bound native consumer only')
+            return object.__new__(cls)
+        def run_root(self,root,case,evidence,seconds,shared_deadline,as_bytes=201326592,rss_bytes=201326592):
+            need(self is bound, 'actual bound source consumer')
+            try:
+                result = run_root(root,case,evidence,seconds,shared_deadline,as_bytes,rss_bytes)
+                if result['status'] == 'STOP':
+                    state['failed'] = True; state['phase'] = 'NESTED_STOP_NO_RETRY'
+                else:
+                    need(private_directory(outer_dir) == state['outer_identity'] and
+                         set(io_call('names',outer_dir,512)) == state['members'], 'complete nested top-level census')
+                    state['phase'] = 'NESTED_RETURNED'
+                result['fresh_round_outer_label'] = outer
+                result['nested_is_not_registry_charge'] = True
+                return result
+            except BaseException as error:
+                state['failed'] = True; state['phase'] = 'FAILED_NO_RETRY'
+                if state['first'] is None:
+                    state['first'] = error  # Retain the actual raised object, never a DATA proxy.
+                raise
+        def stop_supplement(self,root,label,reason):
+            need(self is bound, 'actual bound source consumer')
+            state['failed'] = True; state['phase'] = 'STOP_SUPPLEMENT_ENTERED_NO_RETRY'
+            try:
+                result = stop_supplement(root,label,reason)
+            except BaseException as error:
+                if state['first'] is None:
+                    state['first'] = error
+                state['phase'] = 'STOP_SUPPLEMENT_FAILED_NO_RETRY'
+                raise  # Preserve this actual exception and the privately retained first.
+            state['phase'] = 'STOP_SUPPLEMENT_RETAINED_NO_RETRY'
+            return result
+    bound = BoundConsumers(sentinel)
+    state['phase'] = 'BOUND_TO_ACTUAL_ACTIVE_OWNER'
+    return bound
+
+
+def packet_unchanged(directory, manifest):
+    for name, expected in manifest['files'].items():
+        row = stable_file(directory / name, META_CAP)
+        need(row['sha256'] == expected['sha256'] and row['bytes'] == expected['bytes'],
+             'Parent source packet changed: ' + name)
+        need(not (directory / name).stat().st_mode & 0o222, 'Parent source packet became writable')
+    return True

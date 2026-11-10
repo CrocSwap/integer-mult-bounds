@@ -1,0 +1,58 @@
+"""UNEXECUTED separate new DATA/Q controls; parent exact admission only.
+Calls actual helper functions supplied by the parent, never AST-extracted bodies.
+"""
+import errno
+
+def check(value,message):
+    if not value:raise AssertionError(message)
+
+def first_record_failure_after_data_is_primary(errors):
+    custody=errors.new_custody()
+    first_error=MemoryError('Q after successful DATA body')
+    export_error=OSError(errno.ENOSPC,'X after first Q')
+    forbidden=MemoryError('R forbidden')
+    calls=[]
+    writes=[]
+    old_record,old_write=errors.record,errors.os.write
+    def record(value,observation):
+        calls.append(observation)
+        raise first_error if len(calls)==1 else forbidden
+    def write(fd,raw):
+        writes.append(fd)
+        raise export_error
+    errors.record,errors.os.write=record,write
+    try:
+        body_data={'actual_result':1}
+        retained=errors.retain(custody,'RETURN_SOURCE_DATA',body_data)
+        q_tb=custody.retention_tb
+        check(custody.primary is first_error and custody.primary_tb is q_tb,'first actual record Q after success is primary')
+        check(retained.actual is body_data and custody.journal_failure.actual is first_error,'DATA and Q both strongly retained')
+        check(errors.export(custody) is False,'later X remains STOP')
+        check(custody.primary is first_error and custody.primary_tb is q_tb,'later X cannot replace first Q')
+        check(custody.export_failed is export_error and len(calls)==1 and writes==[2],'R never invoked after first Q')
+        check(errors.export(custody) is False and writes==[2],'later export not retried')
+    finally:
+        errors.record,errors.os.write=old_record,old_write
+
+
+def foreign_data_class_is_not_called(errors):
+    effects=[]
+    trap=AssertionError('foreign __class__ must not run')
+    class ForeignData:
+        @property
+        def __class__(self):
+            effects.append('__class__')
+            raise trap
+    actual=ForeignData()
+    custody=errors.new_custody()
+    retained=errors.retain(custody,'OPAQUE_SOURCE_DATA',actual)
+    check(not effects,'native actual-type classifier never calls foreign DATA protocol')
+    check(retained.actual is actual and custody.primary is None,'foreign DATA retained without fabricated exception')
+    check(custody.events==(retained,),'foreign DATA observation journals without foreign callback')
+
+
+def run_new_data_boundary_controls(errors):
+    first_record_failure_after_data_is_primary(errors)
+    foreign_data_class_is_not_called(errors)
+    return dict(schema='s03-new-DATA-Q-boundary-controls-v1',status='PASS',cases=2,
+                actual_function_bodies=True,source_port_fakes=True,assert_statement_count=0)

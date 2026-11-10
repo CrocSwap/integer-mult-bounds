@@ -1,0 +1,29 @@
+def encoded(logical):
+    return [R.O if s>>shift&1 else R.Z for s in logical for shift in (2,1,0)]
+
+
+def descriptor(value):
+    need(type(value)is int and value>0,'positive fixture descriptor')
+    return [m.LEFT]+[m.ONE if value>>i&1 else m.ZERO for i in range(value.bit_length())]+[m.RIGHT]
+
+
+def put(tape,logical):
+    start=tape.head
+    for i,v in enumerate(encoded(logical)):tape.cells[start+i]=v
+    tape.head=start+3
+# middle fixture/expected/mutant definitions omitted
+    tapes=[]
+    for role in range(program.tapes):
+        marker=R.LEFT if role<meta['payloads'] else R.BASE
+        cells={i:(R.Z if i%2 else R.O)for i in range(prefix)};cells[prefix]=marker
+        tapes.append(m.Tape(cells,prefix+1))
+    origins=[t.head for t in tapes];p=meta['ports']
+    bits=[int((i*i+3*i+1)%7<3)for i in range(volume)]
+    put(tapes[p['source']],[m.LEFT]+[m.ONE if b else m.ZERO for b in bits]+[m.RIGHT])
+    for role,value in ((p['repeats_input'],A),(p['block_input'],block),(meta['width'],w)):
+        put(tapes[role],descriptor(value))
+    for j in range(depth):tapes[meta['depth']].cells[origins[meta['depth']]+j]=R.O
+    borrowed=[p['source'],p['repeats_input'],p['block_input'],meta['width'],meta['depth']]
+    saved={i:(dict(tapes[i].cells),tapes[i].head)for i in borrowed}
+    machine=m.Machine(program,tapes);trace=[];grants=[]
+    # Only the external observer sees machine heads or program counters.

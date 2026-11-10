@@ -1,0 +1,15 @@
+# Post-first control-baseline correction review
+
+Verdict: **PASS for the contained baseline correction and its recorded verification**. I read the corrected controls.py, its exact diff from preserved first code and CONTROL-CORRECTION-VERIFICATION.json. No implementation was edited and no source/engine/checker/CLI/test was executed by this reviewer. The original ORACLE-CROSS-REVIEW pending wording remains historical and unchanged.
+
+Corrected public controls.py SHA256 `43e417638f24fb8011b76f367efab145d7e2daf5d6a3e9e66ab1e1faf812598c`. Preserved original control-first code is `f31e732d306f95b2fff689068147376f7eac0597237d95672d8ca4c300182378`; CODE-SEALS-AT-FIRST.json SHA256 `5d5b207b52ec8a99a8a2962b8f037754078230f30376c2acbeaa8a16c6f1e8e9`. The diff changes only the pre-mutation healthy baseline gate. Mutation definitions, mathematical models, source invocation, outcome classification and shared CLI are unchanged.
+
+The new gate reads raw FIRST bytes, recomputes every healthy actual-source case, includes the frozen schema and complete cases mapping, serializes with the declared sorted compact ASCII JSON plus newline, and requires exact byte equality **before** any mutation. Thus Python parsed-value equality no longer allows False/0 or True/1 substitutions to pass this standalone baseline check. Exact bytes also bind schema, all values/types, key/list structure and canonical encoding. The subsequent parsed healthy data is used only after that equality has succeeded.
+
+I independently checked the current primary/oracle/source code hashes remain their first wrapped hashes `576a8ed8…`, `4a8ec05d…`, `9d95625e…`. The preserved control packet is still `ba4529b8c58f29f06224167c29f012f50866012580e89311036a362664236293`,2,471 bytes; the healthy three-way packet remains separately preserved. No original first is relabelled as having run the corrected control code.
+
+The coordinator receipt at19:12:30.667271 UTC reports corrected normal and optimized whole-control replays with exit0 and exactly the unchanged2,471-byte packet hash. It separately records four actual typed-baseline negatives: heightFalse and unitsTrue, each normal/optimized, all exit1 with `complete canonical healthy baseline drift`. These outcomes directly exercise the new byte gate. They are receipt observations inspected here, not reviewer reruns.
+
+The old-code bool acceptance remains a static code/language finding only; it was not executed and is not presented as an observed historical failure. The correct healthy first evidence and all six original scientific-control outcomes are unchanged. This is a post-first verification-harness correction, not an altered flow/census/model result or an additional mathematical contribution.
+
+No further correction is requested within this bounded task. Later registered/cold/archive/public/CI stages remain separate authority. Finite-case/source-awareness/shared-wire limitations and all native/physical/analytic/formal/selected assumptions remain; no kappa/frontier/adoption/merge follows.

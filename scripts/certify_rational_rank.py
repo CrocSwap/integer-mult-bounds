@@ -9,7 +9,7 @@ import argparse
 from fractions import Fraction as Q
 from hashlib import sha256
 import json
-from math import lcm
+from math import gcd, lcm
 from pathlib import Path
 import re
 import sys
@@ -67,8 +67,20 @@ def inverse(a):
     return [row[n:] for row in rows]
 
 
-def certify(value):
-    a=validate(value);m,n=len(a),len(a[0]);work=[row[:] for row in a]
+def _pivot_minor(a):
+    """Choose the same pivots as rational elimination, using primitive rows.
+
+    Each work row is a nonzero rational multiple of the corresponding row
+    in ordinary elimination. Clearing denominators and dividing by the gcd
+    preserve that invariant, so zero tests and first-pivot choices agree.
+    Validated inputs have at most 64 denominators of at most 10^9 per row.
+    """
+    m,n=len(a),len(a[0]);work=[]
+    for row in a:
+        denominator=lcm(*(x.denominator for x in row))
+        values=[x.numerator*(denominator//x.denominator) for x in row]
+        divisor=gcd(*values)
+        work.append([x//divisor for x in values] if divisor else values)
     row_ids=list(range(m));chosen_rows=[];cols=[]
     for j in range(n):
         r=len(cols);pivot=next((i for i in range(r,m) if work[i][j]),None)
@@ -77,8 +89,18 @@ def certify(value):
         chosen_rows.append(row_ids[r]);cols.append(j)
         for i in range(r+1,m):
             if work[i][j]:
-                c=work[i][j]/work[r][j]
-                for k in range(j,n):work[i][k]-=c*work[r][k]
+                divisor=gcd(work[r][j],work[i][j])
+                p,c=work[r][j]//divisor,work[i][j]//divisor
+                tail=[p*work[i][k]-c*work[r][k] for k in range(j+1,n)]
+                divisor=gcd(*tail)
+                if divisor:tail=[x//divisor for x in tail]
+                work[i]=[0]*(j+1)+tail
+    return chosen_rows,cols
+
+
+def certify(value):
+    a=validate(value);m,n=len(a),len(a[0])
+    chosen_rows,cols=_pivot_minor(a)
     r=len(cols);inv=inverse([[a[i][j] for j in cols] for i in chosen_rows])
     coeff=[[sum((inv[k][l]*a[chosen_rows[l]][j] for l in range(r)),Q(0)) for j in range(n)] for k in range(r)]
     right=[]

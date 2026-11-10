@@ -1,0 +1,1282 @@
+"""SOURCE ONLY: private ACTIVE ownership and durable registry publication.
+
+Trusted caller must authenticate the exact loaded controller/funding modules
+before bind_api. Module names, hash strings, dictionaries and instance fields
+are NOT that authentication. This code performs real GlobalLease acquisition
+and verification; never restore an owner from DATA or pass it to a child.
+Ordinary OS/CPython/fsync/rename/link and registered-writer exclusion are selected
+operating premises, not universal hostile-admin or crash-storage theorems.
+"""
+import hashlib
+import json
+import os
+import stat
+import time
+from pathlib import Path
+from types import ModuleType, FunctionType, GetSetDescriptorType
+
+# Kernel-body predecessor provenance ONLY; actual selected C/profile authenticated externally.
+CONTROLLER_SHA = 'be36f1427694c786efc1cf04958a6fb002776f586641828ce569f36e2f289895'
+FUNDING_SHA = 'a0c2ab55aaf47350bb51fa98e07bc7b520c388742f2da06820d2d10f7d8f506d'
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/h25-data-handling-20261028'
+CONTROL = R / 'control/fresh-metered-round-v1'
+DOMAIN = R / 'runtime/fresh-metered-round-v1/attempts'
+STAGE = CONTROL / '_active-staging'
+HEADS = CONTROL / '_registry-heads'
+HANDOFFS = CONTROL / '_handoff-intents'
+CLAIMS = CONTROL / '_handoff-claims'
+HEAD = CONTROL / 'ACTIVE-HEAD.json'
+LOCK = W / 'outputs/h25-bookkeeping-swarm-20261028/runtime/science.lock'
+
+
+class ActiveError(RuntimeError):
+    pass
+
+
+def need(ok, text):
+    if ok is not True:
+        raise ActiveError(text)
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n').encode('utf-8')
+
+
+
+
+# Finite ordinary-Python kernel substitution boundary. These checks perform no
+# filesystem/process/clock operation and never establish loaded-image identity.
+def module_namespace(module):
+    need(type(module) is ModuleType, 'exact selected module type')
+    namespace = ModuleType.__getattribute__(module, '__dict__')
+    need(type(namespace) is dict, 'native module namespace')
+    keys = tuple(dict.__iter__(namespace))
+    need(all(type(k) is str for k in keys), 'module keys before hashing/lookup')
+    need('__getattr__' not in keys, 'no selected module attribute fallback')
+    return namespace
+
+
+def function_image(fn, namespace):
+    need(type(fn) is FunctionType and fn.__globals__ is namespace, 'actual source-owned function')
+    return (fn, fn.__code__, fn.__defaults__, fn.__kwdefaults__, fn.__closure__)
+
+
+def unchanged_function(image, namespace):
+    fn, code, defaults, kwdefaults, closure = image
+    need(type(fn) is FunctionType and fn.__globals__ is namespace and
+         fn.__code__ is code and fn.__defaults__ is defaults and
+         fn.__kwdefaults__ is kwdefaults and fn.__closure__ is closure,
+         'captured original function metadata')
+
+
+def class_image(cls, methods, namespace, *, slotted=False):
+    need(type(cls) is type, 'ordinary exact class before native type inspection')
+    mro = type.__getattribute__(cls, '__mro__')
+    need(type(mro) is tuple and len(mro) == 2 and mro[0] is cls and mro[1] is object, 'direct object class')
+    native = type.__getattribute__(cls, '__dict__')
+    keys = tuple(native)
+    need(all(type(k) is str for k in keys), 'class keys before hashing/lookup')
+    image = {k: native[k] for k in keys}
+    allowed = {'__module__', '__doc__'} | set(methods)
+    if slotted:
+        allowed |= {'__slots__', '__new__'}
+        need(type(image.get('__slots__')) is tuple and len(image['__slots__']) == 0 and
+             type(image.get('__new__')) is staticmethod, 'private empty-slotted class')
+        function_image(staticmethod.__getattribute__(image['__new__'], '__func__'), namespace)
+    else:
+        allowed |= {'__dict__', '__weakref__'}
+        for name in ('__dict__', '__weakref__'):
+            descriptor = image.get(name)
+            need(type(descriptor) is GetSetDescriptorType and descriptor.__objclass__ is cls and
+                 type(descriptor.__name__) is str and descriptor.__name__ == name, 'native actual-class dictionary descriptor')
+    need(set(image) == allowed and type(image['__module__']) is str and
+         (image['__doc__'] is None or type(image['__doc__']) is str), 'fixed class layout; no special hooks')
+    function_images = {name: function_image(image[name], namespace) for name in methods}
+    if slotted:
+        function_images['__new__'] = function_image(staticmethod.__getattribute__(image['__new__'], '__func__'), namespace)
+    return image, function_images
+
+
+def unchanged_class(cls, image, function_images, namespace):
+    need(type(cls) is type, 'unchanged ordinary metaclass')
+    native = type.__getattribute__(cls, '__dict__'); keys = tuple(native)
+    need(all(type(k) is str for k in keys) and set(keys) == set(image) and
+         all(native[k] is image[k] for k in keys), 'no class namespace/descriptor substitution')
+    mro = type.__getattribute__(cls, '__mro__')
+    need(type(mro) is tuple and len(mro) == 2 and mro[0] is cls and mro[1] is object, 'unchanged direct class ancestry')
+    for value in function_images.values():
+        unchanged_function(value, namespace)
+
+
+def instance_state(value, cls, image, function_images, namespace, fields):
+    need(type(value) is cls, 'exact actual instance before descriptor access')
+    unchanged_class(cls, image, function_images, namespace)
+    # Direct native getset dispatch bypasses value.__getattribute__ entirely.
+    values = GetSetDescriptorType.__get__(image['__dict__'], value, cls)
+    need(type(values) is dict, 'exact native instance dictionary')
+    keys = tuple(dict.__iter__(values))
+    need(all(type(k) is str for k in keys) and set(keys) == set(fields), 'no instance method/descriptor/special-hook shadow')
+    return values
+
+
+def bounded_kernel_data(value, nodes=None, depth=0):
+    if nodes is None:
+        nodes = [0]
+    nodes[0] += 1
+    need(nodes[0] <= 256 and depth <= 8, 'bounded kernel metadata state')
+    t = type(value)
+    if t is dict:
+        keys = tuple(dict.__iter__(value))
+        need(len(keys) <= 64 and all(type(k) is str for k in keys), 'kernel dictionary keys before lookup')
+        for key in keys:
+            bounded_kernel_data(value[key], nodes, depth + 1)
+    elif t is list or t is tuple:
+        need(len(value) <= 64, 'kernel metadata sequence bound')
+        for item in value:
+            bounded_kernel_data(item, nodes, depth + 1)
+    elif t is str:
+        need(len(value) <= 16384, 'kernel metadata string bound')
+    else:
+        need(value is None or t is int or t is bool, 'exact scalar kernel metadata')
+
+
+def exception_instance(value):
+    cls = type(value)
+    if type(cls) is not type:
+        return False
+    mro = type.__getattribute__(cls, '__mro__')
+    return type(mro) is tuple and any(base is BaseException for base in mro)
+
+def bind_api(controller, funding, *, role, expected_head_pin=None,
+             approved_handoff_pin=None, approved_closure=None, approved_opening=None, approved_manual_entry=None):
+    """Called ONLY by the separately authenticated source-private parent role.
+
+    Exact module/source/loaded-instance authentication is an external bootstrap
+    premise. Merely constructing ModuleType/FunctionType is not authentication.
+    approved_* are pinned permission/evidence DATA chosen by that trusted role;
+    they never create ownership. Every returned context first acquires its own
+    actual EX. No factory/caller/native command is authorized by this file.
+    """
+    need(type(controller) is ModuleType and type(funding) is ModuleType, 'actual selected module objects')
+    need(type(role) is str and role in ('PUBLISHER', 'CONTROLLER', 'CLOSER'), 'fixed caller role')
+    C, F = controller, funding
+    cg, fg = module_namespace(C), module_namespace(F)
+    IOType, LeaseType, io = cg['OwnedIO'], cg['GlobalLease'], cg['IO']
+    io_image, io_functions = class_image(IOType, ('__init__', 'acquire', 'close', 'read', 'names', 'write'), cg)
+    lease_image, lease_functions = class_image(LeaseType, ('__init__', 'acquire', 'verify', 'close'), cg)
+    instance_state(io, IOType, io_image, io_functions, cg, {'slots'})
+    lock_reference, domain_reference, control_reference = cg['HISTORICAL_LOCK'], fg['DOMAIN'], fg['CONTROL']
+    need(type(lock_reference) is type(LOCK) and lock_reference == LOCK and
+         type(domain_reference) is type(DOMAIN) and domain_reference == DOMAIN and
+         type(control_reference) is type(CONTROL) and control_reference == CONTROL,
+         'actual original canonical lock/domain values')
+    first_state, secondary_state, unknown_state = cg['FIRST'], cg['SECONDARY'], cg['IO_UNKNOWN']
+    need(type(first_state) is list and len(first_state) == 1 and type(secondary_state) is list and
+         len(secondary_state) == 32 and type(unknown_state) is list and len(unknown_state) == 1 and
+         type(unknown_state[0]) is bool, 'actual original error/uncertainty containers')
+    remember_image = function_image(cg['remember'], cg)
+    remember_original = remember_image[0]
+    funding_names = ('snapshot_round', 'assess_round', 'registry', 'require_append_only',
+                     'read_opening', 'opening_evidence', 'validate_opening_binding', 'require_opening_append',
+                     'validate_opening_partition', 'validate_pre_entry_provenance', 'metadata_decode', 'select',
+                     'read_pinned', 'plain', 'decode', 'pin', 'uint', 'financial_plain', 'financial_decode',
+                     'financial_evidence', 'validate_original_record', 'assess_enclosing_manual', '_assess_enclosing_manual_cap',
+                     'verify_financial_candidate', 'financial_commit_candidate', '_financial_history_evidence', 'read_financial_opening', '_read_frame_pin', 'canonical_financial', '_formal_receipt')
+    funding_images = {name: function_image(fg[name], fg) for name in funding_names}
+    active_globals = globals()  # Actual source-private A module; bootstrap authentication remains external.
+
+    def failure_state_valid():
+        keys = tuple(dict.__iter__(cg))
+        if not all(type(k) is str for k in keys):
+            return False
+        if not (cg.get('FIRST') is first_state and cg.get('SECONDARY') is secondary_state and
+                cg.get('IO_UNKNOWN') is unknown_state and cg.get('remember') is remember_original):
+            return False
+        if not (type(first_state) is list and len(first_state) == 1 and
+                type(secondary_state) is list and len(secondary_state) == 32 and
+                type(unknown_state) is list and len(unknown_state) == 1 and type(unknown_state[0]) is bool):
+            return False
+        return (first_state[0] is None or exception_instance(first_state[0])) and all(
+            e is None or exception_instance(e) for e in secondary_state)
+
+    def io_state(allow_uncertain=False):
+        values = instance_state(io, IOType, io_image, io_functions, cg, {'slots'})
+        slots = values['slots']
+        need(type(slots) is list and len(slots) == 16, 'fixed original IO slots')
+        for item in slots:
+            need(type(item) is list and len(item) == 3 and type(item[1]) is str,
+                 'exact IO slot structure before field use')
+            need(item[1] in ('FREE', 'CLOSED', 'OWNED', 'PENDING', 'CLOSING'), 'original IO slot phase')
+            need(item[2] is None or type(item[2]) is bool, 'original IO directory flag')
+            if item[1] == 'FREE':
+                need(item[0] is None and item[2] is None, 'original free slot')
+            elif item[1] == 'OWNED' and not allow_uncertain:
+                # Owned scandir iterators exist only INSIDE the unchanged original
+                # names call. At these nonreentrant source-private entry points,
+                # only known ordinary OS descriptor slots may persist.
+                need(item[2] is False and type(item[0]) is int and item[0] >= 0, 'known owned OS descriptor')
+            elif item[1] in ('PENDING', 'CLOSING'):
+                need(allow_uncertain, 'uncertain IO blocks fresh dispatch')
+        return values
+
+    def lease_state(held, fields=None):
+        wanted = {'fd', 'phase', 'birth', 'lock_info'} if fields is None else fields
+        values = instance_state(held, LeaseType, lease_image, lease_functions, cg, wanted)
+        if not wanted:
+            return values
+        need(type(values['phase']) is str and values['phase'] in
+             ('NEW', 'OPEN_PENDING', 'OPEN_RETURNED', 'EX_HELD', 'CLOSE_ENTERED', 'CLOSE_RETURNED', 'CLOSE_UNKNOWN'),
+             'exact original lease phase before equality/dispatch')
+        need(values['fd'] is None or (type(values['fd']) is int and values['fd'] >= 0), 'exact owned descriptor field')
+        birth = values['birth']
+        if birth is not None:
+            need(type(birth) is dict, 'actual process metadata dictionary')
+            keys = tuple(dict.__iter__(birth))
+            need(all(type(k) is str for k in keys) and set(keys) ==
+                 {'pid', 'ppid', 'pgid', 'sid', 'start_ticks', 'rss_bytes'}, 'actual process metadata keys')
+            need(all(type(birth[k]) is int and birth[k] >= 0 for k in keys), 'actual process metadata exact ints')
+        bounded_kernel_data(values['lock_info'])
+        return values
+
+    def kernel_integrity(held=None, *, allow_uncertain=False):
+        need(module_namespace(C) is cg and module_namespace(F) is fg and
+             cg.get('IO') is io and cg.get('OwnedIO') is IOType and cg.get('GlobalLease') is LeaseType and
+             cg.get('HISTORICAL_LOCK') is lock_reference and fg.get('DOMAIN') is domain_reference and
+             fg.get('CONTROL') is control_reference, 'same actual selected kernel objects')
+        unchanged_class(IOType, io_image, io_functions, cg)
+        unchanged_class(LeaseType, lease_image, lease_functions, cg)
+        unchanged_function(remember_image, cg)
+        need(failure_state_valid(), 'original error/uncertainty memory integrity')
+        for name, image in funding_images.items():
+            need(fg.get(name) is image[0], 'same selected funding function')
+            unchanged_function(image, fg)
+        values = io_state(allow_uncertain)
+        if held is not None:
+            lease_state(held)
+        return values
+
+    # No kernel instance/native method has been invoked before these snapshots.
+    kernel_integrity()
+    for value in (expected_head_pin, approved_handoff_pin, approved_closure, approved_opening, approved_manual_entry):
+        F.plain(value)
+    # Copy only strict DATA. No caller retains a mutable permission dictionary.
+    expected = F.decode(canonical(expected_head_pin)) if expected_head_pin is not None else None
+    handoff = F.decode(canonical(approved_handoff_pin)) if approved_handoff_pin is not None else None
+    closure = F.decode(canonical(approved_closure)) if approved_closure is not None else None
+    opening = F.decode(canonical(approved_opening)) if approved_opening is not None else None
+    manual = F.decode(canonical(approved_manual_entry)) if approved_manual_entry is not None else None
+    contexts, opened = {}, [False]
+    sentinel = object()
+
+    def fail(record, error):
+        valid = failure_state_valid()
+        if record['first'] is None:
+            record['first'] = first_state[0] if valid and first_state[0] is not None else error
+        if error is not record['first'] and all(error is not e for e in record['secondary']):
+            if len(record['secondary']) < 32:
+                record['secondary'].append(error)
+            else:
+                record['secondary_saturated'] = True
+        record['phase'] = 'FAILED_UNCERTAIN_NO_RETRY'
+        # Never invoke replaced global state while reporting its integrity failure.
+        # The private first/secondary debt survives even when kernel memory is unsafe.
+        if valid:
+            try:
+                unchanged_function(remember_image, cg)
+                remember_original(error)
+            except BaseException as secondary:
+                if secondary is not record['first'] and len(record['secondary']) < 32:
+                    record['secondary'].append(secondary)
+                else:
+                    record['secondary_saturated'] = True
+        else:
+            record['kernel_memory_uncertain'] = True
+        return record['first']
+
+    def rec(ctx):
+        need(type(ctx) is Context, 'actual private context type before hashing')
+        unchanged_class(Context, context_image, context_functions, active_globals)
+        need(ctx in contexts, 'actual private context only')
+        return contexts[ctx]
+
+    def verify(record):
+        need(record['phase'] not in ('FAILED_UNCERTAIN_NO_RETRY', 'RELEASED', 'CLOSE_UNKNOWN'), 'live private owner phase')
+        kernel_integrity(record['lease'])
+        need(unknown_state[0] is False and first_state[0] is None, 'no earlier original failure/uncertainty')
+        need(record['pid'] == os.getpid(), 'same actual process/context; no fork or DATA restoration')
+        values = lease_state(record['lease'])
+        need(values['fd'] is record['owned_fd'], 'same captured actual native descriptor field')
+        observation = lease_image['verify'](record['lease'])  # Original real native verification.
+        kernel_integrity(record['lease'])
+        need(observation['parent']['start_ticks'] == record['birth']['start_ticks'] and
+             observation['parent']['pid'] == record['birth']['pid'], 'native generation unchanged')
+        return observation
+
+    def close_actual(record):
+        need(record['lease_close_entered'] is False, 'one actual lease close; never replay a numeric FD')
+        record['lease_close_entered'] = True
+        if record['lease'] is None or record['lease_acquire_entered'] is False:
+            return  # Original pure initializer never acquired any native descriptor.
+        kernel_integrity(record['lease'], allow_uncertain=True)
+        values = lease_state(record['lease'])
+        need(values['phase'] not in ('CLOSE_ENTERED', 'CLOSE_RETURNED', 'CLOSE_UNKNOWN'),
+             'original source lease was already closed/uncertain; no repeated FD close')
+        if record['owned_fd'] is not None:
+            need(values['fd'] is record['owned_fd'], 'no replaced native descriptor on cleanup')
+        lease_image['close'](record['lease'])
+
+    def guarded_io(name, *args, **kwargs):
+        cleanup = name == 'close'
+        kernel_integrity(allow_uncertain=cleanup)
+        for record in contexts.values():
+            if record['lease'] is not None and record['lease_initialized']:
+                lease_state(record['lease'])
+        if cleanup:
+            slot = args[0]
+            slots = io_state(True)['slots']
+            need(any(slot is item for item in slots) and type(slot) is list and len(slot) == 3 and
+                 type(slot[1]) is str and slot[1] == 'OWNED' and slot[2] is False and
+                 type(slot[0]) is int and slot[0] >= 0, 'actual ordinary owned IO slot before close')
+        return io_image[name](io, *args, **kwargs)
+
+    def funding_io(name, *args):
+        kernel_integrity()
+        for record in contexts.values():
+            if record['lease'] is not None and record['lease_initialized']:
+                lease_state(record['lease'])
+        # SAME real IO object, not a proxy or callback. Original internal self calls
+        # are covered by selected single-thread/nonreentrant private stability.
+        return funding_images[name][0](io, *args)
+
+    def directory(path, *, private=True):
+        need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical selected directory')
+        st = path.lstat()
+        need(stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid() and
+             ((stat.S_IMODE(st.st_mode) == 0o700) if private else not stat.S_IMODE(st.st_mode) & 0o022),
+             'owned selected directory mode')
+        return (st.st_dev, st.st_ino, st.st_mode, st.st_uid, st.st_mtime_ns, st.st_ctime_ns)
+
+    def sync_dir(record, path):
+        directory(path, private=path not in (CONTROL, DOMAIN.parent.parent))
+        slot = guarded_io('acquire', path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        primary = None
+        try:
+            os.fsync(slot[0])
+        except BaseException as e:
+            primary = fail(record, e)
+        finally:
+            if slot[1] == 'OWNED':
+                try:
+                    guarded_io('close', slot)
+                except BaseException as e:
+                    primary = fail(record, e)
+        if primary is not None:
+            raise primary
+
+    def pinned(path, raw, mode):
+        return {'path': str(path), 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(), 'mode': mode}
+
+    def read(record, p):
+        verify(record)
+        return funding_io('read_pinned', p, os.getuid())[1]
+
+    def stage_empty():
+        directory(STAGE)
+        need(guarded_io('names', STAGE, 2) == [], 'no pending/orphan staging file; no cleanup by guessed name')
+
+    def publish(record, path, raw, mode, *, replace_head=False):
+        verify(record); stage_empty()
+        need(type(raw) is bytes and 0 < len(raw) <= F.META_CAP and mode in (0o444, 0o600), 'bounded publication')
+        directory(path.parent, private=path.parent != CONTROL)
+        record['publication'] = {'path': path, 'slot': None, 'temporary': None, 'phase': 'BEFORE_CREATE'}
+        tmp = STAGE / ('pending-' + record['role'] + '-' + path.name)
+        record['publication']['temporary'] = tmp  # Private identity exists BEFORE fallible open.
+        record['publication']['phase'] = 'OPEN_PENDING'
+        slot = guarded_io('acquire', tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC)
+        record['publication']['slot'] = slot
+        primary = None
+        try:
+            record['publication']['phase'] = 'WRITING'
+            offset = 0
+            while offset < len(raw):
+                n = os.write(slot[0], raw[offset:offset + 65536])
+                need(type(n) is int and 0 < n <= min(65536, len(raw) - offset), 'progressing exact write')
+                offset += n
+            os.fchmod(slot[0], mode)
+            os.fsync(slot[0])
+        except BaseException as e:
+            primary = fail(record, e)
+        finally:
+            if slot[1] == 'OWNED':
+                try:
+                    guarded_io('close', slot)
+                except BaseException as e:
+                    primary = fail(record, e)
+        if primary is not None:
+            raise primary
+        # Keep all partial/failed artifacts; there is no automatic unlink/retry catch.
+        need(read(record, pinned(tmp, raw, mode)) == raw, 'complete staged readback')
+        sync_dir(record, STAGE)
+        record['publication']['phase'] = 'COMMIT_PENDING'
+        if replace_head:
+            need(path == HEAD or (path == F.FIN_HEAD and record['financial_publication'] is True), 'only source-owned exact HEAD is replaceable')
+            os.replace(tmp, path)
+        else:
+            os.link(tmp, path, follow_symlinks=False)  # Atomic no-overwrite publication.
+            sync_dir(record, path.parent)
+            os.unlink(tmp)  # Only the actual known-created, closed staged file.
+        sync_dir(record, STAGE)
+        sync_dir(record, path.parent)
+        result = pinned(path, raw, mode)
+        need(read(record, result) == raw, 'final publication/custody readback')
+        stage_empty()
+        record['publication']['phase'] = 'COMMITTED'
+        return result
+
+    def head(record, pin_expected):
+        verify(record); stage_empty(); directory(HEADS); F.pin(pin_expected)
+        need(pin_expected['path'] == str(HEAD) and pin_expected['mode'] == 0o600, 'exact current HEAD pin')
+        raw = read(record, pin_expected); obj = F.decode(raw)
+        F.exact(obj, ('schema', 'sequence', 'registry_pin', 'previous_head_sha256'))
+        need(obj['schema'] == 'fresh-active-head-v1' and type(obj['sequence']) is int and
+             0 <= obj['sequence'] <= 2 * F.MAX_ENTRIES, 'bounded head generation')
+        seq = obj['sequence']; F.pin(obj['registry_pin'])
+        need(obj['registry_pin']['path'] == str(CONTROL / ('REGISTRY-%06d.json' % seq)), 'head registry generation')
+        expected_heads = {'HEAD-%06d.json' % n for n in range(seq + 1)}
+        need(set(guarded_io('names', HEADS, 2 * F.MAX_ENTRIES + 2)) == expected_heads, 'exact head history census')
+        need(read(record, pinned(HEADS / ('HEAD-%06d.json' % seq), raw, 0o600)) == raw, 'current immutable head history')
+        names = guarded_io('names', CONTROL, 1024)
+        need({n for n in names if n.startswith('REGISTRY-')} ==
+             {'REGISTRY-%06d.json' % n for n in range(seq + 1)}, 'no unadopted registry generation')
+        reg_raw = read(record, obj['registry_pin']); F.registry(reg_raw)
+        return obj, raw, reg_raw
+
+    def advance(record, current, current_raw, old_registry_raw, new_registry, opening_transition=None):
+        verify(record); stage_empty()
+        F.plain(new_registry); new_raw = canonical(new_registry)
+        F.require_append_only(old_registry_raw, new_raw, opening_transition)
+        seq = current['sequence'] + 1
+        need(seq <= 2 * F.MAX_ENTRIES, 'registry generation cap')
+        registry_pin = publish(record, CONTROL / ('REGISTRY-%06d.json' % seq), new_raw, 0o444)
+        next_head = {'schema': 'fresh-active-head-v1', 'sequence': seq,
+                     'registry_pin': registry_pin, 'previous_head_sha256': hashlib.sha256(current_raw).hexdigest()}
+        raw = canonical(next_head)
+        publish(record, HEADS / ('HEAD-%06d.json' % seq), raw, 0o600)
+        need(read(record, record['head_pin']) == current_raw, 'no stale head adoption')
+        record['head_pin'] = publish(record, HEAD, raw, 0o600, replace_head=True)
+        adopted, adopted_raw, adopted_registry = head(record, record['head_pin'])
+        need(adopted_raw == raw and adopted_registry == new_raw, 'durable exact head adopted')
+        return adopted, adopted_raw, adopted_registry
+
+    def current_registry_pin(record):
+        current, _, _ = head(record, record['head_pin'])
+        return current['registry_pin']
+
+    def active_view(record):
+        if record['financial_mode']:
+            return financial_active_view(record)
+        verify(record)
+        need(record['phase'] == 'ACTIVE' and record['request'] is not None, 'actual ACTIVE reservation')
+        current, current_raw, reg_raw = head(record, record['head_pin'])
+        snap = funding_io('snapshot_round', current['registry_pin'], os.getuid())
+        old_raw = read(record, record['baseline_registry_pin'])
+        old, _, old_starts, old_closes = F.registry(old_raw)
+        reg, _, starts, closes = F.registry(reg_raw)
+        name = record['request']['label']
+        F.require_append_only(old_raw, reg_raw)
+        need(reg['events'] == old['events'] + [{'kind': 'REGISTER', 'label': name, 'pin': record['start_pin']}] and
+             reg['policies'] == old['policies'] and reg['phase'] == old['phase'] and
+             set(old_starts) == set(old_closes) and set(starts) - set(closes) == {name},
+             'exact own pending reservation only; every other entry closed')
+        need(snap['records'][name]['receipt'] is None and
+             snap['records'][name]['start'] == record['start'], 'actual current START/source reservation')
+        # A separately checked accounting prefix, NOT a filtered current ledger.
+        # Own reservation remains in request and the current registry stays pending.
+        prefix = dict(snap, registry=old, registry_pin=record['baseline_registry_pin'],
+                      records={k: snap['records'][k] for k in old_starts})
+        result = F.assess_round(prefix, record['request'])
+        need(result['funding_data_eligible_only'] is True, 'prior debt/uncertainty or own reservation blocks')
+        return result
+
+    def read_manual(record, expected_state_sha256=None):
+        if record['financial_mode']:
+            return read_financial_manual(record, expected_state_sha256)
+        verify(record)
+        need(manual is not None, 'same enclosing native operation original manual pre-entry binding is unconfigured')
+        F.exact(manual, ('schema', 'request', 'provenance', 'closed_state_pin', 'registration_checks', 'start_checks'))
+        need(manual['schema'] == 'fresh-active-manual-entry-binding-v1', 'selected original manual entry binding')
+        request, provenance = manual['request'], manual['provenance']
+        F.validate_pre_entry_provenance(provenance, request['label'], request['command_sha256'], request['body_reservation_ns'])
+        state_raw = read(record, manual['closed_state_pin'])
+        F.metadata_decode(state_raw)  # Current manually retained accepted-state DATA, not an owner.
+        if expected_state_sha256 is not None:
+            need(manual['closed_state_pin']['sha256'] == expected_state_sha256, 'all closed manual costs imported before new formal entry')
+        registration = F.metadata_decode(read(record, provenance['registration_pin']))
+        original_start = F.metadata_decode(read(record, provenance['original_start_pin']))
+        pending = F.metadata_decode(read(record, provenance['pending_manifest_pin']))
+        F.exact(pending, ('schema', 'closed_state_sha256', 'operations'))
+        wanted = {'entry_id': request['label'], 'command_sha256': request['command_sha256'],
+                  'body_reservation_ns': request['body_reservation_ns'],
+                  'registration_pin': provenance['registration_pin'], 'original_start_pin': provenance['original_start_pin']}
+        need(pending['schema'] == 'fresh-current-manual-pending-v1' and
+             pending['closed_state_sha256'] == manual['closed_state_pin']['sha256'] and
+             pending['operations'] == [wanted], 'exact strongly-bound current enclosing pending operation only')
+        need(registration['attempt_id'] == request['label'], 'original one-use ID, never a new alias')
+        for document, checks in ((registration, manual['registration_checks']), (original_start, manual['start_checks'])):
+            need(type(checks) is list and 1 <= len(checks) <= 16, 'explicit original pre-entry field correlations')
+            for check in checks:
+                F.exact(check, ('path', 'expected'))
+                actual = F.select(document, check['path'])
+                need(type(actual) is type(check['expected']) and actual == check['expected'], 'original pre-entry provenance differs')
+        record['manual_request'] = F.decode(canonical(request))
+        record['manual_provenance'] = F.decode(canonical(provenance))
+        return record['manual_provenance']
+
+
+    def financial_pure(name, *args):
+        kernel_integrity()
+        return funding_images[name][0](*args)
+
+    def small_request(request):
+        return {k:request[k] for k in ('label','command_sha256','policy_sha256','body_reservation_ns')}
+
+    def financial_cap(record):
+        request=record['own_request']
+        if request['phase_release_sha256'] is None:
+            return F.INITIAL_NS
+        need(record['head_pin'] is not None, 'actual FULL phase requires original admitted formal head')
+        current,_,raw=head(record,record['head_pin']); reg,_,_,_=F.registry(raw)
+        need(reg['phase']=='FULL' and reg['phase_release_sha256']==request['phase_release_sha256'], 'same separately authorized FULL phase; hash alone not permission')
+        # Actual source-private caller admission of that release remains the
+        # original external authority premise, just as for legacy FULL.
+        return F.TOTAL_NS
+
+    def bind_financial_own(record, snapshot, mode):
+        need(record['financial_mode'] and manual is not None, 'fixed financial source-role configuration')
+        F.exact(manual,('schema','request','provenance','financial_opening_pin','financial_head_pin','closed_state_pin','registration_checks','start_checks'))
+        need(manual['schema']=='fresh-active-financial-manual-entry-binding-v1', 'financial manual binding')
+        request=manual['request']; provenance=manual['provenance']
+        F.exact(request,('schema','round_id','label','command_sha256','body_reservation_ns','policy_sha256','phase_release_sha256'))
+        need(request['schema']=='fresh-round-request-v1' and request['round_id']==F.ROUND_ID, 'original exact round/request')
+        F.validate_pre_entry_provenance(provenance,request['label'],request['command_sha256'],request['body_reservation_ns'])
+        e=financial_pure('financial_evidence',snapshot); need(request['label'] in e['entries'],'current original manual operation must be present')
+        v=e['entries'][request['label']]
+        need(v['record_pins']['reservation']==provenance['registration_pin'] and v['record_pins']['meter_start']==provenance['original_start_pin'] and
+             v['reservation']['before_closed_state_pin']==manual['closed_state_pin'],'original registration/start/predecessor source lineage')
+        registration=F.metadata_decode(read(record,provenance['registration_pin']))
+        start=F.metadata_decode(read(record,provenance['original_start_pin']))
+        pending=F.metadata_decode(read(record,provenance['pending_manifest_pin']))
+        F.exact(pending,('schema','closed_state_sha256','operations'))
+        wanted={'entry_id':request['label'],'command_sha256':request['command_sha256'],'body_reservation_ns':request['body_reservation_ns'],
+                'registration_pin':provenance['registration_pin'],'original_start_pin':provenance['original_start_pin']}
+        need(pending['schema']=='fresh-current-manual-pending-v1' and pending['closed_state_sha256']==manual['closed_state_pin']['sha256'] and pending['operations']==[wanted], 'exact actual enclosing pending manifest only')
+        need(registration['attempt_id']==request['label'],'same original one-use attempt; no alias')
+        for obj,checks in ((registration,manual['registration_checks']),(start,manual['start_checks'])):
+            need(type(checks) is list and 1<=len(checks)<=16,'explicit original source checks')
+            for check in checks:
+                F.exact(check,('path','expected')); actual=F.select(obj,check['path'])
+                need(type(actual) is type(check['expected']) and actual==check['expected'],'original source preentry mismatch')
+        if record['own_request'] is None:
+            record['own_request']=F.decode(canonical(request)); record['own_start_pin']=F.decode(canonical(provenance['original_start_pin']))
+            record['own_start']=F.metadata_decode(read(record,record['own_start_pin'])); record['own_clock_ns']=record['own_start']['body_begin_ns']
+            F.uint(record['own_clock_ns']); record['own_reservation_ns']=request['body_reservation_ns']+F.ADMIN_NS
+            record['manual_request']=record['own_request']; record['manual_provenance']=F.decode(canonical(provenance))
+        else:
+            need(record['own_request']==request and record['own_start_pin']==provenance['original_start_pin'] and record['own_start']==start,'own request/start/clock never replaced by target')
+        need(type(mode) is str and mode in ('INITIALIZE_ONLY','PAYLOAD_PRELUDE','CLOSE_ONLY'),'fixed enclosing source mode')
+        need((mode=='CLOSE_ONLY' and role=='CLOSER') or (mode=='INITIALIZE_ONLY' and role=='PUBLISHER') or
+             (mode=='PAYLOAD_PRELUDE' and role in ('PUBLISHER','CONTROLLER')),'actual source-private role for metadata/payload phase')
+        need(record['manual_mode'] is None or record['manual_mode']==mode,'no metadata mode upgrade')
+        record['manual_mode']=mode
+        return e
+
+    def verify_own_inflight_slot(record,snapshot):
+        name=record['own_request']['label']; path=F.FIN_ENTRIES/name/'METER_BODY.json'
+        need(snapshot['wires'].get(str(path))=='','exact original own planned zero-byte producer slot; never zero elapsed')
+        # Actual inherited stdout is inspected now, never supplied/restored as
+        # a saved numeric handle. This does NOT invent a cross-process producer
+        # binding: a controller whose FD1 is a child log must fail this guard.
+        # Genuine source-private one-use producer/capture role and pristine OS
+        # primitives remain selected operating premises, not JSON/lease proof.
+        kernel_integrity(record['lease'])
+        before=os.fstat(1)
+        need(type(before) is os.stat_result,'actual native stdout stat result before fields')
+        need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode)==0o600 and
+             before.st_uid==os.getuid() and before.st_nlink==1 and before.st_size==0,
+             'actual current inherited producer stdout must be regular owned0600 single-link empty')
+        before_identity=(before.st_dev,before.st_ino,before.st_mode,before.st_nlink,
+                         before.st_uid,before.st_size,before.st_mtime_ns,before.st_ctime_ns)
+        expected_slot={'path':str(path),'bytes':0,'sha256':hashlib.sha256(b'').hexdigest(),'mode':0o600}
+        row,raw=funding_io('_read_frame_pin',expected_slot,os.getuid())
+        after=os.fstat(1)
+        need(type(after) is os.stat_result,'actual paired native stdout stat result before fields')
+        after_identity=(after.st_dev,after.st_ino,after.st_mode,after.st_nlink,
+                        after.st_uid,after.st_size,after.st_mtime_ns,after.st_ctime_ns)
+        need(raw==b'' and row['mode']==0o600 and row['uid']==os.getuid() and row['nlink']==1 and
+             type(row['identity']) is list and tuple(row['identity'])==before_identity==after_identity,
+             'actual inherited FD1 and exact canonical own BODY path have paired stable native custody identity')
+        if record['producer_stdout_identity'] is None:
+            record['producer_stdout_identity']=before_identity  # Private observation, never owner constructor.
+        else:
+            need(record['producer_stdout_identity']==before_identity,'same original current producer descriptor identity')
+        kernel_integrity(record['lease'])
+        need(record['own_start_pin']==manual['provenance']['original_start_pin'] and record['own_clock_ns']==record['own_start']['body_begin_ns'],'original current START/clock lineage')
+
+    def financial_formal_domain(record,evidence,snapshot):
+        # Completeness is checked against the actual canonical formal domain;
+        # no extra registry operation can disappear from the financial suffix.
+        if record['head_pin'] is None:
+            need(not HEAD.exists() and not HEAD.is_symlink(),'genesis has no actual formal HEAD or alias')
+            need(not any(n.startswith('REGISTRY-') for n in guarded_io('names',CONTROL,1024)),'no orphan formal registry at genesis')
+            for path in (DOMAIN,HEADS):
+                if path.exists():
+                    directory(path); need(guarded_io('names',path,2)==[],'no orphan formal genesis entry/history')
+            return None
+        current,_,raw=head(record,record['head_pin'])
+        reg,policy_pins,starts,closes=F.registry(raw)
+        # Candidate adoption precedes the next financial HEAD: use genuine
+        # formal IO/census directly, not an old financial snapshot that would
+        # misclassify the newly original enclosing entry as an omitted orphan.
+        before=directory(DOMAIN); names=guarded_io('names',DOMAIN,F.MAX_ENTRIES+1)
+        need(type(names) is list and all(type(n) is str for n in names) and len(names)==len(set(names)) and set(names)==set(starts),'complete actual formal namespace')
+        observed=[]; folders={}; records={}
+        def formal_take(pin):
+            verify(record); row,wire=funding_io('read_pinned',pin,os.getuid()); observed.append((pin,row,wire)); return wire
+        for name in sorted(starts):
+            folder=DOMAIN/name; identity=directory(folder); members=guarded_io('names',folder,3)
+            wanted={'START.json','receipt.json'} if name in closes else {'START.json'}
+            need(type(members) is list and all(type(n) is str for n in members) and len(members)==len(set(members)) and set(members)==wanted,'exact original formal START/receipt census')
+            records[name]={'start':F.decode(formal_take(starts[name])),'receipt':F.decode(formal_take(closes[name])) if name in closes else None}
+            folders[name]=(identity,wanted)
+        policies={key:F.decode(formal_take(pin)) for key,pin in policy_pins.items()}
+        for pin,row,wire in observed:
+            verify(record); after,again=funding_io('read_pinned',pin,os.getuid())
+            need(after==row and again==wire,'stable original formal wire and custody metadata')
+        for name,(identity,wanted) in folders.items():
+            need(directory(DOMAIN/name)==identity and set(guarded_io('names',DOMAIN/name,3))==wanted,'formal folder identity/census unchanged')
+        need(directory(DOMAIN)==before and sorted(guarded_io('names',DOMAIN,F.MAX_ENTRIES+1))==sorted(names),'whole actual formal census unchanged')
+        actual={'records':records,'policies':policies}
+        financial_pure('validate_opening_partition',snapshot,reg,records)
+        expected_rows={v['entry_id']:v for v in evidence['registry_rows'] if v['formal_start_sha256'] is not None}
+        expected_ids=set(expected_rows)
+        own_id=record['own_request']['label']
+        if record['start_pin'] is not None:
+            need(own_id in expected_rows and own_id in starts and starts[own_id]==record['start_pin'] and
+                 actual['records'][own_id]['start']==record['start'] and actual['records'][own_id]['receipt'] is None,
+                 'same actual current own formal START/census, never a reconstructed owner')
+        need(set(starts)==expected_ids,'every actual formal entry has its exact financial suffix lineage')
+        for name,bundle in actual['records'].items():
+            st=bundle['start']; F.exact(st,('schema','round_id','label','command_sha256','body_reservation_ns','policy_sha256','pre_entry_provenance'))
+            need(st['schema']=='fresh-round-start-v1' and st['round_id']==F.ROUND_ID and st['label']==name and
+                 st['policy_sha256'] in actual['policies'],'original exact formal START/policy namespace')
+            F.validate_pre_entry_provenance(st['pre_entry_provenance'],name,st['command_sha256'],st['body_reservation_ns'])
+            policy=actual['policies'][st['policy_sha256']]
+            F.exact(policy,('schema','round_id','command_sha256','administrative_debit_ns','scope','adoption_sha256','claims_physical_upper_bound'))
+            need(policy['schema']=='fresh-round-admin-policy-v1' and policy['round_id']==F.ROUND_ID and
+                 policy['command_sha256']==st['command_sha256'] and type(policy['administrative_debit_ns']) is int and
+                 policy['administrative_debit_ns']==F.ADMIN_NS and policy['scope']=='STARTUP_AND_FINAL_METADATA_PUBLICATION_ONLY' and
+                 policy['claims_physical_upper_bound'] is False,'every formal price/policy remains original and exact')
+            F.digest(policy['adoption_sha256'])
+            if name in expected_rows:
+                row=expected_rows[name]
+                need(starts[name]['sha256']==row['formal_start_sha256'] and st['command_sha256']==row['command_sha256'] and
+                     st['body_reservation_ns']==row['reservation']['body_reservation_ns'],'formal/suffix command and reservation correlation')
+                need((name in closes) is (row['phase']=='CLOSED_KNOWN'),'formal CLOSE and financial settlement agree')
+        return actual
+
+    def financial_guard(record, snapshot=None):
+        verify(record)
+        need(record['financial_mode'] and record['own_request'] is not None and record['manual_mode'] is not None,'actual bound enclosing source-private context')
+        if snapshot is None:
+            need(record['financial_snapshot'] is not None,'actual financial head not adopted')
+            expected_financial_head=record['financial_snapshot']['head_pin']
+            snapshot=funding_io('read_financial_opening',record['financial_snapshot']['opening_pin'],os.getuid())
+            need(snapshot['schema']=='fresh-financial-snapshot-v1' and snapshot['head_pin']==expected_financial_head,'same actual current financial head; refresh requires explicit reviewed adoption')
+        need(snapshot['head_pin']==record['financial_snapshot']['head_pin'] if record['financial_snapshot'] is not None else True,'same authenticated financial generation')
+        e=bind_financial_own(record,snapshot,record['manual_mode']); verify_own_inflight_slot(record,snapshot)
+        financial_formal_domain(record,e,snapshot)
+        own=e['entries'][record['own_request']['label']]; intent=own['command']['metadata_close_intent'] if record['manual_mode']=='CLOSE_ONLY' else None
+        result=financial_pure('_assess_enclosing_manual_cap',snapshot,small_request(record['own_request']),record['manual_mode'],intent,financial_cap(record))
+        need(result['financial_data_eligible_only'] is True,'financial enclosing reservation/other pending or unknown blocks')
+        now=time.monotonic_ns()
+        need(type(now) is int and now>=record['own_clock_ns'] and now-record['own_clock_ns']<=record['own_request']['body_reservation_ns'],'actual own body allowance; target time never borrowed')
+        return result
+
+    def read_financial_manual(record, expected_state_sha256=None):
+        need(record['manual_mode'] is not None and record['financial_snapshot'] is not None,'explicit HELD-to-enclosing-manual adoption required')
+        financial_guard(record)
+        if expected_state_sha256 is not None:
+            need(record['financial_snapshot']['opening_pin'] is not None and
+                 financial_pure('financial_evidence',record['financial_snapshot'])['state_sha256']==expected_state_sha256,'all prior costs current and accounted')
+        return record['manual_provenance']
+
+    def financial_active_view(record):
+        verify(record)
+        need(record['phase']=='ACTIVE' and record['manual_mode']=='PAYLOAD_PRELUDE' and record['request']==record['own_request'],'actual original formal owner only')
+        result=financial_guard(record)
+        current,_,regraw=head(record,record['head_pin']); reg,_,starts,closes=F.registry(regraw)
+        need(record['request']['label'] in starts and record['request']['label'] not in closes and
+             starts[record['request']['label']]==record['start_pin'],'same current formal START/reservation')
+        old_raw=read(record,record['baseline_registry_pin']); old,_,old_starts,old_closes=F.registry(old_raw)
+        need(set(old_starts)==set(old_closes) and reg['events']==old['events']+[{'kind':'REGISTER','label':record['request']['label'],'pin':record['start_pin']}], 'all other formal entries closed; own pending retained once')
+        return result
+
+    def publish_financial_candidate(record,candidate,allow_target_commit=False):
+        verify(record)
+        need(record['manual_mode'] is not None and record['own_request'] is not None,'own source lineage before publication')
+        expected_fin=record['financial_snapshot']['head_pin'] if record['financial_snapshot'] is not None else manual['financial_head_pin']
+        e=funding_io('verify_financial_candidate',candidate,os.getuid(),expected_fin)
+        if expected_fin is not None:
+            old_head=F.metadata_decode(read(record,expected_fin))
+            old_view=financial_pure('_financial_history_evidence',candidate,old_head['opening_pin'])
+            for name,v in old_view['entries'].items():
+                new=e['entries'][name]
+                if v['settlement_route']=='FORMAL_OUTER' and v['phase']!='CLOSED_KNOWN' and new['phase']=='CLOSED_KNOWN':
+                    need(allow_target_commit and record['manual_mode']=='CLOSE_ONLY' and record['close_formal_committed'] is not None and
+                         record['financial_target'] is not None and name==record['financial_target']['entry_id'],'no formal settlement outside actual METADATA_CLOSE')
+                if v['phase']!='CLOSED_KNOWN' and new['phase']=='CLOSED_KNOWN':
+                    need(new['known_charge_ns'] is not None and name not in e['unknown'],'only genuinely adjudicated known prior costs may settle')
+        record['candidate_pending']=candidate
+        for path in (F.FIN_ROOT,F.FIN_ENTRIES,STAGE):
+            if not path.exists(): os.mkdir(path,0o700); sync_dir(record,path.parent)
+            directory(path)
+        h=F.metadata_decode(candidate['head_wire'].encode()); g=h['generation']
+        record['financial_publication']=True
+        try:
+            for path,mode in ((F.FIN_ROOT/('STATE-%06d.json'%g),0o444),(F.FIN_ROOT/('OPENING-%06d.json'%g),0o444),(F.FIN_ROOT/('HEAD-%06d.json'%g),0o600)):
+                publish(record,path,candidate['wires'][str(path)].encode(),mode)
+            publish(record,F.FIN_HEAD,candidate['head_wire'].encode(),0o600,replace_head=F.FIN_HEAD.exists())
+        finally:
+            record['financial_publication']=False
+        actual=funding_io('read_financial_opening',candidate['opening_pin'],os.getuid())
+        need(actual==candidate,'whole actual financial publication/census readback')
+        record['financial_snapshot']=actual; record['candidate_pending']=None
+        return e
+
+    def link_own_formal_start(record):
+        verify(record)
+        need(record['financial_mode'] and record['manual_mode']=='PAYLOAD_PRELUDE' and
+             record['phase']=='FORMAL_REGISTERED_FINANCIAL_LINK_PENDING' and
+             record['request']==record['own_request'] and record['start_pin'] is not None,
+             'exact private same enclosing operation, before ACTIVE and payload')
+        snapshot=record['financial_snapshot']; need(snapshot is not None,'original financial prelude retained')
+        verify_own_inflight_slot(record,snapshot)
+        now=time.monotonic_ns()
+        need(type(now) is int and now>=record['own_clock_ns'] and
+             now-record['own_clock_ns']<=record['own_request']['body_reservation_ns'],
+             'formal financial linkage belongs to original own body allowance')
+        evidence=financial_pure('financial_evidence',snapshot); name=record['own_request']['label']; own=evidence['entries'][name]
+        need(own['settlement_route']=='FORMAL_OUTER' and own['phase'] in ('RESERVED','STARTED') and
+             own['formal_start_sha256'] is None and own['formal_receipt_sha256'] is None and
+             own['meter_body'] is None and own['adjudication'] is None,'exact pending unregistered original financial prelude')
+        current,_,registry_raw=head(record,record['head_pin']); reg,_,starts,closes=F.registry(registry_raw)
+        old_raw=read(record,record['baseline_registry_pin']); old,_,prior_starts,prior_closes=F.registry(old_raw)
+        need(set(prior_starts)==set(prior_closes) and starts.get(name)==record['start_pin'] and name not in closes and
+             reg['events']==old['events']+[{'kind':'REGISTER','label':name,'pin':record['start_pin']}],
+             'actual exact formal REGISTER readback before financial linkage')
+        start_raw=read(record,record['start_pin']); need(F.decode(start_raw)==record['start'],'genuine exact newly published formal START bytes')
+        candidate=json.loads(json.dumps(snapshot)); financial_pure('financial_plain',candidate)
+        wires=candidate['wires']; old_head=F.financial_decode(candidate['head_wire'].encode()); generation=old_head['generation']+1
+        previous_manifest=F.financial_decode(wires[own['manifest_pin']['path']].encode())
+        version=int(Path(own['manifest_pin']['path']).name[6:12])+1
+        linked=dict(previous_manifest,formal_start_pin=record['start_pin'],phase='STARTED')
+        manifest_path=F.FIN_ENTRIES/name/('ENTRY-%06d.json'%version); manifest_raw=F.canonical_financial(linked)
+        manifest_pin=pinned(manifest_path,manifest_raw,0o444); wires[str(manifest_path)]=manifest_raw.decode()
+        wires[record['start_pin']['path']]=start_raw.decode()
+        candidate['census'][str(manifest_path.parent)].append(manifest_path.name); candidate['census'][str(manifest_path.parent)].sort()
+        state=F.financial_decode(wires[evidence['state_pin']['path']].encode())
+        state['generation']=generation; state['previous_state_sha256']=evidence['state_pin']['sha256']
+        state['ordered_entries']=[manifest_pin if pin==own['manifest_pin'] else pin for pin in state['ordered_entries']]
+        # Pending own ID/totals/R and all other entries/events stay unchanged.
+        state_path=F.FIN_ROOT/('STATE-%06d.json'%generation); state_raw=F.canonical_financial(state); state_pin=pinned(state_path,state_raw,0o444)
+        opening=dict(evidence['descriptor'],suffix_state_pin=state_pin,previous_opening_sha256=evidence['opening_pin']['sha256'])
+        opening_path=F.FIN_ROOT/('OPENING-%06d.json'%generation); opening_raw=F.canonical_financial(opening); opening_pin=pinned(opening_path,opening_raw,0o444)
+        financial_head={'schema':'fresh-financial-head-v1','generation':generation,'state_pin':state_pin,
+                        'opening_pin':opening_pin,'previous_head_sha256':evidence['head_pin']['sha256']}
+        head_raw=F.canonical_financial(financial_head); head_path=F.FIN_ROOT/('HEAD-%06d.json'%generation)
+        for path,wire in ((state_path,state_raw),(opening_path,opening_raw),(head_path,head_raw),(F.FIN_HEAD,head_raw)):
+            wires[str(path)]=wire.decode()
+        candidate['head_pin']=pinned(F.FIN_HEAD,head_raw,0o600); candidate['head_wire']=head_raw.decode()
+        candidate['opening_pin']=opening_pin; candidate['opening_wire']=opening_raw.decode()
+        candidate['census'][str(F.FIN_ROOT)]+=[state_path.name,opening_path.name,head_path.name]
+        candidate['census'][str(F.FIN_ROOT)].sort()
+        # Validate exact DATA shape first; then durable original manifest,
+        # actual formal/financial correspondence, next financial HEAD/readback.
+        financial_pure('financial_evidence',candidate)
+        record['formal_link_pending']={'manifest_pin':manifest_pin,'candidate':candidate}
+        publish(record,manifest_path,manifest_raw,0o444)
+        financial_formal_domain(record,financial_pure('financial_evidence',candidate),candidate)
+        publish_financial_candidate(record,candidate)
+        linked_view=financial_pure('financial_evidence',record['financial_snapshot'])['entries'][name]
+        need(linked_view['formal_start_sha256']==record['start_pin']['sha256'] and
+             linked_view['known_charge_ns'] is None and name in financial_pure('financial_evidence',record['financial_snapshot'])['pending'],
+             'durable exact formal START linkage readback; full own debt remains pending')
+        record['formal_link_pending']=None
+        verify_own_inflight_slot(record,record['financial_snapshot'])
+        now=time.monotonic_ns()
+        need(type(now) is int and now>=record['own_clock_ns'] and
+             now-record['own_clock_ns']<=record['own_request']['body_reservation_ns'],
+             'all linkage/readback work remains in original own body reservation')
+
+    class Context:
+        __slots__ = ()
+        def __new__(cls, key):
+            need(key is sentinel, 'source-private construction only')
+            return object.__new__(cls)
+
+        def adopt_financial_candidate(self, snapshot, mode):
+            r=rec(self)
+            try:
+                kernel_integrity(r['lease']); financial_pure('financial_plain',snapshot)
+                need(type(mode) is str and mode in ('INITIALIZE_ONLY','PAYLOAD_PRELUDE','CLOSE_ONLY'),'fixed source manual mode')
+                verify(r); need(r['phase']=='HELD' and r['financial_mode'],'explicit real HELD owner bootstrap/refresh')
+                # Own native context exists before candidate/target metadata.
+                r['phase']='ENCLOSING_MANUAL_VALIDATING'; r['manual_mode']=mode
+                F.pin(manual['financial_opening_pin'])
+                need(snapshot['opening_pin']==manual['financial_opening_pin'],'exact independently selected candidate opening DATA')
+                bind_financial_own(r,snapshot,mode); verify_own_inflight_slot(r,snapshot)
+                now=time.monotonic_ns()
+                need(type(now) is int and now>=r['own_clock_ns'] and now-r['own_clock_ns']<=r['own_request']['body_reservation_ns'],'original own body includes bootstrap/refresh before publication')
+                own=financial_pure('financial_evidence',snapshot)['entries'][r['own_request']['label']]
+                intent=own['command']['metadata_close_intent'] if mode=='CLOSE_ONLY' else None
+                assessment=financial_pure('_assess_enclosing_manual_cap',snapshot,small_request(r['own_request']),mode,intent,financial_cap(r))
+                need(assessment['financial_data_eligible_only'] is True,'candidate contains unknown/other pending/cap debt')
+                financial_formal_domain(r,financial_pure('financial_evidence',snapshot),snapshot)
+                publish_financial_candidate(r,snapshot)
+                r['phase']='ENCLOSING_MANUAL_ACTIVE'
+                financial_guard(r)
+                if mode=='CLOSE_ONLY':
+                    return self.prepare_metadata_close()
+                return {'schema':'fresh-enclosing-manual-observation-v1','mode':mode,'own_request':r['own_request'],
+                        'financial_head_pin':r['financial_snapshot']['head_pin'],'native_capability':False,'execution_permission':False}
+            except BaseException as e:
+                raise fail(r,e)
+
+        def enter_enclosing_manual(self, mode):
+            r=rec(self)
+            try:
+                kernel_integrity(r['lease']); need(type(mode) is str and mode in ('INITIALIZE_ONLY','PAYLOAD_PRELUDE','CLOSE_ONLY'),'fixed source mode')
+                verify(r); need(r['phase']=='HELD' and r['financial_mode'],'real held financial owner only')
+                r['phase']='ENCLOSING_MANUAL_VALIDATING'; r['manual_mode']=mode
+                snapshot=funding_io('read_financial_opening',manual['financial_opening_pin'],os.getuid())
+                need(snapshot['schema']=='fresh-financial-snapshot-v1' and snapshot['head_pin']==manual['financial_head_pin'],'exact actual current financial head')
+                bind_financial_own(r,snapshot,mode); r['financial_snapshot']=snapshot
+                financial_guard(r); r['phase']='ENCLOSING_MANUAL_ACTIVE'
+                if mode=='CLOSE_ONLY': return self.prepare_metadata_close()
+                return {'schema':'fresh-enclosing-manual-observation-v1','mode':mode,'own_request':r['own_request'],
+                        'financial_head_pin':snapshot['head_pin'],'native_capability':False,'execution_permission':False}
+            except BaseException as e:
+                raise fail(r,e)
+
+        def prepare_metadata_close(self):
+            r=rec(self)
+            try:
+                verify(r); need(r['financial_mode'] and role=='CLOSER' and r['manual_mode']=='CLOSE_ONLY' and
+                                r['phase']=='ENCLOSING_MANUAL_ACTIVE' and r['financial_target'] is None,'one explicit close-only transition')
+                assessment=financial_guard(r); evidence=financial_pure('financial_evidence',r['financial_snapshot'])
+                own=evidence['entries'][r['own_request']['label']]; intent=own['command']['metadata_close_intent']
+                target=evidence['entries'][intent['target_id']]
+                need(target['entry_id']!=r['own_request']['label'] and target['phase']=='FORMAL_AWAIT_CLOSE','visible distinct prior formal target, never own operation')
+                r['financial_target']=json.loads(json.dumps(target)); financial_pure('financial_plain',r['financial_target'])  # Separate DATA slot, never native owner.
+                current,raw_head,raw_reg=head(r,r['head_pin']); reg,_,starts,closes=F.registry(raw_reg)
+                name=target['entry_id']
+                need(current['registry_pin']==intent['current_registry_pin'] and name in starts and name not in closes and
+                     starts[name]==intent['formal_start_pin'] and set(starts)-set(closes)=={name},'actual complete formal registry/current target lineage')
+                baseline_raw=read(r,intent['baseline_registry_pin']); baseline,_,bst,bc=F.registry(baseline_raw)
+                need(set(bst)==set(bc) and reg['events']==baseline['events']+[{'kind':'REGISTER','label':name,'pin':starts[name]}],
+                     'all other formal entries closed; exact target START after baseline')
+                start=F.decode(read(r,starts[name])); need(start['label']==name and start['command_sha256']==target['command_sha256'],'genuine registered target START')
+                receipt_raw=read(r,intent['receipt_pin']); review_raw=read(r,intent['review_pin']); receipt=F.decode(receipt_raw)
+                body=target['meter_body']['body']
+                financial_pure('_formal_receipt',receipt,starts[name],name,target['body_ns'],body['begin_ns'],body['end_ns'],intent['review_pin'])
+                need(hashlib.sha256(review_raw).hexdigest()==receipt['independent_outcome_review_sha256'],'exact independent pinned target review')
+                journal={'schema':'fresh-metadata-close-intent-v1','closer_id':r['own_request']['label'],'target_id':name,
+                         'own_command_pin':own['record_pins']['command'],'target_start_pin':starts[name],
+                         'expected_financial_head_pin':r['financial_snapshot']['head_pin'],'expected_formal_head_pin':r['head_pin'],
+                         'receipt_pin':intent['receipt_pin'],'review_pin':intent['review_pin']}
+                folder=CONTROL/'_metadata-close-intents'
+                if not folder.exists(): os.mkdir(folder,0o700); sync_dir(r,folder.parent)
+                r['phase']='METADATA_CLOSE'; r['close_intent_pin']=publish(r,folder/(r['own_request']['label']+'.json'),canonical(journal),0o444)
+                # Original own request, START and clocks have not been assigned target fields.
+                financial_guard(r)
+                return {'schema':'fresh-metadata-close-prepared-v1','own_request':r['own_request'],'target_id':name,
+                        'intent_pin':r['close_intent_pin'],'financial_budget':assessment,'native_capability':False,'execution_permission':False}
+            except BaseException as e:
+                raise fail(r,e)
+
+        def publish_metadata_close(self):
+            r=rec(self)
+            try:
+                verify(r); need(r['financial_mode'] and role=='CLOSER' and r['manual_mode']=='CLOSE_ONLY' and
+                                r['phase']=='METADATA_CLOSE' and r['financial_target'] is not None and r['close_formal_committed'] is None,
+                                'one real source-private metadata close, no payload upgrade')
+                financial_guard(r)
+                target=r['financial_target']; own_id=r['own_request']['label']; name=target['entry_id']
+                own=financial_pure('financial_evidence',r['financial_snapshot'])['entries'][own_id]; intent=own['command']['metadata_close_intent']
+                current,raw_head,raw_reg=head(r,r['head_pin']); reg,_,starts,closes=F.registry(raw_reg)
+                need(current['registry_pin']==intent['current_registry_pin'] and starts.get(name)==intent['formal_start_pin'] and
+                     set(starts)-set(closes)=={name},'unchanged actual target registry, no retry/stale fallback')
+                raw=read(r,intent['receipt_pin']); receipt=F.decode(raw); review_raw=read(r,intent['review_pin']); body=target['meter_body']['body']
+                financial_pure('_formal_receipt',receipt,starts[name],name,target['body_ns'],body['begin_ns'],body['end_ns'],intent['review_pin'])
+                need(hashlib.sha256(review_raw).hexdigest()==receipt['independent_outcome_review_sha256'],'same reviewed target receipt')
+                r['phase']='METADATA_CLOSE_PUBLICATION_PENDING'
+                rp=publish(r,DOMAIN/name/'receipt.json',raw,0o600)
+                new=F.decode(raw_reg); new['predecessor_sha256']=hashlib.sha256(raw_reg).hexdigest()
+                new['events'].append({'kind':'CLOSE','label':name,'pin':rp})
+                committed,committed_raw,committed_reg=advance(r,current,raw_head,raw_reg,new)
+                immutable_head=pinned(HEADS/('HEAD-%06d.json'%committed['sequence']),committed_raw,0o600)
+                need(read(r,immutable_head)==committed_raw,'genuine immutable formal CLOSE head readback')
+                r['close_formal_committed']={'receipt_pin':rp,'formal_head_pin':immutable_head,'head_pin':r['head_pin']}
+                candidate=financial_pure('financial_commit_candidate',r['financial_snapshot'],own_id,name,rp,immutable_head,r['close_intent_pin'])
+                candidate['wires'][rp['path']]=raw.decode('utf-8')
+                candidate['wires'][immutable_head['path']]=committed_raw.decode('utf-8')
+                candidate['wires'][committed['registry_pin']['path']]=committed_reg.decode('utf-8')
+                candidate['wires'][r['close_intent_pin']['path']]=read(r,r['close_intent_pin']).decode('utf-8')
+                # New target manifest is metadata publication for the pinned target,
+                # not another cost/body/source rewrite or a native process retry.
+                state=F.financial_decode(candidate['wires'][F.financial_decode(candidate['opening_wire'].encode())['suffix_state_pin']['path']].encode())
+                mp=next(p for p in state['ordered_entries'] if F.financial_decode(candidate['wires'][p['path']].encode())['attempt_id']==name)
+                publish(r,Path(mp['path']),candidate['wires'][mp['path']].encode(),0o444)
+                publish_financial_candidate(r,candidate,allow_target_commit=True)
+                r['phase']='METADATA_CLOSE_AFTER_TARGET_COMMIT'; financial_guard(r)
+                need(r['own_request']==manual['request'] and r['own_start_pin']==manual['provenance']['original_start_pin'],'own lineage retained after target close')
+                return {'schema':'fresh-metadata-close-observation-v1','own_request':r['own_request'],'target_id':name,
+                        'receipt_pin':rp,'formal_head_pin':immutable_head,'financial_head_pin':r['financial_snapshot']['head_pin'],
+                        'own_reservation_ns':r['own_reservation_ns'],'native_capability':False,'execution_permission':False,'all_costs_settled':False}
+            except BaseException as e:
+                raise fail(r,e)
+
+        def write_original_record(self,path,raw,mode=0o444):
+            r=rec(self)
+            try:
+                kernel_integrity(r['lease']); need(type(path) is str and type(raw) is bytes and type(mode) is int,'strict original record DATA')
+                verify(r); need(r['financial_mode'] and r['manual_mode'] is not None and r['phase'] in ('ENCLOSING_MANUAL_ACTIVE','ACTIVE','METADATA_CLOSE','METADATA_CLOSE_AFTER_TARGET_COMMIT'),'actual own live record port only')
+                financial_guard(r); target=Path(path)
+                need(target.parent==F.FIN_ENTRIES/r['own_request']['label'] and target.name.endswith('.json') and '..' not in target.name and mode in (0o444,0o600),'own original entry only; no HEAD/STATE/formal publication')
+                obj=F.financial_decode(raw); matches=[k for k,v in F.FRAME_RECORDS.items() if obj.get('schema')==v['schema']]
+                need(len(matches)==1 and obj.get('attempt_id')==r['own_request']['label'],'fixed original own financial record schema')
+                financial_pure('validate_original_record',matches[0],obj)
+                need(matches[0] not in ('STATE','OPENING'),'record port is not a financial controller')
+                return publish(r,target,raw,mode)
+            except BaseException as e:
+                raise fail(r,e)
+
+        def initialize(self, initial_registry_raw):
+            r = rec(self)
+            try:
+                verify(r); need(((not r['financial_mode'] and r['phase'] == 'HELD') or (r['financial_mode'] and r['phase'] == 'ENCLOSING_MANUAL_ACTIVE' and r['manual_mode'] in ('INITIALIZE_ONLY','PAYLOAD_PRELUDE'))) and expected is None and role == 'PUBLISHER', 'one initial publisher')
+                need(opening is not None and opening['funding_source_sha256'] == FUNDING_SHA, 'current selected funding/opening binding')
+                selected = funding_io('validate_opening_binding', opening, os.getuid())
+                read_manual(r, F.opening_evidence(selected)['state_sha256'])
+                reg, _, starts, closes = F.registry(initial_registry_raw)
+                need(not starts and not closes and reg['predecessor_sha256'] is None and
+                     reg['opening_pin'] == selected['opening_pin'], 'empty new registry with complete selected current opening')
+                for p in (DOMAIN.parent, DOMAIN, STAGE, HEADS, HANDOFFS, CLAIMS):
+                    if not p.exists():
+                        os.mkdir(p, 0o700)
+                    directory(p)
+                    sync_dir(r, p.parent)
+                need(guarded_io('names', DOMAIN, 2) == [] and guarded_io('names', HEADS, 2) == [] and
+                     not HEAD.exists(), 'no prior/orphan initialization')
+                stage_empty()
+                rp = publish(r, CONTROL / 'REGISTRY-000000.json', initial_registry_raw, 0o444)
+                raw = canonical({'schema': 'fresh-active-head-v1', 'sequence': 0,
+                                 'registry_pin': rp, 'previous_head_sha256': None})
+                publish(r, HEADS / 'HEAD-000000.json', raw, 0o600)
+                r['head_pin'] = publish(r, HEAD, raw, 0o600)
+                head(r, r['head_pin'])
+                return F.decode(canonical(r['head_pin']))
+            except BaseException as e:
+                raise fail(r, e)
+
+        def refresh_opening(self):
+            r = rec(self)
+            try:
+                verify(r)
+                need(((not r['financial_mode'] and r['phase'] == 'HELD') or (r['financial_mode'] and r['phase'] == 'ENCLOSING_MANUAL_ACTIVE' and r['manual_mode'] in ('INITIALIZE_ONLY','PAYLOAD_PRELUDE'))) and role in ('PUBLISHER', 'CONTROLLER') and opening is not None and
+                     opening['funding_source_sha256'] == FUNDING_SHA, 'new actual owner and fixed approved current opening')
+                current, raw_head, raw_reg = head(r, r['head_pin'])
+                old_snapshot = funding_io('snapshot_round', current['registry_pin'], os.getuid())
+                _, _, starts, closes = F.registry(raw_reg)
+                need(set(starts) == set(closes), 'every prior formal entry CLOSED before refresh')
+                selected = funding_io('validate_opening_binding', opening, os.getuid())
+                read_manual(r, F.opening_evidence(selected)['state_sha256'])
+                need(old_snapshot['opening_snapshot']['opening_pin'] != selected['opening_pin'], 'new immutable closed-cost prefix required')
+                F.require_opening_append(old_snapshot['opening_snapshot'], selected)
+                transition = {'previous': old_snapshot['opening_snapshot'], 'current': selected,
+                              'records': old_snapshot['records']}
+                new = F.decode(raw_reg); new['predecessor_sha256'] = hashlib.sha256(raw_reg).hexdigest()
+                new['opening_pin'] = selected['opening_pin']
+                advance(r, current, raw_head, raw_reg, new, transition)
+                refreshed = funding_io('snapshot_round', current_registry_pin(r), os.getuid())
+                need(refreshed['opening_snapshot'] == selected and refreshed['records'] == old_snapshot['records'],
+                     'opening-only refresh readback preserves every prior record/price')
+                # The prelude is part of this actual enclosing body under its ORIGINAL
+                # manual pre-entry START. No formal START or cost is backdated.
+                return {'schema': 'fresh-current-opening-refresh-observation-v1', 'head_pin': r['head_pin'],
+                        'opening_pin': selected['opening_pin'], 'formal_start_backdated': False,
+                        'native_capability': False, 'execution_permission': False}
+            except BaseException as e:
+                raise fail(r, e)
+
+        def current_binding(self):
+            r = rec(self)
+            try:
+                active_view(r)
+                return F.decode(canonical({'schema': 'fresh-active-current-binding-v1',
+                    'request': r['request'], 'start': r['start'], 'start_pin': r['start_pin'],
+                    'head_pin': r['head_pin'], 'baseline_registry_pin': r['baseline_registry_pin'],
+                    'native_capability': False, 'execution_permission': False}))
+            except BaseException as e:
+                raise fail(r, e)
+
+        def begin(self, request):
+            r = rec(self)
+            try:
+                verify(r); need(((not r['financial_mode'] and r['phase'] == 'HELD') or (r['financial_mode'] and r['phase'] == 'ENCLOSING_MANUAL_ACTIVE' and r['manual_mode'] == 'PAYLOAD_PRELUDE')) and role in ('PUBLISHER', 'CONTROLLER'), 'begin once')
+                F.plain(request)
+                current, raw_head, raw_reg = head(r, r['head_pin'])
+                snapshot = funding_io('snapshot_round', current['registry_pin'], os.getuid())
+                read_manual(r, F.opening_evidence(snapshot['opening_snapshot'])['state_sha256'])
+                need(request == r['manual_request'], 'formal entry is the SAME original manually reserved enclosing operation')
+                if r['financial_mode']:
+                    need(r['manual_mode'] == 'PAYLOAD_PRELUDE' and request == r['own_request'], 'same original real enclosing operation only')
+                    assessment = financial_guard(r)
+                    need(assessment['financial_data_eligible_only'] is True, 'source-private enclosing reservation blocked')
+                    reg,_,prior_starts,prior_closes=F.registry(raw_reg)
+                    need(set(prior_starts)==set(prior_closes) and request['label'] not in prior_starts and
+                         request['phase_release_sha256']==reg['phase_release_sha256'] and request['policy_sha256'] in snapshot['policies'],
+                         'every other formal entry closed and separately predeclared exact own policy/phase')
+                    policy=snapshot['policies'][request['policy_sha256']]
+                    F.exact(policy,('schema','round_id','command_sha256','administrative_debit_ns','scope','adoption_sha256','claims_physical_upper_bound'))
+                    need(policy['schema']=='fresh-round-admin-policy-v1' and policy['round_id']==F.ROUND_ID and
+                         policy['command_sha256']==request['command_sha256'] and type(policy['administrative_debit_ns']) is int and
+                         policy['administrative_debit_ns']==F.ADMIN_NS and policy['scope']=='STARTUP_AND_FINAL_METADATA_PUBLICATION_ONLY' and
+                         policy['claims_physical_upper_bound'] is False,'exact original administrative convention, never body/cleanup fill')
+                    F.digest(policy['adoption_sha256'])
+                else:
+                    assessment = F.assess_round(snapshot, request)
+                    need(assessment['funding_data_eligible_only'] is True, 'NEW admission blocked')
+                r['request'] = F.decode(canonical(request)); r['baseline_registry_pin'] = current['registry_pin']
+                r['phase'] = 'START_PUBLICATION_PENDING'  # Private role/request precedes any mkdir/open.
+                name = r['request']['label']; folder = DOMAIN / name
+                r['start'] = {'schema': 'fresh-round-start-v1', 'round_id': F.ROUND_ID,
+                              'label': name, 'command_sha256': request['command_sha256'],
+                              'body_reservation_ns': request['body_reservation_ns'], 'policy_sha256': request['policy_sha256'],
+                              'pre_entry_provenance': r['manual_provenance']}
+                os.mkdir(folder, 0o700); sync_dir(r, DOMAIN)
+                r['start_pin'] = publish(r, folder / 'START.json', canonical(r['start']), 0o600)
+                new = F.decode(raw_reg); new['predecessor_sha256'] = hashlib.sha256(raw_reg).hexdigest()
+                new['events'].append({'kind': 'REGISTER', 'label': name, 'pin': r['start_pin']})
+                advance(r, current, raw_head, raw_reg, new)
+                if r['financial_mode']:
+                    r['phase']='FORMAL_REGISTERED_FINANCIAL_LINK_PENDING'
+                    link_own_formal_start(r)
+                r['phase'] = 'ACTIVE'
+                active_view(r)
+                return {'schema': 'active-registration-observation-v1', 'start_pin': r['start_pin'],
+                        'head_pin': r['head_pin'], 'native_capability': False, 'execution_permission': False}
+            except BaseException as e:
+                raise fail(r, e)
+
+        def native_lease_for_controller(self, caller_module):
+            r = rec(self)
+            try:
+                verify(r)
+                need(role == 'CONTROLLER' and caller_module is C and r['phase'] == 'ACTIVE' and (not r['financial_mode'] or r['manual_mode'] == 'PAYLOAD_PRELUDE'),
+                     'same authenticated controller module and ACTIVE actual owner')
+                return r['lease']  # Same-process real object only, never serialized or passed to a child.
+            except BaseException as e:
+                raise fail(r, e)
+
+        def check(self, nested_ns, cleanup_ns):
+            r = rec(self)
+            try:
+                F.uint(nested_ns); F.uint(cleanup_ns)
+                if r['financial_mode']:
+                    need(r['phase'] in ('ENCLOSING_MANUAL_ACTIVE','ACTIVE','METADATA_CLOSE','METADATA_CLOSE_AFTER_TARGET_COMMIT'),'live financial enclosing phase')
+                    if r['manual_mode']!='PAYLOAD_PRELUDE' or r['phase']!='ACTIVE':
+                        need(nested_ns == 0,'metadata/prelude phase cannot schedule a nested payload')
+                    assessment=financial_active_view(r) if r['phase']=='ACTIVE' else financial_guard(r)
+                    now=time.monotonic_ns()
+                    need(type(now) is int and now>=r['own_clock_ns'] and now-r['own_clock_ns']+nested_ns+cleanup_ns<=r['own_request']['body_reservation_ns'],'entire own meter/prelude/remaining/cleanup allowance')
+                    return {'schema':'fresh-enclosing-manual-check-v1','partial_local_observation':True,
+                            'elapsed_since_original_meter_start_ns':now-r['own_clock_ns'],'local_reservation_check_passed':True,
+                            'whole_outer_body_fit_proved':False,'financial_budget':assessment,
+                            'unallocated_policy_ns':assessment['cap_ns']-assessment['encumbered_policy_ns'],
+                            'own_reservation_encumbered_ns':r['own_reservation_ns'],'execution_permission':False}
+                assessment = active_view(r)
+                now = time.monotonic_ns()
+                need(type(now) is int and now >= r['protocol_anchor_ns'], 'actual local monotonic sample')
+                elapsed = now - r['protocol_anchor_ns']
+                need(elapsed + nested_ns + cleanup_ns <= r['request']['body_reservation_ns'], 'retained body reservation locally exhausted')
+                return {'schema': 'active-local-reservation-observation-v1', 'elapsed_since_protocol_anchor_ns': elapsed,
+                        'local_reservation_check_passed': True, 'whole_outer_body_fit_proved': False,
+                        'clock_scope': 'private_protocol_anchor_to_local_sample_imports_and_final_exit_excluded',
+                        'unallocated_policy_ns': assessment['remaining_policy_ns'] - assessment['requested_reservation_ns'],
+                        'own_reservation_encumbered_ns': assessment['requested_reservation_ns'], 'execution_permission': False}
+            except BaseException as e:
+                raise fail(r, e)
+
+        def release_for_exec(self):
+            r = rec(self)
+            try:
+                active_view(r); need(role == 'PUBLISHER', 'separate publisher owner only')
+                intent = {'schema': 'fresh-active-handoff-intent-v1', 'source_role': role, 'destination_role': 'CONTROLLER',
+                          'request': r['request'], 'start': r['start'], 'start_pin': r['start_pin'],
+                          'head_pin': r['head_pin'], 'baseline_registry_pin': r['baseline_registry_pin'],
+                          'protocol_anchor_ns': r['protocol_anchor_ns'], 'native_capability_transferred': False}
+                r['phase'] = 'HANDOFF_PUBLICATION_PENDING'
+                p = publish(r, HANDOFFS / (r['request']['label'] + '.json'), canonical(intent), 0o444)
+                verify(r); r['phase'] = 'CLOSE_ENTERED'; close_actual(r); r['phase'] = 'RELEASED'
+                return p  # Permission/timing DATA only. No FD/owner survives this API.
+            except BaseException as e:
+                raise fail(r, e)
+
+        def adopt_handoff(self):
+            r = rec(self)
+            try:
+                verify(r); need(role == 'CONTROLLER' and ((not r['financial_mode'] and r['phase'] == 'HELD') or (r['financial_mode'] and r['phase'] == 'ENCLOSING_MANUAL_ACTIVE' and r['manual_mode'] == 'PAYLOAD_PRELUDE')) and handoff is not None, 'fresh actual controller owner plus approved intent')
+                intent = F.decode(read(r, handoff))
+                F.exact(intent, ('schema', 'source_role', 'destination_role', 'request', 'start', 'start_pin',
+                                 'head_pin', 'baseline_registry_pin', 'protocol_anchor_ns', 'native_capability_transferred'))
+                need(intent['schema'] == 'fresh-active-handoff-intent-v1' and intent['source_role'] == 'PUBLISHER' and
+                     intent['destination_role'] == role and intent['native_capability_transferred'] is False and
+                     intent['head_pin'] == r['head_pin'], 'exact data intent/current head')
+                for k in ('request', 'start', 'start_pin', 'baseline_registry_pin'):
+                    r[k] = intent[k]
+                F.uint(intent['protocol_anchor_ns'])
+                # Cross-process clock-domain applicability is an external role-profile premise.
+                r['protocol_anchor_ns'] = intent['protocol_anchor_ns']
+                r['phase'] = 'ACTIVE'
+                selected_head = current_registry_pin(r)
+                selected_snapshot = funding_io('snapshot_round', selected_head, os.getuid())
+                read_manual(r, F.opening_evidence(selected_snapshot['opening_snapshot'])['state_sha256'])
+                need(r['request'] == r['manual_request'] and r['start']['pre_entry_provenance'] == r['manual_provenance'],
+                     'handoff is same original enclosing operation')
+                active_view(r)
+                claim = {'schema': 'fresh-active-handoff-claim-v1', 'handoff_sha256': handoff['sha256'],
+                         'start_sha256': r['start_pin']['sha256'], 'native_owner_is_not_this_record': True}
+                publish(r, CLAIMS / (r['request']['label'] + '.json'), canonical(claim), 0o444)
+                return {'handoff_claimed': True, 'new_real_lease_acquired': True, 'native_capability': False, 'execution_permission': False}
+            except BaseException as e:
+                raise fail(r, e)
+
+        def publish_reviewed_close(self):
+            r = rec(self)
+            if r['financial_mode']:
+                return self.publish_metadata_close()
+            try:
+                verify(r); need(role == 'CLOSER' and r['phase'] == 'HELD' and closure is not None,
+                                'new actual closer plus independently accepted frozen evidence')
+                read_manual(r)  # The CLOSER has its OWN separately funded native body, never admin-filled.
+                F.exact(closure, ('request', 'start', 'start_pin', 'baseline_registry_pin', 'receipt_pin', 'review_pin'))
+                for k in ('request', 'start', 'start_pin', 'baseline_registry_pin'):
+                    r[k] = closure[k]
+                r['phase'] = 'ACTIVE'; active_view(r)
+                F.pin(closure['receipt_pin']); F.pin(closure['review_pin'])
+                need(Path(closure['receipt_pin']['path']).parent == CONTROL and
+                     Path(closure['review_pin']['path']).is_relative_to(R / 'review') and
+                     closure['receipt_pin']['mode'] == closure['review_pin']['mode'] == 0o444,
+                     'selected frozen close candidate/review namespace')
+                review_raw = read(r, closure['review_pin'])  # Opaque independently accepted evidence, never native authority.
+                raw = read(r, closure['receipt_pin']); receipt = F.decode(raw)
+                need(receipt['schema'] == 'fresh-round-receipt-v1' and receipt['round_id'] == F.ROUND_ID and
+                     receipt['label'] == r['request']['label'] and receipt['start_sha256'] == r['start_pin']['sha256'] and
+                     receipt['independent_outcome_review_sha256'] == hashlib.sha256(review_raw).hexdigest(), 'exact reviewed body/uncertainty record')
+                F.exact(receipt, ('schema', 'round_id', 'label', 'start_sha256', 'outcome', 'body_elapsed_ns',
+                                  'administrative_debit_ns', 'body_begin_ns', 'body_end_ns', 'body_fully_observed',
+                                  'cleanup_known', 'custody_complete', 'nested_entries_complete', 'uncertainty',
+                                  'peak_sampled_rss_bytes', 'tail_state', 'independent_outcome_review_sha256'))
+                need(receipt['outcome'] in ('PASS', 'STOP') and
+                     receipt['tail_state'] in ('COMPLETE', 'ADMIN_ONLY_OPEN', 'UNKNOWN'), 'retained outcome/unknown scope')
+                for key in ('body_fully_observed', 'cleanup_known', 'custody_complete', 'nested_entries_complete'):
+                    need(type(receipt[key]) is bool, 'exact qualification flag')
+                if receipt['body_elapsed_ns'] is not None:
+                    F.uint(receipt['body_elapsed_ns']); F.uint(receipt['body_begin_ns']); F.uint(receipt['body_end_ns'])
+                    need(receipt['body_end_ns'] >= receipt['body_begin_ns'] and
+                         receipt['body_end_ns'] - receipt['body_begin_ns'] == receipt['body_elapsed_ns'], 'exact reviewed body interval')
+                F.uint(receipt['administrative_debit_ns'])
+                policy_snapshot = funding_io('snapshot_round', current_registry_pin(r), os.getuid())
+                policy = policy_snapshot['policies'][r['request']['policy_sha256']]
+                need(receipt['administrative_debit_ns'] == policy['administrative_debit_ns'], 'separate exact admin policy')
+                # No field is invented from local check(), PID/FD observations, or caller booleans.
+                # Genuine whole-body/cleanup/review acceptance is the trusted closer-source premise.
+                current, raw_head, raw_reg = head(r, r['head_pin'])
+                r['phase'] = 'RECEIPT_PUBLICATION_PENDING'
+                rp = publish(r, DOMAIN / r['request']['label'] / 'receipt.json', raw, 0o600)
+                new = F.decode(raw_reg); new['predecessor_sha256'] = hashlib.sha256(raw_reg).hexdigest()
+                new['events'].append({'kind': 'CLOSE', 'label': r['request']['label'], 'pin': rp})
+                advance(r, current, raw_head, raw_reg, new)
+                r['phase'] = 'RECORDED_NOT_PHYSICALLY_SETTLED'
+                return {'receipt_pin': rp, 'head_pin': r['head_pin'], 'all_costs_settled': False, 'execution_permission': False}
+            except BaseException as e:
+                raise fail(r, e)
+
+        def release(self):
+            r = rec(self)
+            need(r['phase'] not in ('RELEASED', 'CLOSE_UNKNOWN'), 'one actual close attempt')
+            try:
+                r['phase'] = 'CLOSE_ENTERED'
+                close_actual(r)
+                r['phase'] = 'RELEASED'
+            except BaseException as e:
+                r['phase'] = 'CLOSE_UNKNOWN'
+                if r['first'] is None:
+                    r['first'] = e
+                raise r['first']
+
+    context_image, context_functions = class_image(Context,
+        ('adopt_financial_candidate','enter_enclosing_manual','prepare_metadata_close','publish_metadata_close','write_original_record',
+         'initialize', 'refresh_opening', 'current_binding', 'begin', 'native_lease_for_controller',
+         'check', 'release_for_exec', 'adopt_handoff', 'publish_reviewed_close', 'release'),
+        active_globals, slotted=True)
+
+    def open_owner():
+        need(opened[0] is False, 'one context per exact bound source-role invocation')
+        opened[0] = True
+        unchanged_class(Context, context_image, context_functions, active_globals)
+        ctx = Context(sentinel)
+        r = {'role': role, 'pid': os.getpid(), 'lease': None, 'birth': None,
+             'phase': 'PRIVATE_BEFORE_ACQUIRE', 'first': None, 'secondary': [], 'secondary_saturated': False,
+             'request': None, 'start': None, 'start_pin': None, 'baseline_registry_pin': None,
+             'head_pin': expected, 'publication': None,
+             'protocol_anchor_ns': None, 'lease_close_entered': False,
+             'lease_initialized': False, 'lease_acquire_entered': False, 'owned_fd': None,
+             'kernel_memory_uncertain': False, 'financial_mode': type(manual) is dict and manual.get('schema') == 'fresh-active-financial-manual-entry-binding-v1',
+             'own_request': None, 'own_start_pin': None, 'own_start': None, 'own_clock_ns': None, 'own_reservation_ns': None,
+             'manual_mode': None, 'financial_snapshot': None, 'financial_publication': False, 'financial_target': None,
+             'close_intent_pin': None, 'close_formal_committed': None, 'candidate_pending': None,
+             'producer_stdout_identity': None, 'formal_link_pending': None}
+        contexts[ctx] = r  # Private ownership/role identity BEFORE fallible initialization/acquire.
+        try:
+            values = kernel_integrity()
+            need(all(slot[1] in ('FREE', 'CLOSED') for slot in values['slots']),
+                 'fresh role begins with no borrowed/pending IO slot')
+            r['protocol_anchor_ns'] = time.monotonic_ns()  # Partial local window only.
+            need(type(r['protocol_anchor_ns']) is int and r['protocol_anchor_ns'] >= 0, 'genuine finite local protocol anchor')
+            unchanged_class(LeaseType, lease_image, lease_functions, cg)
+            r['lease'] = object.__new__(LeaseType)  # No metaclass/class __call__/foreign __new__ dispatch.
+            lease_state(r['lease'], fields=set())
+            lease_image['__init__'](r['lease'])
+            r['lease_initialized'] = True
+            kernel_integrity(r['lease'])
+            r['phase'] = 'ACQUIRE_PENDING'; r['lease_acquire_entered'] = True
+            lease_image['acquire'](r['lease'])
+            kernel_integrity(r['lease'])
+            acquired = lease_state(r['lease'])
+            r['owned_fd'] = acquired['fd']; r['birth'] = dict(acquired['birth'])
+            r['phase'] = 'HELD'; verify(r)
+            return ctx
+        except BaseException as e:
+            fail(r, e)
+            # Exactly one actual cleanup entry; unsafe metadata remains unknown debt,
+            # never guessed/replayed descriptor cleanup or a reconstructed owner.
+            try:
+                close_actual(r)
+            except BaseException as close_error:
+                fail(r, close_error)
+            raise r['first']
+
+    return open_owner

@@ -1,0 +1,197 @@
+"""Pure constructor for original externally issued financial binding DATA.
+
+This is the missing static-to-runtime assembly, not a grant/opening generator.
+The original caller supplies real reviewed pins; G later publishes fresh START
+and exact pending/manual records. No None-filled predecessor binding is ready.
+The returned templates omit future runtime START and never hash themselves.
+"""
+import hashlib
+import json
+from pathlib import Path
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/s03-completion-repair-20261105T1139Z'
+H = W / 'outputs/h25-data-handling-20261028'
+ADMIN = R / 'runtime/admin/IndependentPrefixDATAComposedV1'
+NAME = 'IndependentPrefixDATAComposedV1'
+ROLE_ENTRY = {'M':'pre_m','CAPTURE':'capture_bootstrap','PUBLISHER':'publisher_bootstrap','CONTROLLER':'controller_bootstrap'}
+PIN_FIELDS = ('plan_pin','admission_pin','operating_TCB_pin','clock_profile_pin',
+              'actor_profile_pin','source_policy_pin','resource_policy_pin','current_profile_pin',
+              'selected_packet_pin','whole_body_bill_pin','complete_work_review_pin','derived_role_profile_pin')
+
+
+def need(ok, reason):
+    if ok is not True:
+        raise ValueError(reason)
+
+
+def exact(value, fields):
+    need(type(value) is dict and all(type(k) is str for k in value) and set(value) == set(fields),
+         'exact original constructor fields')
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and all(c in '0123456789abcdef' for c in value),
+         'exact SHA256')
+
+
+def pin(value):
+    exact(value, ('path','bytes','sha256','mode'))
+    need(type(value['path']) is str and Path(value['path']).is_absolute() and
+         type(value['bytes']) is int and 0 < value['bytes'] <= 8 * 1024 * 1024 and
+         type(value['mode']) is int and value['mode'] == 0o444, 'real immutable original pin')
+    digest(value['sha256'])
+
+
+def plain(value, depth=0, nodes=None):
+    if nodes is None:
+        nodes = [0]
+    nodes[0] += 1
+    need(depth <= 24 and nodes[0] <= 65536, 'bounded original constructor DATA')
+    if type(value) is dict:
+        need(len(value) <= 512 and all(type(k) is str and len(k) <= 512 for k in value), 'exact DATA keys')
+        for item in value.values():
+            plain(item,depth+1,nodes)
+    elif type(value) is list:
+        need(len(value) <= 8192, 'DATA list cap')
+        for item in value:
+            plain(item,depth+1,nodes)
+    elif type(value) is str:
+        need(len(value) <= 16384, 'DATA text cap')
+    else:
+        need(value is None or type(value) in (bool,int), 'exact JSON scalars only')
+
+
+def copy(value):
+    # Called only after original F plain-data validation by the actual caller.
+    return json.loads(json.dumps(value, allow_nan=False))
+
+
+def entry_argv(role, source_pins):
+    key = ROLE_ENTRY[role]
+    args = [source_pins[key]['path'], '--source-sha256','@SOURCE_' + key + '_SHA256@',
+            '--loader-sha256','@LOADER_SHA256@','--loader-bytes','@LOADER_BYTES@',
+            '--manifest-sha256','@MANIFEST_SHA256@','--manifest-bytes','@MANIFEST_BYTES@',
+            '--contracts-sha256','@CONTRACTS_SHA256@','--contracts-bytes','@CONTRACTS_BYTES@']
+    if role in ('M','CAPTURE'):
+        args.extend(('--grant-sha256','@ORIGINAL_ACTUAL_GRANT_SHA256@' if role == 'M' else '@CAPTURE_ACTUAL_GRANT_SHA256@'))
+    if role == 'CONTROLLER':
+        args.extend(('--handoff-path',str(H/'control/fresh-metered-round-v1/_handoff-intents'/ (NAME+'.json')),
+                     '--plan',str(H/'control'/(NAME+'-PLAN.json')),
+                     '--admission',str(H/'control'/(NAME+'-ADMISSION.json'))))
+    return args
+
+
+def construct(manifest_pin, source_pins, original):
+    """Return non-authoritative final role DATA from genuine original inputs.
+
+    The actual caller must separately authenticate original pins, funding and
+    command admission. A/F reread and assess under their own actual EX later.
+    These checks never replace those readers or original grant validation.
+    """
+    plain(manifest_pin); plain(source_pins); plain(original)
+    pin(manifest_pin)
+    need(manifest_pin['path'] == str(R/'implementation/bindings/SOURCE-MANIFEST-v2.json'),
+         'fixed detached leaf source manifest')
+    exact(original, ('schema','candidate_document_pin','request','approved_opening',
+                     'expected_head_pin','phase','cleanup_reservation_ns','complete_delivery_scope_sha256',
+                     'pins','retention','outer_actor','capture_actual_grant_pin','original_actual_grant_pin'))
+    need(original['schema'] == 's03-original-issued-role-inputs-v1', 'genuine original input schema')
+    pin(original['candidate_document_pin']); pin(original['capture_actual_grant_pin']); pin(original['original_actual_grant_pin'])
+    digest(original['complete_delivery_scope_sha256'])
+    request = original['request']
+    exact(request, ('schema','round_id','label','command_sha256','body_reservation_ns',
+                    'policy_sha256','phase_release_sha256'))
+    need(request['schema'] == 'fresh-round-request-v1' and request['round_id'] == 'fresh-metered-round-v1' and
+         request['label'] == NAME and request['command_sha256'] == original['candidate_document_pin']['sha256'] and
+         type(request['body_reservation_ns']) is int and 0 < request['body_reservation_ns'] <= 180_000_000_000,
+         'exact original FULL_SIX enclosing request; no new cheaper identity')
+    need(type(original['cleanup_reservation_ns']) is int and
+         0 < original['cleanup_reservation_ns'] < request['body_reservation_ns'], 'original positive cleanup reservation')
+    exact(original['pins'], PIN_FIELDS)
+    for value in original['pins'].values():
+        pin(value)
+    need(request['policy_sha256'] == original['pins']['resource_policy_pin']['sha256'],
+         'same original policy reservation')
+    need(original['phase'] in ('INITIAL','FULL') and
+         ((original['phase'] == 'INITIAL' and request['phase_release_sha256'] is None) or
+          (original['phase'] == 'FULL' and type(request['phase_release_sha256']) is str)),
+         'original separately issued phase release')
+    exact(original['approved_opening'], ('schema','opening_pin','adoption_pin','funding_source_sha256'))
+    need(original['approved_opening']['funding_source_sha256'] == source_pins['F']['sha256'],
+         'actual original F opening source binding')
+    # The original HEAD is mode0600. It is evidence DATA, never financial EX.
+    exact(original['expected_head_pin'], ('path','bytes','sha256','mode'))
+    need(original['expected_head_pin']['mode'] == 0o600, 'original current head mode')
+    roles = {}
+    for role in ROLE_ENTRY:
+        cfg = {'schema':'fresh-composed-source-private-binding-v1','role':role,
+               'name':NAME,'phase':original['phase'],
+               'candidate_document_sha256':request['command_sha256'],'request':copy(request),
+               'approved_opening':copy(original['approved_opening']),
+               'expected_head_pin':copy(original['expected_head_pin']),
+               'handoff_path':str(H/'control/fresh-metered-round-v1/_handoff-intents'/(NAME+'.json')),
+               'cleanup_reservation_ns':original['cleanup_reservation_ns'],
+               'body_reservation_ns':request['body_reservation_ns'],
+               'administrative_policy':'startup-and-final-publication-two-second-administrative-debit-v1',
+               'administrative_debit_ns':2_000_000_000,
+               'complete_delivery_scope_sha256':original['complete_delivery_scope_sha256']}
+        cfg.update(copy(original['pins']))
+        cfg['publisher_argv'] = ['/usr/bin/python3.12','-S','-s','-P','-B'] + entry_argv('PUBLISHER',source_pins)
+        cfg['controller_argv'] = ['/usr/bin/python3.12','-S','-s','-P','-B'] + entry_argv('CONTROLLER',source_pins)
+        # Runtime manual_entry and source_pins are inserted only by the fixed
+        # actual loader after native G START/readback and kernel registration.
+        selected_argv = entry_argv(role,source_pins)
+        selected_argv = [original['capture_actual_grant_pin']['sha256'] if value == '@CAPTURE_ACTUAL_GRANT_SHA256@' else original['original_actual_grant_pin']['sha256'] if value == '@ORIGINAL_ACTUAL_GRANT_SHA256@' else value for value in selected_argv]
+        roles[role] = {'actor_contract':cfg,'entry_argv':selected_argv,
+            'retention':copy(original['retention']),
+            'runtime_paths':{'admin_root':str(ADMIN),
+                'grant_path':str(R/('control/CAPTURE-ACTUAL-GRANT.json' if role == 'CAPTURE' else 'control/ORIGINAL-FULL-SIX-GRANT.json')),
+                'accounting_path':str(ADMIN/'C2/ACCOUNTING.json'),
+                'capture_argv':['/usr/bin/python3.12','-S','-s','-P','-B'] + [original['capture_actual_grant_pin']['sha256'] if value == '@CAPTURE_ACTUAL_GRANT_SHA256@' else value for value in entry_argv('CAPTURE',source_pins)],
+                'outer_actor':copy(original['outer_actor'])}}
+    return {'schema':'s03-joined-role-contracts-v1','source_manifest_sha256':manifest_pin['sha256'],
+            'roles':roles,'source_only':True,'execution_permission':False}
+
+
+def guardian_config(manifest, manifest_pin, contracts, contracts_pin, manual, delegation_path, domain_name):
+    """Final acyclic fixed native configuration; ordinary non-authority DATA.
+
+    This final layer may reference actual already issued original grants and
+    contracts. Nothing earlier embeds its future config hash. The original
+    actual caller authenticates/pins this exact config in native argv later.
+    """
+    plain(manifest); plain(manifest_pin); plain(contracts); plain(contracts_pin); plain(manual)
+    pin(manifest_pin); pin(contracts_pin)
+    need(contracts['schema'] == 's03-joined-role-contracts-v1' and
+         contracts['source_manifest_sha256'] == manifest_pin['sha256'], 'same detached exact source selection')
+    exact(manual, ('request','closed_state_pin','registration_pin','registration_checks'))
+    need(manual['request'] == contracts['roles']['M']['actor_contract']['request'], 'same original issued request')
+    for name in ('closed_state_pin','registration_pin'):
+        # Original accepted closed state may be private0600; it is not rewritten.
+        exact(manual[name], ('path','bytes','sha256','mode'))
+        need(manual[name]['mode'] in (0o444,0o600), 'original accepted metadata mode unchanged')
+    need(type(delegation_path) is str and Path(delegation_path).is_absolute() and
+         '..' not in Path(delegation_path).parts, 'separately selected existing native delegation path')
+    need(type(domain_name) is str and domain_name == NAME, 'fixed own attempt native domain name')
+    sources = manifest['source_pins']
+    tokens = {'@CONTRACTS_SHA256@':contracts_pin['sha256'], '@CONTRACTS_BYTES@':str(contracts_pin['bytes']),
+              '@MANIFEST_SHA256@':manifest_pin['sha256'], '@MANIFEST_BYTES@':str(manifest_pin['bytes']),
+              '@LOADER_SHA256@':sources['private_loader']['sha256'],
+              '@LOADER_BYTES@':str(sources['private_loader']['bytes'])}
+    for name, row in sources.items():
+        tokens['@SOURCE_' + name + '_SHA256@'] = row['sha256']
+        tokens['@SOURCE_' + name + '_BYTES@'] = str(row['bytes'])
+    role_argv = {}
+    for role, native_role in (('M','M'),('CAPTURE','K'),('PUBLISHER','P'),('CONTROLLER','C2')):
+        role_argv[native_role] = ['/usr/bin/python3.12','-S','-s','-P','-B'] + [
+            tokens.get(value,value) for value in contracts['roles'][role]['entry_argv']]
+        need(not any(value.startswith('@') for value in role_argv[native_role]), 'no unresolved fixed native entry argv')
+    return {'schema':'s03-guardian-config-v1','attempt_id':NAME,'evidence_root':str(ADMIN/'G'),
+        'admin_root':str(ADMIN),'delegation_path':delegation_path,'domain_name':domain_name,
+        'pre_m_pin':copy(sources['pre_m']),'inner_meter_pin':copy(sources['inner_meter']),
+        'outer_actor':copy(contracts['roles']['M']['runtime_paths']['outer_actor']),
+        'manual_entry':copy(manual),'candidate_document_sha256':manual['request']['command_sha256'],
+        'role_source_pins':{role:copy(sources[key]) for role,key in
+            (('M','inner_meter'),('K','capture'),('P','publisher'),('C2','C'),('Root','runner'),('B','fork_borrower'),('Fee','fee'))},
+        'role_argv':role_argv}
