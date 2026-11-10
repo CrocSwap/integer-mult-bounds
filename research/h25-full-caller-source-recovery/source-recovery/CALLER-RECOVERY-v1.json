@@ -1,0 +1,419 @@
+{
+  "C07": false,
+  "caller_rows": [
+    {
+      "actual_call": {
+        "function": "_begin",
+        "line": 282,
+        "source": "parent.make_parent(slot['epoch'], authority,\n        {name: state['modules'][name] for name in parent.REQUIRED_MODULES})"
+      },
+      "bootstrap_receiver_entry": {
+        "function": "make_orchestrator",
+        "line": 227,
+        "source": "def make_orchestrator(original_receivers, binding_context):\n    state = None\n    try:\n        bindings.verify_bindings(binding_context)\n        _gate()\n        schema.need(not _ORCHESTRATORS and _SHARED['primary'][0] is None and _SHARED['quarantine'][0] is False,\n                    'one live complete attempt; no reconstruction or new IDs after failure')\n        errors = schema.make_error_owner()\n        state = {'pid': _GETPID(), 'phase': 'CONSTRUCTING', 'errors': errors, 'native': schema.owner_state(errors),\n            'configuration_raw': evidence.encode(CONFIGURATION), 'binding_context': binding_context, 'receivers': None, 'modules': original_receivers,\n            'replay': None, 'schedule': None, 'schedule_raw': None, 'actions': {}, 'order': [], 'next': 0,\n            'mode_states': {}, 'observations': [], 'native_actuals': [], 'pending': [None], 'primary': [None],\n            'normal_authority': None, 'optimized_consumed': False, 'finite_complete': {}, 'full_results': []}\n        token = object(); _ORCHESTRATORS.append((token, state))\n        _fresh(state)\n        source_policy = _read(state, CONFIGURATION['receiver_policy'])\n        schema.exact(original_receivers, RUNTIME_MODULES); schema.exact(source_policy, RUNTIME_MODULES)\n        schema.need(original_receivers['parent_orchestration_v2'] is sys.modules[__name__] and\n                    original_receivers['parent_completion_v1'] is parent and\n                    original_receivers['persistent_replay_v1'] is replay and\n                    original_receivers['epoch_parent_v5'] is epoch, 'actual original module identity differs')\n        state['receivers'] = closure.bind_receivers(original_receivers, source_policy, errors,\n                                                  CONFIGURATION['policy_configuration_profile'],\n                                                  _read(state, CONFIGURATION['configured_sources']))\n        state['schedule'] = _read(state, CONFIGURATION['schedule'])\n        state['schedule_raw'] = evidence.encode(state['schedule'])\n        # C06: both epochs/every declared generation durably reserved before ANY epoch constructor.\n        replay_modules = {name: original_receivers[name] for name in replay._REQUIRED}\n        state['replay'] = replay.reserve_batch(replay_modules)\n        _validate_schedule(state)\n        state['phase'] = 'RESERVED'\n        _guard(state)\n        return token\n    except BaseException as error:\n        if _SHARED['primary'][0] is None:\n            _SHARED['primary'][0] = error\n        _SHARED['quarantine'][0] = True\n        _fail(state, error)\n        raise"
+      },
+      "candidate_neighbor_source_pins": {
+        "persistent_replay_v1": {
+          "bytes": 22721,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v2/persistent_replay_v1.py",
+          "sha256": "af2a0941639f46e458058c5793a1d18ec0be754d567f9ec8f95f37e2b4f29148"
+        }
+      },
+      "disposition": "ACTUAL_CALLER_BODY_RECOVERED_REVIEW_ONLY_VERSION_ADAPTATION_REQUIRED",
+      "genuine_capability_contract": "Original _begin creates a live authority object, constructs original epoch.ParentEpoch(authority,...), and passes that exact registered epoch/authority plus actual selected modules to parent.make_parent; this source fact is not execution or a DATA-produced capability. make_orchestrator first requires binding_context authentication, original module identity checks, exact runtime receiver policy, closure.bind_receivers and replay reservation.",
+      "inert_copy": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-prerequisite-construction-20261103T1004Z/source-recovery/inert-source/caller-v2-parent_orchestration_v2.py.txt",
+      "interface_identity": {
+        "bytes": 22400,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v2/INTERFACE.json",
+        "sha256": "22583917e01ec32d7fde62046f2f3138105aab79b8164b577e53b533d57b13a0"
+      },
+      "interface_pin": {
+        "bytes": 38307,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v2/parent_orchestration_v2.py",
+        "sha256": "72bbb41a1e0fdf360f152bab4d6c049c1c406647ce60c1ff2da309873b2d30d3"
+      },
+      "interface_pin_matches": true,
+      "minimal_actual_caller_body": {
+        "function": "_begin",
+        "line": 268,
+        "source": "def _begin(state, mode):\n    _guard(state)\n    schema.need(mode not in state['mode_states'], 'actual epoch already constructed')\n    selected = state['schedule']['modes'][mode]\n    actual_plan = _read(state, selected['parent_plan'])\n    # Original ParentEpoch requires a new owned export directory; creation is paid.\n    authority = object()\n    slot = {'authority': authority, 'epoch': None, 'parent': None, 'policy': None, 'negative': None,\n            'roots': None, 'fixtures': None, 'accepted': [], 'exports': None, 'epoch_close': None}\n    state['mode_states'][mode] = slot\n    _MKDIR(selected['export_directory'], 0o700)\n    slot['epoch'] = epoch.ParentEpoch(authority, selected['epoch_id'], mode, selected['export_directory'],\n        [actual_plan['producers'][r]['epoch_plan'] for r in schema.PRODUCERS])\n    _fresh(state)\n    slot['parent'] = parent.make_parent(slot['epoch'], authority,\n        {name: state['modules'][name] for name in parent.REQUIRED_MODULES})\n    slot['policy'] = policy.make_policy_parent(slot['parent'],\n        {name: state['modules'][name] for name in policy.REQUIRED_POLICY_MODULES})\n    slot['roots'] = owned.make_root_parent(slot['parent'])\n    slot['fixtures'] = fixtures.make_fixture_parent(slot['parent'])\n    state['phase'] = mode\n    _guard(state)"
+      },
+      "publication_status": "UNRESOLVED_CANONICAL_PUBLISHED_LOCATOR; exact retained local source and historical interface pins available; no fabricated URL",
+      "published_immutable_url": null,
+      "replay_fixed_pin_mismatches": [
+        {
+          "caller_replay_expected_sha256": "2d831cff8bd444de2d6941645d571e07618ede404a1f45692b557f61494b334a",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "parent_closure_v1",
+          "required_selected_sha256": "a15424f14baa3d484fe04bfbe7e449c32561c866dbaca2c1b5f646dfb377ed1f"
+        },
+        {
+          "caller_replay_expected_sha256": "9205e14d6661fb5df0597f0ad7b2206006f2d31f01f784805f64c13875663282",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "parent_domain_v1",
+          "required_selected_sha256": "a51264289803b4b17bb262f2460ddd4ed72500aaa21e5eb80fa2db4583689361"
+        }
+      ],
+      "replay_literal_pin_expectations": {
+        "FIXED_SOURCE_PINS": {
+          "epoch_copy_v5": "4f459d0336d59975df787c24373e18dad4044c3a24137392e890115f811b3211",
+          "epoch_parent_v5": "058059912144863a4b2bfe4fc9ffc5233b4ab20ee5a7355bde66f4d3f6f28712",
+          "epoch_schema_v5": "b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a",
+          "parent_closure_v1": "2d831cff8bd444de2d6941645d571e07618ede404a1f45692b557f61494b334a",
+          "parent_completion_v1": "d4ee1b7ce4a42b73261984ffb1b9ceb5bb0165223e04a253588f83b99f6981a5",
+          "parent_domain_v1": "9205e14d6661fb5df0597f0ad7b2206006f2d31f01f784805f64c13875663282"
+        }
+      },
+      "required_module_expression": {
+        "additional_named_modules": [
+          "persistent_replay_v1",
+          "replay_receiver_closure_v1",
+          "policy_parent_domain_v1",
+          "policy_process_domain_v1",
+          "policy_receiver_closure_v1",
+          "negative_parent_v2",
+          "negative_receiver_closure_v2",
+          "negative_process_domain_v2",
+          "negative_observation_v2",
+          "typed_codec_v2",
+          "negative_wide_codec_v2",
+          "run_controls_v1",
+          "inert_byte_v2",
+          "parent_orchestration_v2",
+          "observation_codec_v2",
+          "owned_root_v2",
+          "full_caller_receiver_v2",
+          "supplemental_receivers_v2",
+          "fixture_parent_v2",
+          "orchestration_closure_v2",
+          "configured_inverse_v2",
+          "bootstrap_bindings_v2",
+          "fixture_elf_v1",
+          "component_control_validation_v1"
+        ],
+        "combined_declared_module_count": 57,
+        "line": 47,
+        "parent_module_count": 33,
+        "source": "RUNTIME_MODULES = parent.REQUIRED_MODULES + ('persistent_replay_v1', 'replay_receiver_closure_v1',\n 'policy_parent_domain_v1', 'policy_process_domain_v1', 'policy_receiver_closure_v1',\n 'negative_parent_v2', 'negative_receiver_closure_v2', 'negative_process_domain_v2',\n 'negative_observation_v2', 'typed_codec_v2', 'negative_wide_codec_v2', 'run_controls_v1', 'inert_byte_v2', 'parent_orchestration_v2', 'observation_codec_v2',\n 'owned_root_v2', 'full_caller_receiver_v2', 'supplemental_receivers_v2', 'fixture_parent_v2',\n 'orchestration_closure_v2', 'configured_inverse_v2', 'bootstrap_bindings_v2', 'fixture_elf_v1', 'component_control_validation_v1')"
+      },
+      "selected_dependency_mismatches": [],
+      "source": {
+        "bytes": 38307,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v2/parent_orchestration_v2.py",
+        "sha256": "72bbb41a1e0fdf360f152bab4d6c049c1c406647ce60c1ff2da309873b2d30d3"
+      },
+      "source_version": 2,
+      "whole_package_compatible_with_current_selection": false
+    },
+    {
+      "actual_call": {
+        "function": "_begin",
+        "line": 304,
+        "source": "parent.make_parent(slot['epoch'], authority,\n        {name: state['modules'][name] for name in parent.REQUIRED_MODULES})"
+      },
+      "bootstrap_receiver_entry": {
+        "function": "make_orchestrator",
+        "line": 249,
+        "source": "def make_orchestrator(original_receivers, binding_context):\n    state = None\n    try:\n        bindings.verify_bindings(binding_context)\n        _gate()\n        schema.need(not _ORCHESTRATORS and _SHARED['primary'][0] is None and _SHARED['quarantine'][0] is False,\n                    'one live complete attempt; no reconstruction or new IDs after failure')\n        errors = schema.make_error_owner()\n        state = {'pid': _GETPID(), 'phase': 'CONSTRUCTING', 'errors': errors, 'native': schema.owner_state(errors),\n            'configuration_raw': evidence.encode(CONFIGURATION), 'binding_context': binding_context, 'receivers': None, 'modules': original_receivers,\n            'replay': None, 'schedule': None, 'schedule_raw': None, 'actions': {}, 'order': [], 'next': 0,\n            'mode_states': {}, 'observations': [], 'native_actuals': [], 'pending': [None], 'primary': [None],\n            'normal_authority': None, 'optimized_consumed': False, 'finite_complete': {}, 'full_results': []}\n        token = object(); _ORCHESTRATORS.append((token, state))\n        _fresh(state)\n        source_policy = _read(state, CONFIGURATION['receiver_policy'])\n        schema.exact(original_receivers, RUNTIME_MODULES); schema.exact(source_policy, RUNTIME_MODULES)\n        schema.need(original_receivers['parent_orchestration_v2'] is sys.modules[__name__] and\n                    original_receivers['parent_completion_v1'] is parent and\n                    original_receivers['persistent_replay_v1'] is replay and\n                    original_receivers['epoch_parent_v5'] is epoch, 'actual original module identity differs')\n        state['receivers'] = closure.bind_receivers(original_receivers, source_policy, errors,\n                                                  CONFIGURATION['policy_configuration_profile'],\n                                                  _read(state, CONFIGURATION['configured_sources']))\n        state['schedule'] = _read(state, CONFIGURATION['schedule'])\n        state['schedule_raw'] = evidence.encode(state['schedule'])\n        # C06: both epochs/every declared generation durably reserved before ANY epoch constructor.\n        replay_modules = {name: original_receivers[name] for name in replay._REQUIRED}\n        state['replay'] = replay.reserve_batch(replay_modules)\n        _validate_schedule(state)\n        state['phase'] = 'RESERVED'\n        _guard(state)\n        return token\n    except BaseException as error:\n        if _SHARED['primary'][0] is None:\n            _SHARED['primary'][0] = error\n        _SHARED['quarantine'][0] = True\n        _fail(state, error)\n        raise"
+      },
+      "candidate_neighbor_source_pins": {
+        "epoch_copy_v5": {
+          "bytes": 111622,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v3/epoch_copy_v5.py",
+          "sha256": "b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69"
+        },
+        "parent_closure_v1": {
+          "bytes": 13412,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v3/parent_closure_v1.py",
+          "sha256": "95cc1b7e05ff247fb8146ec64a74656da7893458a187ef832f33c4e736c28a2d"
+        },
+        "parent_completion_v1": {
+          "bytes": 54228,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v3/parent_completion_v1.py",
+          "sha256": "97f71e3cae08852808a80fa29818304cbc80c6bfa2c32d60e6d1fbd281062f75"
+        },
+        "persistent_replay_v1": {
+          "bytes": 22733,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v3/persistent_replay_v1.py",
+          "sha256": "a3e579aaab675e93c146f44bb23028d94d20ba6d4cfa3dfa30ca84f8d4007226"
+        }
+      },
+      "disposition": "ACTUAL_CALLER_BODY_RECOVERED_REVIEW_ONLY_VERSION_ADAPTATION_REQUIRED",
+      "extra_conflict": "v3 replay literals still expect old d4ee/4f459/2d831 while its neighboring v3 sources are97f7/b830/95cc; preserve this internal source-version mismatch as well.",
+      "genuine_capability_contract": "Original _begin creates a live authority object, constructs original epoch.ParentEpoch(authority,...), and passes that exact registered epoch/authority plus actual selected modules to parent.make_parent; this source fact is not execution or a DATA-produced capability. make_orchestrator first requires binding_context authentication, original module identity checks, exact runtime receiver policy, closure.bind_receivers and replay reservation.",
+      "inert_copy": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-prerequisite-construction-20261103T1004Z/source-recovery/inert-source/caller-v3-parent_orchestration_v2.py.txt",
+      "interface_identity": {
+        "bytes": 34647,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v3/INTERFACE.json",
+        "sha256": "f903c33eb13bb2ef3c1a6ec7ab16b6afab3e5588a7fe065197b009d64d9c8ddd"
+      },
+      "interface_pin": {
+        "bytes": 40226,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v3/parent_orchestration_v2.py",
+        "sha256": "cd08bc5dd8b6020a630848349d74344dd334100908dae22d67585e34ab2f96bd"
+      },
+      "interface_pin_matches": true,
+      "minimal_actual_caller_body": {
+        "function": "_begin",
+        "line": 290,
+        "source": "def _begin(state, mode):\n    _guard(state)\n    schema.need(mode not in state['mode_states'], 'actual epoch already constructed')\n    selected = state['schedule']['modes'][mode]\n    actual_plan = _read(state, selected['parent_plan'])\n    # Original ParentEpoch requires a new owned export directory; creation is paid.\n    authority = object()\n    slot = {'authority': authority, 'epoch': None, 'parent': None, 'policy': None, 'negative': None,\n            'roots': None, 'fixtures': None, 'accepted': [], 'exports': None, 'epoch_close': None}\n    state['mode_states'][mode] = slot\n    _MKDIR(selected['export_directory'], 0o700)\n    slot['epoch'] = epoch.ParentEpoch(authority, selected['epoch_id'], mode, selected['export_directory'],\n        [actual_plan['producers'][r]['epoch_plan'] for r in schema.PRODUCERS])\n    _fresh(state)\n    slot['parent'] = parent.make_parent(slot['epoch'], authority,\n        {name: state['modules'][name] for name in parent.REQUIRED_MODULES})\n    slot['policy'] = policy.make_policy_parent(slot['parent'],\n        {name: state['modules'][name] for name in policy.REQUIRED_POLICY_MODULES})\n    slot['roots'] = owned.make_root_parent(slot['parent'])\n    slot['fixtures'] = fixtures.make_fixture_parent(slot['parent'])\n    state['phase'] = mode\n    _guard(state)"
+      },
+      "publication_status": "UNRESOLVED_CANONICAL_PUBLISHED_LOCATOR; exact retained local source and historical interface pins available; no fabricated URL",
+      "published_immutable_url": null,
+      "replay_fixed_pin_mismatches": [
+        {
+          "caller_replay_expected_sha256": "2d831cff8bd444de2d6941645d571e07618ede404a1f45692b557f61494b334a",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "parent_closure_v1",
+          "required_selected_sha256": "a15424f14baa3d484fe04bfbe7e449c32561c866dbaca2c1b5f646dfb377ed1f"
+        },
+        {
+          "caller_replay_expected_sha256": "9205e14d6661fb5df0597f0ad7b2206006f2d31f01f784805f64c13875663282",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "parent_domain_v1",
+          "required_selected_sha256": "a51264289803b4b17bb262f2460ddd4ed72500aaa21e5eb80fa2db4583689361"
+        }
+      ],
+      "replay_literal_pin_expectations": {
+        "FIXED_SOURCE_PINS": {
+          "epoch_copy_v5": "4f459d0336d59975df787c24373e18dad4044c3a24137392e890115f811b3211",
+          "epoch_parent_v5": "058059912144863a4b2bfe4fc9ffc5233b4ab20ee5a7355bde66f4d3f6f28712",
+          "epoch_schema_v5": "b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a",
+          "parent_closure_v1": "2d831cff8bd444de2d6941645d571e07618ede404a1f45692b557f61494b334a",
+          "parent_completion_v1": "d4ee1b7ce4a42b73261984ffb1b9ceb5bb0165223e04a253588f83b99f6981a5",
+          "parent_domain_v1": "9205e14d6661fb5df0597f0ad7b2206006f2d31f01f784805f64c13875663282"
+        }
+      },
+      "required_module_expression": {
+        "additional_named_modules": [
+          "persistent_replay_v1",
+          "replay_receiver_closure_v1",
+          "policy_parent_domain_v1",
+          "policy_process_domain_v1",
+          "policy_receiver_closure_v1",
+          "negative_parent_v2",
+          "negative_receiver_closure_v2",
+          "negative_process_domain_v2",
+          "negative_observation_v2",
+          "typed_codec_v2",
+          "negative_wide_codec_v2",
+          "run_controls_v1",
+          "inert_byte_v2",
+          "parent_orchestration_v2",
+          "observation_codec_v2",
+          "owned_root_v2",
+          "full_caller_receiver_v2",
+          "supplemental_receivers_v2",
+          "fixture_parent_v2",
+          "orchestration_closure_v2",
+          "configured_inverse_v2",
+          "bootstrap_bindings_v2",
+          "fixture_elf_v2",
+          "component_control_validation_v1"
+        ],
+        "combined_declared_module_count": 57,
+        "line": 47,
+        "parent_module_count": 33,
+        "source": "RUNTIME_MODULES = parent.REQUIRED_MODULES + ('persistent_replay_v1', 'replay_receiver_closure_v1',\n 'policy_parent_domain_v1', 'policy_process_domain_v1', 'policy_receiver_closure_v1',\n 'negative_parent_v2', 'negative_receiver_closure_v2', 'negative_process_domain_v2',\n 'negative_observation_v2', 'typed_codec_v2', 'negative_wide_codec_v2', 'run_controls_v1', 'inert_byte_v2', 'parent_orchestration_v2', 'observation_codec_v2',\n 'owned_root_v2', 'full_caller_receiver_v2', 'supplemental_receivers_v2', 'fixture_parent_v2',\n 'orchestration_closure_v2', 'configured_inverse_v2', 'bootstrap_bindings_v2', 'fixture_elf_v2', 'component_control_validation_v1')"
+      },
+      "selected_dependency_mismatches": [
+        {
+          "candidate_sha256": "97f71e3cae08852808a80fa29818304cbc80c6bfa2c32d60e6d1fbd281062f75",
+          "disposition": "INCOMPATIBLE_WITH_CURRENT_SELECTION_WITHOUT_REVIEWED_ADAPTATION",
+          "module": "parent_completion_v1",
+          "required_selected_sha256": "d4ee1b7ce4a42b73261984ffb1b9ceb5bb0165223e04a253588f83b99f6981a5"
+        },
+        {
+          "candidate_sha256": "95cc1b7e05ff247fb8146ec64a74656da7893458a187ef832f33c4e736c28a2d",
+          "disposition": "INCOMPATIBLE_WITH_CURRENT_SELECTION_WITHOUT_REVIEWED_ADAPTATION",
+          "module": "parent_closure_v1",
+          "required_selected_sha256": "a15424f14baa3d484fe04bfbe7e449c32561c866dbaca2c1b5f646dfb377ed1f"
+        },
+        {
+          "candidate_sha256": "b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69",
+          "disposition": "INCOMPATIBLE_WITH_CURRENT_SELECTION_WITHOUT_REVIEWED_ADAPTATION",
+          "module": "epoch_copy_v5",
+          "required_selected_sha256": "4f459d0336d59975df787c24373e18dad4044c3a24137392e890115f811b3211"
+        }
+      ],
+      "source": {
+        "bytes": 40226,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v3/parent_orchestration_v2.py",
+        "sha256": "cd08bc5dd8b6020a630848349d74344dd334100908dae22d67585e34ab2f96bd"
+      },
+      "source_version": 3,
+      "whole_package_compatible_with_current_selection": false
+    },
+    {
+      "actual_call": {
+        "function": "_begin",
+        "line": 304,
+        "source": "parent.make_parent(slot['epoch'], authority,\n        {name: state['modules'][name] for name in parent.REQUIRED_MODULES})"
+      },
+      "bootstrap_receiver_entry": {
+        "function": "make_orchestrator",
+        "line": 249,
+        "source": "def make_orchestrator(original_receivers, binding_context):\n    state = None\n    try:\n        bindings.verify_bindings(binding_context)\n        _gate()\n        schema.need(not _ORCHESTRATORS and _SHARED['primary'][0] is None and _SHARED['quarantine'][0] is False,\n                    'one live complete attempt; no reconstruction or new IDs after failure')\n        errors = schema.make_error_owner()\n        state = {'pid': _GETPID(), 'phase': 'CONSTRUCTING', 'errors': errors, 'native': schema.owner_state(errors),\n            'configuration_raw': evidence.encode(CONFIGURATION), 'binding_context': binding_context, 'receivers': None, 'modules': original_receivers,\n            'replay': None, 'schedule': None, 'schedule_raw': None, 'actions': {}, 'order': [], 'next': 0,\n            'mode_states': {}, 'observations': [], 'native_actuals': [], 'pending': [None], 'primary': [None],\n            'normal_authority': None, 'optimized_consumed': False, 'finite_complete': {}, 'full_results': []}\n        token = object(); _ORCHESTRATORS.append((token, state))\n        _fresh(state)\n        source_policy = _read(state, CONFIGURATION['receiver_policy'])\n        schema.exact(original_receivers, RUNTIME_MODULES); schema.exact(source_policy, RUNTIME_MODULES)\n        schema.need(original_receivers['parent_orchestration_v2'] is sys.modules[__name__] and\n                    original_receivers['parent_completion_v1'] is parent and\n                    original_receivers['persistent_replay_v1'] is replay and\n                    original_receivers['epoch_parent_v5'] is epoch, 'actual original module identity differs')\n        state['receivers'] = closure.bind_receivers(original_receivers, source_policy, errors,\n                                                  CONFIGURATION['policy_configuration_profile'],\n                                                  _read(state, CONFIGURATION['configured_sources']))\n        state['schedule'] = _read(state, CONFIGURATION['schedule'])\n        state['schedule_raw'] = evidence.encode(state['schedule'])\n        # C06: both epochs/every declared generation durably reserved before ANY epoch constructor.\n        replay_modules = {name: original_receivers[name] for name in replay._REQUIRED}\n        state['replay'] = replay.reserve_batch(replay_modules)\n        _validate_schedule(state)\n        state['phase'] = 'RESERVED'\n        _guard(state)\n        return token\n    except BaseException as error:\n        if _SHARED['primary'][0] is None:\n            _SHARED['primary'][0] = error\n        _SHARED['quarantine'][0] = True\n        _fail(state, error)\n        raise"
+      },
+      "candidate_neighbor_source_pins": {
+        "epoch_copy_v5": {
+          "bytes": 111622,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v4/epoch_copy_v5.py",
+          "sha256": "b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69"
+        },
+        "parent_closure_v1": {
+          "bytes": 13412,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v4/parent_closure_v1.py",
+          "sha256": "95cc1b7e05ff247fb8146ec64a74656da7893458a187ef832f33c4e736c28a2d"
+        },
+        "parent_completion_v1": {
+          "bytes": 54228,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v4/parent_completion_v1.py",
+          "sha256": "97f71e3cae08852808a80fa29818304cbc80c6bfa2c32d60e6d1fbd281062f75"
+        },
+        "persistent_replay_v1": {
+          "bytes": 23883,
+          "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v4/persistent_replay_v1.py",
+          "sha256": "b49491bf53df6fcfb312297d55e1794f1f4647b0c94e04ec37cd23352e7d6953"
+        }
+      },
+      "disposition": "ACTUAL_CALLER_BODY_RECOVERED_REVIEW_ONLY_VERSION_ADAPTATION_REQUIRED",
+      "genuine_capability_contract": "Original _begin creates a live authority object, constructs original epoch.ParentEpoch(authority,...), and passes that exact registered epoch/authority plus actual selected modules to parent.make_parent; this source fact is not execution or a DATA-produced capability. make_orchestrator first requires binding_context authentication, original module identity checks, exact runtime receiver policy, closure.bind_receivers and replay reservation.",
+      "inert_copy": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/c05-v03-prerequisite-construction-20261103T1004Z/source-recovery/inert-source/caller-v4-parent_orchestration_v2.py.txt",
+      "interface_identity": {
+        "bytes": 37042,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v4/INTERFACE.json",
+        "sha256": "263b706aa9020483e70e3eb69e697aaf90463bb8a2230932757a2907263a839b"
+      },
+      "interface_pin": {
+        "bytes": 40226,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v4/parent_orchestration_v2.py",
+        "sha256": "cd08bc5dd8b6020a630848349d74344dd334100908dae22d67585e34ab2f96bd"
+      },
+      "interface_pin_matches": true,
+      "minimal_actual_caller_body": {
+        "function": "_begin",
+        "line": 290,
+        "source": "def _begin(state, mode):\n    _guard(state)\n    schema.need(mode not in state['mode_states'], 'actual epoch already constructed')\n    selected = state['schedule']['modes'][mode]\n    actual_plan = _read(state, selected['parent_plan'])\n    # Original ParentEpoch requires a new owned export directory; creation is paid.\n    authority = object()\n    slot = {'authority': authority, 'epoch': None, 'parent': None, 'policy': None, 'negative': None,\n            'roots': None, 'fixtures': None, 'accepted': [], 'exports': None, 'epoch_close': None}\n    state['mode_states'][mode] = slot\n    _MKDIR(selected['export_directory'], 0o700)\n    slot['epoch'] = epoch.ParentEpoch(authority, selected['epoch_id'], mode, selected['export_directory'],\n        [actual_plan['producers'][r]['epoch_plan'] for r in schema.PRODUCERS])\n    _fresh(state)\n    slot['parent'] = parent.make_parent(slot['epoch'], authority,\n        {name: state['modules'][name] for name in parent.REQUIRED_MODULES})\n    slot['policy'] = policy.make_policy_parent(slot['parent'],\n        {name: state['modules'][name] for name in policy.REQUIRED_POLICY_MODULES})\n    slot['roots'] = owned.make_root_parent(slot['parent'])\n    slot['fixtures'] = fixtures.make_fixture_parent(slot['parent'])\n    state['phase'] = mode\n    _guard(state)"
+      },
+      "publication_status": "UNRESOLVED_CANONICAL_PUBLISHED_LOCATOR; exact retained local source and historical interface pins available; no fabricated URL",
+      "published_immutable_url": null,
+      "replay_fixed_pin_mismatches": [
+        {
+          "caller_replay_expected_sha256": "b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "epoch_copy_v5",
+          "required_selected_sha256": "4f459d0336d59975df787c24373e18dad4044c3a24137392e890115f811b3211"
+        },
+        {
+          "caller_replay_expected_sha256": "95cc1b7e05ff247fb8146ec64a74656da7893458a187ef832f33c4e736c28a2d",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "parent_closure_v1",
+          "required_selected_sha256": "a15424f14baa3d484fe04bfbe7e449c32561c866dbaca2c1b5f646dfb377ed1f"
+        },
+        {
+          "caller_replay_expected_sha256": "97f71e3cae08852808a80fa29818304cbc80c6bfa2c32d60e6d1fbd281062f75",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "parent_completion_v1",
+          "required_selected_sha256": "d4ee1b7ce4a42b73261984ffb1b9ceb5bb0165223e04a253588f83b99f6981a5"
+        },
+        {
+          "caller_replay_expected_sha256": "9205e14d6661fb5df0597f0ad7b2206006f2d31f01f784805f64c13875663282",
+          "disposition": "INCOMPATIBLE_EXPECTATION_REQUIRES_REVIEWED_VERSION_ADAPTATION",
+          "module": "parent_domain_v1",
+          "required_selected_sha256": "a51264289803b4b17bb262f2460ddd4ed72500aaa21e5eb80fa2db4583689361"
+        }
+      ],
+      "replay_literal_pin_expectations": {
+        "FIXED_SOURCE_PINS": {
+          "epoch_copy_v5": "b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69",
+          "epoch_parent_v5": "058059912144863a4b2bfe4fc9ffc5233b4ab20ee5a7355bde66f4d3f6f28712",
+          "epoch_schema_v5": "b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a",
+          "parent_closure_v1": "95cc1b7e05ff247fb8146ec64a74656da7893458a187ef832f33c4e736c28a2d",
+          "parent_completion_v1": "97f71e3cae08852808a80fa29818304cbc80c6bfa2c32d60e6d1fbd281062f75",
+          "parent_domain_v1": "9205e14d6661fb5df0597f0ad7b2206006f2d31f01f784805f64c13875663282"
+        },
+        "PREDECESSOR_FIXED_SOURCE_PINS": {
+          "epoch_copy_v5": "4f459d0336d59975df787c24373e18dad4044c3a24137392e890115f811b3211",
+          "epoch_parent_v5": "058059912144863a4b2bfe4fc9ffc5233b4ab20ee5a7355bde66f4d3f6f28712",
+          "epoch_schema_v5": "b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a",
+          "parent_closure_v1": "2d831cff8bd444de2d6941645d571e07618ede404a1f45692b557f61494b334a",
+          "parent_completion_v1": "d4ee1b7ce4a42b73261984ffb1b9ceb5bb0165223e04a253588f83b99f6981a5",
+          "parent_domain_v1": "9205e14d6661fb5df0597f0ad7b2206006f2d31f01f784805f64c13875663282"
+        }
+      },
+      "required_module_expression": {
+        "additional_named_modules": [
+          "persistent_replay_v1",
+          "replay_receiver_closure_v1",
+          "policy_parent_domain_v1",
+          "policy_process_domain_v1",
+          "policy_receiver_closure_v1",
+          "negative_parent_v2",
+          "negative_receiver_closure_v2",
+          "negative_process_domain_v2",
+          "negative_observation_v2",
+          "typed_codec_v2",
+          "negative_wide_codec_v2",
+          "run_controls_v1",
+          "inert_byte_v2",
+          "parent_orchestration_v2",
+          "observation_codec_v2",
+          "owned_root_v2",
+          "full_caller_receiver_v2",
+          "supplemental_receivers_v2",
+          "fixture_parent_v2",
+          "orchestration_closure_v2",
+          "configured_inverse_v2",
+          "bootstrap_bindings_v2",
+          "fixture_elf_v2",
+          "component_control_validation_v1"
+        ],
+        "combined_declared_module_count": 57,
+        "line": 47,
+        "parent_module_count": 33,
+        "source": "RUNTIME_MODULES = parent.REQUIRED_MODULES + ('persistent_replay_v1', 'replay_receiver_closure_v1',\n 'policy_parent_domain_v1', 'policy_process_domain_v1', 'policy_receiver_closure_v1',\n 'negative_parent_v2', 'negative_receiver_closure_v2', 'negative_process_domain_v2',\n 'negative_observation_v2', 'typed_codec_v2', 'negative_wide_codec_v2', 'run_controls_v1', 'inert_byte_v2', 'parent_orchestration_v2', 'observation_codec_v2',\n 'owned_root_v2', 'full_caller_receiver_v2', 'supplemental_receivers_v2', 'fixture_parent_v2',\n 'orchestration_closure_v2', 'configured_inverse_v2', 'bootstrap_bindings_v2', 'fixture_elf_v2', 'component_control_validation_v1')"
+      },
+      "selected_dependency_mismatches": [
+        {
+          "candidate_sha256": "97f71e3cae08852808a80fa29818304cbc80c6bfa2c32d60e6d1fbd281062f75",
+          "disposition": "INCOMPATIBLE_WITH_CURRENT_SELECTION_WITHOUT_REVIEWED_ADAPTATION",
+          "module": "parent_completion_v1",
+          "required_selected_sha256": "d4ee1b7ce4a42b73261984ffb1b9ceb5bb0165223e04a253588f83b99f6981a5"
+        },
+        {
+          "candidate_sha256": "95cc1b7e05ff247fb8146ec64a74656da7893458a187ef832f33c4e736c28a2d",
+          "disposition": "INCOMPATIBLE_WITH_CURRENT_SELECTION_WITHOUT_REVIEWED_ADAPTATION",
+          "module": "parent_closure_v1",
+          "required_selected_sha256": "a15424f14baa3d484fe04bfbe7e449c32561c866dbaca2c1b5f646dfb377ed1f"
+        },
+        {
+          "candidate_sha256": "b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69",
+          "disposition": "INCOMPATIBLE_WITH_CURRENT_SELECTION_WITHOUT_REVIEWED_ADAPTATION",
+          "module": "epoch_copy_v5",
+          "required_selected_sha256": "4f459d0336d59975df787c24373e18dad4044c3a24137392e890115f811b3211"
+        }
+      ],
+      "source": {
+        "bytes": 40226,
+        "path": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028/areas/field-parent-orchestration-v4/parent_orchestration_v2.py",
+        "sha256": "cd08bc5dd8b6020a630848349d74344dd334100908dae22d67585e34ab2f96bd"
+      },
+      "source_version": 4,
+      "whole_package_compatible_with_current_selection": false
+    }
+  ],
+  "candidate_pool_frozen": true,
+  "compatibility_conclusion": "Actual make_parent caller bodies and genuine epoch/authority object flow are recovered. v2 replay hard-pins old domain9205/closure2d831; v3 includes internal fixed-pin/neighbor divergence; v4 hard-pins parent97f7/epochcopyb830/closure95cc and olddomain9205. These packages are review-only under current d4ee/a512/a154/4f459 selection. No unchanged adoption or substitution; reviewed minimal adaptation and57-module graph expansion remain source prerequisites.",
+  "costs": "OPEN_NOT_ZERO",
+  "created_utc": "2026-11-03T10:12:04.073360+00:00",
+  "full_C05": false,
+  "full_V03": false,
+  "kind": "INERT_SOURCE_EVIDENCE_ONLY",
+  "not_the_caller": "full_caller_receiver_v2.take_full_observation is a receiver; parent_orchestration_v2._begin is an actual source body calling make_parent",
+  "original_credit": 0,
+  "original_execution": false,
+  "schema": "c05-v03-caller-source-recovery-v1",
+  "source_window": "new10:04:32\u201310:49:32UTC; prior closedround unchanged",
+  "version2_through5_metadata_scope": "v2,v3,v4 metadata exist; requested v5 directory has no inspected metadata; no broad survey"
+}
