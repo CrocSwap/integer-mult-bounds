@@ -1,6 +1,180 @@
 # CI verification
 
-## Current selected-family replay
+## Current selected-family replay: #7000 with #7001
+
+The [selected record](../certificates/selected-result.json) binds conditional
+κ = 0.00363005817 to the [application review](research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md),
+[validation receipts](research/pr-intake-evidence/pr7000-application/VALIDATION.json),
+and [explicit source closure](../certificates/frontier7000-source.json).
+`make frontier7000-verify` follows that exact-source selected replay. The review
+reuses eleven authenticated preceding executions and records seven fresh serial
+application, scalar and complete native-catalogue executions. The earlier
+monolithic timeout is retained separately and is not completed coverage.
+Consult the receipts for exact commands, source heads and limits.
+
+The five inherited framework assumptions remain. No complete uniform word,
+literal multiplier execution, independent human proof or formal-kernel proof
+is asserted. Routine research submissions do not need to rerun this
+selected-family replay. The sections below preserve historical checkpoints.
+
+## Historical selected-family replay: #6030
+
+The [historical checkpoint](../certificates/checkpoints/frontier6030.json) binds conditional
+κ = 0.003125804 to the [proof review](research/pr-intake-evidence/pr6030-audit/PROOF-REVIEW.md),
+[validation receipts](research/pr-intake-evidence/pr6030-audit/VALIDATION.json),
+and [explicit source closure](../certificates/frontier6030-source.json).
+`make frontier6030-verify` follows that source-bound selected replay. The review
+separates retained normal primary macOS/Linux evidence from fresh independent
+word/invoice/native, original caller, adapted caller and optimized primary checks.
+Consult its receipts for exact commands, source heads and limits; the #5599
+checkpoint below retains its own historical replay details.
+
+The five inherited framework assumptions remain. Neither the full uniform word
+nor a complete rounded multiplier is materialized. A source/metadata check is
+not an operator replay or a formal theorem proof. Routine research submissions
+do not need to rerun this selected-family replay.
+
+## Historical selected-family replay: #5599
+
+The [selected record](../certificates/selected-result.json) binds conditional
+κ = 0.00310045 to the [proof review](research/pr-intake-evidence/pr5599-completion/PROOF-REVIEW.md)
+and [explicit source closure](../certificates/frontier5599-source.json).
+`make frontier5599-verify` authenticates the complete source
+closure and claim derivation, then executes primary, independent caller
+positive-control, adapted caller and optimized primary checks serially. The
+Linux [audit run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/40253906841)
+passed all four; [receipts](research/pr-intake-evidence/pr5599-completion/VALIDATION.json)
+and losslessly compressed logs are retained. Original positive-control output
+matches its frozen bytes exactly. Peak sampled descendant RSS was 487,100 KiB.
+
+The manual [selected replay workflow](../.github/workflows/frontier5599.yml)
+uses Python 3.12 and an explicit source export. The earlier
+[audit workflow](../.github/workflows/p1045599-audit.yml) runs the identical
+scientific engines independently of selection. Primary limits are 3,600 seconds,
+caller limits 1,800 seconds, with a sampled 1 GiB aggregate descendant-memory
+cap. No automatic Lean, Docker or historical replay is enabled.
+
+The selected driver also supports `--validate-replay` for an existing exact
+export with all four complete receipts. That reauthenticates source, original
+positive control, independent invoice, ownership counts and output equality;
+it does not claim a new cold execution. The promotion used this mode to bind
+the already completed Linux scientific replay to the new selected record.
+The initial 600-second Mac timeout and subsequent Linux handoff remain recorded.
+
+The five inherited framework assumptions remain. Neither the uniform word nor
+a full rounded multiplier is materialized. Source/metadata checks are not
+operator replays or a formal theorem proof.
+
+
+## Historical selected-family replay: #5413 with #5407 and #5414
+
+The [historical checkpoint](../certificates/checkpoints/frontier5413.json) binds conditional
+κ = 0.003027288235, the [promotion and scope](research/pr-intake-evidence/pr5413-promotion/PROMOTION.md),
+[explicit source closure](../certificates/frontier5413-source.json),
+[review validation](research/pr-intake-evidence/pr5413-promotion/VALIDATION.json), and
+[integration receipt](research/pr-intake-evidence/pr5413-promotion/INTEGRATION.json).
+
+`make frontier5413-verify` authenticates the selected source manifest, derives
+the certificate from frozen numerical evidence, and exports the complete
+three-package execution closure. It replays #5407's five-stage provider audit,
+#5413's eight-stage admission, and #5414's independent companion screen serially.
+The exported inputs are checked again afterward. Source-bound #4610/#5241 and
+earlier BIT/native/compiler/tape/analytic foundation coverage is explicitly
+reused; its historical suites are not rerun.
+
+Each package runs under an external sampled 1 GiB aggregate descendant-memory
+guard, with timeouts of 660 seconds for the provider and primary packages and
+120 seconds for the companion. On macOS the replay uses the reviewed RLIMIT_AS
+adapter; on Linux it invokes the unmodified package wrappers. The recorded
+successful local macOS replay does not establish a hosted Linux pass.
+
+The [frontier5413 workflow](../.github/workflows/frontier5413.yml) is manual-only,
+uses Python 3.12 on Ubuntu, materializes the declared source closure, and uploads
+receipts and logs. Its status is separate from local validation and recorded in
+the integration receipt. Routine donor PRs do not launch this selected replay.
+
+`make selected-record-check` verifies metadata and source/proof hashes. It does
+not execute the operators or prove the five inherited framework assumptions.
+The finite checks do not establish the full integer multiplication theorem,
+and the uniform word remains unmaterialized.
+
+## Historical selected-family replay: #4610 with #5241
+
+The historical [selected record](../certificates/checkpoints/frontier4610.json) binds conditional
+κ = 0.0030217758, the [review](research/pr-intake-evidence/pr4610/PROOF-REVIEW.md),
+[explicit source closure](../certificates/frontier4610-source.json),
+[review validation](research/pr-intake-evidence/pr4610/VALIDATION.json), and
+[integration receipt](research/pr-intake-evidence/pr4610/INTEGRATION.json).
+
+`make frontier4610-verify` authenticates 585 source pins and exports exactly
+82 reviewed inputs into a fresh directory. The old selected record is explicitly
+remapped from `certificates/checkpoints/frontier4470.json`; frozen source packages
+are unchanged. The eleven admission stages run serially under a sampled 1 GiB
+descendant-memory limit and a 660-second timeout. The source-bound #4470 foundation
+is reused explicitly. This is not a full historical cold replay. No Lean, Docker
+or optimization search is part of this target.
+
+The [frontier4610 workflow](../.github/workflows/frontier4610.yml) is manual-only,
+uses Python 3.12 on Ubuntu, and uploads receipts and logs. Its sparse checkout
+materializes only the source manifest's declared files. Git history authenticates
+the frozen canonical inputs; mathematical replay reads the exported files.
+The integration receipt distinguishes local success from hosted status: no Linux
+pass is claimed until the dedicated hosted replay has actually completed.
+
+The [historical #4470 workflow](../.github/workflows/frontier4470.yml) is now
+manual-only and checks out its last selected checkpoint. Neither workflow runs
+per donor PR. Routine queue intake must not launch historical supplier suites.
+
+`make selected-record-check` verifies hashes and the exact selected κ.
+`python3 -B scripts/research_selected_baseline.py` compares the raw certificate's
+budget stages. Neither is an operator replay or a proof of the five inherited
+framework assumptions. The finite checks do not establish the full integer
+multiplication theorem, and do not materialize the uniform word.
+
+## Historical selected-family replay through #1094
+
+Start with the [selected record](../certificates/selected-result.json). Its
+`reproduce`, `review`, `source_manifest` and `validation` fields identify the
+replay command, scoped assessment, source bindings and integration evidence.
+At that checkpoint, the selected composition is #589 with #1094, documented in
+[the review](research/community-batch1099-review.md),
+[the source manifest](../research/community-frontier1094-audit/SELECTED-SOURCE.json)
+and [the integration receipt](research/community-batch1099-integration.json).
+
+The public cold replay is `make frontier1094-verify`. The configured
+[frontier1094 workflow](../.github/workflows/frontier1094.yml) runs on Ubuntu
+24.04 with Python 3.12, C++17, Boost and the pinned bit package's Python
+requirements. It checks the selected and historical #1042 records, then runs
+`python -B scripts/verify_frontier1094.py --work "$RUNNER_TEMP/frontier1094"`
+in a fresh output directory. It requires tracked files to remain unchanged
+and uploads replay receipts and logs. Selected-input path filters control
+push and pull-request runs; manual dispatch is also available.
+
+`make selected-record-check` checks metadata and source/proof hashes, not the
+operators. The cold replay checks the finite construction and composition;
+it does not discharge the inherited all-size/compiler, realization, hosting,
+precision/tape, analytic or bit-interface assumptions.
+
+The integration receipt records successful local macOS execution and leaves
+hosted Linux CI pending **at that review checkpoint**. This is dated evidence,
+not the latest hosted status. Consult the
+[workflow runs](https://github.com/CrocSwap/integer-mult-bounds/actions/workflows/frontier1094.yml)
+and check the exact tested head, inputs and logs before claiming hosted
+coverage. A workflow file, a generic matrix pass or a successful historical
+#626 run does not establish execution of the selected #1094 construction.
+
+## Historical selected-family replay through #626
+
+At this historical checkpoint, the #543 + #626 composition used
+`.github/workflows/frontier626.yml`.
+Its [completed Linux run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/38317651752)
+passed on 2026-10-13 at commit `ed49217ad6244f1d3bfe4588f122fa861849739c`.
+The [preserved artifact reconciliation](../research/selected626-linux-reconciliation/README.md)
+checks source equality to the sprint base, all six replay stages and exact
+mathematical assembly agreement, with explicit limits for omitted payloads.
+The older queued integration receipt is retained as historical evidence.
+
+## Historical selected-family replay through #588
 
 `.github/workflows/frontier588.yml` provides one complete cold check of #543
 with #588 on Ubuntu 24.04 and Python 3.12. It installs NumPy, SymPy, SciPy,
@@ -96,3 +270,38 @@ every test file in a fresh interpreter so import state cannot select another
 package's graph or verifier. No test files are omitted. The enlarged-frame job
 installs Boost headers if needed and repeats its sufficient-prime proof on every
 run; the diagnostic three-prime profiler is not used as the exact certificate.
+
+### Bound an isolated test module
+
+For a local or CI run with a known per-module budget:
+
+```sh
+python3 scripts/run_isolated_tests.py --workers 4 --module-timeout 600
+```
+
+The optional timeout is a finite positive number of seconds, measured from each
+module's actual process launch. Waiting for a worker does not consume it.
+Omitting the option preserves the unlimited default. On expiry the module
+returns failure code 124 with captured diagnostics; even a completion receipt
+cannot turn a timeout into success. Other modules continue, and the final CLI
+exit remains nonzero. No test or assertion is skipped to meet the deadline.
+
+The runner stops the owned process group on POSIX. On Windows a private
+supervisor reuses `research_package.py`'s gated Job Object and waits for its
+ordinary descendants to stop even when the test module has already exited.
+Timeout/cancellation targets the live supervisor; closing its job handle also
+terminates the owned descendants. Copies of the runner on Windows must include
+`research_package.py` in the same scripts directory. Test modules must still
+join proof-relevant children and propagate their failures: cleanup does not
+validate unfinished work. After cleanup, capture has a bounded drain
+so an inherited pipe cannot impose an unlimited EOF wait. Cleanup failures
+propagate through the existing cancellation path instead of becoming a pass.
+This is a failure bound, not a speedup or a new mathematical result.
+
+The [Windows exit-cleanup evidence](research/isolated-test-windows-exit.md)
+records the caller-specific native-handle controls and remaining limits.
+
+Regression command: `python3 -B -m unittest discover -s tests -p 'test_isolated*.py'`.
+The deadline controls exercise hung imports, partial output, child cleanup,
+queue waiting, ordinary success/failure, premature zero exits and invalid
+budgets. Tekalign, with substantial OpenAI Codex assistance; Apache-2.0.
