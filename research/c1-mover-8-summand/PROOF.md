@@ -147,8 +147,8 @@ test can see a dependence.
 
 Two preservers are recorded as controls, with the same basis of `V`. The
 normalizer element `u` acts by `-I`. The coordinate-1 sign `h` is orthogonal
-and has compressed trace 216 on `E`. For an orthonormal basis `(u_j)` of `E`,
-that trace is `∑ ⟨h u_j, u_j⟩`, and Cauchy-Schwarz gives `h u_j = u_j`, so
+and has compressed trace 216 on `E`. For an orthonormal basis `(v_j)` of `E`,
+that trace is `∑ ⟨h v_j, v_j⟩`, and Cauchy-Schwarz gives `h v_j = v_j`, so
 `h|_E = I`. The product `u h` is the witness of PR #7022. It has compressed
 trace 72 on `E`, so it is non-scalar on `E`, and it acts by `-I` on `V`. A
 non-scalar action on `E` is not a non-scalar action on `V`.
