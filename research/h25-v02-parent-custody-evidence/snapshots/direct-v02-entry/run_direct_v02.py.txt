@@ -1,0 +1,893 @@
+"""Same-process subreaper wrapper around byte-unchanged reviewed queue v4.
+
+The actual consumer is this wrapper plus its explicitly narrow subprocess alias
+proxy and supervisor. The queue's calling environment is deliberately extended;
+its original bytes and real root status/stdout/stderr remain independently pinned.
+"""
+import argparse
+import resource
+import os
+import ast
+import hashlib
+import importlib.util as _importlib_util
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+# Exact primitive-key and native descriptor checks reused from reviewed e156.
+import types
+_TYPE, _LEN = type, len
+_MODULE_TYPE, _FUNCTION_TYPE, _CELL_TYPE = types.ModuleType, types.FunctionType, types.CellType
+_DICT_TYPE, _TUPLE_TYPE, _STR_TYPE = dict, tuple, str
+_MODULE_DICT = _MODULE_TYPE.__dict__['__dict__'].__get__
+_FUNCTION_GETTERS = tuple(_FUNCTION_TYPE.__dict__[name].__get__ for name in
+    ('__code__', '__globals__', '__builtins__', '__defaults__', '__kwdefaults__', '__closure__', '__dict__'))
+_CELL_GET = _CELL_TYPE.__dict__['cell_contents'].__get__
+_EMPTY_CELL = object()
+_OUTER_LAST = [None]
+
+class ScopedParentStop(RuntimeError):
+    pass
+
+
+def _need(condition, reason):
+    if condition is not True:
+        raise ScopedParentStop(reason)
+
+
+def _cell_value(cell):
+    _need(_TYPE(cell) is _CELL_TYPE, 'exact source closure cell required')
+    try:
+        return _CELL_GET(cell, _CELL_TYPE)
+    except ValueError:
+        return _EMPTY_CELL
+
+
+def _mapping_items(mapping):
+    # Reused selected-binder rule: exact native mapping, finite complete key
+    # census BEFORE membership/subscript/set/sort/hash/equality or items lookup.
+    _need(_TYPE(mapping) is _DICT_TYPE, 'exact receiver mapping required')
+    _need(_LEN(mapping) <= 512, 'receiver mapping bound exceeded')
+    for key in mapping:
+        _need(_TYPE(key) is _STR_TYPE and _LEN(key) <= 256,
+              'foreign receiver mapping key')
+    return _TUPLE_TYPE(mapping.items())
+
+
+def _module_namespace(module):
+    _need(_TYPE(module) is _MODULE_TYPE, 'exact source module type required')
+    namespace = _MODULE_DICT(module, _MODULE_TYPE)
+    items = _mapping_items(namespace)
+    return namespace, items
+
+
+def _function_values(function):
+    _need(_TYPE(function) is _FUNCTION_TYPE, 'exact source function required')
+    return _TUPLE_TYPE(getter(function, _FUNCTION_TYPE) for getter in _FUNCTION_GETTERS)
+
+
+def _capture_receivers(modules):
+    """Retain identities before factory/gates; no input authenticates itself.
+
+    These shallow namespace plus function-layout snapshots cover receiver and
+    transitive module-global replacement and in-place code/default/cell changes.
+    They are not a recursive immutable source profile or external source seal.
+    """
+    rows = []
+    for module in modules:
+        namespace, items = _module_namespace(module)
+        functions = []
+        for unused, function in items:
+            if _TYPE(function) is _FUNCTION_TYPE:
+                values = _function_values(function)
+                keywords, closure = values[4], values[5]
+                keyword_items = None if keywords is None else _mapping_items(keywords)
+                if closure is not None:
+                    _need(_TYPE(closure) is _TUPLE_TYPE and _LEN(closure) <= 64,
+                          'bounded exact source closure required')
+                cells = () if closure is None else _TUPLE_TYPE(_cell_value(c) for c in closure)
+                functions.append((function, values, keyword_items, cells))
+        rows.append((module, namespace, items, _TUPLE_TYPE(functions)))
+    return _TUPLE_TYPE(rows)
+
+
+def _receivers_unchanged(profile):
+    for module, namespace, items, functions in profile:
+        actual_namespace, actual_items = _module_namespace(module)
+        if actual_namespace is not namespace or _LEN(actual_items) != _LEN(items):
+            return False
+        for key, value in items:
+            if key not in namespace or namespace[key] is not value:
+                return False
+        for function, values, keyword_items, cells in functions:
+            actual = _function_values(function)
+            if any(value is not expected for value, expected in zip(actual, values)):
+                return False
+            keywords, closure = actual[4], actual[5]
+            if keywords is not None:
+                actual_keywords = _mapping_items(keywords)
+                if _LEN(actual_keywords) != _LEN(keyword_items):
+                    return False
+                for key, value in keyword_items:
+                    if key not in keywords or keywords[key] is not value:
+                        return False
+            if closure is not None:
+                _need(_TYPE(closure) is _TUPLE_TYPE and _LEN(closure) <= 64,
+                      'bounded exact source closure required')
+                if _LEN(closure) != _LEN(cells) or any(_cell_value(c) is not v for c, v in zip(closure, cells)):
+                    return False
+    return True
+
+
+
+def _stop_outer(state, error, secondary=False):
+    # Protected exact private state. No receiver or diagnostic callback follows
+    # a failed receiver freshness check.
+    state['phase'] = 'STOP'
+    if secondary and state['secondary'] is None:
+        state['secondary'] = error
+    if state['primary'] is None:
+        state['primary'] = error
+
+
+def _outer_fresh(supervisor, profile, state):
+    _need(_receivers_unchanged(profile), 'outer supervisor receiver changed')
+    namespace, unused = _module_namespace(supervisor)
+    _need(namespace['_PARENT_READ_IO'] is state, 'outer retained read owner changed')
+    if state['primary'] is not None:
+        raise state['primary']
+    _need(state['phase'] == 'ACTIVE' and not state['unknown'], 'outer read ownership is pending')
+
+
+def _finish_packet(supervisor, profile, state, directory, manifest):
+    """Actual main-finalization gate, with no further reads after STOP."""
+    if state['primary'] is not None or state['phase'] != 'ACTIVE' or state['unknown']:
+        return False
+    try:
+        _outer_fresh(supervisor, profile, state)
+        supervisor.packet_unchanged(directory, manifest)
+        _outer_fresh(supervisor, profile, state)
+        return True
+    except BaseException as error:
+        _stop_outer(state, error)
+        return False
+
+
+def source_packet(expected):
+    here = Path(__file__).resolve().parent
+    manifest_path = here / 'SOURCE-READINESS.json'
+    if manifest_path.is_symlink() or manifest_path.stat().st_mode & 0o222:
+        raise RuntimeError('Concrete source manifest must be readonly')
+    with manifest_path.open('rb') as stream:
+        raw = stream.read(262145)
+    if len(raw) > 262144 or hashlib.sha256(raw).hexdigest() != expected:
+        raise RuntimeError('Parent-reviewed source manifest differs')
+    manifest = json.loads(raw)
+    blobs = {}
+    for name, row in manifest['files'].items():
+        if Path(name).name != name or name == 'SOURCE-READINESS.json':
+            raise RuntimeError('Unsafe source packet member')
+        path = here / name
+        if path.is_symlink() or path.stat().st_mode & 0o222:
+            raise RuntimeError('Parent must freeze the concrete source packet readonly')
+        with path.open('rb') as stream:
+            data = stream.read(262145)
+        if len(data) > 262144 or len(data) != row['bytes'] or hashlib.sha256(data).hexdigest() != row['sha256']:
+            raise RuntimeError('Source packet member differs: ' + name)
+        blobs[name] = data
+    if blobs[Path(__file__).name] != Path(__file__).read_bytes():
+        raise RuntimeError('Actual queue entry differs from frozen source packet')
+    path = here / 'supervisor.py'
+    spec = _importlib_util.spec_from_file_location('h25_parent_supervisor', path)
+    module = _importlib_util.module_from_spec(spec)
+    exec(compile(blobs['supervisor.py'], str(path), 'exec'), module.__dict__)
+    return module, manifest
+
+
+
+
+# No production provider or setter exists for this private admission. Source
+# review and this data association do not establish original issuer authority.
+# The only positive replay installs an independently supplied INERT owner seam.
+_V02_PREBIRTH_SCOPE = None
+_V02_PARENT_ENDORSEMENT_SCOPE = None
+schema = copying = offline = anchor = configured = bindings = supervisor = orchestration = None
+observation = preflight_wire = preflight_validator = None
+_MAX_CHAIN_BYTES = 1048576
+_MAX_CASES = 1
+LAUNCH_FLAGS = ('-S', '-s', '-P', '-B')
+
+
+def _prebirth_scope(proxy):
+    scope = _V02_PREBIRTH_SCOPE
+    _need(type(scope) is tuple and len(scope) == 7,
+          'authentic singleton prebirth admission absent')
+    _need(scope[0] is proxy and scope[1] is proxy.outer,
+          'foreign singleton parent read owner')
+    state, child, original, profile, child_bytes = scope[2:]
+    _need(type(state) is dict and type(child) is dict and type(original) is dict and
+          type(profile) is tuple and type(child_bytes) is bytes,
+          'prebirth admission shape differs')
+    _mapping_items(state)
+    _mapping_items(original)
+    _need(state['original'] is original and supervisor is proxy.s,
+          'foreign original parent or supervisor')
+    _need(len(profile) == 11 and all(type(row) is tuple and len(row) == 4 for row in profile),
+          'prebirth receiver profile shape differs')
+    _need(all(row[0] is module for row, module in zip(profile,
+        (schema, copying, offline, anchor, configured, bindings, supervisor, orchestration,
+         observation, preflight_wire, preflight_validator))),
+          'complete prebirth receiver profile absent')
+    _need(_receivers_unchanged(profile), 'prebirth receiver changed')
+    proxy._fresh()
+    _observation_bindings()
+    _plain(child)
+    _need(_canonical(child) == child_bytes, 'admitted child substituted or repinned')
+    _mapping_items(state['plan'])
+    _mapping_items(state['cases'])
+    case_state = state['cases'][child['case_id']]
+    _mapping_items(case_state)
+    _need(type(state['mode']) is str and state['mode'] == 'normal' and
+          type(state['plan']['root']) is str and state['plan']['root'] == str(proxy.root) and
+          type(case_state['unit_id']) is str and case_state['unit_id'] == 'variant/V02/python-preflight-v1',
+          'singleton V02 normal parent context differs')
+    _need('expected_context' in child and type(child.get('raw_artifacts')) is list and
+          child['raw_artifacts'] == [], 'complete V02 observation declarations required')
+    return state, child
+
+
+def _fresh(state):
+    scope = _V02_PREBIRTH_SCOPE
+    _need(type(scope) is tuple and len(scope) == 7 and scope[2] is state,
+          'prebirth read escaped admitted parent')
+    _prebirth_scope(scope[0])
+
+
+def _prebirth_v02(proxy, case, command):
+    _need(proxy.prebirth_attempted is False, 'singleton prebirth attempt already consumed')
+    proxy.prebirth_attempted = True
+    state, child = _prebirth_scope(proxy)
+    proxy.observation_profile = _V02_PREBIRTH_SCOPE[5]
+    _need(len(proxy.cases) == 1 and _equal(case, child['queue_case']),
+          'singleton queue case differs from original admission')
+    _validate_case_source(state, child)
+    # Repeat complete pinned reads for the separate derived inner Root argv.
+    # Detached E binds runner argv; it does not pretend to bind this different
+    # vector. Exact STAGE/JOBS plus unchanged runner determine the inner vector.
+    stage = Path(state['plan']['root']) / 'stages' / case['stage']
+    stage_pin = copying.inspect(str(stage / 'STAGE.json'), schema.RECORD_BYTES,
+                               error_owner=state['original']['errors'])
+    _need(stage_pin['sha256'] == case['stage_sha256'], 'stage changed during prebirth join')
+    declared = offline.decode(_read(state, stage_pin))
+    jobs_pin = copying.inspect(str(stage / 'JOBS.json'), schema.RECORD_BYTES,
+                              error_owner=state['original']['errors'])
+    _need(jobs_pin['sha256'] == declared['files']['JOBS.json']['sha256'],
+          'jobs changed during prebirth join')
+    job = offline.decode(_read(state, jobs_pin))[case['job']]
+    folder = Path(state['plan']['root']) / 'runtime/runs' / case['label']
+    inner = _derive_inner_root_argv(stage, folder, job, declared)
+    _fresh(state)
+    proxy.prebirth_evidence = {'runner_argv': tuple(command), 'root_argv': inner,
+        'stage_sha256': case['stage_sha256'], 'runtime_authority': False}
+
+
+def _derive_inner_root_argv(stage, folder, job, declared):
+    entry = job.get('entry', 'integration/full_driver.py')
+    command = ['/usr/bin/python3.12', *LAUNCH_FLAGS]
+    if job.get('optimized', False):
+        command.append('-O')
+    if 'entry' in job:
+        command.append(str(stage / entry))
+    else:
+        command.append(str(stage / 'integration/full_driver.py'))
+    if 'bootstrap' in job:
+        bootstrap = job['bootstrap']
+        if type(bootstrap) is not dict or set(bootstrap) != {'provider', 'driver'}:
+            raise ValueError('Exact bootstrap map required')
+        for relative in bootstrap.values():
+            if (type(relative) is not str or relative not in declared['files'] or
+                    Path(relative).is_absolute() or '..' in Path(relative).parts or
+                    Path(relative).parent != Path('integration')):
+                raise ValueError('Bootstrap source must be a declared integration file')
+        command.extend(['--root-sha256', declared['files']['integration/full_driver.py']['sha256'],
+                        '--provider', str(stage / bootstrap['provider']),
+                        declared['files'][bootstrap['provider']]['sha256'],
+                        '--driver', str(stage / bootstrap['driver']),
+                        declared['files'][bootstrap['driver']]['sha256'],
+                        '--integration', str(stage / 'integration'), '--'])
+    command.extend(['--output', str(folder / 'science'), '--lanes', job['lanes']])
+    if job.get('finite_only', False):
+        command.append('--finite-only')
+    return tuple(command)
+
+def _canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True,
+                      allow_nan=False).encode('ascii') + b'\n'
+
+def _read(state, pin, limit=_MAX_CHAIN_BYTES):
+    _fresh(state)
+    raw = copying.read_verified_complete_v3(pin, limit, error_owner=state['original']['errors'])
+    _fresh(state)
+    return raw
+
+def _plain(value, depth=0):
+    """Closed native data, including exact typed protocol projections only."""
+    schema.need(depth <= 64, 'oracle traversal depth exceeded')
+    kind = type(value)
+    if value is None or kind is str or kind is bytes or kind is int or kind is bool:
+        return
+    schema.need(kind is tuple or kind is list or kind is dict, 'foreign oracle input rejected')
+    schema.need(len(value) <= 8192, 'oracle collection bound exceeded')
+    if kind is dict:
+        for key in value:
+            schema.need(type(key) is str, 'foreign oracle key')
+        schema.need('opaque_observation_tag' not in value, 'opaque runtime identity has no independent parent oracle')
+    for item in value.values() if kind is dict else value:
+        _plain(item, depth + 1)
+
+def _equal(actual, expected):
+    _plain(actual); _plain(expected)
+    if type(actual) is not type(expected):
+        return False
+    if type(actual) is dict:
+        return set(actual) == set(expected) and all(_equal(actual[k], expected[k]) for k in actual)
+    if type(actual) is tuple or type(actual) is list:
+        return len(actual) == len(expected) and all(_equal(a, b) for a, b in zip(actual, expected))
+    return actual == expected
+
+def _validate_v02_parent_endorsement(state, child, plan, job=None, stage_doc=None):
+    """Associate exact retained inputs, conditional on independently authentic scope.
+
+    This source candidate does not establish substantive issuer authorization.
+    Its private scope has no production provider and is closed by default.
+    """
+    scope = _V02_PARENT_ENDORSEMENT_SCOPE
+    schema.need(type(scope) is tuple and len(scope) == 2 and
+        scope[0] is state['original'] and type(scope[1]) is tuple,
+        'authentic original parent V02 endorsement scope absent')
+    rows = scope[1]
+    schema.need(len(rows) <= _MAX_CASES and all(type(row) is tuple and len(row) == 3 and
+        type(row[0]) is str and type(row[1]) is str and type(row[2]) is bytes and
+        len(row[2]) <= schema.RECORD_BYTES for row in rows), 'parent V02 scope shape differs')
+    selected = [row[2] for row in rows if row[:2] == (child['case_id'], child['generation'])]
+    schema.need(len(selected) == 1, 'exact original case generation endorsement absent or repeated')
+    endorsement_pin = offline.decode(selected[0])
+    schema.blob(endorsement_pin, schema.RECORD_BYTES)
+    schema.need(_canonical(endorsement_pin) == selected[0] and
+        not endorsement_pin['identity']['mode'] & 0o222, 'parent endorsement pin is not exact immutable input')
+    schema.blob(plan['preflight_package'], schema.RECORD_BYTES)
+    schema.need(not plan['preflight_package']['identity']['mode'] & 0o222,
+        'V02 preflight package is not immutable')
+    by_path = {pin['path']: pin for pin in child['source_pins']}
+    schema.need(plan['preflight_package']['path'] in by_path and
+        _equal(by_path[plan['preflight_package']['path']], plan['preflight_package']),
+        'V02 preflight package omitted from complete child source custody')
+    schema.need(endorsement_pin['path'] not in by_path, 'parent endorsement entered child source custody')
+    endorsement = offline.decode(_read(state, endorsement_pin, schema.RECORD_BYTES))
+    schema.exact(endorsement, ('schema', 'preflight_package', 'preparation', 'stage_sha256',
+        'command_sha256', 'case_id', 'generation', 'unit_id', 'mode'))
+    case = child['queue_case']; root = Path(state['plan']['root'])
+    command = ['/usr/bin/python3.12', *supervisor.FLAGS, str(root / 'run_guarded_v3.py'),
+               case['stage'], case['job'], case['label']]
+    command_digest = hashlib.sha256(_canonical({'argv': command})).hexdigest()
+    schema.need(command_digest == child['command_sha256'], 'V02 canonical command differs before Root birth')
+    schema.need(_equal(endorsement, {'schema': 'h25-v02-parent-endorsement-v1',
+        'preflight_package': plan['preflight_package'], 'preparation': child['preparation'],
+        'stage_sha256': case['stage_sha256'], 'command_sha256': command_digest,
+        'case_id': child['case_id'], 'generation': child['generation'], 'unit_id': 'variant/V02/python-preflight-v1', 'mode': 'normal'}),
+        'parent endorsement differs from exact V02 final inputs')
+    # P is read through the original verified copier. Its substantive schema and
+    # gate checks belong to the child binder; no P schema is invented here.
+    package = offline.decode(_read(state, plan['preflight_package'], schema.RECORD_BYTES))
+    # Reject direct E path/hash tokens without extending child record schemas.
+    # This limited guard is not a proof of the typed P/STAGE/JOBS dependency DAG.
+    # Encoded nested documents, aliases and substantive gate edges need the
+    # separately reviewed typed package closure at the actual binder boundary.
+    forbidden = (json.dumps(endorsement_pin['path'], ensure_ascii=True).encode('ascii'),
+                 json.dumps(endorsement_pin['sha256'], ensure_ascii=True).encode('ascii'))
+    for value in (package, plan, child['source_pins'], job, stage_doc):
+        if value is not None:
+            encoded = _canonical(value)
+            schema.need(all(token not in encoded for token in forbidden),
+                'parent endorsement backedge entered child input')
+    return None
+
+def _validate_child_preparation(state, child, job=None, stage_doc=None):
+    """Original same-operation parent authenticates actual late child inputs.
+
+    All checks run before Root birth. The genuine original plan supplies this
+    pin; a child report, source review marker, or caller hash grants nothing.
+    The fixed existing runner transports exactly the checked JOBS lane bytes.
+    """
+    schema.blob(child['preparation'], schema.RECORD_BYTES)
+    schema.need(not child['preparation']['identity']['mode'] & 0o222,
+                'immutable same-operation child preparation required')
+    plan = offline.decode(_read(state, child['preparation'], schema.RECORD_BYTES))
+    unit = state['cases'][child['case_id']]['unit_id']
+    v02_normal = unit == 'variant/V02/python-preflight-v1' and state['mode'] == 'normal'
+    if v02_normal:
+        schema.exact(plan, ('schema', 'outer_context', 'entry_configuration', 'selection', 'preflight_package'))
+        schema.need(plan['schema'] == 'h25-selected-child-preparation-v02-v1', 'V02 child preparation schema differs')
+    else:
+        schema.exact(plan, ('schema', 'outer_context', 'entry_configuration', 'selection'))
+        schema.need(plan['schema'] == 'h25-selected-child-preparation-v1', 'child preparation schema differs')
+    kind = 'NATIVE_PRODUCTION' if unit in anchor.NATIVE_ACQUISITION_EXTENSION['units'] else 'HISTORICAL_PORT'
+    schema.need(_equal(plan['selection'], {'unit_id': unit, 'mode': state['mode'], 'kind': kind}),
+                'original fixed unit cannot select another production/port image')
+    outer = offline.decode(_read(state, plan['outer_context'], schema.RECORD_BYTES))
+    schema.exact(outer, ('schema', 'source_manifest', 'binding_plan', 'source_review_sha256',
+        'bootstrap_review_sha256', 'command_review_sha256', 'root_source_sha256', 'runtime_premise_sha256'))
+    schema.need(outer['schema'] == 'h25-authenticated-pre-capture-context-v2' and
+        outer['root_source_sha256'] == anchor.SELECTED_ROOT_SHA256, 'actual original Root source differs')
+    for key in ('source_review_sha256','bootstrap_review_sha256','command_review_sha256','runtime_premise_sha256'):
+        schema.digest(outer[key])
+    manifest = offline.decode(_read(state, outer['source_manifest'], schema.RECORD_BYTES))
+    binding_plan = offline.decode(_read(state, outer['binding_plan'], schema.RECORD_BYTES))
+    schema.exact(manifest, ('schema', 'modules'))
+    schema.exact(binding_plan, ('schema', 'bindings'))
+    schema.need(manifest['schema'] == 'h25-bootstrap-module-manifest-v2' and
+        binding_plan['schema'] == 'h25-pre-capture-bindings-v2', 'actual original installer records differ')
+    expected = anchor.SELECTED_CHILD_TEMPLATES[kind]
+    schema.exact(manifest['modules'], tuple(expected))
+    by_path = {pin['path']: pin for pin in child['source_pins']}
+    for name, row in manifest['modules'].items():
+        schema.exact(row, ('source', 'template_inverse'))
+        pin, inverse = row['source'], row['template_inverse']
+        schema.need(pin['path'] in by_path and _equal(by_path[pin['path']], pin) and
+            inverse['module'] == name and inverse['template_sha256'] == expected[name] and
+            inverse['configured_sha256'] == pin['sha256'],
+            'actual child module/template/source inverse is absent or substituted')
+        configured.verify_configured_source(_read(state, pin, 8388608), inverse)
+    values = binding_plan['bindings']
+    schema.need(type(values) is dict and 'component_control_root_v1' in values and
+        type(values['component_control_root_v1']) is dict, 'actual fixed context installation omitted')
+    literal = values['component_control_root_v1'].get('CONTEXT_CONFIGURATION')
+    schema.need(type(literal) is str and _equal(bindings.ast.literal_eval(literal), child['context_configuration']),
+                'actual source None context is not installed with original complete values')
+    receiver = offline.decode(_read(state, child['context_configuration']['receiver_policy'], schema.RECORD_BYTES))
+    schema.need(_equal(receiver, {name: row['source'] for name,row in manifest['modules'].items()}),
+                'actual receiver policy differs from complete constructor source manifest')
+    expected_entry = {'marker_path': child['start_marker'], 'case_id': child['case_id'],
+        'context_id': child['context_id'], 'unit_id': unit, 'mode': state['mode'], 'guard': child['guard'],
+        'publication_admission': orchestration.CONFIGURATION['publication_admission'],
+        'publication_root': state['plan']['root']}
+    schema.need(_equal(plan['entry_configuration'], expected_entry), 'actual entry/guard/publication context differs')
+    # Every late dependency is already retained by the original complete source
+    # plan. The configured source bytes are frozen before these final inputs.
+    for pin in (child['preparation'], plan['outer_context'], outer['source_manifest'], outer['binding_plan'],
+                child['context_configuration']['receiver_policy']):
+        schema.need(pin['path'] in by_path and _equal(by_path[pin['path']], pin),
+                    'late input omitted from complete immutable child source custody')
+    if v02_normal:
+        _validate_v02_parent_endorsement(state, child, plan, job, stage_doc)
+    transport = json.dumps({'schema':'h25-selected-child-argv-v1','plan':child['preparation']},
+                           sort_keys=True, separators=(',', ':'))
+    if job is not None:
+        schema.need(job['lanes'] == transport, 'actual original runner lane is not authenticated final input')
+    return None
+
+def _validate_case_source(state, child):
+    case = child['queue_case']; root = Path(state['plan']['root'])
+    stage = root / 'stages' / case['stage']
+    stage_pin = copying.inspect(str(stage / 'STAGE.json'), schema.RECORD_BYTES,
+                               error_owner=state['original']['errors'])
+    schema.need(stage_pin['sha256'] == case['stage_sha256'], 'exact child immutable stage changed')
+    stage_doc = json.loads(_read(state, stage_pin))
+    jobs_pin = copying.inspect(str(stage / 'JOBS.json'), schema.RECORD_BYTES, error_owner=state['original']['errors'])
+    schema.need(jobs_pin['sha256'] == stage_doc['files']['JOBS.json']['sha256'], 'complete declared jobs source differs')
+    job = json.loads(_read(state, jobs_pin))[case['job']]
+    schema.need(job.get('entry', 'integration/full_driver.py') == 'integration/full_driver.py' and
+        stage_doc['files']['integration/full_driver.py']['sha256'] ==
+        'f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0',
+        'each child must invoke the genuine unchanged Root')
+    driver = job['bootstrap']['driver']
+    schema.need(stage_doc['files'][driver]['sha256'] == child['entry_source']['sha256'] and
+        child['entry_source']['path'] == str(stage / driver) and
+        child['entry_inverse']['template_sha256'] == anchor.STAGE_ENTRY_SHA256 and
+        job.get('optimized', False) is (state['mode'] == 'optimized'),
+        'fixed canonical unit main adapter or actual mode differs')
+    schema.need(child['entry_inverse']['assignments'] == {} and job.get('finite_only', False) is False,
+        'actual selected child needs fixed unconfigured entry and complete canonical Root tail')
+    _validate_child_preparation(state, child, job, stage_doc)
+    entry_values = configured.verify_configured_source(_read(state, child['entry_source']), child['entry_inverse'])
+    expected_entry = {'marker_path': child['start_marker'],
+        'case_id': child['case_id'], 'context_id': child['context_id'],
+        'unit_id': state['cases'][child['case_id']]['unit_id'], 'mode': state['mode'], 'guard':child['guard'],
+        'publication_admission': orchestration.CONFIGURATION['publication_admission'],
+        'publication_root': state['plan']['root']}
+    if 'START_CONFIGURATION' in entry_values:
+        schema.need(_equal(entry_values['START_CONFIGURATION'], expected_entry),
+            'fixed pre-target stage entry context/identity binding differs')
+    schema.need(child['context_source']['path'].startswith(str(stage) + '/') and
+        any(p['path'] == child['context_source']['path'] and p['sha256'] == child['context_source']['sha256']
+            for p in child['source_pins']), 'configured canonical unit source absent from whole stage/source custody')
+    return None
+
+
+
+def _observation_bindings():
+    observer_namespace, unused = _module_namespace(observation)
+    wire_namespace, unused = _module_namespace(preflight_wire)
+    validator_namespace, unused = _module_namespace(preflight_validator)
+    _need(observer_namespace.get('_INSTALLED_WIRE') is preflight_wire and
+          observer_namespace.get('_INSTALLED_VALIDATOR') is preflight_validator and
+          validator_namespace.get('wire') is preflight_wire and
+          observer_namespace.get('_INSTALLED_WIRE_PARSE') is wire_namespace.get('validate_protocol') and
+          observer_namespace.get('_INSTALLED_FAMILY_PARSE') is validator_namespace.get('validate_preflight_protocol'),
+          'same installed V02 parser pair required')
+
+
+def _observe_v02(proxy):
+    """Retain declared post-Root bytes under the same persistent read owner.
+
+    The three DATA modules share the independently supplied source profile in
+    the prebirth scope. This join cannot issue that scope or terminal authority.
+    """
+    state, child = _prebirth_scope(proxy)
+    _need(child['raw_artifacts'] == [], 'V02 has no external fixture substitution inputs')
+    folder = proxy.root / 'runtime/runs' / child['queue_case']['label']
+    evidence = proxy.evidence / child['queue_case']['label']
+    declarations = (
+        ('stdout', str(folder / 'stdout.txt'), schema.LOG_BYTES),
+        ('stderr', str(folder / 'stderr.txt'), schema.LOG_BYTES),
+        ('supervision', str(evidence / 'SUPERVISION.json'), schema.RECORD_BYTES),
+        ('proxy', str(evidence / 'PROXY.json'), schema.RECORD_BYTES),
+        ('receipt', str(folder / 'receipt.json'), 4 * 1024 * 1024),
+        ('marker', child['start_marker'], schema.RECORD_BYTES),
+        ('root.stdout.raw', str(evidence / 'root.stdout.raw'), proxy.s.LOG_CAP),
+        ('root.stderr.raw', str(evidence / 'root.stderr.raw'), proxy.s.LOG_CAP),
+        ('request', child['guard']['request_path'], proxy.s.GUARD_CAP),
+        ('ack', child['guard']['ack_path'], proxy.s.GUARD_CAP),
+        ('consume', child['guard']['consume_path'], proxy.s.GUARD_CAP),
+    )
+    identity_keys = ('device', 'inode', 'mode', 'size', 'mtime_ns', 'ctime_ns')
+    for name, path, limit in declarations:
+        proxy._fresh()
+        native_pin, raw = proxy.s.stable_file(path, limit, True)
+        retained = {'native_pin': native_pin, 'raw': raw}
+        proxy.observation_blobs[name] = retained
+        proxy._fresh()
+        identity = native_pin['identity']
+        _need(type(identity) is list and len(identity) == len(identity_keys) and
+              all(type(value) is int for value in identity), 'original outer identity shape differs')
+        retained['pin'] = dict(native_pin, identity=dict(zip(identity_keys, identity)))
+    # The complete admitted child is frozen by the same prebirth scope. These
+    # fields bind the existing observer's paths and publication expectations.
+    observer_child = dict(child, root=state['plan']['root'], evidence=str(proxy.evidence),
+        publication_admission=orchestration.CONFIGURATION['publication_admission'], raw_artifact_names=[])
+    proxy._fresh()
+    _observation_bindings()
+    proxy.unit_result = _validate_retained_unit(proxy, proxy.unit_initial, proxy.unit_launch)
+    proxy._fresh()
+    result = observation._retained_data_observation(proxy.observation_blobs, observer_child,
+        child['expected_context'], preflight_wire, preflight_validator)
+    proxy._fresh()
+    return result
+
+
+class RootProxy:
+    def __init__(self, supervisor, root, cases, evidence, policy, deadline):
+        self.s, self.root, self.cases = supervisor, root, cases
+        self.evidence, self.policy, self.deadline = evidence, policy, deadline
+        self.next = 0
+        self.records = []
+        self.prebirth_attempted = False
+        self.prebirth_evidence = None
+        self.observation_profile = None
+        self.observation_blobs = {}
+        self.observation_result = None
+        self.unit_blobs = {}
+        self.pending_result = None
+        self.unit_result = None
+        self.profile = _capture_receivers((supervisor,))
+        namespace, unused = _module_namespace(supervisor)
+        self.outer = namespace['_PARENT_READ_IO']
+
+    def _fresh(self):
+        _outer_fresh(self.s, self.profile, self.outer)
+        if self.observation_profile is not None:
+            _need(_receivers_unchanged(self.observation_profile), 'observation receiver changed')
+
+    def run(self, command, **kwargs):
+        try:
+            self._fresh()
+            return self._run(command, **kwargs)
+        except BaseException as error:
+            _stop_outer(self.outer, error)
+            raise
+
+    def _run(self, command, **kwargs):
+        s = self.s
+        s.need(self.next < len(self.cases), 'Unregistered extra queue root command')
+        case = self.cases[self.next]
+        expected = ['/usr/bin/python3.12', *s.FLAGS, str(self.root / 'run_guarded_v3.py'),
+                    case['stage'], case['job'], case['label']]
+        s.need(command == expected and set(kwargs) == {'cwd', 'env', 'capture_output', 'timeout'} and
+               kwargs['cwd'] == self.root and kwargs['env'] == s.ENV and
+               kwargs['capture_output'] is True and kwargs['timeout'] == 190,
+               'Queue subprocess alias call exceeded its exact reviewed interface')
+        _prebirth_v02(self, case, command)
+        folder = self.evidence / case['label']
+        result = s.run_root(self.root, case, folder, self.policy['root_seconds'], self.deadline,
+                            self.policy['root_address_space_bytes'], self.policy['root_rss_sum_bytes'])
+        self._fresh()
+        original_rc = result['returncode']
+        receipt_path = self.root / 'runtime/runs' / case['label'] / 'receipt.json'
+        if receipt_path.exists():
+            root_receipt, root_pin = s.read_json(receipt_path, 4 * 1024 * 1024)
+        else:
+            root_receipt, root_pin = {'status': 'ABSENT_UNCLOSED_ROOT'}, None
+        self._fresh()
+        failure = result['failure']
+        if original_rc == 0 and (result['cleanup']['observed_after_root_exit'] or
+                                 result['cleanup']['reaped_adopted']):
+            failure = failure or {'type': 'OrphanAfterApparentPass',
+                                  'message': 'Original root exit 0 retained; supervisor admission STOP'}
+        if not result['cleanup']['complete']:
+            failure = failure or {'type': 'CleanupIncomplete', 'message': 'Owned process groups not empty'}
+        originals = {'root_returncode': original_rc, 'root_status': root_receipt['status'],
+                     'root_receipt_pin': root_pin, 'root_stdout': result['outer_logs']['root.stdout.raw'],
+                     'root_stderr': result['outer_logs']['root.stderr.raw']}
+        row = {'label': case['label'], 'actual_consumer': 'wrapper+module-alias-proxy+supervisor+queue-v4',
+               'original': originals, 'effective_admission': 'STOP' if failure else 'DEFER_TO_QUEUE_V4',
+               'supervision_failure': failure, 'original_root_receipt_unchanged': True,
+               'cleanup_before_queue_validation': True}
+        self._fresh()
+        s.write_new(folder / 'PROXY.json', row)
+        self._fresh()
+        self.records.append(row)
+        if failure:
+            s.stop_supplement(self.root, case['label'], failure)
+            raise RuntimeError('Root supervision rejected case; original status retained: ' + case['label'])
+        stdout_record, stdout = s.stable_file(folder / 'root.stdout.raw', s.LOG_CAP, True)
+        self._fresh()
+        stderr_record, stderr = s.stable_file(folder / 'root.stderr.raw', s.LOG_CAP, True)
+        self._fresh()
+        s.need(stdout_record == originals['root_stdout'] and stderr_record == originals['root_stderr'],
+               'Original root command streams changed before queue consumption')
+        self.observation_result = _observe_v02(self)
+        self._fresh()
+        self.next += 1
+        return subprocess.CompletedProcess(command, original_rc, stdout, stderr)
+
+
+
+def _require_original_fresh_round():
+    """Closed assembly edge, not an admission setter or DATA approval flag.
+
+    The genuine source/bootstrap and selected fresh funding owner must replace
+    this seam in a separately reviewed source assembly. funding_current DATA
+    eligibility is not original command authority. No implementation is supplied
+    here because no authentic new-round binding is available. Inert replays
+    replace this dependency only in their selected namespace.
+    """
+    raise ScopedParentStop('authentic source/bootstrap and fresh round owner are unjoined')
+
+
+def _unit_read(proxy, path, limit):
+    proxy._fresh()
+    pin, raw = proxy.s.stable_file(path, limit, True)
+    proxy.unit_blobs[str(path)] = {'pin': pin, 'raw': raw}
+    proxy._fresh()
+    return pin, raw
+
+
+def _validate_retained_unit(proxy, initial, launch):
+    """#6885 original queue unit predicates, evaluated on retained owner bytes.
+
+    The separate original fresh-funding registry must already be authentically
+    admitted. initial is only the runner subledger, never the financial ledger.
+    """
+    proxy._fresh()
+    unused, child = _prebirth_scope(proxy)
+    case, root, s = child['queue_case'], proxy.root, proxy.s
+    stage = root / 'stages' / case['stage']
+    folder = root / 'runtime/runs' / case['label']
+    stage_pin, raw = _unit_read(proxy, stage / 'STAGE.json', s.META_CAP)
+    _need(stage_pin['sha256'] == case['stage_sha256'], 'Reviewed stage changed')
+    declared = json.loads(raw)
+    receipt = json.loads(proxy.observation_blobs['receipt']['raw'])
+    unused, raw = _unit_read(proxy, folder / 'START.json', 4 * 1024 * 1024)
+    start = json.loads(raw)
+    for key, value in start.items():
+        _need(receipt.get(key) == value, 'START differs from receipt: ' + key)
+    _need(receipt['stage_sha256'] == stage_pin['sha256'], 'Receipt stage differs')
+    runner, unused = _unit_read(proxy, root / 'run_guarded_v3.py', 4 * 1024 * 1024)
+    _need(receipt['runner_sha256'] == declared['runner_sha256'] == runner['sha256'], 'Runner identity differs')
+    phase, unused = _unit_read(proxy, root / 'control/EXECUTION-PHASE.json', s.META_CAP)
+    _need(receipt['budget_phase_sha256'] == phase['sha256'], 'Budget identity differs')
+    _need(receipt['parent_launch'] == launch, 'Parent launch provenance differs')
+    _need(receipt['command'][:5] == ['/usr/bin/python3.12', *s.FLAGS], 'Child launch flags differ')
+    fractions, unused = _unit_read(proxy, Path('/usr/lib/python3.12/fractions.py'), 4 * 1024 * 1024)
+    _need(receipt['fractions_sha256'] == fractions['sha256'], 'Actual Fraction source differs')
+    _need(receipt['label'] == case['label'] and receipt['job'] == case['job'], 'Receipt case differs')
+    _need(receipt['status'] == 'PASS' and receipt['exit'] == 0 and receipt['termination'] is None, 'Actual runner rejected case')
+    _need(receipt['source_bytes_and_modes_unchanged'] is True and receipt['retained_log_bytes_stable'] is True, 'Custody or logs changed')
+    _need(receipt['log_read_chunk_bytes'] == 65536, 'Bounded log reader differs')
+    for name in ('stdout', 'stderr'):
+        pin = proxy.observation_blobs[name]['native_pin']
+        _need(pin['sha256'] == receipt[name + '_sha256'], 'Raw log digest differs')
+        _need(pin['bytes'] == receipt[name + '_bytes'] == receipt[name + '_final_bytes'], 'Raw log byte count differs')
+        _need(pin['bytes'] <= 2097152, 'Ordinary raw log cap exceeded')
+    _need(receipt['stderr_bytes'] == 0, 'Unexpected actual child stderr')
+    _need(receipt['runner_wall_seconds'] >= receipt['wall_seconds'] >= 0, 'Runner time scope differs')
+    proxy._fresh()
+    current = s.ledger(root)
+    proxy._fresh()
+    _need(set(current) == set(initial) | {case['label']} and case['label'] not in initial,
+          'Singleton runner subledger domain differs')
+    _need(all(current[key] == value for key, value in initial.items()), 'Prior runner subledger changed')
+    _need(current[case['label']] == receipt['runner_wall_seconds'], 'Runner charge differs')
+    _need(abs(sum(initial.values()) - receipt['spent_before_seconds']) < 1e-7, 'Aggregate ledger differs')
+    _need(case.get('kind') == 'component-unit' and case['science_status'] == 'IMPLEMENTED_UNIT_PASS' and
+          case.get('science_fields', {}) == {}, 'Original scientific field checks cannot be omitted via unit adapter')
+    return {'label': case['label'], 'job': case['job'], 'stage': case['stage'],
+            'gate': 'PASS_RETAINED_RECEIPT', 'science_status': 'UNIT_RAW_WIRE_PENDING_INDEPENDENT_PARENT_JUDGMENT',
+            'runner_wall_seconds': receipt['runner_wall_seconds'], 'child_wall_seconds': receipt['wall_seconds'],
+            'cpu_seconds': receipt['usage']['user_seconds'] + receipt['usage']['system_seconds'],
+            'runner_cpu_seconds_before_own_receipt': receipt['runner_user_seconds'] + receipt['runner_system_seconds'],
+            'kernel_max_rss_kib': receipt['usage']['kernel_max_rss_kib'],
+            'sampled_process_group_rss_bytes': receipt['sampled_process_group_rss_bytes']}
+
+
+def main():
+    _require_original_fresh_round()
+    began = time.monotonic()
+    usage_start = (resource.getrusage(resource.RUSAGE_SELF), resource.getrusage(resource.RUSAGE_CHILDREN))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root', type=Path, required=True)
+    parser.add_argument('--config', type=Path, required=True)
+    parser.add_argument('--policy', type=Path, required=True)
+    parser.add_argument('--source-sha256', required=True)
+    args = parser.parse_args()
+    s, source_manifest = source_packet(args.source_sha256)
+    namespace, unused = _module_namespace(s)
+    state = namespace['_PARENT_READ_IO']
+    _OUTER_LAST[0] = state
+    profile = _capture_receivers((s,))
+    lock = initial = proxy = keeper = None
+    failure = None
+    old_argv = sys.argv
+    try:
+        _outer_fresh(s, profile, state)
+        s.launch_contract()
+        _outer_fresh(s, profile, state)
+        root = args.root.resolve()
+        config_path, policy_path = args.config.resolve(), args.policy.resolve()
+        s.need(config_path.is_relative_to(root / 'control') and policy_path.is_relative_to(root / 'control'),
+               'Config and policy must be frozen round controls')
+        config, config_pin = s.read_json(config_path)
+        _outer_fresh(s, profile, state)
+        policy, policy_pin = s.read_json(policy_path)
+        _outer_fresh(s, profile, state)
+        s.need(set(policy) == {'queue', 'shared_seconds', 'root_seconds', 'root_address_space_bytes', 'root_rss_sum_bytes'},
+               'Exact supervisor policy shape required')
+        name = config['queue']
+        s.need(type(name) is str and name.isalnum() and policy['queue'] == name, 'Queue policy identity differs')
+        s.need(type(policy['shared_seconds']) in (int, float) and 0 < policy['shared_seconds'] <= 600 and
+               type(policy['root_seconds']) in (int, float) and 0 < policy['root_seconds'] <= 190 and
+               type(policy['root_address_space_bytes']) is int and 0 < policy['root_address_space_bytes'] <= 1024 ** 3 and
+               type(policy['root_rss_sum_bytes']) is int and 0 < policy['root_rss_sum_bytes'] <= 1024 ** 3,
+               'Unadmitted generic supervisor limits')
+        evidence = root / 'validation/attempts' / (name + '-supervision')
+        evidence.mkdir()
+        lock = s.parent_lock(root)
+        _outer_fresh(s, profile, state)
+        cap, initial = s.budget(root)
+        _outer_fresh(s, profile, state)
+        deadline = min(began + policy['shared_seconds'], began + cap - sum(initial.values()))
+        subreaper, keeper = s.install_subreaper(root)
+        _outer_fresh(s, profile, state)
+        s.write_new(evidence / 'PARENT-SUBREAPER.json', subreaper)
+        _outer_fresh(s, profile, state)
+        path = root / 'integration/run_reviewed_queue_v4.py'
+        queue_pin, raw = s.stable_file(path, s.META_CAP, True)
+        _outer_fresh(s, profile, state)
+        s.need(queue_pin['sha256'] == s.QUEUE_SHA, 'Original reviewed queue-v4 bytes changed')
+        # Authenticate the original queue's launch predicate only. Its science
+        # main/finally is never executed: V02 emits UNIT_TERMINAL, no science file.
+        queue_tree = ast.parse(raw, filename=str(path))
+        launch_node = next(node for node in queue_tree.body
+                           if isinstance(node, ast.FunctionDef) and node.name == 'require_trusted_launch')
+        launch_namespace = {'sys': sys, 'os': os, 'LAUNCH_ENV': s.ENV}
+        exec(compile(ast.Module(body=[launch_node], type_ignores=[]), str(path), 'exec'), launch_namespace)
+        launch = launch_namespace['require_trusted_launch']()
+        s.need(type(config['cases']) is list and len(config['cases']) == 1, 'Exact singleton V02 case required')
+        case = config['cases'][0]
+        proxy = RootProxy(s, root, config['cases'], evidence, policy, deadline)
+        unused, child = _prebirth_scope(proxy)
+        _need(child['queue_case'] == case, 'Exact frozen V02 case differs')
+        command = ['/usr/bin/python3.12', *s.FLAGS, str(root / 'run_guarded_v3.py'),
+                   case['stage'], case['job'], case['label']]
+        _need(hashlib.sha256(_canonical({'argv': command})).hexdigest() == child['command_sha256'],
+              'Actual canonical queue command differs')
+        _need(case['label'] not in initial, 'Runner label already registered')
+        proxy.pending_result = {'command': command, 'result': None}
+        proxy.unit_initial = initial
+        proxy.unit_launch = launch
+        result = proxy.run(command, cwd=root, env=dict(s.ENV), capture_output=True, timeout=190)
+        proxy.pending_result['result'] = result
+        proxy._fresh()
+        s.need(result.returncode == 0 and result.stderr == b'' and proxy.next == 1,
+               'Actual source-owned Root proxy rejected child')
+        _need(type(proxy.unit_result) is dict and proxy.unit_result['gate'] == 'PASS_RETAINED_RECEIPT',
+              'Retained unit receipt validation omitted')
+        observed = proxy.observation_result
+        _need(type(observed) is dict and observed.get('original_v02_complete') is False and
+              observed.get('runtime_admitted') is False and observed.get('cost_status') == 'OPEN_NOT_ZERO',
+              'Retained DATA observation cannot confer runtime or cost admission')
+        proxy._fresh()
+        children = s.children_now()
+        proxy._fresh()
+        s.need(not children, 'Wrapper finished with children still present')
+        final_config, unused = _unit_read(proxy, config_path, s.META_CAP)
+        final_policy, unused = _unit_read(proxy, policy_path, s.META_CAP)
+        s.need(final_config['sha256'] == config_pin['sha256'] and
+               final_policy['sha256'] == policy_pin['sha256'], 'Control policy changed')
+    except BaseException as error:
+        _stop_outer(state, error)
+        raise
+    finally:
+        sys.argv = old_argv
+        packet_ready = False
+        if state['primary'] is None and state['phase'] == 'ACTIVE' and not state['unknown']:
+            try:
+                packet_ready = _finish_packet(s, profile, state,
+                    Path(__file__).resolve().parent, source_manifest)
+            except BaseException as error:
+                _stop_outer(state, error)
+        if packet_ready:
+            try:
+                elapsed = time.monotonic() - began
+                state['elapsed_before_terminal'] = elapsed
+                current = s.ledger(root)
+                _outer_fresh(s, profile, state)
+                s.need(set(current) == set(initial) | {case['label']}, 'Final singleton runner subledger domain differs')
+                s.need(current[case['label']] == proxy.unit_result['runner_wall_seconds'], 'Retained runner charge changed at finalization')
+                s.need(all(current.get(k) == v for k, v in initial.items()), 'Prior cost records changed')
+                nested = sum(v for k, v in current.items() if k not in initial)
+                residual = max(0.0, elapsed - nested)
+                if time.monotonic() > deadline:
+                    failure = failure or {'type': 'SupervisorBudget', 'message': 'Full wrapper bound crossed; cleanup remains charged'}
+                usage_end = (resource.getrusage(resource.RUSAGE_SELF), resource.getrusage(resource.RUSAGE_CHILDREN))
+                result = {'schema': 'h25-queue-v4-supervisor-envelope-v1', 'queue': name,
+                          'status': 'STOP' if failure else 'SCOPED_V02_DATA_OBSERVED', 'failure': failure,
+                          'actual_consumer': 'direct-singleton-wrapper+RootProxy+retained-unit-observer',
+                          'original_v02_complete': False, 'runtime_admitted': False, 'cost_status': 'OPEN_NOT_ZERO',
+                          'original_queue_sha256': s.QUEUE_SHA, 'original_root_sha256': s.RUNNER_SHA,
+                          'source_manifest_sha256': args.source_sha256, 'config_pin': config_pin, 'policy_pin': policy_pin,
+                          'controls': [] if proxy is None else proxy.records,
+                          'complete_wrapper_seconds_before_own_receipt': elapsed,
+                          'complete_cpu_seconds_before_own_receipt': sum((z.ru_utime + z.ru_stime) - (a.ru_utime + a.ru_stime) for a, z in zip(usage_start, usage_end)),
+                          'nested_runner_seconds': nested, 'wrapper_residual_seconds': residual,
+                          'outer_GNU_time_final_tail_reconciliation_required': True,
+                          'subreaper_is_same_queue_process': True, 'original_root_receipts_preserved': True}
+                folder = root / 'runtime/runs' / (name + '-supervisor-overhead')
+                folder.mkdir()
+                _outer_fresh(s, profile, state)
+                s.write_new(folder / 'START.json', {'kind': 'parent_cost_only'})
+                _outer_fresh(s, profile, state)
+                s.write_new(folder / 'receipt.json', dict(result, label=folder.name, kind='parent_cost_only',
+                            wall_seconds=residual, runner_wall_seconds=residual))
+                _outer_fresh(s, profile, state)
+                s.write_new(evidence / 'WRAPPER.json', result)
+                _outer_fresh(s, profile, state)
+            except BaseException as error:
+                _stop_outer(state, error)
+        if lock is not None:
+            try:
+                lock.close()
+            except BaseException as error:
+                state['unknown'] = True
+                state['lock_close_error'] = error
+                _stop_outer(state, error, secondary=True)
+        if state['primary'] is not None:
+            raise state['primary']
+    if failure:
+        raise SystemExit(1)
+
+
+if __name__ == '__main__':
+    main()

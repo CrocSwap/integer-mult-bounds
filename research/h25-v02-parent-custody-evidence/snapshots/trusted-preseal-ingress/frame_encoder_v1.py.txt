@@ -1,0 +1,168 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Pure prospective V02 frame encoder; representation checks confer no authority.
+
+The owning original parent independently approves decisions and validates its
+actual prebirth result before using this encoder. No Tool call or source launch.
+Exact primitive validators are copied from the reviewed child candidate.
+"""
+import json
+import hashlib
+import stat
+_TYPE, _LEN = type, len
+BindingStop = ValueError
+def _need(value, message):
+    if not value:
+        raise BindingStop(message)
+
+def _exact(value, keys):
+    _need(_TYPE(value) is dict and all(_TYPE(k) is str for k in value) and set(value) == set(keys), 'binding exact keys differ')
+
+def _pairs(items):
+    _need(len(items) <= 8192, 'binding mapping bound')
+    result = {}
+    for key, value in items:
+        _need(_TYPE(key) is str and len(key) <= 1048576 and key not in result, 'binding duplicate/foreign key')
+        result[key] = value
+    return result
+
+def _reject(value):
+    raise BindingStop('binding noninteger/nonfinite literal rejected')
+
+def _document(raw):
+    value = json.loads(raw.decode('ascii'), object_pairs_hook=_pairs, parse_float=_reject, parse_constant=_reject)
+    _literal(value, [0])
+    _need(_TYPE(value) is dict, 'binding top-level document differs')
+    return value
+
+def _digest(value):
+    _need(type(value) is str and len(value) == 64 and all(x in '0123456789abcdef' for x in value),
+          'exact configuration digest required')
+
+def _literal(value, budget, depth=0):
+    budget[0] += 1
+    _need(budget[0] <= 200000 and depth <= 32, 'finite configured literal tree bound')
+    kind = type(value)
+    if value is None or kind is bool:
+        return
+    if kind is int:
+        _need(value.bit_length() <= 127, 'configuration integer bound')
+        return
+    if kind is str or kind is bytes:
+        _need(len(value) <= 1048576, 'configuration atom bound')
+        return
+    _need((kind is tuple or kind is list or kind is dict) and len(value) <= 8192, 'configuration exact literal type')
+    if kind is dict:
+        for key in value:
+            _need(type(key) is str, 'configuration dictionary key type')
+    for item in (value.values() if kind is dict else value):
+        _literal(item, budget, depth + 1)
+
+def _v02_plain(value):
+    budget = [0, 0]
+
+    def walk(item, depth):
+        budget[0] += 1
+        if depth > 24 or budget[0] > 65536:
+            raise ValueError('gate tree bound')
+        kind = type(item)
+        if item is None or kind is bool:
+            return
+        if kind is int:
+            if not -(1 << 64) <= item < (1 << 64):
+                raise ValueError('gate integer bound')
+            return
+        if kind is str:
+            budget[1] += len(item)
+            if len(item) > 8192 or budget[1] > 524288:
+                raise ValueError('gate text bound')
+            return
+        if (kind is not list and kind is not dict) or len(item) > 1024:
+            raise ValueError('gate exact JSON domain')
+        if kind is dict:
+            for key in item:
+                if type(key) is not str:
+                    raise ValueError('gate exact string key required')
+            for key in item:
+                walk(key, depth + 1)
+                walk(item[key], depth + 1)
+        else:
+            for child in item:
+                walk(child, depth + 1)
+
+    walk(value, 0)
+
+def _v02_same(left, right):
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        return (set(left) == set(right) and
+                all(_v02_same(left[k], right[k]) for k in left))
+    if type(left) is list:
+        return (len(left) == len(right) and
+                all(_v02_same(a, b) for a, b in zip(left, right)))
+    return left == right
+
+def _v02_pin_shape(pin, limit):
+    # Same complete immutable regular-file pin contract as the owning reader.
+    _exact(pin, ('path', 'sha256', 'bytes', 'identity'))
+    _need(_TYPE(pin['path']) is str and pin['path'].startswith('/') and
+          _LEN(pin['path']) <= 4096 and
+          all(c not in ('', '.', '..') for c in pin['path'].split('/')[1:]),
+          'V02 complete source path differs')
+    _digest(pin['sha256'])
+    _need(_TYPE(pin['bytes']) is int and 0 < pin['bytes'] <= limit,
+          'V02 complete source byte bound')
+    _exact(pin['identity'], ('device', 'inode', 'mode', 'links', 'uid', 'gid', 'size', 'mtime_ns', 'ctime_ns'))
+    _need(all(_TYPE(x) is int and x >= 0 for x in pin['identity'].values()) and
+          pin['identity']['links'] == 1 and pin['identity']['size'] == pin['bytes'] and
+          stat.S_ISREG(pin['identity']['mode']) and not pin['identity']['mode'] & 0o222,
+          'V02 immutable source identity differs')
+
+def encode_frame(binding, preparation_raw, endorsement_raw):
+    """Return one <=32768-byte canonical ASCII+LF frame from verified subjects.
+
+    Output is DATA. Arbitrary callers can encode DATA; only the authenticated
+    original writer/session and inherited sole-reader pipe premise authorize
+    its interpretation at the child. This function cannot establish those facts.
+    """
+    _v02_plain(binding)
+    _exact(binding, ('schema','preparation','preflight_package','case_id','context_id','generation',
+                     'unit_id','mode','stage_sha256','command_sha256','endorsement'))
+    _need(binding['schema']=='h25-v02-preseal-parent-frame-v1' and
+          binding['unit_id']=='variant/V02/python-preflight-v1' and binding['mode']=='normal',
+          'V02 host frame fixed subject differs')
+    for key in ('case_id','context_id','generation'):
+        _need(type(binding[key]) is str and 0<len(binding[key])<=96 and
+              all(32<=ord(c)<127 for c in binding[key]), 'V02 host bounded subject differs')
+    for key in ('stage_sha256','command_sha256'):_digest(binding[key])
+    for key in ('preparation','preflight_package','endorsement'):_v02_pin_shape(binding[key],1048576)
+    for key,raw in (('preparation',preparation_raw),('endorsement',endorsement_raw)):
+        _need(type(raw) is bytes and len(raw)==binding[key]['bytes'] and
+              hashlib.sha256(raw).hexdigest()==binding[key]['sha256'],'V02 host subject raw custody differs')
+    prep=_document(preparation_raw);_v02_plain(prep)
+    _exact(prep,('schema','outer_context','entry_configuration','selection','preflight_package'))
+    _need(prep['schema']=='h25-selected-child-preparation-v02-v1' and
+          _v02_same(prep['preflight_package'],binding['preflight_package']), 'V02 host preparation package differs')
+    entry=prep['entry_configuration'];selection=prep['selection']
+    _need(type(entry) is dict and type(selection) is dict and
+          all(entry.get(k)==binding[k] for k in ('case_id','context_id','unit_id','mode')) and
+          all(selection.get(k)==binding[k] for k in ('unit_id','mode')), 'V02 host case/context differs')
+    endorsement=_document(endorsement_raw);_v02_plain(endorsement)
+    _exact(endorsement,('schema','preflight_package','preparation','stage_sha256','command_sha256',
+                       'case_id','generation','unit_id','mode'))
+    _need(endorsement['schema']=='h25-v02-parent-endorsement-v1' and
+          all(_v02_same(endorsement[k],binding[k]) for k in endorsement if k!='schema'),
+          'V02 host detached endorsement association differs')
+    frame=(json.dumps(binding,sort_keys=True,separators=(',',':'))+'\n').encode('ascii')
+    _need(len(frame)<=32768,'V02 host single-frame bound')
+    return frame
+
+
+def encode_host_payload(binding, preparation_raw, endorsement_raw, exact_shell_command):
+    # This is encoded DATA, never a grant or an authenticated Tool session.
+    _need(type(exact_shell_command) is str and 0<len(exact_shell_command)<=16384,
+          'V02 exact host shell data bound')
+    frame=encode_frame(binding,preparation_raw,endorsement_raw).decode('ascii')
+    return {'encoded_frame':frame,
+            'frame_subject':{'schema':binding['schema'],'command_sha256':binding['command_sha256']},
+            'exact_candidate_document':{'exact_shell_command':exact_shell_command}}

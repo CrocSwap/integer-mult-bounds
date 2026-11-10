@@ -1,0 +1,2077 @@
+"""Source-owned one-shot PRE-CAPTURE binding under an authenticated outer parent.
+
+The outer caller must authenticate this immutable source and the supplied
+manifest BEFORE import/entry (inherited C04); no hash supplied here grants that
+trust. This module has no loader, exec, callback, source mutation, Root API write,
+stage write or target launch. It verifies exact already imported source objects,
+then installs only a fixed enum of literal gate bindings once, before capture.
+"""
+import ast
+import builtins
+import hashlib
+import json
+import os
+import stat
+import sys
+import types
+import marshal
+import dataclasses
+import parent_completion_v1 as parent
+import parent_closure_v1 as original_closure
+import configured_inverse_v2 as inverse
+
+_INSTALLATIONS = []
+_ENTRY_ATTEMPTS = []
+_TYPE, _LEN = type, len
+_OPEN, _READ, _CLOSE, _FSTAT, _GETPID = os.open, os.read, os.close, os.fstat, os.getpid
+_MODULE_DICT = types.ModuleType.__dict__['__dict__'].__get__
+_FUNCTION_GETTERS = tuple(types.FunctionType.__dict__[name].__get__ for name in
+    ('__code__', '__globals__', '__builtins__', '__defaults__', '__kwdefaults__', '__closure__', '__dict__'))
+_CELL_GET = types.CellType.__dict__['cell_contents'].__get__
+_CLASS_DICT = type.__dict__['__dict__'].__get__
+_STATIC_FUNCTION = staticmethod.__dict__['__func__'].__get__
+_CLASS_FUNCTION = classmethod.__dict__['__func__'].__get__
+# Captured only at the inherited independently admitted no-mutator startup.
+_STARTUP_MODULES = {name: module for name, module in tuple(sys.modules.items())
+                    if type(name) is str and type(module) is types.ModuleType}
+_STARTUP_HELPERS = tuple((module, tuple(_MODULE_DICT(module, types.ModuleType).items()))
+                         for module in (parent, original_closure, inverse))
+_V02_PRESEAL_NATIVE = tuple((name, _STARTUP_MODULES[name],
+    _MODULE_DICT(_STARTUP_MODULES[name], types.ModuleType), function,
+    _MODULE_DICT(_STARTUP_MODULES[name], types.ModuleType)[function])
+    for name, function in (('select', 'select'), ('time', 'monotonic_ns')))
+_MAX_GLOBALS = 512
+MAX_MODULES = 57
+MAX_IMAGE = 8 * 1024 * 1024
+MAX_TOTAL = 64 * 1024 * 1024
+
+
+class BindingStop(RuntimeError):
+    pass
+
+
+def _need(value, message):
+    if not value:
+        raise BindingStop(message)
+
+
+def _exact(value, keys):
+    _need(_TYPE(value) is dict and all(_TYPE(k) is str for k in value) and set(value) == set(keys), 'binding exact keys differ')
+
+
+def _identity(info):
+    return {'device': info.st_dev, 'inode': info.st_ino, 'mode': info.st_mode, 'links': info.st_nlink,
+            'uid': info.st_uid, 'gid': info.st_gid, 'size': info.st_size,
+            'mtime_ns': info.st_mtime_ns, 'ctime_ns': info.st_ctime_ns}
+
+
+def _entry(context):
+    _need(_TYPE(context) is object, 'exact original installation context required')
+    for token, state in _INSTALLATIONS:
+        if token is context:
+            return state
+    raise BindingStop('unregistered pre-capture installation context')
+
+
+def _primitive_bindings_match_v3(values):
+    _need(_TYPE(values) is tuple and _LEN(values) == 5, 'exact primitive binding tuple required')
+    return all(actual is expected for actual, expected in zip(values, (os.open, os.read, os.close, os.fstat, os.getpid)))
+
+
+def _fresh(state):
+    owner = state['owner']
+    _need(parent._UNKNOWN_OWNER is owner and _GETPID() == state['pid'] and state['phase'] != 'STOP' and
+          owner['primary'][0] is None and owner['quarantine'][0] is False and
+          owner['pending'][0] is False and owner['iterator_uncertain'][0] is False,
+          'original installation owner requires teardown')
+    _need(_primitive_bindings_match_v3((_OPEN, _READ, _CLOSE, _FSTAT, _GETPID)) and
+          _TYPE is builtins.type and _LEN is builtins.len,
+          'original installation primitive binding changed')
+
+
+def _read_pin(state, pin, limit=MAX_IMAGE):
+    """Nofollow component descent; known tokens close once, uncertainty latches."""
+    _fresh(state)
+    _exact(pin, ('path', 'sha256', 'bytes', 'identity'))
+    path = pin['path']
+    _need(_TYPE(path) is str and path.startswith('/') and len(path) <= 4096 and
+          all(c not in ('', '.', '..') for c in path.split('/')[1:]), 'binding pin path differs')
+    _digest(pin['sha256'])
+    _need(_TYPE(pin['bytes']) is int and 0 <= pin['bytes'] <= limit, 'binding pin byte bound')
+    _exact(pin['identity'], ('device', 'inode', 'mode', 'links', 'uid', 'gid', 'size', 'mtime_ns', 'ctime_ns'))
+    _need(all(_TYPE(x) is int and x >= 0 for x in pin['identity'].values()) and
+          pin['identity']['links'] == 1 and pin['identity']['size'] == pin['bytes'] and
+          stat.S_ISREG(pin['identity']['mode']) and not pin['identity']['mode'] & 0o222,
+          'immutable binding source pin required')
+    primary = close_primary = None
+    parts = path.split('/')[1:]
+    _need(len(parts) <= 2048, 'source path component bound')
+    record = {'fds': [None, None], 'close_fds': [None, None],
+              'close_entered': [False, False], 'close_errors': [None, None],
+              'walk_fds': [None] * len(parts), 'walk_entered': [False] * len(parts),
+              'walk_errors': [None] * len(parts), 'primary': [None]}
+    # Record allocation/retention precedes every acquisition owned by this read.
+    state['read_records'].append(record)
+    state['fds'] = record['fds']
+    try:
+        state['owner']['pending'][0] = True
+        state['fds'][0] = _OPEN('/', os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        state['owner']['pending'][0] = False
+        for walk_index, component in enumerate(parts[:-1]):
+            state['owner']['pending'][0] = True
+            state['fds'][1] = _OPEN(component, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW,
+                                   dir_fd=state['fds'][0])
+            state['owner']['pending'][0] = False
+            old = state['fds'][0]
+            record['walk_fds'][walk_index] = old
+            record['walk_entered'][walk_index] = True
+            state['fds'][0] = None
+            try:
+                _CLOSE(old)
+            except BaseException as error:
+                record['walk_errors'][walk_index] = error
+                raise
+            state['fds'][0] = state['fds'][1]
+            state['fds'][1] = None
+        state['owner']['pending'][0] = True
+        state['fds'][1] = _OPEN(parts[-1], os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=state['fds'][0])
+        state['owner']['pending'][0] = False
+        _need(_identity(_FSTAT(state['fds'][1])) == pin['identity'], 'actual binding file identity differs')
+        chunks, count = [], 0
+        while True:
+            raw = _READ(state['fds'][1], min(65536, pin['bytes'] + 1 - count))
+            _need(_TYPE(raw) is bytes, 'native binding read type differs')
+            if not raw:
+                break
+            count += len(raw); _need(count <= pin['bytes'], 'binding source grew')
+            chunks.append(raw)
+        raw = b''.join(chunks)
+        _need(len(raw) == pin['bytes'] and hashlib.sha256(raw).hexdigest() == pin['sha256'] and
+              _identity(_FSTAT(state['fds'][1])) == pin['identity'], 'binding source custody changed')
+        return raw
+    except BaseException as error:
+        primary = error
+        record['primary'][0] = error
+        if state['owner']['primary'][0] is None:
+            state['owner']['primary'][0] = error
+        state['owner']['quarantine'][0] = True
+        state['phase'] = 'STOP'
+        raise
+    finally:
+        descriptor = state['fds'][1]
+        record['close_fds'][1] = descriptor
+        if descriptor is not None:
+            record['close_entered'][1] = True
+            state['fds'][1] = None
+            try:
+                _CLOSE(descriptor)
+            except BaseException as error:
+                record['close_errors'][1] = error
+                if close_primary is None:
+                    close_primary = error
+                if state['owner']['primary'][0] is None:
+                    state['owner']['primary'][0] = error
+                state['owner']['quarantine'][0] = True
+                state['phase'] = 'STOP'
+        descriptor = state['fds'][0]
+        record['close_fds'][0] = descriptor
+        if descriptor is not None:
+            record['close_entered'][0] = True
+            state['fds'][0] = None
+            try:
+                _CLOSE(descriptor)
+            except BaseException as error:
+                record['close_errors'][0] = error
+                if close_primary is None:
+                    close_primary = error
+                if state['owner']['primary'][0] is None:
+                    state['owner']['primary'][0] = error
+                state['owner']['quarantine'][0] = True
+                state['phase'] = 'STOP'
+        if primary is None and close_primary is not None:
+            raise close_primary
+
+
+def _pairs(items):
+    _need(len(items) <= 8192, 'binding mapping bound')
+    result = {}
+    for key, value in items:
+        _need(_TYPE(key) is str and len(key) <= 1048576 and key not in result, 'binding duplicate/foreign key')
+        result[key] = value
+    return result
+
+
+def _reject(value):
+    raise BindingStop('binding noninteger/nonfinite literal rejected')
+
+
+def _document(raw):
+    value = json.loads(raw.decode('ascii'), object_pairs_hook=_pairs, parse_float=_reject, parse_constant=_reject)
+    _literal(value, [0])
+    _need(_TYPE(value) is dict, 'binding top-level document differs')
+    return value
+
+
+def _namespace(module):
+    _need(_TYPE(module) is types.ModuleType, 'exact installed module type required')
+    namespace = _MODULE_DICT(module, types.ModuleType)
+    _need(_TYPE(namespace) is dict and _LEN(namespace) <= _MAX_GLOBALS, 'bounded exact installed namespace required')
+    # Complete key walk BEFORE any membership, lookup, set, hash or equality.
+    for key in namespace:
+        _need(_TYPE(key) is str and _LEN(key) <= 256, 'foreign installed namespace key')
+    for key in ('__name__', '__file__'):
+        _need(key in namespace and _TYPE(namespace[key]) is str and 0 < _LEN(namespace[key]) <= 4096,
+              'exact installed module metadata required')
+    return namespace
+
+
+def _startup_helpers_unchanged():
+    for module, items in _STARTUP_HELPERS:
+        namespace = _namespace(module)
+        _need(_LEN(namespace) == _LEN(items), 'startup helper namespace census changed')
+        for key, expected in items:
+            _need(_TYPE(key) is str and namespace.get(key) is expected, 'startup helper binding identity changed')
+
+
+
+def _function_record(function):
+    _need(_TYPE(function) is types.FunctionType, 'exact source function required')
+    values = tuple(getter(function, types.FunctionType) for getter in _FUNCTION_GETTERS)
+    closure = values[5]
+    cells = () if closure is None else tuple((cell, _CELL_GET(cell, types.CellType)) for cell in closure)
+    _need(_LEN(cells) <= 64, 'source function closure bound exceeded')
+    return function, values, cells
+
+
+def _function_check(record):
+    function, values, cells = record
+    _need(_TYPE(function) is types.FunctionType, 'source function identity changed')
+    for getter, expected in zip(_FUNCTION_GETTERS, values):
+        _need(getter(function, types.FunctionType) is expected,
+                    'source function code/globals/builtins/defaults/closure/dict changed')
+    for cell, expected in cells:
+        _need(_CELL_GET(cell, types.CellType) is expected, 'source function closure contents changed')
+
+
+def _codes(code, result):
+    result.setdefault(code.co_qualname, []).append(code)
+    for child in code.co_consts:
+        if _TYPE(child) is types.CodeType:
+            _codes(child, result)
+
+
+def _data(value, depth=0):
+    """Snapshot literal data only; no foreign repr/hash/eq/iteration protocols."""
+    _need(depth <= 32, 'literal snapshot depth exceeded')
+    kind = _TYPE(value)
+    if value is None or (kind is str or kind is int or kind is bool or kind is bytes or kind is float):
+        return (kind, value)
+    if (kind is list or kind is tuple):
+        _need(_LEN(value) <= 65536, 'literal sequence bound exceeded')
+        return (kind, tuple(_data(item, depth + 1) for item in value))
+    if kind is dict:
+        _need(_LEN(value) <= 8192, 'literal mapping bound exceeded')
+        for key in value:
+            _need((_TYPE(key) is str or _TYPE(key) is int), 'nonliteral mapping key')
+        return (kind, tuple((_data(key, depth + 1), _data(item, depth + 1))
+                            for key, item in value.items()))
+    if (kind is set or kind is frozenset):
+        _need(_LEN(value) <= 8192 and all((_TYPE(item) is str or _TYPE(item) is int) for item in value),
+                    'nonliteral set value')
+        return (kind, frozenset(value))
+    raise BindingStop('not literal data')
+
+
+def _validate_code(function, compiled_codes, namespace, source_role, forest):
+    """Collect one source-fixed role; only the complete forest can admit code."""
+    _need(_TYPE(function) is types.FunctionType, 'exact installed source function required')
+    values = tuple(getter(function, types.FunctionType) for getter in _FUNCTION_GETTERS)
+    _need(values[1] is namespace and values[2] is builtins.__dict__,
+          'source function original namespace/builtins differs')
+    _need(_TYPE(source_role) is str, 'exact source code role required')
+    candidates = compiled_codes.get(source_role, ())
+    _need(_LEN(candidates) == 1, 'source code role absent or ambiguous')
+    forest.append((values[0], candidates[0]))
+    return None
+
+
+def _digest(value):
+    _need(type(value) is str and len(value) == 64 and all(x in '0123456789abcdef' for x in value),
+          'exact configuration digest required')
+
+
+def _literal(value, budget, depth=0):
+    budget[0] += 1
+    _need(budget[0] <= 200000 and depth <= 32, 'finite configured literal tree bound')
+    kind = type(value)
+    if value is None or kind is bool:
+        return
+    if kind is int:
+        _need(value.bit_length() <= 127, 'configuration integer bound')
+        return
+    if kind is str or kind is bytes:
+        _need(len(value) <= 1048576, 'configuration atom bound')
+        return
+    _need((kind is tuple or kind is list or kind is dict) and len(value) <= 8192, 'configuration exact literal type')
+    if kind is dict:
+        for key in value:
+            _need(type(key) is str, 'configuration dictionary key type')
+    for item in (value.values() if kind is dict else value):
+        _literal(item, budget, depth + 1)
+
+
+
+def _source_value(node, namespace, definitions, active=()):
+    """Finite source expression interpreter; never eval or candidate callbacks."""
+    if type(node) is ast.Name:
+        _need(node.id in definitions and node.id not in active and len(active) < 32,
+              'source default name is not a finite constant')
+        value = _source_value(definitions[node.id], namespace, definitions, active + (node.id,))
+        _need(_data(namespace[node.id]) == _data(value), 'source default constant changed')
+        return value
+    if type(node) is ast.Attribute and type(node.value) is ast.Name:
+        module = namespace[node.value.id]
+        _need(type(module) is types.ModuleType, 'source default owner is not a module')
+        value = _MODULE_DICT(module, types.ModuleType)[node.attr]
+        _data(value)
+        return value
+    if type(node) is ast.BinOp:
+        left = _source_value(node.left, namespace, definitions, active)
+        right = _source_value(node.right, namespace, definitions, active)
+        _need(type(left) is int and type(right) is int, 'exact source integer default required')
+        if type(node.op) is ast.Add: value = left + right
+        elif type(node.op) is ast.Sub: value = left - right
+        elif type(node.op) is ast.Mult: value = left * right
+        elif type(node.op) is ast.LShift:
+            _need(0 <= right <= 127, 'source default shift bound')
+            value = left << right
+        elif type(node.op) is ast.Pow:
+            _need(0 <= right <= 127 and left.bit_length() * right <= 128, 'source default power bound')
+            value = left ** right
+        else: raise BindingStop('unsupported source default arithmetic')
+        _need(value.bit_length() <= 128, 'source default integer bound')
+        return value
+    value = ast.literal_eval(node)
+    _data(value)
+    return value
+
+
+def _defined_function(function, node, codes, namespace, definitions, forest, cls=None):
+    source_role = node.name if cls is None else cls.__qualname__ + '.' + node.name
+    _validate_code(function, codes, namespace, source_role, forest)
+    values = tuple(getter(function, types.FunctionType) for getter in _FUNCTION_GETTERS)
+    expected = tuple(_source_value(v, namespace, definitions) for v in node.args.defaults) or None
+    keywords = {a.arg: _source_value(v, namespace, definitions)
+        for a, v in zip(node.args.kwonlyargs, node.args.kw_defaults) if v is not None} or None
+    _need(_data(values[3]) == _data(expected) and _data(values[4]) == _data(keywords),
+          'initial function defaults differ from actual selected source')
+    if cls is None or not function.__code__.co_freevars:
+        _need(values[5] is None, 'unexpected source function closure')
+    else:
+        _need(function.__code__.co_freevars == ('__class__',) and len(values[5]) == 1 and
+              _CELL_GET(values[5][0], types.CellType) is cls, 'class closure does not own actual class')
+    return _function_record(function)
+
+
+def _source_objects(module, source_pin, raw, exact_modules):
+    # Original authenticated-source startup seal, never a caller record.
+    # These native checks occur inline before new oracle callbacks.
+    _need(_MODULE_DICT(builtins, types.ModuleType) is _CODE_ORACLE_BUILTINS,
+          'source oracle builtin owner changed')
+    _need(_LEN(_CODE_ORACLE_BUILTINS) == _LEN(_CODE_ORACLE_BUILTIN_ITEMS),
+          'source oracle builtin census changed')
+    for builtin_key in _CODE_ORACLE_BUILTINS:
+        _need(_TYPE(builtin_key) is str, 'source oracle foreign builtin key')
+    for builtin_key, builtin_value in _CODE_ORACLE_BUILTIN_ITEMS:
+        _need(_CODE_ORACLE_BUILTINS[builtin_key] is builtin_value,
+              'source oracle builtin binding changed')
+    for oracle_name, oracle_value, oracle_record in _CODE_ORACLE_STARTUP_SEAL:
+        _need(_CODE_ORACLE_NAMESPACE[oracle_name] is oracle_value,
+              'source oracle alias identity changed')
+        if oracle_record is not None:
+            for getter, expected in zip(_FUNCTION_GETTERS, oracle_record[1]):
+                _need(getter(oracle_value, types.FunctionType) is expected,
+                      'source oracle function descriptor changed')
+            _need(not oracle_record[1][6], 'source oracle function dictionary changed')
+            for cell, expected in oracle_record[2]:
+                _need(_CELL_GET(cell, types.CellType) is expected, 'source oracle cell changed')
+    for oracle_class, class_items, class_mro in _CODE_ORACLE_CLASS_SEAL:
+        actual_items = _CLASS_DICT(oracle_class, type)
+        _need(_LEN(actual_items) == _LEN(class_items), 'source oracle class census changed')
+        for class_key in actual_items:
+            _need(_TYPE(class_key) is str, 'source oracle foreign class key')
+        for class_key, class_value in class_items:
+            _need(actual_items[class_key] is class_value, 'source oracle class binding changed')
+        _need(_CODE_ORACLE_MRO_GET(oracle_class, type) is class_mro,
+              'source oracle class MRO changed')
+    namespace = _namespace(module)
+    _need(namespace.get('__file__') == source_pin['path'] and
+          sys.modules.get(namespace['__name__']) is module, 'installed actual source module differs')
+    tree = ast.parse(raw, filename=source_pin['path'])
+    code = compile(raw, source_pin['path'], 'exec', dont_inherit=True, optimize=sys.flags.optimize)
+    codes = {}; _codes(code, codes)
+    definitions = {n.targets[0].id: n.value for n in tree.body
+        if type(n) is ast.Assign and len(n.targets) == 1 and type(n.targets[0]) is ast.Name}
+    records, classes, forest = [], [], []
+    for node in tree.body:
+        if type(node) is ast.FunctionDef:
+            _need(not node.decorator_list, 'top-level decorated selected function unsupported')
+            records.append(_defined_function(namespace[node.name], node, codes, namespace, definitions, forest))
+        elif type(node) is ast.ClassDef:
+            cls = namespace[node.name]
+            _need(type(cls) is type and not node.keywords and
+                  cls.__module__ == namespace['__name__'] and cls.__name__ == node.name and
+                  cls.__qualname__ == node.name, 'source class/metaclass/name owner differs')
+            bases = []
+            for base in node.bases:
+                _need(type(base) is ast.Name, 'unreviewed computed class base')
+                bases.append(namespace.get(base.id, builtins.__dict__.get(base.id)))
+            _need(cls.__bases__ == tuple(bases or [object]), 'actual source class bases differ')
+            dataclass_owned = False
+            if node.decorator_list:
+                _need(len(node.decorator_list) == 1, 'unreviewed source class decorator composition')
+                decorator = node.decorator_list[0]
+                _need(type(decorator) is ast.Call and type(decorator.func) is ast.Name and
+                      namespace.get(decorator.func.id) is dataclasses.dataclass and not decorator.args,
+                      'only actual original dataclass factory admitted')
+                options = {kw.arg: ast.literal_eval(kw.value) for kw in decorator.keywords}
+                _need(options == {'frozen': True, 'slots': True} and cls.__dataclass_params__.frozen is True,
+                      'original dataclass constructor options differ')
+                fields = tuple(n.target.id for n in node.body
+                    if type(n) is ast.AnnAssign and type(n.target) is ast.Name)
+                _need(tuple(cls.__dataclass_fields__) == fields and tuple(cls.__slots__) == fields,
+                      'actual generated dataclass fields/slots differ')
+                dataclass_owned = True
+            own = _CLASS_DICT(cls, type)
+            declared = set()
+            for item in node.body:
+                if type(item) is ast.FunctionDef:
+                    method = own[item.name]; declared.add(item.name)
+                    decorators = tuple(d.id if type(d) is ast.Name else None for d in item.decorator_list)
+                    if decorators:
+                        _need(decorators in (('staticmethod',), ('classmethod',)),
+                              'unreviewed explicit method decorator')
+                        descriptor = staticmethod if decorators == ('staticmethod',) else classmethod
+                        _need(namespace.get(decorators[0], builtins.__dict__[decorators[0]]) is descriptor and
+                              type(method) is descriptor, 'actual method wrapper owner differs')
+                        method = (_STATIC_FUNCTION(method, staticmethod) if descriptor is staticmethod
+                                  else _CLASS_FUNCTION(method, classmethod))
+                    elif item.name == '__new__' and type(method) is staticmethod:
+                        method = _STATIC_FUNCTION(method, staticmethod)
+                    elif item.name in ('__init_subclass__', '__class_getitem__') and type(method) is classmethod:
+                        method = _CLASS_FUNCTION(method, classmethod)
+                    records.append(_defined_function(method, item, codes, namespace, definitions, forest, cls))
+            for name, method in own.items():
+                if type(method) is types.FunctionType and name not in declared:
+                    _need(dataclass_owned and name in ('__init__', '__repr__', '__eq__', '__hash__',
+                        '__setattr__', '__delattr__', '__getstate__', '__setstate__'),
+                        'extra generated source method lacks the original fixed factory')
+                    records.append(_function_record(method))
+            classes.append((cls, tuple(own.items())))
+    # Original authenticated-source startup seal, never a caller record.
+    # These native checks occur inline before new oracle callbacks.
+    _need(_MODULE_DICT(builtins, types.ModuleType) is _CODE_ORACLE_BUILTINS,
+          'source oracle builtin owner changed')
+    _need(_LEN(_CODE_ORACLE_BUILTINS) == _LEN(_CODE_ORACLE_BUILTIN_ITEMS),
+          'source oracle builtin census changed')
+    for builtin_key in _CODE_ORACLE_BUILTINS:
+        _need(_TYPE(builtin_key) is str, 'source oracle foreign builtin key')
+    for builtin_key, builtin_value in _CODE_ORACLE_BUILTIN_ITEMS:
+        _need(_CODE_ORACLE_BUILTINS[builtin_key] is builtin_value,
+              'source oracle builtin binding changed')
+    for oracle_name, oracle_value, oracle_record in _CODE_ORACLE_STARTUP_SEAL:
+        _need(_CODE_ORACLE_NAMESPACE[oracle_name] is oracle_value,
+              'source oracle alias identity changed')
+        if oracle_record is not None:
+            for getter, expected in zip(_FUNCTION_GETTERS, oracle_record[1]):
+                _need(getter(oracle_value, types.FunctionType) is expected,
+                      'source oracle function descriptor changed')
+            _need(not oracle_record[1][6], 'source oracle function dictionary changed')
+            for cell, expected in oracle_record[2]:
+                _need(_CELL_GET(cell, types.CellType) is expected, 'source oracle cell changed')
+    for oracle_class, class_items, class_mro in _CODE_ORACLE_CLASS_SEAL:
+        actual_items = _CLASS_DICT(oracle_class, type)
+        _need(_LEN(actual_items) == _LEN(class_items), 'source oracle class census changed')
+        for class_key in actual_items:
+            _need(_TYPE(class_key) is str, 'source oracle foreign class key')
+        for class_key, class_value in class_items:
+            _need(actual_items[class_key] is class_value, 'source oracle class binding changed')
+        _need(_CODE_ORACLE_MRO_GET(oracle_class, type) is class_mro,
+              'source oracle class MRO changed')
+    if forest:
+        _code_oracle_compare_code_forest(tuple(row[0] for row in forest), tuple(row[1] for row in forest))
+    return tree, tuple(records), tuple(classes), _import_bindings(tree, namespace, exact_modules)
+
+
+def _import_namespace(module):
+    _need(_TYPE(module) is types.ModuleType, 'exact imported module required')
+    namespace = _MODULE_DICT(module, types.ModuleType)
+    _need(_TYPE(namespace) is dict and _LEN(namespace) <= _MAX_GLOBALS,
+          'bounded imported namespace required')
+    for key in namespace:
+        _need(_TYPE(key) is str and _LEN(key) <= 256, 'foreign import namespace key')
+    _need(_TYPE(namespace.get('__name__')) is str, 'import module metadata differs')
+    return namespace
+
+
+def _import_bindings(tree, namespace, exact_modules):
+    """Exact Python import semantics, no import hook or dynamic attribute lookup.
+
+    The caller authenticates source modules before this function is invoked.
+    Stdlib modules are the admitted startup objects; every selected object is
+    also the actual sys.modules object. Parent package edges are checked and
+    retained, rather than treating an import alias as a name-map convention.
+    """
+    _need(_TYPE(exact_modules) is dict and _LEN(exact_modules) <= 4096,
+          'bounded exact module inventory required')
+    for key, value in exact_modules.items():
+        _need(_TYPE(key) is str and _TYPE(value) is types.ModuleType and
+              sys.modules.get(key) is value, 'invented/substituted module inventory')
+    records, seen = [], set()
+    def selected(name):
+        _need(_TYPE(name) is str and 0 < _LEN(name) <= 256 and
+              all(part.isidentifier() for part in name.split('.')), 'exact absolute import name')
+        parts = name.split('.')
+        _need(_LEN(parts) <= 32, 'import package depth exceeded')
+        prior = None
+        for index in range(1, _LEN(parts) + 1):
+            full = '.'.join(parts[:index])
+            expected = exact_modules.get(full, _STARTUP_MODULES.get(full))
+            _need(expected is not None and _TYPE(expected) is types.ModuleType and
+                  sys.modules.get(full) is expected, 'import module missing/substituted')
+            startup = _STARTUP_MODULES.get(full)
+            _need(startup is None or startup is expected, 'admitted startup import identity changed')
+            own = _import_namespace(expected)
+            _need(own['__name__'] == full or
+                  (_STARTUP_MODULES.get(own['__name__']) is expected and
+                   sys.modules.get(own['__name__']) is expected), 'import module canonical/real alias identity differs')
+            if prior is not None:
+                _need(prior.get(parts[index - 1]) is expected, 'package submodule edge changed')
+            if full not in seen:
+                seen.add(full)
+                records.append((full, expected, own, tuple(own.items())))
+            prior = own
+        return expected
+    for node in tree.body:
+        if _TYPE(node) is ast.Import:
+            for alias in node.names:
+                submodule = selected(alias.name)
+                if alias.asname is None:
+                    bound_name = alias.name.split('.')[0]
+                    expected = selected(bound_name)
+                else:
+                    bound_name, expected = alias.asname, submodule
+                _need(namespace.get(bound_name) is expected, 'installed exact import alias differs')
+        elif _TYPE(node) is ast.ImportFrom:
+            _need(node.level == 0 and _TYPE(node.module) is str,
+                  'relative import requires separately reviewed package context')
+            module = selected(node.module)
+            imported = _import_namespace(module)
+            for alias in node.names:
+                _need(alias.name != '*' and alias.name.isidentifier(), 'explicit imported symbol required')
+                _need(alias.name in imported, 'imported symbol absent from real namespace')
+                expected = imported[alias.name]
+                if _TYPE(expected) is types.ModuleType:
+                    _need(selected(node.module + '.' + alias.name) is expected,
+                          'from-import submodule identity differs')
+                _need(namespace.get(alias.asname or alias.name) is expected,
+                      'installed from-import symbol/alias differs')
+    return tuple(records)
+
+
+def _imports_unchanged(records, installed=None):
+    for name, module, namespace, items in records:
+        _need(sys.modules.get(name) is module and _import_namespace(module) is namespace and
+              _LEN(namespace) == _LEN(items), 'import namespace identity/census changed')
+        for key, value in items:
+            expected = value if installed is None else installed.get((name, key), value)
+            _need(namespace.get(key) is expected, 'import package/submodule/symbol binding changed')
+
+
+
+def _classes_unchanged(classes):
+    for cls, items in classes:
+        namespace = _CLASS_DICT(cls, type)
+        _need(len(namespace) == len(items), 'installed class namespace census changed')
+        for key, prior in items:
+            _need(namespace.get(key) is prior, 'installed class attribute binding changed')
+
+
+
+def prepare_binding_context(original_parent, original_unknown_owner, exact_modules, outer_manifest_pin):
+    """Called only by independently authenticated actual original outer parent.
+
+    outer_manifest_pin is externally authenticated command/manifest input, not
+    a trust decision made by this source. It binds data without reciprocal
+    source hashes: source images -> plans -> schedule -> bindings -> outer pin.
+    """
+    state = None
+    try:
+        _startup_helpers_unchanged()
+        _need(original_parent is parent and original_unknown_owner is parent._UNKNOWN_OWNER and
+              not _INSTALLATIONS and not parent._PARENTS and parent._PROCESS[0] is None,
+              'actual pristine original parent/private owner required before capture')
+        _need(_TYPE(exact_modules) is dict and 1 <= len(exact_modules) <= MAX_MODULES and
+              all(_TYPE(name) is str and name.isidentifier() for name in exact_modules), 'exact finite source modules required')
+        state = {'owner': original_unknown_owner, 'pid': _GETPID(), 'phase': 'PREPARING', 'consumed': False,
+                 'modules': exact_modules, 'fds': [None, None], 'close_errors': [], 'read_records': [], 'records': [],
+                 'sources': {}, 'bindings': {}, 'installed': {}, 'primary': [None], 'outer_pin': outer_manifest_pin,
+                 'v02_protected_origin': None, 'v02_preseal_attempted': False, 'v02_preseal_io': None, 'v02_preseal_binding': None, 'v02_pre_admitted_input': None, 'v02_typed_attempted': False, 'v02_driver_handoff_input': None, 'v02_driver_handoff': None, 'v02_attempted': False, 'v02_anchor': None, 'v02_busy': False, 'v02_issued_input': None, 'v02_installing': False}
+        token = object(); _INSTALLATIONS.append((token, state))
+        outer = _document(_read_pin(state, outer_manifest_pin))
+        _exact(outer, ('schema', 'source_manifest', 'binding_plan', 'source_review_sha256', 'bootstrap_review_sha256',
+                      'command_review_sha256', 'root_source_sha256', 'runtime_premise_sha256'))
+        _need(outer['schema'] == 'h25-authenticated-pre-capture-context-v2' and
+              outer['root_source_sha256'] == 'f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0',
+              'original Root and external context differ')
+        for key in ('source_review_sha256', 'bootstrap_review_sha256', 'command_review_sha256', 'runtime_premise_sha256'):
+            _digest(outer[key])
+        manifest = _document(_read_pin(state, outer['source_manifest']))
+        plan = _document(_read_pin(state, outer['binding_plan']))
+        _exact(manifest, ('schema', 'modules'))
+        _exact(plan, ('schema', 'bindings'))
+        _exact(manifest['modules'], tuple(exact_modules))
+        _need(_TYPE(plan['bindings']) is dict and _LEN(plan['bindings']) <= MAX_MODULES and
+              all(_TYPE(key) is str for key in plan['bindings']), 'exact bounded gate module keys required')
+        _need(manifest['schema'] == 'h25-bootstrap-module-manifest-v2' and plan['schema'] == 'h25-pre-capture-bindings-v2' and
+              set(manifest['modules']) == set(exact_modules), 'complete bootstrap source inventory differs')
+        _need(set(plan['bindings']) <= set(ALLOWED_GATES) and set(plan['bindings']) <= set(exact_modules),
+              'binding contains module outside fixed source enum')
+        total = 0
+        for name, module in exact_modules.items():
+            _need(_namespace(module).get('__name__') == name, 'bootstrap module name differs')
+            record = manifest['modules'][name]
+            _exact(record, ('source', 'template_inverse'))
+            source_pin = record['source']
+            raw = _read_pin(state, source_pin)
+            total += len(raw); _need(total <= MAX_TOTAL, 'whole bootstrap source byte bound')
+            _need(record['template_inverse']['configured_sha256'] == source_pin['sha256'] and
+                  record['template_inverse']['module'] == name, 'bootstrap configured source binding differs')
+            state.setdefault('inverse_work', []).append((raw, record['template_inverse']))
+            tree, functions, classes, imports = _source_objects(module, source_pin, raw, exact_modules)
+            names = {node.targets[0].id: node.value for node in tree.body if _TYPE(node) is ast.Assign and
+                     len(node.targets) == 1 and _TYPE(node.targets[0]) is ast.Name}
+            namespace = _namespace(module)
+            selected = plan['bindings'].get(name, {})
+            _need(_TYPE(selected) is dict and set(selected) <= set(ALLOWED_GATES.get(name, ())), 'unknown gate assignment')
+            needed = tuple(key for key in ALLOWED_GATES.get(name, ()) if key in namespace)
+            _need(set(selected) == set(needed), 'complete fixed gate binding set omitted')
+            bound = {}
+            for gate, literal in selected.items():
+                _need(gate in names and type(names[gate]) is ast.Constant and names[gate].value is None and
+                      namespace[gate] is None and type(literal) is str and literal.isascii() and '\n' not in literal,
+                      'gate was previously configured, captured, or is not an explicit None template')
+                value = ast.literal_eval(literal); _literal(value, [0])
+                _need(value is not None, 'installation cannot leave required gate unset')
+                bound[gate] = value
+            state['sources'][name] = source_pin
+            state['bindings'][name] = bound
+            state['records'].append((name, module, namespace, tuple(namespace.items()), functions, classes, imports))
+        # Every supplied helper/function/class and its namespace is authenticated
+        # from outer-pinned source BEFORE the first inverse helper invocation.
+        _need(exact_modules.get('configured_inverse_v2') is inverse and
+              exact_modules.get('parent_completion_v1') is parent and
+              exact_modules.get('parent_closure_v1') is original_closure,
+              'complete original helper source inventory required')
+        _startup_helpers_unchanged()
+        for raw, inverse_record in state['inverse_work']:
+            inverse.verify_configured_source(raw, inverse_record)
+        state['outer'] = outer
+        state['phase'] = 'PREPARED'
+        return token
+    except BaseException as error:
+        if parent._UNKNOWN_OWNER['primary'][0] is None:
+            parent._UNKNOWN_OWNER['primary'][0] = error
+        parent._UNKNOWN_OWNER['quarantine'][0] = True
+        if state is not None:
+            state['primary'][0] = error; state['phase'] = 'STOP'
+        raise
+
+
+def install_before_capture(context):
+    state = _entry(context)
+    try:
+        _fresh(state)
+        _need(state['phase'] == 'PREPARED' and not state['consumed'] and not parent._PARENTS and
+              parent._PROCESS[0] is None, 'binding installation is one-shot before original capture')
+        state['consumed'] = True
+        state['phase'] = 'INSTALLING'
+        selected = state['bindings'].get('component_control_root_v1', {}).get('CONTEXT_CONFIGURATION', {})
+        is_v02 = (selected.get('unit_id') == 'variant/V02/python-preflight-v1' and
+                  selected.get('mode') == 'normal' and sys.flags.optimize == 0)
+        if is_v02:
+            _need(_TYPE(sys.modules) is dict and _LEN(sys.modules) <= 512, 'V02 finite exact module registry required')
+            for module_key in sys.modules:
+                _need(_TYPE(module_key) is str and _LEN(module_key) <= 256, 'V02 foreign module registry key')
+        for name, module, namespace, original, functions, classes, imports in state['records']:
+            _need(_namespace(module) is namespace and len(namespace) == len(original), 'pre-capture namespace changed')
+            for key, value in original:
+                _need(namespace.get(key) is value, 'pre-capture source object changed')
+            for function in functions:
+                _function_check(function)
+            _classes_unchanged(classes)
+            _imports_unchanged(imports)
+            _read_pin(state, state['sources'][name])
+        if is_v02:
+            _fresh(state)
+            state['phase'] = 'PREPARED'
+            state['v02_installing'] = True
+            handoff_input = state['v02_driver_handoff_input']
+            _need(_TYPE(handoff_input) is tuple and _LEN(handoff_input) == 2,
+                  'V02 retained driver handoff input absent')
+            _retain_v02_driver_handoff(context, handoff_input[0], handoff_input[1])
+            _receive_v02_preseal(context)
+            _construct_v02_issued_input(context)
+            _register_v02_live(context)
+            state['v02_installing'] = False
+            state['phase'] = 'INSTALLING'
+        for name, module, namespace, original, functions, classes, imports in state['records']:
+            for key, value in state['bindings'][name].items():
+                namespace[key] = value
+                state['installed'][(name, key)] = (module, value,
+                    _capture_installed_gate(context, state, name, module, key, value))
+        state['phase'] = 'SEALED'
+        verify_bindings(context)
+        return None
+    except BaseException as error:
+        if state['owner']['primary'][0] is None:
+            state['owner']['primary'][0] = error
+        state['owner']['quarantine'][0] = True
+        if state['primary'][0] is None:
+            state['primary'][0] = error
+        state['phase'] = 'STOP'
+        raise
+
+
+def verify_bindings(context):
+    state = _entry(context)
+    try:
+        if state['v02_anchor'] is not None:
+            _need(_TYPE(sys.modules) is dict and _LEN(sys.modules) <= 512, 'V02 finite exact module registry required')
+            for module_key in sys.modules:
+                _need(_TYPE(module_key) is str and _LEN(module_key) <= 256, 'V02 foreign module registry key')
+        _fresh(state)
+        _need(state['phase'] == 'SEALED' and state['consumed'], 'final source capture requires sealed bindings')
+        _read_pin(state, state['outer_pin'])
+        for pin in (state['outer']['source_manifest'], state['outer']['binding_plan']):
+            _read_pin(state, pin)
+        for name, module, namespace, original, functions, classes, imports in state['records']:
+            _need(_namespace(module) is namespace and len(namespace) == len(original), 'installed namespace census changed')
+            for key, prior in original:
+                expected = state['bindings'][name].get(key, prior)
+                _need(namespace.get(key) is expected, 'installed source binding identity changed')
+            for record in functions:
+                _function_check(record)
+            _classes_unchanged(classes)
+            _imports_unchanged(imports, {(module_name, key): value for module_name, values in state['bindings'].items() for key, value in values.items()})
+            _read_pin(state, state['sources'][name])
+        for (name, key), (module, value, snapshot) in state['installed'].items():
+            check_installed_gate(context, name, module, key, value, snapshot)
+        return None
+    except BaseException as error:
+        if state['v02_anchor'] is not None:
+            _v02_stop(state, error)
+        raise
+
+
+def require_installed_gate(module, name, value):
+    """Read-only link from a receiver closure to its sealed original context."""
+    _need(_TYPE(name) is str and _TYPE(module) is types.ModuleType, 'exact installed gate lookup')
+    matches = []
+    for token, state in _INSTALLATIONS:
+        if state['phase'] == 'SEALED':
+            for (module_name, gate), row in state['installed'].items():
+                if row[0] is module and gate == name:
+                    matches.append((token, row))
+    _need(len(matches) == 1 and matches[0][1][1] is value, 'gate not installed by the original sealed context')
+    verify_bindings(matches[0][0])
+    return None
+
+
+def stop_evidence(context):
+    state = _entry(context)
+    return state['primary'], tuple(state['read_records']), tuple(state['fds'])
+
+
+# Exact finite gate enum, source-reviewed; no wildcard or arbitrary namespace writes.
+ALLOWED_GATES = {'component_control_root_v1': ('CONTEXT_CONFIGURATION', 'CONTEXT_SOURCE_REVIEW', 'CONTEXT_EXECUTION_APPROVAL', 'CONTEXT_FUNDING'), 'epoch_copy_v5': ('COMPLETE_IO_CONFIGURATION', 'COPY_CONFIGURATION', 'COPY_EXECUTION_APPROVAL', 'COPY_FUNDING', 'CONTROL_CONFIGURATION', 'CONTROL_SOURCE_REVIEW', 'CONTROL_EXECUTION_APPROVAL', 'CONTROL_FUNDING'), 'epoch_parent_v5': ('CONFIGURATION', 'SOURCE_REVIEW', 'EXECUTION_APPROVAL', 'FUNDING'), 'epoch_stop_v5': ('STOP_CONFIGURATION', 'STOP_EXECUTION_APPROVAL', 'STOP_FUNDING'), 'fixture_parent_v2': ('CONFIGURATION', 'SOURCE_REVIEW', 'FIXTURE_PROFILE_CONFIGURATION', 'SONAME_CONSUMER_CONFIGURATION', 'STAGE_APPROVAL', 'COMMAND_APPROVAL', 'FUNDING', 'EXECUTION_APPROVAL'), 'negative_parent_v2': ('CONFIGURATION', 'SOURCE_REVIEW', 'RUNTIME_CONFIGURATION', 'KERNEL_CONFIGURATION', 'REPLAY_CONFIGURATION', 'STAGE_APPROVAL', 'COMMAND_APPROVAL', 'FUNDING', 'EXECUTION_APPROVAL'), 'original_build_provenance_v5': ('PARSER_CONFIGURATION', 'PARSER_EXECUTION_APPROVAL', 'PARSER_FUNDING'), 'owned_root_v2': ('CONFIGURATION', 'SOURCE_REVIEW', 'RUNTIME_CONFIGURATION', 'STAGE_APPROVAL', 'COMMAND_APPROVAL', 'FUNDING', 'EXECUTION_APPROVAL'), 'parent_completion_v1': ('CONFIGURATION', 'SOURCE_REVIEW', 'STAGE_APPROVAL', 'COMMAND_APPROVAL', 'FUNDING', 'EXECUTION_APPROVAL'), 'parent_orchestration_v2': ('CONFIGURATION', 'SOURCE_REVIEW', 'RUNTIME_CONFIGURATION', 'NATIVE_PROFILE_CONFIGURATION', 'FULL_UNION_CONFIGURATION', 'FULL_CALLER_CONFIGURATION', 'BOOTSTRAP_CONFIGURATION', 'STAGE_APPROVAL', 'COMMAND_APPROVAL', 'FUNDING', 'EXECUTION_APPROVAL'), 'persistent_replay_v1': ('CONFIGURATION', 'SOURCE_REVIEW', 'RUNTIME_CONFIGURATION', 'PERSISTENCE_CONFIGURATION', 'FULL_ORCHESTRATOR_CONFIGURATION', 'NATIVE_PROFILE_CONFIGURATION', 'SOURCE_CLOSURE_CONFIGURATION', 'STAGE_APPROVAL', 'COMMAND_APPROVAL', 'FUNDING', 'EXECUTION_APPROVAL'), 'policy_parent_domain_v1': ('CONFIGURATION', 'SOURCE_REVIEW', 'RUNTIME_PROFILE', 'KERNEL_EXEC_PROFILE', 'PHASED_FD_CONTRACT', 'TERMINAL_STATUS_CONTRACT', 'REPLAY_BINDING', 'STAGE_APPROVAL', 'COMMAND_APPROVAL', 'FUNDING', 'EXECUTION_APPROVAL'), 'supplemental_receivers_v2': ('CONTROL_EXECUTORS_CONFIGURATION',), 'variant_validation_v1': ('VALIDATION_CONFIGURATION', 'VALIDATION_SOURCE_REVIEW', 'VALIDATION_EXECUTION', 'VALIDATION_FUNDING')}
+
+
+_NATIVE_UNITS = ('epoch-v4/C03/native-enoent', 'epoch-v4/C03/native-eexist', 'epoch-v4/C03/native-eloop')
+_NATIVE_COPY = 'b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69'
+_PORT_COPY = 'bcc465a7c61261b58e92c06f1cf7937b134256243f1a0ff84ad859965ad0134d'
+_SCHEMA = 'b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a'
+
+
+def prepare_selected_child(lane_text, exact_modules, driver_namespace=None):
+    """Actual Root driver dispatch, using its authenticated unchanged argv tail.
+
+    The original source-owned parent binds these lane bytes in immutable JOBS
+    and the exact whole command. This function proves checks/use, not that an
+    arbitrary string caller is that parent. The unchanged original fresh-Root
+    premise supplies that factual source/input provenance.
+    """
+    _need(not _ENTRY_ATTEMPTS and type(lane_text) is str and len(lane_text) <= 16384,
+          'selected child pre-capture entry is one-shot')
+    state = {'owner': parent._UNKNOWN_OWNER, 'pid': _GETPID(), 'phase': 'READING',
+             'fds': [None, None], 'close_errors': [], 'read_records': [], 'primary': [None]}
+    _ENTRY_ATTEMPTS.append(state)  # Before the first acquisition.
+    try:
+        transport = _document(lane_text.encode('ascii'))
+        _exact(transport, ('schema', 'plan'))
+        _need(transport['schema'] == 'h25-selected-child-argv-v1' and
+              json.dumps(transport, sort_keys=True, separators=(',', ':')) == lane_text,
+              'exact canonical original-owner lane transport required')
+        plan = _document(_read_pin(state, transport['plan']))
+        # A transport distinction only. P remains opaque data, never authority.
+        selected = plan.get('selection')
+        v02_normal = (_TYPE(selected) is dict and
+            selected.get('unit_id') == 'variant/V02/python-preflight-v1' and
+            selected.get('mode') == 'normal' and sys.flags.optimize == 0)
+        if v02_normal:
+            _exact(plan, ('schema', 'outer_context', 'entry_configuration', 'selection', 'preflight_package'))
+            _need(plan['schema'] == 'h25-selected-child-preparation-v02-v1', 'V02 selected preparation schema differs')
+        else:
+            _exact(plan, ('schema', 'outer_context', 'entry_configuration', 'selection'))
+            _need(plan['schema'] == 'h25-selected-child-preparation-v1', 'selected preparation schema differs')
+        selection = plan['selection']
+        _exact(selection, ('unit_id', 'mode', 'kind'))
+        _need(selection['mode'] == ('normal' if sys.flags.optimize == 0 else 'optimized') and
+              sys.flags.optimize in (0, 1), 'actual selected child mode differs')
+        kind = 'NATIVE_PRODUCTION' if selection['unit_id'] in _NATIVE_UNITS else 'HISTORICAL_PORT'
+        _need(selection['kind'] == kind, 'source-owned native/port choice differs')
+        token = prepare_binding_context(parent, parent._UNKNOWN_OWNER, exact_modules, plan['outer_context'])
+        installed = _entry(token)
+        context = installed['bindings']['component_control_root_v1']['CONTEXT_CONFIGURATION']
+        _need(context['unit_id'] == selection['unit_id'] and context['mode'] == selection['mode'],
+              'installed actual context differs from selection')
+        source_manifest = _document(_read_pin(installed, installed['outer']['source_manifest']))
+        modules = source_manifest['modules']
+        _need(modules['epoch_copy_v5']['template_inverse']['template_sha256'] ==
+              (_NATIVE_COPY if kind == 'NATIVE_PRODUCTION' else _PORT_COPY) and
+              modules['epoch_schema_v5']['template_inverse']['template_sha256'] == _SCHEMA,
+              'actual selected production/port source differs')
+        _need(modules['component_control_root_v1']['template_inverse']['assignments'] == {},
+              'context must be installed before capture, never a cyclic configured source')
+        if v02_normal:
+            _need(installed['phase'] == 'PREPARED' and not installed['consumed'] and
+                  installed['v02_issued_input'] is None,
+                  'V02 transport data requires unissued original PREPARED context')
+            package_pin = plan['preflight_package']
+            # Use the existing complete-pin verified reader. Do not decode P,
+            # infer approval, construct live objects, or populate issuance.
+            package_snapshot = _data(package_pin)
+            package_raw = _read_pin(installed, package_pin, 1024 * 1024)
+            _need(_data(package_pin) == package_snapshot, 'V02 package pin changed during transport read')
+            installed['v02_preflight_package_data'] = (package_pin, package_snapshot, package_raw)
+            installed['v02_preseal_binding'] = (transport['plan'], _data(transport['plan']),
+                plan['entry_configuration'], _data(plan['entry_configuration']), selection, _data(selection))
+            installed['v02_driver_handoff_input'] = (driver_namespace, plan['entry_configuration']['guard']['entry_source'])
+        install_before_capture(token)
+        state['token'], state['plan'], state['transport'] = token, plan, transport
+        state['phase'] = 'SEALED'
+        return plan['entry_configuration']
+    except BaseException as error:
+        if state['primary'][0] is None: state['primary'][0] = error
+        if state['owner']['primary'][0] is None: state['owner']['primary'][0] = error
+        state['owner']['quarantine'][0] = True
+        state['phase'] = 'STOP'
+        raise
+
+
+def require_selected_child(modules, source_policy, unit, mode):
+    _need(len(_ENTRY_ATTEMPTS) == 1 and _ENTRY_ATTEMPTS[0]['phase'] == 'SEALED',
+          'actual selected child constructor was not reached')
+    state = _ENTRY_ATTEMPTS[0]; installed = _entry(state['token'])
+    _need(installed['modules'] is modules or all(installed['modules'].get(k) is v for k,v in modules.items()),
+          'actual selected module objects differ')
+    _need(set(installed['sources']) == set(source_policy) and all(
+          _data(installed['sources'][name]) == _data(source_policy[name]) for name in source_policy),
+          'receiver policy differs from actual authenticated source manifest')
+    selection = state['plan']['selection']
+    _need(selection['unit_id'] == unit and selection['mode'] == mode, 'actual selection context differs')
+    verify_bindings(state['token'])
+    return state['token']
+
+
+"""INERT SOURCE CANDIDATE, not installed or integration-qualified.
+
+Append-only proposed chunk for exact #6885 selected_child_bindings_v1.py.
+Uses its authenticated helpers; never calls a Root/provider/API function.
+Initial pristine custody and P/E decisions remain external prerequisites.
+This captures extant function/code/cell identity and selected mutable state;
+it does not prove that an arbitrary initial object is a genuine issued object.
+"""
+
+_V02_ROOT_SHA = 'f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0'
+_V02_PROVIDER_SHA = '9cbb7368f89e71d1e6cc46db5dc77efed3e03ed2a801c98c88fe316e4d9f3ef2'
+_V02_ROOT_FUNCTIONS = ('_make_metadata_factory', '_scope_factory_gate', '_need', '_code_names', '_immutable_default', '_function_record', '_function_fresh', '_environment_guard', '_check_root', '_fingerprint', '_hash_regular', 'initialize', '_source_identity_scoped', 'source_identity', '_capability_state', '_validate_namespace', 'admit_provider', '_validate_capability_scoped', 'validate_capability', '_pending', '_check_spec', '_create_native', '_exec_native', '_activate_native', 'load_probe', 'load_control_module', 'preflight', 'diagnostics', 'capture_api', '_entry')
+_V02_PROVIDER_FUNCTIONS = ('_need', '_fingerprint', '_hash_regular', '_profile_files', '_audit_files', '_code_names', '_function_record', '_function_fresh', '_make_guard', '_state', 'validate_binding', 'preflight_runtime', 'load_probe')
+_V02_NATIVE_NAMES = (('builtins', 'type'), ('builtins', 'object'), ('builtins', 'dict'), ('builtins', 'tuple'), ('builtins', 'str'), ('builtins', 'int'), ('builtins', 'len'), ('builtins', 'id'), ('builtins', 'globals'), ('builtins', 'compile'), ('builtins', 'exec'), ('posix', 'open'), ('posix', 'read'), ('posix', 'fstat'), ('posix', 'close'), ('posix', 'getpid'), ('_hashlib', 'openssl_sha256'), ('_imp', 'create_dynamic'), ('_imp', 'exec_dynamic'), ('sys', 'gettrace'), ('sys', 'getprofile'))
+_V02_COUNTERS = ('load_calls', 'native_creations', 'native_execs', 'activation_attempts', 'successful_bindings', 'deactivation_attempts', 'cleanup_failures', 'control_module_creations')
+
+
+def _v02_mapping(mapping, key_type=None):
+    if key_type is None:
+        key_type = str
+    _need(_TYPE(mapping) is dict and _LEN(mapping) <= 512, 'V02 finite exact mapping required')
+    for key in mapping:
+        _need(_TYPE(key) is key_type, 'V02 foreign mapping key')
+    return mapping, key_type, tuple(mapping.items())
+
+
+def _v02_mapping_check(record):
+    mapping, key_type, items = record
+    _need(_TYPE(mapping) is dict and _LEN(mapping) == _LEN(items), 'V02 mapping census changed')
+    for key in mapping:
+        _need(_TYPE(key) is key_type, 'V02 foreign mapping key')
+    for key, value in items:
+        _need(key in mapping and mapping[key] is value, 'V02 mapping owner/value identity changed')
+
+
+def _v02_cell(function, name):
+    _need(_TYPE(function) is types.FunctionType, 'V02 exact function required')
+    code = _FUNCTION_GETTERS[0](function, types.FunctionType)
+    closure = _FUNCTION_GETTERS[5](function, types.FunctionType)
+    _need(_TYPE(closure) is tuple and name in code.co_freevars, 'V02 named closure edge absent')
+    cell = closure[code.co_freevars.index(name)]
+    return cell, _CELL_GET(cell, types.CellType)
+
+
+def _v02_modules():
+    # Conservative source-candidate admission bound, not an observed live count.
+    # Membership and lookup follow this complete primitive-key walk.
+    modules = sys.modules
+    _need(_TYPE(modules) is dict and _LEN(modules) <= 512,
+          'V02 exact bounded module registry required')
+    for key in modules:
+        _need(_TYPE(key) is str and _LEN(key) <= 256, 'V02 foreign module registry key')
+    return modules
+
+
+def _v02_native_edges(root_namespace):
+    _v02_modules()
+    _need(root_namespace['builtins'] is builtins and root_namespace['sys'] is sys,
+          'V02 Root original builtin/sys owners differ')
+    builtin_record = _v02_mapping(builtins.__dict__)
+    root_modules = root_namespace['_ROOT_MODULE_RECORDS']
+    _need(_TYPE(root_modules) is tuple and _LEN(root_modules) == 5,
+          'V02 Root runtime-module census differs')
+    for row, name in zip(root_modules, ('builtins', 'sys', 'posix', '_imp', '_hashlib')):
+        _need(_TYPE(row) is tuple and _LEN(row) == 2 and _TYPE(row[0]) is str and row[0] == name and
+              row[1] is root_namespace[name] and _TYPE(row[1]) is types.ModuleType and
+              sys.modules.get(name) is row[1], 'V02 Root runtime-module owner differs')
+    records = root_namespace['_NATIVE_NAMESPACES']
+    _need(_TYPE(records) is tuple and _LEN(records) == _LEN(_V02_NATIVE_NAMES),
+          'V02 native edge census differs')
+    for row, (module_name, function_name) in zip(records, _V02_NATIVE_NAMES):
+        _need(_TYPE(row) is tuple and _LEN(row) == 4, 'V02 native row shape differs')
+        module, namespace, name, value = row
+        _need(module is root_namespace[module_name] and _TYPE(module) is types.ModuleType and
+              _MODULE_DICT(module, types.ModuleType) is namespace and _TYPE(name) is str and
+              name == function_name, 'V02 native namespace/name owner differs')
+        # Complete primitive-key walk before lookup; no __file__ assumption for builtins.
+        _v02_mapping(namespace)
+        _need(name in namespace and namespace[name] is value, 'V02 native entry identity differs')
+    return builtin_record, root_modules, records
+
+
+def _v02_native_edges_check(record):
+    _v02_modules()
+    builtin_record, root_modules, native_records = record
+    _v02_mapping_check(builtin_record)
+    for name, module in root_modules:
+        _need(sys.modules.get(name) is module, 'V02 runtime-module registration changed')
+    for module, namespace, name, value in native_records:
+        _need(_MODULE_DICT(module, types.ModuleType) is namespace and _LEN(namespace) <= 512,
+              'V02 native namespace identity/bound changed')
+        for key in namespace:
+            _need(_TYPE(key) is str, 'V02 native namespace foreign key')
+        _need(name in namespace and namespace[name] is value, 'V02 native entry identity changed')
+
+
+def _v02_capture_live_profile(root, capability, api4, root_source, provider_source):
+    """Pre-seal only, after genuine externally admitted pristine construction.
+
+    Root/provider stay out of generic _source_objects. Source bytes must have
+    inherited authenticated custody; hashes here check the exact source pins.
+    """
+    # Original authenticated-source startup seal, never a caller record.
+    # These native checks occur inline before new oracle callbacks.
+    _need(_MODULE_DICT(builtins, types.ModuleType) is _CODE_ORACLE_BUILTINS,
+          'source oracle builtin owner changed')
+    _need(_LEN(_CODE_ORACLE_BUILTINS) == _LEN(_CODE_ORACLE_BUILTIN_ITEMS),
+          'source oracle builtin census changed')
+    for builtin_key in _CODE_ORACLE_BUILTINS:
+        _need(_TYPE(builtin_key) is str, 'source oracle foreign builtin key')
+    for builtin_key, builtin_value in _CODE_ORACLE_BUILTIN_ITEMS:
+        _need(_CODE_ORACLE_BUILTINS[builtin_key] is builtin_value,
+              'source oracle builtin binding changed')
+    for oracle_name, oracle_value, oracle_record in _CODE_ORACLE_STARTUP_SEAL:
+        _need(_CODE_ORACLE_NAMESPACE[oracle_name] is oracle_value,
+              'source oracle alias identity changed')
+        if oracle_record is not None:
+            for getter, expected in zip(_FUNCTION_GETTERS, oracle_record[1]):
+                _need(getter(oracle_value, types.FunctionType) is expected,
+                      'source oracle function descriptor changed')
+            _need(not oracle_record[1][6], 'source oracle function dictionary changed')
+            for cell, expected in oracle_record[2]:
+                _need(_CELL_GET(cell, types.CellType) is expected, 'source oracle cell changed')
+    for oracle_class, class_items, class_mro in _CODE_ORACLE_CLASS_SEAL:
+        actual_items = _CLASS_DICT(oracle_class, type)
+        _need(_LEN(actual_items) == _LEN(class_items), 'source oracle class census changed')
+        for class_key in actual_items:
+            _need(_TYPE(class_key) is str, 'source oracle foreign class key')
+        for class_key, class_value in class_items:
+            _need(actual_items[class_key] is class_value, 'source oracle class binding changed')
+        _need(_CODE_ORACLE_MRO_GET(oracle_class, type) is class_mro,
+              'source oracle class MRO changed')
+    _v02_modules()
+    r = _namespace(root)
+    _need(_TYPE(root_source) is bytes and _LEN(root_source) <= 262144 and
+          hashlib.sha256(root_source).hexdigest() == _V02_ROOT_SHA, 'V02 Root source pin')
+    _need(_TYPE(provider_source) is bytes and _LEN(provider_source) <= 262144 and
+          hashlib.sha256(provider_source).hexdigest() == _V02_PROVIDER_SHA, 'V02 provider source pin')
+    _need(r['_ROOT_MODULE'] is root and r['_ROOT_NAMESPACE'] is r and
+          sys.modules.get('_h25_probe_bootstrap_v3') is root and
+          r['_ROOT_MODULES'] is sys.modules, 'V02 Root real alias/namespace differs')
+    native_edges = _v02_native_edges(r)
+    registry_record = _v02_mapping(r['_CAPABILITIES'], int)
+    registry = registry_record[0]
+    _need(_TYPE(r['BootstrapCapability']) is type and _TYPE(capability) is r['BootstrapCapability'] and
+          _LEN(registry) == 1 and id(capability) in registry, 'V02 pristine registered capability differs')
+    row = registry[id(capability)]
+    _need(_TYPE(row) is tuple and _LEN(row) == 7 and row[0] is capability, 'V02 exact capability row differs')
+    provider = row[1]
+    p = _namespace(provider)
+    _need(row[6] is p and _TYPE(row[3]) is str and row[3] == _V02_PROVIDER_SHA and
+          row[4] is p['__file__'] and p['_BOOTSTRAP_CAPABILITY'] is capability,
+          'V02 provider ownership/source differs')
+    _need(p['__name__'] == '_h25_source_provider_v3_0' and p['__name__'] not in sys.modules,
+          'V02 source-owned provider registration differs')
+    for provider_name, root_name in (('_ROOT_VALIDATE', '_validate_namespace'), ('_ROOT_CREATE', '_create_native'), ('_ROOT_EXEC', '_exec_native'), ('_ROOT_ACTIVATE', '_activate_native')):
+        _need(p[provider_name] is r[root_name], 'V02 injected Root function owner differs')
+    _need(_TYPE(api4) is tuple and _LEN(api4) == 4, 'V02 exact four-API tuple required')
+    root_cell = r['_ROOT_CELL']
+    _need(_TYPE(root_cell) is list and _LEN(root_cell) == 2, 'V02 Root guard cell shape')
+    factory, root_guard, provider_guard = r['_NEW_SCOPE'], root_cell[0], row[2]
+    _need(_v02_cell(root_guard, 'namespace')[1] is r and
+          _v02_cell(provider_guard, 'namespace')[1] is p, 'V02 guard namespace owner differs')
+    for guard in (root_guard, provider_guard):
+        _need(_v02_cell(guard, 'fresh')[1] is r['_function_fresh'] and
+              _v02_cell(guard, 'defaults_check')[1] is r['_immutable_default'] and
+              _v02_cell(guard, 'fresh_code')[1] is _FUNCTION_GETTERS[0](r['_function_fresh'], types.FunctionType) and
+              _v02_cell(guard, 'defaults_code')[1] is _FUNCTION_GETTERS[0](r['_immutable_default'], types.FunctionType) and
+              _v02_cell(guard, 'builtins_owner')[1] is builtins.__dict__,
+              'V02 guard original checker/builtins edges differ')
+    shared_guard_cell, api_guard = _v02_cell(api4[0], 'guard')
+    _need(api_guard is root_guard, 'V02 API guard owner differs')
+    for function in api4[1:]:
+        cell, value = _v02_cell(function, 'guard')
+        _need(cell is shared_guard_cell and value is root_guard, 'V02 shared API guard cell differs')
+    shared_scope_cell, api_scope = _v02_cell(api4[0], 'new_scope')
+    cell, value = _v02_cell(api4[1], 'new_scope')
+    _need(cell is shared_scope_cell and value is api_scope, 'V02 shared API scope cell differs')
+    for function, name, expected in zip(api4, ('identity', 'validate', 'load', 'diagnostic'),
+                                      (r['_source_identity_scoped'], r['_validate_capability_scoped'], r['load_probe'], r['diagnostics'])):
+        _need(_v02_cell(function, name)[1] is expected, 'V02 API function owner differs')
+    scopes = (root_cell[1], p['_MAKE_METADATA_SCOPE'], _v02_cell(root_guard, 'new_scope')[1],
+              _v02_cell(provider_guard, 'new_scope')[1], api_scope)
+    for scope in scopes:
+        _need(_v02_cell(scope, 'factory')[1] is factory, 'V02 checked scope factory owner differs')
+    nested = (factory, root_guard, provider_guard) + scopes + api4
+    _need(_LEN({id(function) for function in nested}) == 12, 'V02 extant nested function census differs')
+    root_codes, provider_codes = {}, {}
+    _codes(compile(root_source, r['__file__'], 'exec', dont_inherit=True, optimize=sys.flags.optimize), root_codes)
+    _codes(compile(provider_source, p['__file__'], 'exec', dont_inherit=True, optimize=sys.flags.optimize), provider_codes)
+    functions = [(r[name], root_codes, r, name) for name in _V02_ROOT_FUNCTIONS]
+    functions += [(p[name], provider_codes, p, name) for name in _V02_PROVIDER_FUNCTIONS]
+    classes, class_mros = [], []
+    for namespace, codes, name, methods in ((r, root_codes, 'BootstrapCapability', ('__new__',)),
+            (r, root_codes, '_NativeSpec', ('__init__',)),
+            (p, provider_codes, 'ProbeBinding', ('__new__', 'check', 'inspect', 'counters', 'close'))):
+        cls = namespace[name]
+        _need(_TYPE(cls) is type, 'V02 exact source class required')
+        members = _CLASS_DICT(cls, type)
+        _need(_LEN(members) <= 512, 'V02 bounded class namespace required')
+        for key in members:
+            _need(_TYPE(key) is str, 'V02 foreign class key')
+        classes.append((cls, tuple(members.items())))
+        mro = type.__dict__['__mro__'].__get__(cls, type)
+        _need(_LEN(mro) == 2 and mro[0] is cls and mro[1] is object,
+              'V02 source class direct object base differs')
+        class_mros.append((cls, mro))
+        for method in methods:
+            function = members[method]
+            if _TYPE(function) is staticmethod:
+                function = _STATIC_FUNCTION(function, staticmethod)
+            functions.append((function, codes, namespace, name + '.' + method))
+    nested_names = ('_make_metadata_factory.<locals>.new_scope',
+                    '_environment_guard.<locals>.guard', '_environment_guard.<locals>.guard') + \
+                   ('_scope_factory_gate.<locals>.checked_scope',) * 5 + \
+                   tuple('capture_api.<locals>.' + name for name in
+                         ('sealed_identity', 'sealed_validate', 'sealed_load', 'sealed_diagnostics'))
+    functions += [(function, root_codes, r, name) for function, name in zip(nested, nested_names)]
+    records, root_forest, provider_forest = [], [], []
+    for function, codes, namespace, expected_qualname in functions:
+        _validate_code(function, codes, namespace, expected_qualname,
+                       root_forest if namespace is r else provider_forest)
+        record = _function_record(function)
+        values = record[1]
+        _need(values[0].co_qualname == expected_qualname, 'V02 exact source function role differs')
+        expected_default = values[0].co_qualname in ('_check_root', '_capability_state', '_environment_guard.<locals>.guard')
+        _need(values[4] is None and
+              (values[3] is None if not expected_default else
+               _TYPE(values[3]) is tuple and _LEN(values[3]) == 1 and values[3][0] is None),
+              'V02 original source defaults differ')
+        _need(_TYPE(values[6]) is dict and not values[6], 'V02 pristine function dictionary differs')
+        records.append(record)
+    # Original authenticated-source startup seal, never a caller record.
+    # These native checks occur inline before new oracle callbacks.
+    _need(_MODULE_DICT(builtins, types.ModuleType) is _CODE_ORACLE_BUILTINS,
+          'source oracle builtin owner changed')
+    _need(_LEN(_CODE_ORACLE_BUILTINS) == _LEN(_CODE_ORACLE_BUILTIN_ITEMS),
+          'source oracle builtin census changed')
+    for builtin_key in _CODE_ORACLE_BUILTINS:
+        _need(_TYPE(builtin_key) is str, 'source oracle foreign builtin key')
+    for builtin_key, builtin_value in _CODE_ORACLE_BUILTIN_ITEMS:
+        _need(_CODE_ORACLE_BUILTINS[builtin_key] is builtin_value,
+              'source oracle builtin binding changed')
+    for oracle_name, oracle_value, oracle_record in _CODE_ORACLE_STARTUP_SEAL:
+        _need(_CODE_ORACLE_NAMESPACE[oracle_name] is oracle_value,
+              'source oracle alias identity changed')
+        if oracle_record is not None:
+            for getter, expected in zip(_FUNCTION_GETTERS, oracle_record[1]):
+                _need(getter(oracle_value, types.FunctionType) is expected,
+                      'source oracle function descriptor changed')
+            _need(not oracle_record[1][6], 'source oracle function dictionary changed')
+            for cell, expected in oracle_record[2]:
+                _need(_CELL_GET(cell, types.CellType) is expected, 'source oracle cell changed')
+    for oracle_class, class_items, class_mro in _CODE_ORACLE_CLASS_SEAL:
+        actual_items = _CLASS_DICT(oracle_class, type)
+        _need(_LEN(actual_items) == _LEN(class_items), 'source oracle class census changed')
+        for class_key in actual_items:
+            _need(_TYPE(class_key) is str, 'source oracle foreign class key')
+        for class_key, class_value in class_items:
+            _need(actual_items[class_key] is class_value, 'source oracle class binding changed')
+        _need(_CODE_ORACLE_MRO_GET(oracle_class, type) is class_mro,
+              'source oracle class MRO changed')
+    _code_oracle_compare_code_forest(tuple(row[0] for row in root_forest), tuple(row[1] for row in root_forest))
+    _code_oracle_compare_code_forest(tuple(row[0] for row in provider_forest), tuple(row[1] for row in provider_forest))
+    _need(_LEN(records) == 62 and _LEN({id(record[0]) for record in records}) == 62,
+          'V02 full extant source function census differs')
+    _need(_LEN({id(cell) for unused, unused2, cells in records for cell, value in cells}) == 124,
+          'V02 distinct closure cell census differs')
+    loads, owners, counts, metadata = r['_LOADS'], p['_OWNERS'], row[5], r['_ROOT_METADATA']
+    mappings = (registry_record, _v02_mapping(r), _v02_mapping(p), _v02_mapping(loads, int),
+                _v02_mapping(owners, int), _v02_mapping(counts), _v02_mapping(metadata))
+    _need(not loads and not owners and set(counts) == set(_V02_COUNTERS) and
+          all(_TYPE(value) is int and value == 0 for value in counts.values()), 'V02 pre-seal pristine state required')
+    metadata_data = _data(metadata)
+    _need(metadata.get('source_sha256') == _V02_ROOT_SHA and
+          metadata.get('source_bytes') == _LEN(root_source), 'V02 initialized Root metadata differs')
+    # Exact function records, namespaces and capability row remain strongly held.
+    return (root, capability, api4, provider, tuple(records), tuple(classes), mappings,
+            root_cell, tuple(root_cell), sys.modules, p['__name__'], metadata_data, tuple(class_mros), native_edges)
+
+
+def _v02_check_live_profile(profile, root, capability, api4):
+    """Repeat before EVERY receiver guard in the pre-seal phase, not just bind."""
+    _v02_modules()
+    original_root, original_capability, original_api4, provider, records, classes, mappings, root_cell, root_items, modules, provider_name, metadata, class_mros, native_edges = profile
+    _need(root is original_root and capability is original_capability and api4 is original_api4,
+          'V02 injected live argument identity changed')
+    _need(sys.modules is modules and modules.get('_h25_probe_bootstrap_v3') is root and
+          provider_name not in modules, 'V02 actual owner registration changed')
+    _v02_native_edges_check(native_edges)
+    for record in mappings:
+        _v02_mapping_check(record)
+    _need(_LEN(root_cell) == 2 and all(actual is expected for actual, expected in zip(root_cell, root_items)),
+          'V02 Root guard cell contents changed')
+    for record in records:
+        _function_check(record)
+        _need(not record[1][6], 'V02 function dictionary contents changed')
+    _classes_unchanged(classes)
+    for cls, mro in class_mros:
+        _need(type.__dict__['__mro__'].__get__(cls, type) is mro, 'V02 source class MRO changed')
+    _need(_data(mappings[-1][0]) == metadata, 'V02 Root metadata contents changed')
+    return None
+
+
+# Inert candidate: no issuer is provided. Concrete authenticated P/E is still absent.
+_V02_CONFIG_KEYS = ('schema', 'unit_id', 'original_source', 'bootstrap_root',
+                    'bootstrap_capability', 'bootstrap_api', 'genuine_gate_values')
+
+
+def _v02_stop(state, error):
+    if state['owner']['primary'][0] is None:
+        state['owner']['primary'][0] = error
+    if state['primary'][0] is None:
+        state['primary'][0] = error
+    state['owner']['quarantine'][0] = True
+    state['phase'] = 'STOP'
+
+
+def _retain_v02_driver_handoff(context, driver_namespace, source_projection):
+    """Retain the original reached driver's objects, never issue authority.
+
+    The authenticated Root/stage/argv provenance is an external existing
+    premise. This structural join is not a loaded-source or native-profile
+    oracle. In particular the guard source is a projection, not a full pin.
+    """
+    state = _entry(context)
+    try:
+        _fresh(state)
+        _need(state['phase'] == 'PREPARED' and state['consumed'] is True and
+              state['v02_installing'] is True and state['v02_issued_input'] is None and state['v02_driver_handoff'] is None,
+              'V02 driver handoff requires original unissued PREPARED context')
+        selected = state['bindings']['component_control_root_v1']['CONTEXT_CONFIGURATION']
+        _need(_TYPE(selected) is dict and _TYPE(selected.get('unit_id')) is str and
+              selected['unit_id'] == 'variant/V02/python-preflight-v1' and
+              _TYPE(selected.get('mode')) is str and selected['mode'] == 'normal' and
+              sys.flags.optimize == 0, 'V02 driver handoff requires actual normal selection')
+        _need(_TYPE(driver_namespace) is dict, 'V02 actual driver namespace required')
+        # Primitive keys before any supplied namespace membership or lookup.
+        for key in driver_namespace:
+            _need(_TYPE(key) is str, 'V02 foreign driver namespace key')
+        registry = _v02_modules()
+        driver = registry.get('__main__')
+        _need(_TYPE(driver) is types.ModuleType and
+              _MODULE_DICT(driver, types.ModuleType) is driver_namespace,
+              'V02 executing driver differs from registered main')
+        _need(_TYPE(driver_namespace.get('__name__')) is str and
+              driver_namespace['__name__'] == '__main__', 'V02 driver module name differs')
+        _exact(source_projection, ('path', 'sha256', 'bytes'))
+        source = source_projection
+        _need(_TYPE(source['path']) is str and source['path'].startswith('/') and
+              _TYPE(source['bytes']) is int and 0 < source['bytes'] <= MAX_IMAGE,
+              'V02 driver source projection differs')
+        _digest(source['sha256'])
+        _need(_TYPE(driver_namespace.get('__file__')) is str and
+              driver_namespace['__file__'] == source['path'], 'V02 actual driver path differs')
+        main = driver_namespace.get('main')
+        main_record = _function_record(main)
+        _need(main_record[1][1] is driver_namespace and
+              main_record[1][0].co_filename == source['path'] and
+              main_record[1][0].co_name == 'main', 'V02 driver main code owner differs')
+        root = driver_namespace.get('bootstrap_root')
+        capability = driver_namespace.get('bootstrap_capability')
+        api = driver_namespace.get('bootstrap_api')
+        _need(_TYPE(root) is types.ModuleType and
+              registry.get('_h25_probe_bootstrap_v3') is root and capability is not None and
+              _TYPE(api) is tuple and _LEN(api) == 4, 'V02 driver injected object shape differs')
+        root_namespace = _MODULE_DICT(root, types.ModuleType)
+        api_records = tuple(_function_record(function) for function in api)
+        _need(all(record[1][1] is root_namespace for record in api_records),
+              'V02 driver API functions have another globals owner')
+        record = (context, driver, driver_namespace, main_record, root, capability,
+                  api, api_records, source, _data(source), registry)
+        state['v02_driver_handoff'] = record
+        _check_v02_driver_handoff(context)
+        return None
+    except BaseException as error:
+        _v02_stop(state, error)
+        raise
+
+
+def _check_v02_driver_handoff(context):
+    """Recheck retained identities before use; no source read or issuance."""
+    state = _entry(context)
+    try:
+        _fresh(state)
+        record = state['v02_driver_handoff']
+        _need(_TYPE(record) is tuple and _LEN(record) == 11 and record[0] is context,
+              'V02 original driver handoff absent')
+        unused, driver, namespace, main_record, root, capability, api, api_records, source, snapshot, registry = record
+        _need(_v02_modules() is registry and registry.get('__main__') is driver and
+              _MODULE_DICT(driver, types.ModuleType) is namespace,
+              'V02 retained driver registry identity changed')
+        for key in namespace:
+            _need(_TYPE(key) is str, 'V02 foreign driver namespace key')
+        _need(_TYPE(namespace.get('__name__')) is str and namespace['__name__'] == '__main__' and
+              _TYPE(namespace.get('__file__')) is str and _data(source) == snapshot and
+              namespace['__file__'] == source['path'] and
+              namespace.get('main') is main_record[0], 'V02 retained driver source/main changed')
+        _function_check(main_record)
+        _need(namespace.get('bootstrap_root') is root and
+              namespace.get('bootstrap_capability') is capability and
+              namespace.get('bootstrap_api') is api and
+              registry.get('_h25_probe_bootstrap_v3') is root,
+              'V02 retained driver live references changed')
+        for function_record in api_records:
+            _function_check(function_record)
+        return record
+    except BaseException as error:
+        _v02_stop(state, error)
+        raise
+
+
+
+# Adapt PR6368 _plain with a full primitive-key census before dictionary lookup.
+# _same is unchanged except the function prefix.
+def _v02_plain(value):
+    budget = [0, 0]
+
+    def walk(item, depth):
+        budget[0] += 1
+        if depth > 24 or budget[0] > 65536:
+            raise ValueError('gate tree bound')
+        kind = type(item)
+        if item is None or kind is bool:
+            return
+        if kind is int:
+            if not -(1 << 64) <= item < (1 << 64):
+                raise ValueError('gate integer bound')
+            return
+        if kind is str:
+            budget[1] += len(item)
+            if len(item) > 8192 or budget[1] > 524288:
+                raise ValueError('gate text bound')
+            return
+        if (kind is not list and kind is not dict) or len(item) > 1024:
+            raise ValueError('gate exact JSON domain')
+        if kind is dict:
+            for key in item:
+                if type(key) is not str:
+                    raise ValueError('gate exact string key required')
+            for key in item:
+                walk(key, depth + 1)
+                walk(item[key], depth + 1)
+        else:
+            for child in item:
+                walk(child, depth + 1)
+
+    walk(value, 0)
+
+def _v02_same(left, right):
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        return (set(left) == set(right) and
+                all(_v02_same(left[k], right[k]) for k in left))
+    if type(left) is list:
+        return (len(left) == len(right) and
+                all(_v02_same(a, b) for a, b in zip(left, right)))
+    return left == right
+
+_V02_GATE_NAMES = ('VARIANT_CONFIGURATION', 'VARIANT_SOURCE_REVIEW',
+    'VARIANT_STAGE_ADMISSION', 'VARIANT_NATIVE_PROFILE', 'VARIANT_HEADER_ADMISSION',
+    'VARIANT_COMMAND_ADMISSION', 'VARIANT_FUNDING', 'VARIANT_EXECUTION')
+_V02_ORIGINAL_SHA = 'cdb1479253358508088f8aa0e1e92e6c75ffcc127e54552698598a02de061254'
+_V02_PRODUCER_KEYS = ('additional_source_pins', 'expected_dependencies',
+    'expected_preflight', 'include', 'roles', 'source_files', 'system_header_admission_sha256')
+
+
+def _v02_pin_shape(pin, limit):
+    # Same complete immutable regular-file pin contract as the owning reader.
+    _exact(pin, ('path', 'sha256', 'bytes', 'identity'))
+    _need(_TYPE(pin['path']) is str and pin['path'].startswith('/') and
+          _LEN(pin['path']) <= 4096 and
+          all(c not in ('', '.', '..') for c in pin['path'].split('/')[1:]),
+          'V02 complete source path differs')
+    _digest(pin['sha256'])
+    _need(_TYPE(pin['bytes']) is int and 0 < pin['bytes'] <= limit,
+          'V02 complete source byte bound')
+    _exact(pin['identity'], ('device', 'inode', 'mode', 'links', 'uid', 'gid', 'size', 'mtime_ns', 'ctime_ns'))
+    _need(all(_TYPE(x) is int and x >= 0 for x in pin['identity'].values()) and
+          pin['identity']['links'] == 1 and pin['identity']['size'] == pin['bytes'] and
+          stat.S_ISREG(pin['identity']['mode']) and not pin['identity']['mode'] & 0o222,
+          'V02 immutable source identity differs')
+
+
+
+def _v02_preseal_native_guard():
+    """Startup-native ownership check; this does not authenticate a pipe writer."""
+    registry = _v02_modules()
+    _need(_TYPE(_V02_PRESEAL_NATIVE) is tuple and _LEN(_V02_PRESEAL_NATIVE) == 2,
+          'V02 preseal native census differs')
+    values = []
+    for row, expected in zip(_V02_PRESEAL_NATIVE, (('select', 'select'), ('time', 'monotonic_ns'))):
+        _need(_TYPE(row) is tuple and _LEN(row) == 5, 'V02 preseal native row differs')
+        name, module, namespace, function, value = row
+        _need(_TYPE(name) is str and _TYPE(function) is str and (name, function) == expected and
+              _TYPE(module) is types.ModuleType and registry.get(name) is module and
+              _MODULE_DICT(module, types.ModuleType) is namespace,
+              'V02 preseal native module owner differs')
+        _v02_mapping(namespace)
+        _need(namespace.get(function) is value and _TYPE(value) is types.BuiltinFunctionType and
+              value.__self__ is module, 'V02 preseal native function owner differs')
+        values.append(value)
+    return tuple(values)
+
+
+def _v02_preseal_binding_check(state, record):
+    _need(state['v02_preseal_binding'] is record and _TYPE(record) is tuple and _LEN(record) == 6,
+          'V02 preseal preparation owner differs')
+    for value, snapshot in ((record[0],record[1]),(record[2],record[3]),(record[4],record[5])):
+        _v02_plain(value)
+        _need(_data(value) == snapshot, 'V02 preseal preparation contents differ')
+    _v02_pin_shape(record[0], MAX_IMAGE)
+    return None
+
+
+def _receive_v02_preseal(context):
+    """One protected-origin frame, then child-local objects from retained P.
+
+    Original authoritative writer/session/sole-reader custody is an external
+    protected startup premise, NEVER inferred from stdin type, frame bytes,
+    pin equality or the later ACK. Ordinary source has no premise issuer.
+    No generic setter exists. Tests supply an expressly inert owning seam.
+    """
+    state = _entry(context)
+    io = None
+    owner_primary, quarantine, local_primary = state['owner']['primary'], state['owner']['quarantine'], state['primary']
+    try:
+        _fresh(state)
+        _need(state['phase'] == 'PREPARED' and state['consumed'] is True and
+              state['v02_installing'] is True and state['v02_preseal_attempted'] is False and
+              state['v02_pre_admitted_input'] is None and state['v02_issued_input'] is None,
+              'V02 preseal ingress is one-shot before typed construction')
+        state['v02_preseal_attempted'] = True
+        _check_v02_driver_handoff(context)
+        origin = state['v02_protected_origin']
+        _need(_TYPE(origin) is tuple and _LEN(origin) == 7 and origin[0] is context,
+              'V02 concrete authenticated issued input absent')
+        unused, binding, fd_identity, deadline, expected, expected_snapshot, retained = origin
+        _v02_preseal_binding_check(state,binding)
+        _need(state['v02_preflight_package_data'] is retained and
+              _TYPE(retained) is tuple and _LEN(retained) == 3,
+              'V02 preseal retained package owner differs')
+        _need(_TYPE(fd_identity) is tuple and _LEN(fd_identity) == 3 and
+              all(_TYPE(x) is int and x >= 0 for x in fd_identity) and
+              stat.S_ISFIFO(fd_identity[2]) and _TYPE(deadline) is int and deadline > 0,
+              'V02 protected fd/deadline shape differs')
+        _v02_plain(expected)
+        _need(_data(expected) == expected_snapshot, 'V02 protected frame expectation changed')
+        _exact(expected, ('schema','preparation','preflight_package','case_id','context_id','generation',
+                          'unit_id','mode','stage_sha256','command_sha256','endorsement'))
+        _need(expected['schema'] == 'h25-v02-preseal-parent-frame-v1' and
+              expected['unit_id'] == 'variant/V02/python-preflight-v1' and expected['mode'] == 'normal',
+              'V02 preseal frame subject differs')
+        for key in ('case_id','context_id','generation'):
+            _need(_TYPE(expected[key]) is str and 0 < _LEN(expected[key]) <= 96 and
+                  all(32 <= ord(c) < 127 for c in expected[key]), 'V02 bounded parent subject differs')
+        for key in ('stage_sha256','command_sha256'):
+            _digest(expected[key])
+        for key in ('preparation','preflight_package','endorsement'):
+            _v02_pin_shape(expected[key],1048576 if key != 'preparation' else MAX_IMAGE)
+        _need(_v02_same(expected['preparation'],binding[0]) and
+              _v02_same(expected['preflight_package'],retained[0]), 'V02 preseal frame pin association differs')
+        entry,selection=binding[2],binding[4]
+        _need(_TYPE(entry) is dict and _TYPE(selection) is dict and
+              all(entry.get(key) == expected[key] for key in ('case_id','context_id','unit_id','mode')) and
+              all(selection.get(key) == expected[key] for key in ('unit_id','mode')),
+              'V02 preseal original case/context differs')
+        # Adapt the existing installer/profile function-descriptor seal BEFORE IO.
+        # A local checker uses captured native descriptors; a replaced global
+        # checker alias cannot be invoked while discovering the replacement.
+        namespace0 = _FUNCTION_GETTERS[1](_receive_v02_preseal, types.FunctionType)
+        items0 = tuple(namespace0.items())
+        functions0 = tuple(_function_record(value) for key,value in items0
+                           if _TYPE(value) is types.FunctionType)
+        imports0 = tuple((_MODULE_DICT(value, types.ModuleType),
+                          tuple(_MODULE_DICT(value, types.ModuleType).items()))
+                         for key,value in items0 if _TYPE(value) is types.ModuleType)
+        import_functions0 = tuple(_function_record(value) for namespace,items in imports0
+                                  for key,value in items if _TYPE(value) is types.FunctionType)
+        type0,len0,zip0,error0 = _TYPE,_LEN,zip,RuntimeError
+        getters0,cellget0,ftype0,ctype0 = _FUNCTION_GETTERS,_CELL_GET,types.FunctionType,types.CellType
+        def source_recheck(include_import_functions=False):
+            if type0(namespace0) is not dict or len0(namespace0) != len0(items0):
+                raise error0('V02 preseal retained helper namespace changed')
+            for key in namespace0:
+                if type0(key) is not str:
+                    raise error0('V02 preseal foreign helper namespace key')
+            for key,value in items0:
+                if namespace0[key] is not value:
+                    raise error0('V02 preseal retained helper alias changed')
+            for namespace,items in imports0:
+                if len0(namespace) != len0(items):
+                    raise error0('V02 preseal retained import namespace changed')
+                for key in namespace:
+                    if type0(key) is not str:
+                        raise error0('V02 preseal foreign import key')
+                for key,value in items:
+                    if namespace[key] is not value:
+                        raise error0('V02 preseal retained import alias changed')
+            records = functions0 + import_functions0 if include_import_functions else functions0
+            for function,values,cells in records:
+                for getter,value in zip0(getters0,values):
+                    if getter(function,ftype0) is not value:
+                        raise error0('V02 preseal retained helper descriptor changed')
+                if len0(values[6]) != 0:
+                    raise error0('V02 preseal retained helper dictionary changed')
+                for cell,value in cells:
+                    if cellget0(cell,ctype0) is not value:
+                        raise error0('V02 preseal retained helper cell changed')
+        source_recheck()
+        # Retain ownership before fstat/select/read; fd0 is borrowed and never closed.
+        io = {'fd':0, 'pending':None, 'reads':0, 'parts':[], 'frame':None, 'error':None}
+        state['v02_preseal_io']=io
+        select0,clock0=_v02_preseal_native_guard()
+        source_recheck()
+        io['pending']='fstat'
+        info=_FSTAT(0)
+        source_recheck()
+        io['pending']=None
+        _need((info.st_dev,info.st_ino,info.st_mode)==fd_identity, 'V02 inherited fd0 identity differs')
+        while io['reads'] < 32768:
+            _fresh(state)
+            _need(state['v02_protected_origin'] is origin and state['v02_preseal_io'] is io,
+                  'V02 protected ingress owner changed')
+            current_select,current_clock=_v02_preseal_native_guard()
+            source_recheck()
+            _need(current_select is select0 and current_clock is clock0, 'V02 preseal native identities changed')
+            tick=clock0()
+            source_recheck()
+            remaining=(deadline-tick)/1000000000
+            _need(remaining>0, 'V02 preseal deadline before read')
+            io['pending']='select'
+            ready,unused,errors=select0([0],[],[0],remaining)
+            source_recheck()
+            io['pending']=None
+            _need(_TYPE(ready) is list and _LEN(ready)==1 and _TYPE(ready[0]) is int and ready[0]==0 and
+                  _TYPE(errors) is list and not errors, 'V02 preseal deadline/read readiness')
+            io['pending']='read'
+            part=_READ(0,1)
+            source_recheck()
+            io['reads']+=1
+            io['pending']=None
+            _need(_TYPE(part) is bytes and _LEN(part)==1, 'V02 original parent frame ended early')
+            if part == b'\n':
+                break
+            io['parts'].append(part)
+        else:
+            raise BindingStop('V02 bounded single original frame')
+        raw=b''.join(io['parts']);io['frame']=raw
+        source_recheck(True)
+        frame=_document(raw);_v02_plain(frame)
+        _need(json.dumps(frame,sort_keys=True,separators=(',',':')).encode('ascii') == raw and
+              _v02_same(frame,expected), 'V02 exact protected parent frame differs')
+        _v02_preseal_binding_check(state,binding)
+        _need(state['v02_protected_origin'] is origin and state['v02_preflight_package_data'] is retained and
+              _data(expected)==expected_snapshot and _data(retained[0])==retained[1],
+              'V02 protected ingress changed during frame read')
+        package=_document(retained[2]);_v02_plain(package)
+        _exact(package,('schema','producer_subject','original_source','root_source','provider_source','decisions'))
+        decisions=package['decisions']
+        _need(_TYPE(decisions) is list and _LEN(decisions)==8, 'V02 preseal eight decision records required')
+        for decision in decisions:
+            _exact(decision,('name','source','value'))
+        gates=tuple(decision['value'] for decision in decisions)
+        _fresh(state);_check_v02_driver_handoff(context)
+        current_select,current_clock=_v02_preseal_native_guard()
+        source_recheck()
+        tick=clock0()
+        source_recheck(True)
+        _need(current_select is select0 and current_clock is clock0 and tick < deadline,
+              'V02 preseal deadline/identity before installation')
+        _v02_preseal_binding_check(state,binding)
+        _need(state['v02_protected_origin'] is origin and state['v02_preflight_package_data'] is retained and
+              state['v02_preseal_io'] is io and _data(expected)==expected_snapshot and
+              _data(retained[0])==retained[1], 'V02 protected ingress changed after final native call')
+        state['v02_pre_admitted_input']=(context,retained,package,gates,_data(package))
+        return None
+    except BaseException as error:
+        if io is not None and io['error'] is None:
+            io['error']=error
+        # No helper callback on this error path: it may be the replaced helper.
+        if owner_primary[0] is None: owner_primary[0]=error
+        if local_primary[0] is None: local_primary[0]=error
+        quarantine[0]=True
+        state['phase']='STOP'
+        raise
+
+
+def _construct_v02_issued_input(context):
+    """Prospective owning constructor; ordinary ingress has no admission issuer.
+
+    The private record is never decoded from P/E or provided through a setter.
+    Tests may model it only as an explicitly inert pre-admitted owning seam.
+    Its absence remains the original refusal. Representation and source custody
+    checks below cannot confer the missing parent decisions or launch authority.
+    """
+    state = _entry(context)
+    try:
+        _fresh(state)
+        _need(state['phase'] == 'PREPARED' and state['consumed'] is True and
+              state['v02_installing'] is True and state['v02_typed_attempted'] is False and
+              state['v02_issued_input'] is None and state['v02_attempted'] is False,
+              'V02 typed construction is one-shot while PREPARED')
+        state['v02_typed_attempted'] = True
+        handoff = _check_v02_driver_handoff(context)
+        admission = state['v02_pre_admitted_input']
+        _need(_TYPE(admission) is tuple and _LEN(admission) == 5 and admission[0] is context,
+              'V02 concrete authenticated issued input absent')
+        retained = state['v02_preflight_package_data']
+        _need(_TYPE(retained) is tuple and _LEN(retained) == 3 and admission[1] is retained,
+              'V02 admission retained package owner differs')
+        pin, snapshot, raw = retained
+        _v02_pin_shape(pin, 1048576)
+        _need(_data(pin) == snapshot and _TYPE(raw) is bytes and _LEN(raw) == pin['bytes'] and
+              hashlib.sha256(raw).hexdigest() == pin['sha256'], 'V02 retained package custody differs')
+        package, gates, admitted_snapshot = admission[2:]
+        _v02_plain(package)
+        decoded = _document(raw)
+        _v02_plain(decoded)
+        _need(_v02_same(package, decoded) and _data(package) == admitted_snapshot,
+              'V02 admitted package contents differ')
+        _exact(package, ('schema', 'producer_subject', 'original_source', 'root_source', 'provider_source', 'decisions'))
+        _need(package['schema'] == 'h25-v02-typed-package-v1', 'V02 typed package schema differs')
+        subject = package['producer_subject']
+        _exact(subject, ('source_sha256', 'mode', 'presentation'))
+        _need(subject['source_sha256'] == _V02_ORIGINAL_SHA and subject['mode'] == 'normal' and
+              subject['presentation'] == 'nonconsuming-v02-omission', 'V02 early producer subject differs')
+        decisions = package['decisions']
+        _need(_TYPE(decisions) is list and _LEN(decisions) == 8 and
+              _TYPE(gates) is tuple and _LEN(gates) == 8, 'V02 eight typed decisions required')
+        for index, name in enumerate(_V02_GATE_NAMES):
+            decision = decisions[index]
+            _exact(decision, ('name', 'source', 'value'))
+            _need(decision['name'] == name and decision['value'] is gates[index] and
+                  gates[index] is not None, 'V02 genuine decision identity/order differs')
+            _v02_pin_shape(decision['source'], MAX_IMAGE)
+        _exact(gates[0], _V02_PRODUCER_KEYS)
+        for field, digest, limit in (('original_source', _V02_ORIGINAL_SHA, 131072),
+                ('root_source', _V02_ROOT_SHA, 262144), ('provider_source', _V02_PROVIDER_SHA, 262144)):
+            _v02_pin_shape(package[field], limit)
+            _need(package[field]['sha256'] == digest, 'V02 fixed source subject differs')
+        root, capability, api = handoff[4:7]
+        namespace = _namespace(root)
+        _need(namespace['__file__'] == package['root_source']['path'], 'V02 Root source path differs')
+        registry = _v02_mapping(namespace['_CAPABILITIES'], int)[0]
+        _need(_LEN(registry) == 1 and id(capability) in registry, 'V02 capability custody differs')
+        row = registry[id(capability)]
+        _need(_TYPE(row) is tuple and _LEN(row) == 7 and row[0] is capability,
+              'V02 capability row custody differs')
+        provider = _namespace(row[1])
+        _need(row[6] is provider and row[4] is provider['__file__'] and
+              provider['__file__'] == package['provider_source']['path'] and
+              _TYPE(row[3]) is str and row[3] == _V02_PROVIDER_SHA and
+              provider['_BOOTSTRAP_CAPABILITY'] is capability, 'V02 provider source custody differs')
+        metadata = _v02_mapping(namespace['_ROOT_METADATA'])[0]
+        _need(_TYPE(metadata.get('source_sha256')) is str and metadata['source_sha256'] == _V02_ROOT_SHA and
+              _TYPE(metadata.get('source_bytes')) is int and metadata['source_bytes'] == package['root_source']['bytes'],
+              'V02 initialized Root source custody differs')
+        root_source = _read_pin(state, package['root_source'], 262144)
+        provider_source = _read_pin(state, package['provider_source'], 262144)
+        _need(_data(package) == admitted_snapshot and _data(pin) == snapshot,
+              'V02 package changed during source custody read')
+        _need(state['v02_pre_admitted_input'] is admission and
+              state['v02_preflight_package_data'] is retained,
+              'V02 retained admission changed during source custody read')
+        _need(all(package['decisions'][index]['value'] is gates[index] for index in range(8)),
+              'V02 genuine decision identity changed during source custody read')
+        _check_v02_driver_handoff(context)
+        _fresh(state)
+        configuration = dict(schema='h25-live-preflight-context-v1',
+            unit_id='variant/V02/python-preflight-v1', original_source=package['original_source'],
+            bootstrap_root=root, bootstrap_capability=capability, bootstrap_api=api,
+            genuine_gate_values=gates)
+        state['v02_issued_input'] = (context, state['modules']['component_control_root_v1'],
+                                   configuration, root_source, provider_source)
+        return None
+    except BaseException as error:
+        _v02_stop(state, error)
+        raise
+
+
+def _register_v02_live(context):
+    """Source-owned one-shot registration. No profile or configuration argument.
+
+    The issued slot is deliberately None in this artifact; no public setter or
+    constructor turns caller assertions into authenticated input. A future
+    separately reviewed owning constructor must discharge concrete P/E first.
+    """
+    state = _entry(context)
+    try:
+        _fresh(state)
+        _need(state['phase'] == 'PREPARED' and state['consumed'] is True and
+              state['v02_installing'] is True and
+              state['v02_attempted'] is False and state['v02_anchor'] is None,
+              'V02 registration is one-shot while PREPARED')
+        state['v02_attempted'] = True  # consume before any fallible capture
+        _check_v02_driver_handoff(context)
+        issued = state['v02_issued_input']
+        _need(_TYPE(issued) is tuple and _LEN(issued) == 5 and issued[0] is context,
+              'V02 concrete authenticated issued input absent')
+        unused, component, configuration, root_source, provider_source = issued
+        _need(state['modules']['component_control_root_v1'] is component,
+              'V02 issued component owner differs')
+        selected = state['bindings']['component_control_root_v1']['CONTEXT_CONFIGURATION']
+        _need(_TYPE(selected) is dict and _TYPE(selected.get('unit_id')) is str and
+              selected['unit_id'] == 'variant/V02/python-preflight-v1' and
+              selected.get('mode') == 'normal' and sys.flags.optimize == 0,
+              'V02 original selected unit differs')
+        namespace = _namespace(component)
+        _need(namespace['PREFLIGHT_CONFIGURATION'] is None, 'V02 original None slot required')
+        _exact(configuration, _V02_CONFIG_KEYS)
+        handoff = _check_v02_driver_handoff(context)
+        _need(configuration['bootstrap_root'] is handoff[4] and
+              configuration['bootstrap_capability'] is handoff[5] and
+              configuration['bootstrap_api'] is handoff[6],
+              'V02 issued live fields differ from retained driver handoff')
+        _need(_TYPE(configuration['schema']) is str and
+              configuration['schema'] == 'h25-live-preflight-context-v1' and
+              _TYPE(configuration['unit_id']) is str and
+              configuration['unit_id'] == 'variant/V02/python-preflight-v1', 'V02 fixed context required')
+        gates = configuration['genuine_gate_values']
+        _need(_TYPE(gates) is tuple and _LEN(gates) == 8 and all(g is not None for g in gates),
+              'V02 eight original gate references required')
+        gate_data = tuple(_data(g) for g in gates)
+        original_data = _data(configuration['original_source'])
+        rows = tuple(row for row in _INSTALLATIONS if row[0] is context)
+        _need(_LEN(rows) == 1 and rows[0][1] is state, 'V02 unique original token row required')
+        profile = _v02_capture_live_profile(configuration['bootstrap_root'],
+            configuration['bootstrap_capability'], configuration['bootstrap_api'], root_source, provider_source)
+        _fresh(state)
+        _need(state['phase'] == 'PREPARED', 'V02 capture reentry requires teardown')
+        binder_namespace = _FUNCTION_GETTERS[1](_register_v02_live, types.FunctionType)
+        binder_items = tuple(binder_namespace.items())
+        binder_functions = tuple(_function_record(value) for key, value in binder_items
+            if _TYPE(value) is types.FunctionType and
+            _FUNCTION_GETTERS[1](value, types.FunctionType) is binder_namespace)
+        anchor = ('h25-v02-token-anchor-v1', context, rows[0], state, component,
+                  configuration, tuple(configuration.items()), gates, gate_data, profile,
+                  binder_namespace, binder_items, binder_functions, original_data)
+        state['v02_anchor'] = anchor
+        _need('PREFLIGHT_CONFIGURATION' not in state['bindings']['component_control_root_v1'],
+              'V02 live gate cannot be supplied by literal binding plan')
+        state['bindings']['component_control_root_v1']['PREFLIGHT_CONFIGURATION'] = configuration
+        return None
+    except BaseException as error:
+        _v02_stop(state, error)
+        raise
+
+
+def _v02_check_anchor(context, state, anchor, module, value):
+    try:
+        _fresh(state)
+        _check_v02_driver_handoff(context)
+        _need(state['v02_busy'] is False, 'V02 verification reentry requires teardown')
+        state['v02_busy'] = True
+        _need(_TYPE(anchor) is tuple and _LEN(anchor) == 14 and
+              state['v02_anchor'] is anchor and anchor[1] is context and anchor[3] is state,
+              'V02 original immutable token anchor differs')
+        rows = tuple(row for row in _INSTALLATIONS if row[0] is context)
+        _need(_LEN(rows) == 1 and rows[0] is anchor[2] and rows[0][1] is state,
+              'V02 original token registry row differs')
+        _need(module is anchor[4] and value is anchor[5] and
+              _namespace(module)['PREFLIGHT_CONFIGURATION'] is value,
+              'V02 actual installed live configuration differs')
+        _exact(value, _V02_CONFIG_KEYS)
+        for key, expected in anchor[6]:
+            _need(value[key] is expected, 'V02 current installed field identity differs')
+        actual_gates = value['genuine_gate_values']
+        _need(actual_gates is anchor[7] and _TYPE(actual_gates) is tuple and _LEN(actual_gates) == 8,
+              'V02 original gate tuple differs')
+        for gate, expected in zip(actual_gates, anchor[8]):
+            _need(_data(gate) == expected, 'V02 genuine gate contents changed')
+        _need(_data(value['original_source']) == anchor[13], 'V02 original source pin changed')
+        # Pass actual current fields, never tautological anchor-owned arguments.
+        _v02_check_live_profile(anchor[9], value['bootstrap_root'],
+            value['bootstrap_capability'], value['bootstrap_api'])
+        _fresh(state)  # a suppressed inner failure cannot restore success
+        _need(state['v02_busy'] is True, 'V02 verification state changed')
+        state['v02_busy'] = False
+        return None
+    except BaseException as error:
+        _v02_stop(state, error)
+        raise
+
+
+def _capture_installed_gate(context, state, name, module, key, value):
+    if name == 'component_control_root_v1' and key == 'PREFLIGHT_CONFIGURATION':
+        anchor = state['v02_anchor']
+        _v02_check_anchor(context, state, anchor, module, value)
+        return anchor
+    return _data(value)
+
+
+def installed_gate_snapshot(context, name, module, key, value):
+    state = _entry(context)
+    _fresh(state)
+    _need(state['phase'] == 'SEALED', 'installed gate snapshot requires sealed token')
+    row = state['installed'][(name, key)]
+    _need(row[0] is module and row[1] is value, 'installed gate snapshot owner differs')
+    check_installed_gate(context, name, module, key, value, row[2])
+    return row[2]
+
+
+def check_installed_gate(context, name, module, key, value, snapshot):
+    state = _entry(context)
+    if name == 'component_control_root_v1' and key == 'PREFLIGHT_CONFIGURATION':
+        _v02_check_anchor(context, state, snapshot, module, value)
+        return None
+    _need(_namespace(module)[key] is value and _data(value) == snapshot,
+          'installed gate identity/content changed')
+    return None
+
+
+"""Inert reusable candidate for pinned CPython 3.12 code-source comparison.
+
+The caller authenticates this module/native owners and supplies independently
+compiled source-role-aligned roots. This does not issue authority. One call
+compares one module's whole matched forest; do not reset aliases per function.
+Adaptation of cache_contract_v8._constant_equal/_code_equal exact-type discipline,
+with native metadata coverage, finite floats/sets, bounds and forest aliases.
+"""
+import marshal
+import types
+
+_code_oracle_TYPE = type
+_code_oracle_LEN = len
+_code_oracle_ID = id
+_code_oracle_GET = object.__getattribute__
+_code_oracle_CODE = types.CodeType
+_code_oracle_DUMPS = marshal.dumps
+_code_oracle_BIT_LENGTH = int.bit_length
+_code_oracle_LOCAL_NAME = types.CodeType.__dict__['_varname_from_oparg']
+_code_oracle_INDEX_ERROR = IndexError
+
+_code_oracle_MAX_ROOTS = 1024
+_code_oracle_MAX_VISITS = 100000
+_code_oracle_MAX_DEPTH = 64
+_code_oracle_MAX_CONTAINER = 8192
+_code_oracle_MAX_ATOM_LENGTH = 1048576
+_code_oracle_MAX_INT_BITS = 4096
+_code_oracle_MAX_SERIALIZED_BOUND = 8 * 1024 * 1024
+
+_code_oracle_INTEGER_FIELDS = ('co_argcount', 'co_posonlyargcount', 'co_kwonlyargcount',
+                   'co_nlocals', 'co_stacksize', 'co_flags', 'co_firstlineno')
+_code_oracle_BYTES_FIELDS = ('co_code', 'co_linetable', 'co_exceptiontable')
+_code_oracle_TEXT_FIELDS = ('co_filename', 'co_name', 'co_qualname')
+_code_oracle_NAMES_FIELDS = ('co_names', 'co_varnames', 'co_cellvars', 'co_freevars')
+
+
+class _code_oracle_CodeOracleStop(RuntimeError):
+    pass
+
+
+def _code_oracle_need(condition, reason):
+    if not condition:
+        raise _code_oracle_CodeOracleStop(reason)
+
+
+def _code_oracle_code_children(code):
+    """Only exact CodeType/native descriptors; no candidate lookup callbacks."""
+    children = []
+    for field in _code_oracle_INTEGER_FIELDS:
+        value = _code_oracle_GET(code, field)
+        _code_oracle_need(_code_oracle_TYPE(value) is int and 0 <= value <= 0x7fffffff,
+              'code integer metadata type/range')
+        children.append(value)
+    for field in _code_oracle_BYTES_FIELDS:
+        value = _code_oracle_GET(code, field)
+        _code_oracle_need(_code_oracle_TYPE(value) is bytes, 'code byte metadata type')
+        children.append(value)
+    for field in _code_oracle_TEXT_FIELDS:
+        value = _code_oracle_GET(code, field)
+        _code_oracle_need(_code_oracle_TYPE(value) is str, 'code text metadata type')
+        children.append(value)
+    for field in _code_oracle_NAMES_FIELDS:
+        value = _code_oracle_GET(code, field)
+        _code_oracle_need(_code_oracle_TYPE(value) is tuple and _code_oracle_LEN(value) <= _code_oracle_MAX_CONTAINER,
+              'code names metadata shape')
+        for name in value:
+            _code_oracle_need(_code_oracle_TYPE(name) is str, 'code name exact text type')
+        children.append(value)
+    constants = _code_oracle_GET(code, 'co_consts')
+    _code_oracle_need(_code_oracle_TYPE(constants) is tuple, 'code constants exact tuple')
+    children.append(constants)
+    # Public name tuples omit hidden-only localsplus entries. Enumerate the
+    # pinned native backing tuple before marshal so its size cannot evade the
+    # allocation bound. The native descriptor uses PyTuple_GetItem, not Python
+    # indexing hooks. The same count bounds the internal kinds byte array.
+    local_names = []
+    for index in range(_code_oracle_MAX_CONTAINER + 1):
+        try:
+            name = _code_oracle_LOCAL_NAME(code, index)
+        except _code_oracle_INDEX_ERROR:
+            break
+        _code_oracle_need(index < _code_oracle_MAX_CONTAINER and _code_oracle_TYPE(name) is str,
+              'internal local name count/type')
+        local_names.append(name)
+    children.append(tuple(local_names))
+    return tuple(children), _code_oracle_LEN(local_names)
+
+
+def _code_oracle_preflight(roots):
+    """Iterative expanded walk; all exact types/bounds precede any marshal.
+
+    Walk shared subgraphs again to bound format-2's actual expansion, rather
+    than merely bounding unique nodes in a potentially exponential DAG.
+    """
+    _code_oracle_need(_code_oracle_TYPE(roots) is tuple and 1 <= _code_oracle_LEN(roots) <= _code_oracle_MAX_ROOTS,
+          'exact nonempty bounded root tuple')
+    for root in roots:
+        _code_oracle_need(_code_oracle_TYPE(root) is _code_oracle_CODE, 'exact code root required')
+    stack = [(0, root, 0) for root in reversed(roots)]
+    active = set()
+    visits = 0
+    bound = 0
+    peak_depth = 0
+    local_slots = 0
+    while stack:
+        exiting, value, depth = stack.pop()
+        if exiting:
+            active.remove(_code_oracle_ID(value))
+            continue
+        visits += 1
+        _code_oracle_need(visits <= _code_oracle_MAX_VISITS and depth <= _code_oracle_MAX_DEPTH,
+              'expanded graph visit/depth bound')
+        peak_depth = max(peak_depth, depth)
+        kind = _code_oracle_TYPE(value)
+        children = None
+        if value is None or value is Ellipsis:
+            bound += 1
+        elif kind is bool:
+            bound += 1
+        elif kind is int:
+            bits = _code_oracle_BIT_LENGTH(value)
+            _code_oracle_need(bits <= _code_oracle_MAX_INT_BITS, 'integer bit bound')
+            bound += 8 + 2 * ((bits + 14) // 15)
+        elif kind is float:
+            # Exact floats only: finite x-x is zero, infinities/NaNs produce
+            # NaN and fail. No added math-module/native-owner dependency.
+            _code_oracle_need(value - value == 0.0, 'nonfinite float constant')
+            bound += 9
+        elif kind is str:
+            _code_oracle_need(_code_oracle_LEN(value) <= _code_oracle_MAX_ATOM_LENGTH, 'text length bound')
+            bound += 5 + 4 * _code_oracle_LEN(value)
+        elif kind is bytes:
+            _code_oracle_need(_code_oracle_LEN(value) <= _code_oracle_MAX_ATOM_LENGTH, 'bytes length bound')
+            bound += 5 + _code_oracle_LEN(value)
+        elif kind is tuple or kind is frozenset:
+            _code_oracle_need(_code_oracle_LEN(value) <= _code_oracle_MAX_CONTAINER, 'container width bound')
+            if kind is frozenset:
+                for item in value:
+                    _code_oracle_need(_code_oracle_TYPE(item) is str or _code_oracle_TYPE(item) is int,
+                          'frozenset restricted exact scalar members')
+            bound += 5
+            children = value
+        elif kind is _code_oracle_CODE:
+            children, count = _code_oracle_code_children(value)
+            local_slots += count
+            # More than native fixed header/kinds overhead; public name tuples
+            # plus the native-name enumeration conservatively duplicate names.
+            bound += 128 + count
+        else:
+            raise _code_oracle_CodeOracleStop('unsupported exact graph type')
+        _code_oracle_need(bound <= _code_oracle_MAX_SERIALIZED_BOUND, 'expanded serialized-size bound')
+        if children is not None:
+            identity = _code_oracle_ID(value)
+            _code_oracle_need(identity not in active, 'cyclic code constant graph')
+            _code_oracle_need(_code_oracle_LEN(stack) + _code_oracle_LEN(children) + 1 <= 2 * _code_oracle_MAX_VISITS,
+                  'pending graph work bound')
+            active.add(identity)
+            stack.append((1, value, depth))
+            # Each admitted container is bounded before materializing its
+            # native iterator. No foreign iterable reaches this branch.
+            for child in children:
+                stack.append((0, child, depth + 1))
+            _code_oracle_need(_code_oracle_LEN(stack) <= 2 * _code_oracle_MAX_VISITS, 'pending graph work bound')
+    return visits, bound, peak_depth, local_slots
+
+
+def _code_oracle_code_alias_children(code):
+    # These include the stable cached var/cell/free tuple views materialized
+    # on both sides during preflight. Their aliases with constants and other
+    # code roots are observable. Integer descriptors are value fields instead.
+    result = [_code_oracle_GET(code, field) for field in (
+        'co_code', 'co_consts', 'co_names', 'co_filename', 'co_name',
+        'co_qualname', 'co_linetable', 'co_exceptiontable',
+        'co_varnames', 'co_cellvars', 'co_freevars')]
+    for index in range(_code_oracle_MAX_CONTAINER + 1):
+        try:
+            name = _code_oracle_LOCAL_NAME(code, index)
+        except _code_oracle_INDEX_ERROR:
+            break
+        _code_oracle_need(index < _code_oracle_MAX_CONTAINER, 'alias internal local bound')
+        result.append(name)
+    return tuple(result)
+
+
+def _code_oracle_aliases(actual_roots, expected_roots):
+    """Reciprocal constant/code graph aliases across all roots in this call."""
+    actual_to_expected = {}
+    expected_to_actual = {}
+    pending = list(zip(actual_roots, expected_roots))
+    visits = 0
+    while pending:
+        actual, expected = pending.pop()
+        visits += 1
+        _code_oracle_need(visits <= _code_oracle_MAX_VISITS, 'alias graph visit bound')
+        kind = _code_oracle_TYPE(actual)
+        _code_oracle_need(kind is _code_oracle_TYPE(expected), 'constant exact type differs')
+        ai, ei = _code_oracle_ID(actual), _code_oracle_ID(expected)
+        previous_a = expected_to_actual.get(ei)
+        previous_e = actual_to_expected.get(ai)
+        if previous_a is not None or previous_e is not None:
+            _code_oracle_need(previous_a == ai and previous_e == ei,
+                  'constant/code graph alias split or merge')
+            continue
+        expected_to_actual[ei] = ai
+        actual_to_expected[ai] = ei
+        if kind is _code_oracle_CODE:
+            a = _code_oracle_code_alias_children(actual)
+            e = _code_oracle_code_alias_children(expected)
+            _code_oracle_need(_code_oracle_LEN(a) == _code_oracle_LEN(e), 'code alias field arity differs')
+            pending.extend(zip(a, e))
+        elif kind is tuple:
+            _code_oracle_need(_code_oracle_LEN(actual) == _code_oracle_LEN(expected), 'tuple arity differs')
+            pending.extend(zip(actual, expected))
+        elif kind is frozenset:
+            _code_oracle_need(_code_oracle_LEN(actual) == _code_oracle_LEN(expected), 'frozenset arity differs')
+            # Complete forest preflight already proved exact str/int members
+            # and bounded lengths/bits. Native format-2 encodings distinguish
+            # these types/values and supply deterministic ordering without
+            # candidate comparisons or iteration callbacks.
+            a = sorted(actual, key=_code_oracle_scalar_key)
+            e = sorted(expected, key=_code_oracle_scalar_key)
+            pending.extend(zip(a, e))
+    return visits, _code_oracle_LEN(actual_to_expected)
+
+
+def _code_oracle_scalar_key(value):
+    return _code_oracle_DUMPS(value, 2)
+
+
+def _code_oracle_compare_code_forest(actual_roots, expected_roots):
+    """Compare one module's source-aligned exact CodeType forest, or STOP.
+
+    Repeated roots are allowed and their aliases are checked. Roots are never
+    selected by actual names, and no candidate callback or equality is used.
+    Return immutable diagnostics, not an authority token:
+      (root_count, actual_preflight, expected_preflight,
+       alias_visits, alias_nodes, actual_serialized_bytes, expected_bytes).
+    Preflight tuples are (expanded_visits, byte_upper_bound, depth, local_slots).
+    """
+    expected_counts = _code_oracle_preflight(expected_roots)
+    actual_counts = _code_oracle_preflight(actual_roots)
+    _code_oracle_need(_code_oracle_LEN(actual_roots) == _code_oracle_LEN(expected_roots), 'source root cardinality differs')
+    alias_visits, alias_nodes = _code_oracle_aliases(actual_roots, expected_roots)
+    actual_bytes = expected_bytes = 0
+    for actual, expected in zip(actual_roots, expected_roots):
+        a = _code_oracle_DUMPS(actual, 2)
+        e = _code_oracle_DUMPS(expected, 2)
+        actual_bytes += _code_oracle_LEN(a)
+        expected_bytes += _code_oracle_LEN(e)
+        _code_oracle_need(actual_bytes <= actual_counts[1] and expected_bytes <= expected_counts[1],
+              'native serialization exceeds preflight upper bound')
+        _code_oracle_need(a == e, 'native code metadata or constant value differs')
+    return (_code_oracle_LEN(actual_roots), actual_counts, expected_counts,
+            alias_visits, alias_nodes, actual_bytes, expected_bytes)
+
+
+# Captured once by authenticated source before entry; no caller setter.
+_CODE_ORACLE_STARTUP_NAMES = ('_code_oracle_TYPE', '_code_oracle_LEN', '_code_oracle_ID', '_code_oracle_GET', '_code_oracle_CODE', '_code_oracle_DUMPS', '_code_oracle_BIT_LENGTH', '_code_oracle_LOCAL_NAME', '_code_oracle_INDEX_ERROR', '_code_oracle_MAX_ROOTS', '_code_oracle_MAX_VISITS', '_code_oracle_MAX_DEPTH', '_code_oracle_MAX_CONTAINER', '_code_oracle_MAX_ATOM_LENGTH', '_code_oracle_MAX_INT_BITS', '_code_oracle_MAX_SERIALIZED_BOUND', '_code_oracle_INTEGER_FIELDS', '_code_oracle_BYTES_FIELDS', '_code_oracle_TEXT_FIELDS', '_code_oracle_NAMES_FIELDS', '_code_oracle_CodeOracleStop', '_code_oracle_need', '_code_oracle_code_children', '_code_oracle_preflight', '_code_oracle_code_alias_children', '_code_oracle_aliases', '_code_oracle_scalar_key', '_code_oracle_compare_code_forest', 'marshal', 'types', 'builtins', '_TYPE', '_LEN', '_FUNCTION_GETTERS', '_CELL_GET', '_MODULE_DICT', '_CLASS_DICT', '_CODE_ORACLE_MRO_GET')
+_CODE_ORACLE_NAMESPACE = globals()
+_CODE_ORACLE_BUILTINS = _MODULE_DICT(builtins, types.ModuleType)
+_CODE_ORACLE_BUILTIN_ITEMS = tuple(_CODE_ORACLE_BUILTINS.items())
+_CODE_ORACLE_MRO_GET = type.__dict__['__mro__'].__get__
+_CODE_ORACLE_STARTUP_SEAL = tuple((name, globals()[name],
+    _function_record(globals()[name]) if _TYPE(globals()[name]) is types.FunctionType else None)
+    for name in _CODE_ORACLE_STARTUP_NAMES)
+_CODE_ORACLE_CLASS_SEAL = tuple((value, tuple(_CLASS_DICT(value, type).items()),
+    _CODE_ORACLE_MRO_GET(value, type)) for name, value, record in _CODE_ORACLE_STARTUP_SEAL if _TYPE(value) is type)
