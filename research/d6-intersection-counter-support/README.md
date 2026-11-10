@@ -166,6 +166,7 @@ python3 -B scripts/research_package.py --package research/d6-intersection-counte
 python3 -I -B research/d6-intersection-counter-support/verify.py
 python3 -I -O -B research/d6-intersection-counter-support/verify.py
 python3 -B scripts/research_package.py --package research/d6-intersection-counter-support
+python3 -B scripts/check_research_commit.py --package research/d6-intersection-counter-support --check-source-history
 ```
 
 The direct verifier prints
@@ -174,9 +175,10 @@ The direct verifier prints
 PASS_D6_INTERSECTION_COUNTER_SUPPORT batch=16 words=16 supports=15 hash=23a7b374a6bc62bc2aca47843d52a01fa8e791ed3a98085133829d816c5094e8 equal=True e7_census=false bit_lane_census=false timed=false no_new_kappa=true
 ```
 
-Checked here: normal and optimized direct runs, metadata check, and the
-registered package runner. The selected-baseline script, the E7 census, the
-bit-lane D6 census, Lean, Docker, and any timing harness were not run.
+Checked here: normal and optimized direct runs, metadata check, the
+registered package runner, and the committed-byte source-history preflight.
+The selected-baseline script, the E7 census, the bit-lane D6 census, Lean,
+Docker, and any timing harness were not run.
 
 ## Open next questions
 
