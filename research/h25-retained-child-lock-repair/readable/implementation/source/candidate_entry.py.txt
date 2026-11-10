@@ -1,0 +1,465 @@
+#!/usr/bin/env python3
+"""Candidate waiting entry below the unchanged common runner algorithms.
+
+Source-only until separately admitted. The parent owns qualification and release;
+no Context, lease, guardian or parent association is recreated after exec.
+LocalOwner is reused verbatim from the existing bounded relay; the bounded WAIT
+reader is reused from the recovered common runner. See SOURCE-LINEAGE.json.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+from types import ModuleType
+
+FLAGS = ('-S','-s','-P','-B')
+ENV = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8',
+       'LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+READ_ROOT = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028')
+ERROR_DESTINATION = None
+STATE = {'fds':[], 'overflow':None, 'errors':[], 'modules':[], 'first':None, 'traceback':None}
+
+def need(value,message):
+    if not value:
+        raise RuntimeError(message)
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def remember(error):
+    if STATE['first'] is None:
+        STATE['first'],STATE['traceback']=error,BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+    if not any(item is error for item in STATE['errors']):
+        if len(STATE['errors']) < 16: STATE['errors'].append(error)
+        else: STATE['overflow']=error
+
+class LocalOwner:
+    """Runner-local raw owners; their terminal projection remains DATA to parent."""
+    def __init__(self, state, remember):
+        self.state, self.remember_error = state, remember
+    def pending(self, role, path=None):
+        need(len(self.state['fds']) < 64 and self.state['overflow'] is None and
+             not any(r['state'] == 'UNKNOWN' for r in self.state['fds']),
+             'runner descriptor custody unavailable')
+        row = {'role':role, 'path':path, 'object':None, 'state':'PENDING',
+               'primary':None, 'secondary':None, 'close_attempted':False}
+        self.state['fds'].append(row)
+        return row
+    def bind(self,relay):
+        self.state['relay']=relay
+    def retired(self,known):
+        pass  # Actual descriptor rows remain in the runner's strong state.
+    def acquired(self, row, fd):
+        previous=row['state']
+        row['object'],row['state']=fd,'OWNED'  # Actual native return before validator.
+        need(previous=='PENDING' and type(fd) is int and fd>=0,'one actual runner descriptor return')
+    def failed(self, row, error):
+        row['primary'], row['state'] = error, 'UNKNOWN'
+        self.remember(error)
+    def close(self, row):
+        need(row['state'] == 'OWNED' and type(row['object']) is int,
+             'one known runner descriptor close')
+        fd, row['object'], row['state'], row['close_attempted'] = row['object'], None, 'CLOSING', True
+        try:
+            os.close(fd)
+        except BaseException as error:
+            row['secondary'], row['state'] = error, 'UNKNOWN'
+            self.remember(error)
+            raise
+        row['state'] = 'CLOSED'
+    def remember(self, error):
+        self.remember_error(error)
+
+def read_waiting_configuration(path, expected_sha):
+    """Read parent-created DATA, never restore its capability or release a child."""
+    path = Path(path)
+    if (not path.is_absolute() or path.resolve(strict=True) != path or
+            type(expected_sha) is not str or len(expected_sha) != 64 or
+            any(c not in '0123456789abcdef' for c in expected_sha)):
+        raise ValueError('Exact canonical waiting configuration and digest required')
+    identity = lambda q: (q.st_dev,q.st_ino,q.st_mode,q.st_uid,q.st_nlink,q.st_size,q.st_mtime_ns,q.st_ctime_ns)
+    before = path.lstat()
+    if (not stat.S_ISREG(before.st_mode) or stat.S_IMODE(before.st_mode) != 0o444 or
+            before.st_uid != os.getuid() or before.st_nlink != 1 or not 0 < before.st_size <= 16384):
+        raise ValueError('Owned immutable bounded waiting configuration required')
+    fd = None
+    primary = secondary = None
+    raw = None
+    try:
+        fd = os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+        if identity(os.fstat(fd)) != identity(before):
+            raise ValueError('Waiting configuration opened identity')
+        blocks, count = [], 0
+        while True:
+            block = os.read(fd,min(65536,before.st_size+1-count))
+            if not block:
+                break
+            blocks.append(block); count += len(block)
+            if count > before.st_size:
+                raise ValueError('Waiting configuration extra byte')
+        raw = b''.join(blocks)
+        if (len(raw) != before.st_size or digest(raw) != expected_sha or
+                identity(os.fstat(fd)) != identity(before) or identity(path.lstat()) != identity(before)):
+            raise ValueError('Waiting configuration exact stable readback')
+    except BaseException as error:
+        primary = error
+    finally:
+        if fd is not None:
+            owned, fd = fd, None
+            try:
+                os.close(owned)
+            except BaseException as error:
+                secondary = error
+    if primary is not None:
+        if secondary is not None:
+            raise primary from secondary
+        raise primary
+    if secondary is not None:
+        raise secondary
+    def pairs(items):
+        result = {}
+        for key,value in items:
+            if key in result:
+                raise ValueError('Duplicate waiting configuration key')
+            result[key] = value
+        return result
+    def no_number(value):
+        raise ValueError('Waiting configuration forbids floating/nonfinite numbers')
+    value = json.loads(raw.decode('ascii'),object_pairs_hook=pairs,parse_float=no_number,parse_constant=no_number)
+    if type(value) is not dict or value.get('schema') != 'h25-waiting-entry-config-v1':
+        raise ValueError('Exact waiting configuration schema')
+    return value
+
+
+OWNER = LocalOwner(STATE, remember)
+
+def opened(path,flags,role,mode=0o600):
+    row=OWNER.pending(role,path)
+    try:
+        fd=os.open(path,flags|os.O_NOFOLLOW|os.O_CLOEXEC,mode)
+    except BaseException as error:
+        OWNER.failed(row,error)
+        raise
+    OWNER.acquired(row,fd)
+    return row
+
+def identity(st):
+    return (st.st_dev,st.st_ino,st.st_mode,st.st_uid,st.st_nlink,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+
+def close_preserving(row,first):
+    if row is not None and row['state']=='OWNED':
+        try: OWNER.close(row)
+        except BaseException as error:
+            remember(error)
+            if first is None: first=error
+    return first
+
+def read_stable(path,cap,expected=None,mode=None):
+    path=Path(path);before=path.lstat()
+    need(path.is_absolute() and path.resolve(strict=True)==path and stat.S_ISREG(before.st_mode)
+         and before.st_uid in (0,os.getuid()) and before.st_nlink==1 and 0<=before.st_size<=cap
+         and (mode is None or stat.S_IMODE(before.st_mode)==mode),'bounded canonical selected file')
+    row=None;first=None;raw=None
+    try:
+        row=opened(path,os.O_RDONLY|os.O_NONBLOCK,'entry-read')
+        need(identity(os.fstat(row['object']))==identity(before),'opened selected inode')
+        parts=[];count=0
+        while True:
+            block=os.read(row['object'],min(65536,cap+1-count))
+            if not block: break
+            parts.append(block);count+=len(block)
+            need(count<=cap,'complete bounded file read')
+        raw=b''.join(parts)
+        need(identity(os.fstat(row['object']))==identity(path.lstat())==identity(before),
+             'stable complete descriptor and path read')
+        if expected is not None:
+            need(len(raw)==expected['bytes'] and digest(raw)==expected['sha256'],'exact selected bytes')
+    except BaseException as error:
+        first=error;remember(error)
+    finally: first=close_preserving(row,first)
+    if first is not None: raise first
+    return raw
+
+def json_read(path,cap=16384,expected=None,mode=0o444):
+    raw=read_stable(path,cap,expected,mode)
+    def pairs(items):
+        result={}
+        for key,value in items:
+            need(key not in result,'duplicate record key');result[key]=value
+        return result
+    def number(unused): raise ValueError('record floats/nonfinite forbidden')
+    value=json.loads(raw.decode('ascii'),object_pairs_hook=pairs,parse_float=number,parse_constant=number)
+    need(type(value) is dict,'exact record object')
+    return value,raw
+
+def immutable_write(path,value):
+    raw=(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode('ascii')
+    need(len(raw)<=16384,'entry record bound')
+    row=None;first=None
+    try:
+        row=opened(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,'entry-record')
+        view=memoryview(raw)
+        while view:
+            count=os.write(row['object'],view);need(type(count) is int and count>0,'record write progress');view=view[count:]
+        os.fchmod(row['object'],0o444);os.fsync(row['object'])
+    except BaseException as error:
+        first=error;remember(error)
+    finally: first=close_preserving(row,first)
+    if first is not None: raise first
+    directory=None
+    try:
+        directory=opened(Path(path).parent,os.O_RDONLY|os.O_DIRECTORY,'entry-record-directory')
+        os.fsync(directory['object'])
+    except BaseException as error:
+        first=error;remember(error)
+    finally: first=close_preserving(directory,first)
+    if first is not None: raise first
+    return {'path':str(path),'bytes':len(raw),'sha256':digest(raw)}
+
+def process_row(pid):
+    row=opened(Path('/proc')/str(pid)/'stat',os.O_RDONLY,'entry-proc-read');first=None;raw=None
+    try:
+        raw=os.read(row['object'],8193);need(len(raw)<=8192 and b') ' in raw,'bounded actual generation')
+    except BaseException as error: first=error;remember(error)
+    finally: first=close_preserving(row,first)
+    if first is not None: raise first
+    fields=raw[raw.rfind(b') ')+2:].split()
+    return {'pid':pid,'ppid':int(fields[1]),'start_ticks':int(fields[19]),'state':fields[0].decode('ascii')}
+
+def key(row): return [row['pid'],row['start_ticks']]
+
+def load_source(pin):
+    need(type(pin) is dict and set(pin)=={'path','bytes','sha256','mode'} and pin['mode']==0o444,
+         'selected source module pin')
+    raw=read_stable(Path(pin['path']),262144,pin,0o444)
+    module=ModuleType('_entry_'+Path(pin['path']).stem);module.__file__=pin['path']
+    STATE['modules'].append(module)
+    exec(compile(raw,pin['path'],'exec'),module.__dict__,module.__dict__)
+    return module
+
+def inherited_holders(folder):
+    """Snapshot only stdio and the possible GNU-time usage alias; reject others."""
+    info=(folder/'usage.json').stat();usage_key=(info.st_dev,info.st_ino)
+    rows=[];directory_key=(Path('/proc/self/fd').stat().st_dev,Path('/proc/self/fd').stat().st_ino)
+    iterator=os.scandir('/proc/self/fd');first=None;scan_holders=0
+    try:
+        names=set()
+        for item in iterator:
+            if not item.name.isdecimal(): continue
+            fd=int(item.name);names.add(fd)
+            need(len(names)<=16,'finite exact inherited descriptor table')
+            # Inspect while scandir still owns its FD. Exhausting it first
+            # would close that very descriptor before its fstat.
+            st=os.fstat(fd)
+            if stat.S_ISDIR(st.st_mode) and (st.st_dev,st.st_ino)==directory_key:
+                scan_holders+=1;continue
+            if fd==0:
+                null=os.stat('/dev/null');need(stat.S_ISCHR(st.st_mode) and st.st_rdev==null.st_rdev,'admitted inherited stdin')
+            elif fd in (1,2):
+                path=folder/('stdout.txt' if fd==1 else 'stderr.txt');named=path.lstat()
+                need(stat.S_ISREG(st.st_mode) and identity(st)==identity(named) and st.st_size==0
+                     and stat.S_IMODE(st.st_mode)==0o600,'actual empty inherited common capture')
+            else:
+                need(stat.S_ISREG(st.st_mode) and (st.st_dev,st.st_ino)==usage_key,
+                     'only outer GNU-time usage alias may also survive exec')
+            ticket=OWNER.pending('entry-inherited-'+str(fd));OWNER.acquired(ticket,fd)
+            rows.append(ticket)
+        need(scan_holders==1 and {0,1,2}.issubset({r['object'] for r in rows}),'one known fd-census iterator')
+    except BaseException as error: first=error;remember(error)
+    finally:
+        try: iterator.close()
+        except BaseException as error:
+            remember(error);first=error if first is None else first
+    if first is not None: raise first
+    return rows
+
+def native_argv(profile,timed,stage,artifact,usage,config):
+    read_stable(Path(config['native_source_path']),262144,{'bytes':Path(config['native_source_path']).stat().st_size,
+        'sha256':profile['source_sha256']},0o444)
+    for kind in ('entry','time'):
+        read_stable(Path(profile[kind+'_path']),16777216,{'bytes':profile[kind+'_bytes'],'sha256':profile[kind+'_sha256']})
+    info=artifact.lstat()
+    need(artifact.resolve(strict=True)==artifact and stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode)==0o700
+         and info.st_uid==os.getuid() and not list(artifact.iterdir()),'owned empty native artifact parent')
+    return [profile['entry_path'],'--entry-image',profile['entry_path'],profile['entry_sha256'],str(profile['entry_bytes']),
+        '--time-image',profile['time_path'],profile['time_sha256'],str(profile['time_bytes']),
+        '--read-root',str(READ_ROOT),'--artifact-parent',str(artifact),str(info.st_dev),str(info.st_ino),
+        '--science-leaf','science','--usage',str(timed[4]),str(usage[0]),str(usage[1]),'--',*timed]
+
+def main():
+    global ERROR_DESTINATION
+    parser=argparse.ArgumentParser();parser.add_argument('--output',required=True);parser.add_argument('--lanes',required=True)
+    parser.add_argument('--waiting-config',required=True);parser.add_argument('--waiting-sha256',required=True);args=parser.parse_args()
+    need(dict(os.environ)==ENV and sys.flags.no_site==sys.flags.no_user_site==sys.flags.dont_write_bytecode==1
+         and sys.flags.safe_path and not sys.flags.isolated and not sys.flags.ignore_environment
+         and not sys.flags.hash_randomization and sys.executable=='/usr/bin/python3.12','original clean entry launch')
+    config=read_waiting_configuration(args.waiting_config,args.waiting_sha256)
+    case=Path(config['completed_layout']['case_container']);folder=case/'runner';stage=Path(config['stage_path'])
+    need(config['outer_output']==args.output==config['completed_layout']['science_root'] and args.lanes=='candidate'
+         and Path(args.waiting_config)==case/'supervision/WAIT.json','exact source-selected waiting paths')
+    ERROR_DESTINATION=case/'supervision/ENTRY-ERROR.json'
+    own=process_row(os.getpid());timer=process_row(own['ppid']);root=process_row(timer['ppid']);parent=process_row(root['ppid'])
+    need(key(parent)==config['parent'] and sys.flags.optimize==(1 if config['job']=='optimized' else 0),'actual parent and original interpreter mode')
+    own_raw=read_stable(Path(__file__),262144,{'bytes':config['entry_bytes'],'sha256':config['entry_sha256']},0o444)
+    aliases=inherited_holders(folder)
+    arrival={'schema':'h25-entry-arrived-v1','case_id':config['case_id'],'waiting_sha256':args.waiting_sha256,
+             'entry':key(own),'timer':key(timer),'runner':key(root),'parent':key(parent),'entry_sha256':digest(own_raw)}
+    arrival_pin=immutable_write(case/'supervision/ARRIVED.json',arrival)
+    os.kill(os.getpid(),signal.SIGSTOP)
+    # File presence never releases this entry: only return from the actual stop,
+    # followed by the parent's exact known-closed seal and intent, permits exec.
+    need(time.monotonic_ns()<config['working_deadline_ns'],'existing working deadline after release')
+    seal,seal_raw=json_read(case/'supervision/RELEASE.json')
+    need(seal.get('schema')=='h25-entry-release-v1' and seal.get('waiting_sha256')==args.waiting_sha256
+         and seal.get('arrival_sha256')==arrival_pin['sha256'] and seal.get('entry')==key(own)
+         and seal.get('runner')==key(root),'one exact parent release correlation')
+    intent,intent_raw=json_read(case/'intent/INTENT.json',expected=seal['intent_pin'])
+    need(intent.get('schema')=='fresh-active-nested-runner-intent-v3' and intent.get('parent_pid')==parent['pid']
+         and intent.get('parent_start_ticks')==parent['start_ticks'] and intent.get('label')==config['case_id']
+         and intent.get('common_rendezvous')=={'entry':key(own),'runner':key(root),'arrival_sha256':arrival_pin['sha256'],
+                                              'waiting_sha256':args.waiting_sha256},'final actual intent binding')
+    need(key(process_row(root['ppid']))==key(parent) and key(process_row(timer['ppid']))==key(root)
+         and key(process_row(os.getppid()))==key(timer),'same actual chain after release')
+    relay_module=load_source(intent['relay_pin']);receiver=load_source(intent['full_receiver_pin'])
+    declared,_=json_read(stage/'STAGE.json',262144,mode=0o444)
+    inner=receiver.command_for(stage,declared,config['job'],receiver.job_for(config['job']),Path(args.output))
+    artifact=folder/'artifact';os.mkdir(artifact,0o700)
+    usage_path=folder/'native-usage.json';usage_row=opened(usage_path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,'entry-inner-usage')
+    usage_info=os.fstat(usage_row['object']);first=close_preserving(usage_row,None)
+    if first is not None: raise first
+    timed=[intent['native_entry_profile']['time_path'],'-f','{"user_seconds":%U,"system_seconds":%S,"kernel_max_rss_kib":%M,"exit":%x}',
+           '-o',str(usage_path),'--',*inner]
+    native=native_argv(intent['native_entry_profile'],timed,stage,artifact,(usage_info.st_dev,usage_info.st_ino),config)
+    relay=relay_module.BoundedRelay((folder/'stdout.txt',folder/'stderr.txt'),OWNER,'entry-inner')
+    child=None;pidfd=None;stdin=None;first=None;exit_code=None;entered=False;wait_known=False;failure=None
+    deadline=config['working_deadline_ns']/1e9;cleanup_end=config['cleanup_deadline_ns']/1e9
+    try:
+        relay.open(capture_fds=(1,2));out,err=relay.writers();stdin=opened(Path('/dev/null'),os.O_RDONLY,'entry-inner-stdin')
+        installed=relay_module.compiler_file_limits(resource.getrlimit(resource.RLIMIT_FSIZE),resource.RLIM_INFINITY)
+        def limits(): resource.setrlimit(resource.RLIMIT_FSIZE,installed)
+        entered=True
+        launch_error=None
+        try:
+            child=subprocess.Popen(native,cwd=READ_ROOT,env=dict(ENV),stdin=stdin['object'],stdout=out,stderr=err,
+                                   close_fds=True,start_new_session=False,preexec_fn=limits)
+            pidfd=OWNER.pending('entry-inner-pidfd')
+            try: fd=os.pidfd_open(child.pid,0)
+            except BaseException as error: OWNER.failed(pidfd,error);raise
+            OWNER.acquired(pidfd,fd)
+        except BaseException as error:
+            launch_error=error;remember(error)
+        finally:
+            try: relay.close_writers()
+            except BaseException as error:
+                remember(error);launch_error=error if launch_error is None else launch_error
+            launch_error=close_preserving(stdin,launch_error)
+        if launch_error is not None: raise launch_error
+        while _poll_child(child) is None:
+            relay.pump(.01)
+            need(not relay.overflowed(),'inner first extra byte')
+            need(time.monotonic()<deadline,'existing inner working deadline')
+        exit_code=child.returncode;wait_known=True
+    except BaseException as error:
+        first=error;remember(error);failure='opaque-caught-exception'
+    finally:
+        if child is not None and not wait_known:
+            try:
+                if pidfd is not None and pidfd['state']=='OWNED':
+                    try: signal.pidfd_send_signal(pidfd['object'],signal.SIGKILL,None,0)
+                    except ProcessLookupError: pass
+                _wait_child(child,relay,cleanup_end);exit_code=child.returncode;wait_known=True
+            except BaseException as error: remember(error);first=error if first is None else first
+        first=close_preserving(pidfd,first);first=close_preserving(stdin,first)
+        try:
+            relay.close_writers()
+            if child is not None and wait_known and relay.setup_complete and relay.primary is None:
+                relay.drain_until(cleanup_end)
+        except BaseException as error: remember(error);first=error if first is None else first
+        finally:
+            try: relay.retire()
+            except BaseException as error: remember(error);first=error if first is None else first
+        for row in aliases: first=close_preserving(row,first)
+    snapshot=relay.snapshot();known=all(r['state']=='CLOSED' for r in STATE['fds'])
+    need(child is not None and wait_known and first is None and known and snapshot['eof_complete']
+         and not snapshot['overflow'] and snapshot['all_descriptors_known_closed'],'complete entry-local retirement')
+    result={'schema':'h25-common-entry-result-v1','case_id':config['case_id'],'entry_command':sys.argv,
+            'inner_command':inner,'native_command':native,'inner_exit':exit_code,'failure':failure,
+            'waiting_sha256':args.waiting_sha256,'arrival_sha256':arrival_pin['sha256'],
+            'intent_pin':seal['intent_pin'],'release_sha256':digest(seal_raw),'relay':snapshot,
+            'outer_usage_aliases_retired':True,'scientific_disposition_not_adjudicated':True}
+    immutable_write(folder/'ENTRY.json',result)
+    closure={'schema':'h25-runner-native-writer-closure-v2','launch_entered':entered,'launch_returned':child is not None,
+             'wait_known':wait_known,'stdio_aliases_closed':known,'process_group_empty':False,
+             'usage_inode_retired':known,'local_holders_closed':known,'domain_reconciliation_required':True,
+             'relay':snapshot,'error_type':None}
+    immutable_write(folder/'WRITER-CLOSURE.json',closure)
+    return exit_code
+
+_WRITER_STATE=STATE
+_remember_runner=remember
+STATE.update(wait_state='NOT_ENTERED',wait_calls=0,raw_wait=None,wait_known=False,wait_error=None)
+
+def _poll_child(process):
+    state = _WRITER_STATE
+    if state['wait_state']=='COMMITTED':
+        return process.returncode
+    if state['wait_state']=='UNRESOLVED' or state['wait_calls']>=65536:
+        raise RuntimeError('runner native wait unresolved; no retry')
+    state['wait_state']='UNRESOLVED';state['wait_calls']+=1
+    try:
+        actual=os.waitpid(process.pid,os.WNOHANG)
+        state['raw_wait']=actual  # Actual tuple BEFORE comparison/decoder.
+        if type(actual) is not tuple or len(actual)!=2 or any(type(v) is not int for v in actual):
+            raise RuntimeError('runner native wait tuple')
+        if actual==(0,0):
+            state['wait_state']='SAFE_NONTERMINAL'
+            return None
+        if actual[0]!=process.pid:
+            raise RuntimeError('runner waited actual child differs')
+        state['wait_state']='CONSUMED'
+        code=os.waitstatus_to_exitcode(actual[1])
+        if type(code) is not int:
+            raise RuntimeError('runner wait decoder')
+        process.returncode=code
+        state['wait_known']=True;state['wait_state']='COMMITTED'
+        return code
+    except BaseException as error:
+        state['wait_error']=error
+        state['wait_state']='UNRESOLVED'
+        _remember_runner(error)
+        raise
+
+def _wait_child(process,relay=None,deadline=None):
+    if deadline is None:
+        deadline=time.monotonic()+2.0
+    while True:
+        code=_poll_child(process)
+        if code is not None:
+            return code
+        if time.monotonic()>=deadline:
+            raise RuntimeError('runner reserved native cleanup wait exhausted')
+        if relay is not None and relay.primary is None:
+            relay.pump(0.01)
+        else:
+            time.sleep(0.01)
+
+if __name__=='__main__':
+    try: code=main()
+    except BaseException as error:
+        remember(error)
+        try:
+            frames=[];tb=STATE['traceback']
+            while tb is not None and len(frames)<16:
+                frames.append({'source':tb.tb_frame.f_code.co_filename,'line':tb.tb_lineno});tb=tb.tb_next
+            if ERROR_DESTINATION is not None:
+                immutable_write(ERROR_DESTINATION,{'schema':'h25-entry-envelope-error-v1','error_type':'opaque-caught-exception','frames':frames})
+        except BaseException as secondary: remember(secondary)
+        code=125  # Envelope failure can never masquerade as the original exit-1 refusal.
+    raise SystemExit(code)

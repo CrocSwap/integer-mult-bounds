@@ -1,0 +1,139 @@
+"""Parent-only before/load/after custody around a reviewed source packet.
+
+Invoke this entire envelope under GNU time and the parent science lock. The
+packet executes in this same process, preserving its subreaper ownership.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+import time
+
+
+def need(value, message):
+    if not value:
+        raise ValueError(message)
+
+
+def identity(value):
+    return (value.st_dev, value.st_ino, value.st_mode, value.st_size,
+            value.st_mtime_ns, value.st_ctime_ns)
+
+
+def read_checked(path, *, materialize=False):
+    before = path.stat(follow_symlinks=False)
+    need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == 0o444,
+         'Readonly regular packet file required')
+    need(before.st_size <= 2 * 1024 * 1024, 'Packet member bound exceeded')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    hasher, count, blocks = hashlib.sha256(), 0, []
+    with os.fdopen(fd, 'rb', buffering=0) as stream:
+        opened = os.fstat(stream.fileno())
+        need(identity(before) == identity(opened) and stat.S_ISREG(opened.st_mode)
+             and opened.st_size <= 2 * 1024 * 1024,
+             'Opened packet file identity/type/size differs before read')
+        while count < opened.st_size:
+            block = stream.read(min(65536, opened.st_size - count))
+            if not block:
+                break
+            hasher.update(block)
+            count += len(block)
+            if materialize:
+                blocks.append(block)
+        ending = os.fstat(stream.fileno())
+    after = path.stat(follow_symlinks=False)
+    need(identity(before) == identity(opened) == identity(ending) == identity(after)
+         and count == before.st_size, 'Packet file changed during read')
+    return {'sha256': hasher.hexdigest(), 'bytes': count, 'mode': 0o444}, (
+        b''.join(blocks) if materialize else None)
+
+
+def snapshot(packet, expected_manifest_sha, entry):
+    need(not packet.is_symlink() and packet.is_dir() and
+         stat.S_IMODE(packet.stat().st_mode) == 0o555, 'Readonly packet directory required')
+    manifest_pin, raw = read_checked(packet / 'SOURCE-READINESS.json', materialize=True)
+    need(manifest_pin['sha256'] == expected_manifest_sha, 'Source manifest changed')
+    manifest = json.loads(raw)
+    members = manifest['files']
+    need(type(members) is dict and entry in members, 'Declared entry required')
+    need(set(p.name for p in packet.iterdir()) == set(members) | {'SOURCE-READINESS.json'},
+         'Packet census differs')
+    rows, entry_raw = {}, None
+    for name, expected in members.items():
+        need(type(name) is str and name and Path(name).name == name and
+             name not in ('.', '..') and '\\' not in name, 'Flat canonical member required')
+        row, content = read_checked(packet / name, materialize=name == entry)
+        need(row['sha256'] == expected['sha256'] and row['bytes'] == expected['bytes'],
+             'Packet member differs: ' + name)
+        rows[name] = row
+        if name == entry:
+            entry_raw = content
+    return {'manifest': manifest_pin, 'members': rows}, entry_raw
+
+
+def main():
+    begin = time.monotonic()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root', type=Path, required=True)
+    parser.add_argument('--packet', type=Path, required=True)
+    parser.add_argument('--entry', choices=('run_build_log_queue.py', 'run_queue3_subreaper.py', 'run_queue4_subreaper.py'), required=True)
+    parser.add_argument('--config', type=Path, required=True)
+    parser.add_argument('--policy', type=Path)
+    parser.add_argument('--manifest-sha256', required=True)
+    parser.add_argument('--receipt', type=Path, required=True)
+    args = parser.parse_args()
+    root, packet, config = args.root.resolve(), args.packet.resolve(), args.config.resolve()
+    receipt_path = args.receipt.resolve()
+    need(packet.is_relative_to(root / 'execution-guards') and config.is_relative_to(root / 'control'),
+         'Packet and control must belong to this round')
+    need(receipt_path.is_relative_to(root / 'validation') and not receipt_path.exists(),
+         'Fresh envelope receipt required')
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    before, entry_raw = snapshot(packet, args.manifest_sha256, args.entry)
+    argv = [str(packet / args.entry), '--root', str(root), '--config', str(config),
+            '--source-sha256', args.manifest_sha256]
+    if args.policy is not None:
+        policy = args.policy.resolve()
+        need(policy.is_relative_to(root / 'control'), 'Policy must belong to this round')
+        argv.extend(['--policy', str(policy)])
+    old_argv, primary, after, tail_error = sys.argv, None, None, None
+    try:
+        sys.argv = argv
+        namespace = {'__name__': '__main__', '__file__': str(packet / args.entry),
+                     '__package__': None, '__builtins__': __builtins__}
+        # Compile and execute the very bytes authenticated by the snapshot.
+        exec(compile(entry_raw, str(packet / args.entry), 'exec', dont_inherit=True), namespace)
+    except BaseException as error:
+        primary = error
+        raise
+    finally:
+        sys.argv = old_argv
+        try:
+            after, _ = snapshot(packet, args.manifest_sha256, args.entry)
+            need(after == before, 'Before/after source packet custody differs')
+        except BaseException as error:
+            tail_error = error
+        result = {'schema': 'h25-source-packet-envelope-v1',
+                  'status': 'STOP' if primary or tail_error else 'PASS_PACKET_ENTRY_AND_CUSTODY',
+                  'entry': args.entry, 'manifest_sha256': args.manifest_sha256,
+                  'before': before, 'after': after,
+                  'entry_error': None if primary is None else
+                      {'type': type(primary).__name__, 'message': str(primary)[:2048]},
+                  'custody_error': None if tail_error is None else
+                      {'type': type(tail_error).__name__, 'message': str(tail_error)[:2048]},
+                  'same_process_packet_execution': True,
+                  'envelope_seconds_before_own_receipt': time.monotonic() - begin,
+                  'enclosing_GNU_time_includes_all_checks': True,
+                  'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+        with receipt_path.open('x') as stream:
+            json.dump(result, stream, indent=2, sort_keys=True)
+            stream.write('\n')
+        if tail_error is not None and primary is None:
+            raise tail_error
+
+
+if __name__ == '__main__':
+    main()

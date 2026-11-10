@@ -1,0 +1,157 @@
+/*
+ * H25 inspected original-parent native dispatcher, source only.
+ * Generated only by encode_host_parent.py from the authenticated original
+ * parent's genuine issued DATA and the separately frozen installation tuple.
+ * The initial original-parent authentication is an existing input contract.
+ * This source does not issue grants, reserve funds, or confer command approval.
+ * Original authors retain credit. Authored with OpenAI AI source assistance.
+ */
+const INSTALLATION = JSON.parse(__H25_INSTALLATION_JSON_STRING__);
+const GAMMA = JSON.parse(__H25_GAMMA_JSON_STRING__);
+
+await (async function originalParentDispatch() {
+  "use strict";
+  const execOriginal = tools.exec_command;
+  const stdinOriginal = tools.write_stdin;
+  const emitOriginal = text;
+  const records = Array.from({length: 64}, () => ({
+    phase: "FREE", tool: null, request: null, result: null, error: null
+  }));
+  const custody = {
+    phase: "PRE_DISPATCH", ordinal: 0, session: null, terminal: null,
+    firstError: null, cleanupErrors: Array(64).fill(null), errorCount: 0,
+    sendEntered: false, sendReturned: false, unknown: false,
+    requestAndResultOwners: records, inputOwner: GAMMA,
+    nativeCaptureFullReadbackEstablished: false,
+    financialCloseIssued: false, executionPermissionIssued: false
+  };
+  function remember(error) {
+    if (custody.firstError === null) custody.firstError = error;
+    else if (error !== custody.firstError && custody.errorCount < 64)
+      custody.cleanupErrors[custody.errorCount++] = error;
+    else custody.unknown = true;
+  }
+  function requireValue(value, message) {
+    if (value !== true) throw new Error(message);
+  }
+  function sourceGuard() {
+    requireValue(tools.exec_command === execOriginal &&
+      tools.write_stdin === stdinOriginal && text === emitOriginal,
+      "original native provider/function identities changed");
+  }
+  function observe(result) {
+    requireValue(result !== null && typeof result === "object" &&
+      !Array.isArray(result), "actual native result object required");
+    const keys = Object.keys(result);
+    requireValue(keys.every(key => ["output", "wall_time_seconds", "session_id",
+      "exit_code", "chunk_id", "original_token_count"].includes(key)) &&
+      typeof result.output === "string" &&
+      Object.prototype.hasOwnProperty.call(result, "wall_time_seconds"),
+      "original native result contract");
+    const hasExit = Number.isSafeInteger(result.exit_code);
+    if (!hasExit) {
+      requireValue(Number.isSafeInteger(result.session_id) && result.session_id >= 0,
+        "actual live provider session required");
+      requireValue(custody.session === null || custody.session === result.session_id,
+        "native provider changed original session");
+      custody.session = result.session_id;
+    } else {
+      requireValue(result.session_id === undefined || result.session_id === custody.session,
+        "terminal belongs to retained original session");
+      custody.terminal = result;
+    }
+  }
+  async function callOriginal(name, request) {
+    sourceGuard();
+    requireValue(custody.ordinal < records.length, "bounded original request chain exhausted");
+    const slot = records[custody.ordinal++];
+    slot.tool = name;
+    slot.request = request;
+    slot.phase = "CALL_PENDING"; // Before the fallible native acquisition/call.
+    try {
+      const result = name === "exec_command"
+        ? await tools.exec_command(request) : await tools.write_stdin(request);
+      slot.result = result;       // Actual object retained before validation.
+      slot.phase = "RETURNED";
+      observe(result);
+      slot.phase = "OBSERVED";
+      return result;
+    } catch (error) {
+      slot.error = error;
+      slot.phase = "CALL_UNKNOWN";
+      custody.unknown = true;
+      remember(error);
+      throw error;
+    }
+  }
+  try {
+    sourceGuard();
+    requireValue(GAMMA.exact_candidate_document.exact_shell_command ===
+      INSTALLATION.exact_shell_command, "original candidate/exact shell identity");
+    requireValue(GAMMA.wire.exact_shell_sha256 === INSTALLATION.exact_shell_sha256 &&
+      GAMMA.wire.operation_id === "IndependentPrefixDATAComposedV1",
+      "same original exact shell and operation");
+    const frame = JSON.stringify(GAMMA.wire) + "\n";
+    requireValue(frame.length <= 32768 && /^[\x00-\x7f]*$/.test(frame),
+      "bounded ASCII original-parent transport");
+    custody.phase = "BIRTH_PENDING";
+    await callOriginal("exec_command", {
+      cmd: INSTALLATION.exact_shell_command,
+      workdir: INSTALLATION.workdir,
+      shell: "/bin/bash", login: false, tty: false,
+      yield_time_ms: 1000, max_output_tokens: 16384
+    });
+    requireValue(custody.terminal === null && custody.session !== null,
+      "entry did not retain the original input session");
+    custody.phase = "INPUT_PENDING";
+    custody.sendEntered = true; // Delivery may have occurred if the call fails.
+    await callOriginal("write_stdin", {
+      session_id: custody.session, chars: frame,
+      yield_time_ms: 1000, max_output_tokens: 16384
+    });
+    custody.sendReturned = true;
+    custody.phase = "NATIVE_RUNNING";
+    while (custody.terminal === null) {
+      await callOriginal("write_stdin", {
+        session_id: custody.session, chars: "",
+        yield_time_ms: 5000, max_output_tokens: 16384
+      });
+    }
+    custody.phase = "NATIVE_TERMINAL_OBSERVED";
+  } catch (error) {
+    remember(error);
+    custody.unknown = true;
+    custody.phase = "OPEN_UNCERTAIN";
+    // Never launch a second attempt or resend a possibly delivered frame.
+    // This code cannot infer terminal retirement from an uncertain Tool call.
+  }
+  const errorView = error => {
+    if (error === null) return null;
+    try { return {name: String(error.name), message: String(error.message)}; }
+    catch (_) { return {name: "unrendered-original-error", message: "retained"}; }
+  };
+  // Actual request/result objects remain strongly retained until publication.
+  // Returned DATA is a native custody record, never formal CLOSE or acceptance.
+  const report = {
+    schema: "h25-original-parent-native-custody-v1",
+    operation_id: GAMMA.wire.operation_id,
+    phase: custody.phase, session_id: custody.session,
+    send_entered: custody.sendEntered, send_returned: custody.sendReturned,
+    terminal_observed: custody.terminal !== null,
+    actual_terminal_result: custody.terminal,
+    uncertainty: custody.unknown,
+    first_error: errorView(custody.firstError),
+    cleanup_errors: custody.cleanupErrors.slice(0, custody.errorCount).map(errorView),
+    calls: records.slice(0, custody.ordinal).map(slot => ({
+      phase: slot.phase, tool: slot.tool, request: slot.request,
+      result: slot.result, error: errorView(slot.error)
+    })),
+    native_capture_full_readback_established: false,
+    complete_holder_retirement_established: false,
+    financial_close_issued: false, execution_permission_issued: false,
+    policy_time_charge_asserted: false, complete_physical_cost: null
+  };
+  try { emitOriginal(report); }
+  catch (error) { remember(error); throw custody.firstError; }
+  if (custody.firstError !== null) throw custody.firstError;
+})();

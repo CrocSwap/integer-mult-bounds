@@ -1,0 +1,51 @@
+        if (handler->v.ExceptHandler.name) {
+            NEW_JUMP_TARGET_LABEL(c, cleanup_end);
+            NEW_JUMP_TARGET_LABEL(c, cleanup_body);
+
+            RETURN_IF_ERROR(
+                compiler_nameop(c, loc, handler->v.ExceptHandler.name, Store));
+
+            /*
+              try:
+                  # body
+              except type as name:
+                  try:
+                      # body
+                  finally:
+                      name = None # in case body contains "del name"
+                      del name
+            */
+
+            /* second try: */
+            ADDOP_JUMP(c, loc, SETUP_CLEANUP, cleanup_end);
+
+            USE_LABEL(c, cleanup_body);
+            RETURN_IF_ERROR(
+                compiler_push_fblock(c, loc, HANDLER_CLEANUP, cleanup_body,
+                                     NO_LABEL, handler->v.ExceptHandler.name));
+
+            /* second # body */
+            VISIT_SEQ(c, stmt, handler->v.ExceptHandler.body);
+            compiler_pop_fblock(c, HANDLER_CLEANUP, cleanup_body);
+            /* name = None; del name; # Mark as artificial */
+            ADDOP(c, NO_LOCATION, POP_BLOCK);
+            ADDOP(c, NO_LOCATION, POP_BLOCK);
+            ADDOP(c, NO_LOCATION, POP_EXCEPT);
+            ADDOP_LOAD_CONST(c, NO_LOCATION, Py_None);
+            RETURN_IF_ERROR(
+                compiler_nameop(c, NO_LOCATION, handler->v.ExceptHandler.name, Store));
+            RETURN_IF_ERROR(
+                compiler_nameop(c, NO_LOCATION, handler->v.ExceptHandler.name, Del));
+            ADDOP_JUMP(c, NO_LOCATION, JUMP, end);
+
+            /* except: */
+            USE_LABEL(c, cleanup_end);
+
+            /* name = None; del name; # artificial */
+            ADDOP_LOAD_CONST(c, NO_LOCATION, Py_None);
+            RETURN_IF_ERROR(
+                compiler_nameop(c, NO_LOCATION, handler->v.ExceptHandler.name, Store));
+            RETURN_IF_ERROR(
+                compiler_nameop(c, NO_LOCATION, handler->v.ExceptHandler.name, Del));
+
+            ADDOP_I(c, NO_LOCATION, RERAISE, 1);

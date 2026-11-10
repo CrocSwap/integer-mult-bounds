@@ -1,0 +1,707 @@
+# Modified 2026-11-07: Clear1nsight, with OpenAI Codex and ChatGPT Pro assistance. See NOTICE.md.
+"""Actual fixed source transport for the finite joined entry roster.
+
+All path choices are source-owned. Detached manifests bind already frozen leaf
+bytes; no leaf contains its own/future hash. The original exact launcher/OS and
+pristine interpreter are the external trust root. This loader corroborates that
+selection and creates actual private module namespaces, never JSON contexts.
+No import, native operation or execution grant is performed by authoring it.
+"""
+import builtins
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import stat
+import sys
+from types import ModuleType, FunctionType
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/caller-proof-completion-20261107T0155Z'
+MANIFEST = R / 'implementation/bindings/SOURCE-MANIFEST-v2.json'
+CONTRACTS = R / 'implementation/bindings/ROLE-CONTRACTS-v1.json'
+ADMIN = R / 'runtime/admin/IndependentPrefixDATAComposedV1'
+RUNTIME = ADMIN / 'control/G-RUNTIME.json'
+ENV = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8',
+       'LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+INITIAL_PATH = ('/usr/lib/python312.zip','/usr/lib/python3.12','/usr/lib/python3.12/lib-dynload')
+USED, FIRST, UNKNOWN = [False], [None], [False]
+SECONDARY, SLOTS, RETAINED = [None] * 32, [[None,'FREE',None] for _ in range(48)], []
+ROLE = {'M':'M','CAPTURE':'K','PUBLISHER':'P','CONTROLLER':'C2'}
+ENTRY = {'M':'pre_m','CAPTURE':'capture_bootstrap','PUBLISHER':'publisher_bootstrap',
+         'CONTROLLER':'controller_bootstrap'}
+FIXED_PYTHON_PATHS = {
+    'C':R/'implementation/controller/composed_controller.py',
+    'F':R/'implementation/controller/funding_current.py',
+    'A':R/'implementation/controller/active_current.py',
+    'publisher':R/'implementation/controller/publisher.py',
+    'capture':R/'implementation/carrier/capture.py',
+    'inner_meter':R/'implementation/carrier/inner_meter.py',
+    'guardian_channel':R/'implementation/bootstrap/guardian_channel.py',
+    'layout':R/'implementation/source/layout.py',
+    'attempt_registry':R/'implementation/source/attempt_registry.py',
+    'supervisor':R/'implementation/source/fresh_supervisor.py',
+    'runner':R/'implementation/source/run_guarded_v3.py',
+    'common_runner':R/'implementation/source/run_guarded_v3.py',
+    'waiting_entry':R/'implementation/source/candidate_entry.py',
+    'bounded_relay':R/'implementation/source/bounded_relay.py',
+    'full_receiver':R/'implementation/source/full_result_receiver.py',
+    'environment_association':R/'implementation/bindings/environment_association.py',
+    'compiler_policy':R/'implementation/bindings/compiler_policy.py',
+    'query_receiver':R/'implementation/source/property_query_receiver.py',
+    'wrapper':R/'implementation/source/composed_wrapper.py',
+    'queue':R/'implementation/source/composed_queue.py',
+    'envelope':W/'outputs/h25-data-handling-20261028/integration/source_packet_envelope_v2.py',
+}
+for _role in ('production_issuer','parent_authority','postrun_hook','fork_borrower',
+              'archive','oracle','actual_consumer','error_custody','native_io_custody',
+              'plain_boundary','reuse_v2'):
+    FIXED_PYTHON_PATHS[_role] = R/('implementation/retention/' + _role + '.py')
+
+
+class BootstrapStop(RuntimeError):
+    pass
+
+
+def need(ok, message):
+    if ok is not True:
+        raise BootstrapStop(message)
+
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+    elif error is not FIRST[0]:
+        for i, old in enumerate(SECONDARY):
+            if old is error:
+                break
+            if old is None:
+                SECONDARY[i] = error
+                break
+        else:
+            UNKNOWN[0] = True
+    return FIRST[0]
+
+
+def exact(obj, keys):
+    need(type(obj) is dict and all(type(k) is str for k in obj) and
+         set(obj) == set(keys), 'exact metadata keys')
+
+
+def pairs(values):
+    obj = {}
+    for key, value in values:
+        need(key not in obj, 'duplicate metadata key')
+        obj[key] = value
+    return obj
+
+
+def decode(raw):
+    value = json.loads(raw.decode('utf8'), object_pairs_hook=pairs,
+        parse_constant=lambda unused: (_ for _ in ()).throw(BootstrapStop('nonfinite metadata')))
+    plain(value)
+    return value
+
+
+def plain(value, depth=0, nodes=None):
+    if nodes is None:
+        nodes = [0]
+    nodes[0] += 1
+    need(depth <= 24 and nodes[0] <= 65536, 'bounded metadata tree')
+    if type(value) is dict:
+        need(len(value) <= 512 and all(type(k) is str for k in value), 'plain metadata dictionary')
+        for key, item in value.items():
+            need(len(key) <= 512, 'metadata key length')
+            plain(item, depth + 1, nodes)
+    elif type(value) is list:
+        need(len(value) <= 8192, 'metadata list bound')
+        for item in value:
+            plain(item, depth + 1, nodes)
+    elif type(value) is str:
+        need(len(value) <= 16384, 'metadata text bound')
+    else:
+        need(value is None or type(value) in (int, bool), 'plain exact metadata scalar')
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                       allow_nan=False) + '\n').encode('utf8')
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid,
+            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def pin(value):
+    exact(value, ('path','bytes','sha256','mode'))
+    need(type(value['path']) is str and Path(value['path']).is_absolute() and
+         type(value['bytes']) is int and 0 <= value['bytes'] <= 8 * 1024 * 1024 and
+         type(value['mode']) is int and value['mode'] in (0o444,0o600), 'bounded fixed pin')
+    need(type(value['sha256']) is str and len(value['sha256']) == 64 and
+         all(c in '0123456789abcdef' for c in value['sha256']), 'exact pin digest')
+
+
+def read_fixed(path, cap, expected=None, mode=0o444):
+    need(not UNKNOWN[0] and FIRST[0] is None, 'unknown source transport cannot acquire')
+    path = Path(path)
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical selected path')
+    before = path.lstat()
+    need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == mode and
+         before.st_uid in (0, os.getuid()) and before.st_nlink == 1 and
+         0 <= before.st_size <= cap, 'fixed regular source owner/mode/link/size')
+    if expected is not None:
+        pin(expected)
+        need(expected['path'] == str(path) and expected['mode'] == mode,
+             'source-owned fixed path and exact pin mode')
+    slot = next(item for item in SLOTS if item[1] in ('FREE','CLOSED'))
+    slot[:] = [None, 'OPEN_PENDING', str(path)]
+    try:
+        slot[0] = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+        slot[1] = 'OWNED'
+        need(identity(os.fstat(slot[0])) == identity(before), 'source descriptor/path identity')
+        parts, count = [], 0
+        while True:
+            part = os.read(slot[0], min(65536, cap + 1 - count))
+            if not part:
+                break
+            parts.append(part)
+            count += len(part)
+            need(count <= cap, 'source bound')
+        raw = b''.join(parts)
+        need(count == before.st_size and identity(os.fstat(slot[0])) ==
+             identity(path.lstat()) == identity(before), 'stable complete source read')
+        if expected is not None:
+            need(count == expected['bytes'] and hashlib.sha256(raw).hexdigest() ==
+                 expected['sha256'], 'actual complete source bytes/digest')
+    except BaseException as error:
+        remember(error)
+        if slot[1] == 'OPEN_PENDING':
+            UNKNOWN[0] = True
+        raise FIRST[0]
+    finally:
+        if slot[1] == 'OWNED':
+            slot[1] = 'CLOSE_ENTERED'
+            try:
+                os.close(slot[0])
+                slot[1] = 'CLOSED'
+            except BaseException as error:
+                slot[1], UNKNOWN[0] = 'CLOSE_UNKNOWN', True
+                remember(error)
+    if FIRST[0] is not None:
+        raise FIRST[0]
+    need(not UNKNOWN[0], 'source close must be known before load')
+    return raw
+
+
+def actual_pin(path, mode=0o444):
+    raw = read_fixed(path, 8 * 1024 * 1024, mode=mode)
+    return raw, {'path':str(path),'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'mode':mode}
+
+
+def corroborate_image(expected):
+    """Read a selected ordinary image in bounded chunks, without executing it.
+
+    The original operating TCB selects the subject and proves its semantics.
+    This check only joins actual stable bytes to that externally selected pin.
+    A large cc1 or loader image is never accumulated as a source-file body.
+    """
+    exact(expected, ('path','bytes','sha256','mode'))
+    need(type(expected['path']) is str and Path(expected['path']).is_absolute() and
+         type(expected['bytes']) is int and 0 < expected['bytes'] <= 536870912 and
+         type(expected['mode']) is int and 0 <= expected['mode'] <= 0o7777 and
+         type(expected['sha256']) is str and len(expected['sha256']) == 64 and
+         all(c in '0123456789abcdef' for c in expected['sha256']), 'exact selected image pin')
+    need(not UNKNOWN[0] and FIRST[0] is None, 'known loader custody before image read')
+    slot = next(item for item in SLOTS if item[1] in ('FREE','CLOSED'))
+    slot[:] = [None, 'RESERVED', expected['path']]
+    try:
+        path = Path(expected['path'])
+        need(path.resolve(strict=True) == path, 'canonical selected image, not a path alias')
+        before = path.lstat()
+        need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == expected['mode'] and
+             before.st_uid in (0,os.getuid()) and before.st_nlink == 1 and
+             before.st_size == expected['bytes'], 'actual ordinary image mode, size and owner')
+        slot[1] = 'OPEN_PENDING'
+        slot[0] = os.open(path, os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
+        slot[1] = 'OWNED'
+        need(identity(os.fstat(slot[0])) == identity(before), 'actual image descriptor identity')
+        total, hasher = 0, hashlib.sha256()
+        while True:
+            raw = os.read(slot[0], min(65536, expected['bytes']+1-total))
+            if not raw:
+                break
+            total += len(raw)
+            need(total <= expected['bytes'], 'image read cannot exceed selected bound')
+            hasher.update(raw)
+        need(total == expected['bytes'] and hasher.hexdigest() == expected['sha256'] and
+             identity(os.fstat(slot[0])) == identity(path.lstat()) == identity(before),
+             'complete stable selected image digest')
+    except BaseException as error:
+        remember(error)
+        if slot[1] == 'OPEN_PENDING':
+            UNKNOWN[0] = True
+        elif slot[1] == 'RESERVED':
+            slot[1] = 'NOT_ENTERED'
+        raise FIRST[0]
+    finally:
+        if slot[1] == 'OWNED':
+            slot[1] = 'CLOSE_ENTERED'
+            try:
+                os.close(slot[0])
+                slot[1] = 'CLOSED'
+            except BaseException as error:
+                slot[1], UNKNOWN[0] = 'CLOSE_UNKNOWN', True
+                remember(error)
+    if FIRST[0] is not None:
+        raise FIRST[0]
+    need(not UNKNOWN[0], 'known image close before use')
+    return dict(expected)
+
+
+def derive_fixed_role_data(manifest_pin, inputs_pin):
+    """Parent-owned prelaunch derivation from actual separately issued inputs.
+
+    The authenticated original parent selects these two exact pins before this
+    operation. Complete rereads corroborate provenance; they never issue native
+    qualification, funding, a grant or command admission. The result is only
+    canonical DATA for that parent's existing publication owner to publish.
+    """
+    need(USED[0] is False, 'prelaunch derivation precedes all fixed runtime startup')
+    pin(manifest_pin); pin(inputs_pin)
+    need(manifest_pin['path'] == str(MANIFEST) and manifest_pin['mode'] == 0o444,
+         'fixed final detached manifest selected by the original parent')
+    manifest = decode(read_fixed(MANIFEST,8*1024*1024,manifest_pin))
+    exact(manifest, ('schema','source_pins','profiles','argv_shapes','control_pins',
+                     'source_only','execution_permission'))
+    need(manifest['schema'] == 's03-joined-source-manifest-v1' and
+         manifest['source_only'] is True and manifest['execution_permission'] is False,
+         'source selections issue no authority')
+    inputs = decode(read_fixed(Path(inputs_pin['path']),8*1024*1024,inputs_pin,
+                               mode=inputs_pin['mode']))
+    exact(inputs, ('schema','source_manifest_pin','original','joined_native_subject',
+                   'joined_native_dependencies','compiler_subject','query_profile',
+                   'manual','delegation_path','domain_name'))
+    need(inputs['schema'] == 'original-parent-role-derivation-inputs-v1' and
+         inputs['source_manifest_pin'] == manifest_pin,
+         'genuine original parent inputs select this exact frozen source graph')
+    for row in list(manifest['source_pins'].values()) + list(manifest['profiles'].values()):
+        pin(row)
+        read_fixed(Path(row['path']),row['bytes'],row)
+    # These original issued records are preserved, never manufactured or repaired.
+    original = inputs['original']
+    records = [original['candidate_document_pin'],original['capture_actual_grant_pin'],
+               original['original_actual_grant_pin'],original['expected_head_pin']]
+    records.extend(original['pins'].values())
+    records.extend((original['approved_opening']['opening_pin'],
+                    original['approved_opening']['adoption_pin']))
+    records.extend((inputs['manual']['closed_state_pin'],inputs['manual']['registration_pin']))
+    for row in records:
+        pin(row)
+        read_fixed(Path(row['path']),row['bytes'],row,mode=row['mode'])
+    selected = manifest['source_pins']['role_contracts']
+    need(selected['path'] == str(R/'implementation/bindings/role_contracts.py'),
+         'fixed pure constructor source')
+    raw = read_fixed(Path(selected['path']),selected['bytes'],selected)
+    name = '_original_parent_role_constructor'
+    need(name not in sys.modules, 'one actual original-parent derivation namespace')
+    module = ModuleType(name)
+    module.__dict__.update(__file__=selected['path'],__name__=name,
+                           __package__=None,__spec__=None)
+    RETAINED.append((module,raw))
+    sys.modules[name] = module
+    exec(compile(raw,selected['path'],'exec',dont_inherit=True),module.__dict__)
+    contracts = module.construct(manifest_pin,manifest['source_pins'],original,
+        joined_native_subject=inputs['joined_native_subject'],
+        joined_native_dependencies=inputs['joined_native_dependencies'],
+        operating_profiles=manifest['profiles'],compiler_subject=inputs['compiler_subject'],
+        query_profile=inputs['query_profile'])
+    contract_raw = canonical(contracts)
+    contract_pin = {'path':str(CONTRACTS),'bytes':len(contract_raw),
+                    'sha256':hashlib.sha256(contract_raw).hexdigest(),'mode':0o444}
+    config = module.guardian_config(manifest,manifest_pin,contracts,contract_pin,
+        inputs['manual'],inputs['delegation_path'],inputs['domain_name'])
+    config_raw = canonical(config)
+    config_pin = {'path':str(R/'control/ORIGINAL-GUARDIAN-CONFIG.json'),'bytes':len(config_raw),
+                  'sha256':hashlib.sha256(config_raw).hexdigest(),'mode':0o444}
+    return {'schema':'original-parent-derived-role-data-v1','source_manifest_pin':dict(manifest_pin),
+            'original_input_pin':dict(inputs_pin),'contracts':contracts,'contracts_pin':contract_pin,
+            'guardian_config':config,'guardian_config_pin':config_pin,
+            'source_only':True,'execution_permission':False}
+
+
+def arguments(argv=None):
+    argv = sys.argv if argv is None else argv
+    need(type(argv) is list and len(argv) >= 3 and len(argv) % 2 == 1, 'fixed entry key/value argv')
+    allowed = {'--source-sha256','--loader-sha256','--loader-bytes','--manifest-sha256',
+               '--manifest-bytes','--contracts-sha256','--contracts-bytes',
+               '--handoff-path','--plan','--admission','--grant-sha256'}
+    out = {}
+    for i in range(1, len(argv), 2):
+        need(argv[i] in allowed and argv[i] not in out and type(argv[i+1]) is str and
+             0 < len(argv[i+1]) <= 4096, 'fixed unique entry arguments')
+        out[argv[i]] = argv[i+1]
+    required = {'--source-sha256','--loader-sha256','--loader-bytes','--manifest-sha256',
+                '--manifest-bytes','--contracts-sha256','--contracts-bytes'}
+    need(required <= set(out), 'actual detached binding pins required')
+    return out
+
+
+def clean_launch():
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3,12) and sys.base_prefix == '/usr' and
+         sys.flags.optimize == 0 and sys.flags.no_site == sys.flags.no_user_site ==
+         sys.flags.dont_write_bytecode == 1 and sys.flags.safe_path and
+         tuple(sys.path) == INITIAL_PATH and dict(os.environ) == ENV and
+         os.getcwd() == str(W), 'selected pristine ordinary interpreter/argv/environment')
+    need(signal.getitimer(signal.ITIMER_REAL) == (0.0,0.0) and
+         signal.getsignal(signal.SIGALRM) == signal.SIG_DFL and
+         signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL, 'original signal owners')
+    for fd in (1,2):
+        info = os.fstat(fd)
+        need(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600 and
+             info.st_uid == os.getuid() and info.st_nlink == 1,
+             'actual regular0600 inherited captures')
+
+
+class PrivateBundle:
+    def __init__(self, role, manifest, contract, manual, runtime):
+        self.role, self.manifest, self.contract = role, manifest, contract
+        self.manual, self.runtime, self.modules = manual, runtime, {}
+        self._images, self._functions, self._classes = {}, {}, {}
+        self._runtime_seen, self._pid = {}, os.getpid()
+        self._environment_association = None
+        self.C = self.load('C')
+        need(self.C.FIRST[0] is None and self.C.IO_UNKNOWN[0] is False and
+             self.C.SOFT_DEADLINE[0] is None and self.C.ACTIVE_CASE[0] is None and
+             not self.C.RETAINED_MODULES and all(row[1] in ('FREE','CLOSED') for row in self.C.IO.slots),
+             'actual pristine complete C2 private namespace')
+        self.F, self.A = self.load('F'), self.load('A')
+        self.guardian_module = self.load('guardian_channel')
+        self.guardian = self.guardian_module.open_fixed(ROLE[role],
+            manifest['source_pins'][{'M':'inner_meter','CAPTURE':'capture','PUBLISHER':'publisher','CONTROLLER':'C'}[role]]['sha256'], runtime)
+        self.guardian_pair = (self.guardian_module, self.guardian)
+        if role != 'M':
+            self.actor = self.C if role == 'CONTROLLER' else self.load({'CAPTURE':'capture','PUBLISHER':'publisher'}[role])
+        else:
+            self.actor = self.load('inner_meter')
+        self.guardian.continuation(manual['request'], manual['provenance']['original_start_pin'], 'BOOTSTRAP')
+
+    def associate_environment(self):
+        need(self._pid == os.getpid() and self.role == 'CONTROLLER' and
+             self._environment_association is None,
+             'one genuine current C2 environment association')
+        module = self.load('environment_association')
+        association = module.open_parent(self)
+        self._environment_association = association
+        return association
+
+    def joined_native_profile_template(self):
+        """Corroborate selected current images; this issues no native admission.
+
+        The original authenticated parent operating-TCB/current-profile and
+        actual source-to-installed-image qualification remain independent gates.
+        This method verifies their selected ordinary-file subject bytes and the
+        fixed source tuple, not a compatible flag from serialized DATA.
+        """
+        need(self._pid == os.getpid() and self.role == 'CONTROLLER',
+             'genuine same-process C2 native subject selection')
+        value = self.contract['native_entry_profile']
+        exact(value, ('schema','entry_path','entry_sha256','entry_bytes',
+                      'time_path','time_sha256','time_bytes','source_sha256'))
+        need(value['schema'] == 'joined-native-entry-profile-v1' and
+             value['entry_path'] == str(R/'runtime/native/science_view_entry') and
+             value['time_path'] == '/usr/bin/time', 'fixed native entry/time paths')
+        source = self.manifest['source_pins']['science_view_source']
+        need(value['source_sha256'] == source['sha256'], 'selected exact view C source')
+        read_fixed(Path(source['path']), source['bytes'], source)
+        for prefix in ('entry','time'):
+            path = Path(value[prefix+'_path'])
+            count, expected = value[prefix+'_bytes'], value[prefix+'_sha256']
+            need(type(count) is int and 0 < count <= 8*1024*1024 and
+                 type(expected) is str and len(expected) == 64 and
+                 all(c in '0123456789abcdef' for c in expected),
+                 'selected bounded actual native image pin')
+            mode = stat.S_IMODE(path.lstat().st_mode)
+            need(bool(mode & 0o111) and not (mode & 0o022),
+                 'ordinary selected immutable-to-group native image')
+            raw = read_fixed(path, count, mode=mode)
+            need(len(raw) == count and hashlib.sha256(raw).hexdigest() == expected,
+                 'actual stable complete selected image bytes')
+        return decode(canonical(value))
+
+    def joined_property_query_profile(self):
+        need(self._pid == os.getpid() and self.role == 'CONTROLLER',
+             'actual C2 selects its property observer')
+        value = self.contract['property_query_profile']
+        exact(value, ('schema','observer_pin','observer_source_pin','program_pins',
+                      'source_tuple_sha256','profile_sha256'))
+        need(value['schema'] == 'joined-property-query-profile-v1' and
+             value['source_tuple_sha256'] == hashlib.sha256(canonical(self.manifest['source_pins'])).hexdigest() and
+             value['profile_sha256'] == hashlib.sha256(canonical(self.manifest['profiles'])).hexdigest(),
+             'query selection joins the complete exact source and operating profiles')
+        source = self.manifest['source_pins']['property_query_source']
+        need(value['observer_source_pin'] == source and
+             value['observer_pin']['path'] == str(R/'runtime/native/property_query_observer'),
+             'fixed native observer source and selected image path')
+        read_fixed(Path(source['path']),source['bytes'],source)
+        need(type(value['program_pins']) is list and 1 <= len(value['program_pins']) <= 16,
+             'finite source-selected compiler query programs')
+        paths = set()
+        for image in [value['observer_pin']] + value['program_pins']:
+            need(image['path'] not in paths and image['mode'] & 0o111 != 0 and image['mode'] & 0o022 == 0,
+                 'unique executable query image with ordinary permissions')
+            paths.add(image['path'])
+            corroborate_image(image)
+        return decode(canonical(value))
+
+    def load(self, key):
+        need(self._pid == os.getpid() and type(key) is str and key in FIXED_PYTHON_PATHS and key in self.manifest['source_pins'],
+             'source-owned selected dependency key; same process')
+        if key in self.modules:
+            self.check(key)
+            return self.modules[key]
+        expected = self.manifest['source_pins'][key]
+        need(expected['path'] == str(FIXED_PYTHON_PATHS[key]), 'actual source-owned fixed Python dependency path')
+        raw = read_fixed(Path(expected['path']), expected['bytes'], expected)
+        need(expected['path'].endswith('.py'), 'only exact selected Python leaf may load')
+        name = '_s03_joined_private_' + key
+        need(name not in sys.modules, 'fresh actual private source namespace')
+        module = ModuleType(name)
+        aliases = {'plain_boundary':'plain_boundary','native_io_custody':'native_io_custody',
+                   'error_custody':'error_custody','parent_authority':'parent_authority',
+                   'actual_consumer':'actual_consumer','postrun_hook':'postrun_hook',
+                   'bounded_relay':'bounded_relay','full_result_receiver':'full_receiver',
+                   'compiler_policy':'compiler_policy','property_query_receiver':'query_receiver',
+                   'fork_borrower':'fork_borrower','production_issuer':'production_issuer',
+                   'reuse_v2':'reuse_v2'}
+        original_import = builtins.__import__
+        def source_import(name, global_ns=None, local_ns=None, fromlist=(), level=0):
+            if level == 0 and name in aliases:
+                if self._pid != os.getpid():
+                    # The one no-exec borrower may import already authenticated
+                    # cached aliases only. It cannot open/compile new source or
+                    # call a copied parent context/lease/channel.
+                    need(self.role == 'CONTROLLER' and aliases[name] in self.modules and
+                         'parent_authority' in self.modules, 'no new or standalone child source import')
+                    authority = self.modules['parent_authority']
+                    fn = self._images['parent_authority']['borrower_import_allowed']
+                    image = next(row for row in self._functions['parent_authority'] if row[0] is fn)
+                    need(authority.__dict__['borrower_import_allowed'] is fn and
+                         fn.__globals__ is authority.__dict__ and fn.__code__ is image[1] and
+                         fn.__defaults__ is image[2] and fn.__kwdefaults__ is image[3] and
+                         fn.__closure__ is image[4] and fn() is True, 'actual sealed one-fork cached-import branch')
+                    return self.modules[aliases[name]]
+                return self.load(aliases[name])
+            return original_import(name, global_ns, local_ns, fromlist, level)
+        private_builtins = dict(vars(builtins))
+        private_builtins['__import__'] = source_import
+        module.__dict__.update(__file__=expected['path'], __name__=name,
+            __package__=None, __spec__=None, __builtins__=private_builtins)
+        self.modules[key] = module
+        RETAINED.append((module,raw))  # Before compile/top-level error; no failed-load retry.
+        sys.modules[name] = module
+        exec(compile(raw, expected['path'], 'exec', dont_inherit=True), module.__dict__)
+        self._images[key] = dict(module.__dict__)
+        self._functions[key] = [(fn,fn.__code__,fn.__defaults__,fn.__kwdefaults__,fn.__closure__)
+            for fn in module.__dict__.values() if type(fn) is FunctionType and fn.__globals__ is module.__dict__]
+        self._classes[key] = [(cls,dict(type.__getattribute__(cls,'__dict__')))
+            for cls in module.__dict__.values() if type(cls) is type and
+            type.__getattribute__(cls,'__module__') == name]
+        for cls,image in self._classes[key]:
+            self._functions[key].extend((fn,fn.__code__,fn.__defaults__,fn.__kwdefaults__,fn.__closure__)
+                for fn in image.values() if type(fn) is FunctionType and fn.__globals__ is module.__dict__)
+            for member in image.values():
+                if type(member) is property:
+                    self._functions[key].extend((fn,fn.__code__,fn.__defaults__,fn.__kwdefaults__,fn.__closure__)
+                        for fn in (member.fget,member.fset,member.fdel) if fn is not None and fn.__globals__ is module.__dict__)
+        return module
+
+    def check(self, key):
+        module = self.modules[key]
+        saved, current = self._images[key], module.__dict__
+        # Source-owned lifecycle containers may be installed once after startup.
+        # Functions, classes, native primitives and every other global stay exact.
+        allowed = {'native_io_custody':{'_PROCESS'},
+                   'parent_authority':{'_OWNER','_FORK','_JOINED_BINDINGS'},
+                   'C':{'_JOINED','_JOINED_RUN','_FULL_RECEIVER','_FULL_RECEIVER_IMAGE','_ENVIRONMENT_ASSOCIATION'},
+                   'queue':{'_COMPLETED','_FULL_RECEIVER'},
+                   'supervisor':{'_COMPLETED','_JOINED','_JOINED_STATE','_QUERY_JOINED'},
+                   'production_issuer':{'_CONTEXT','_CONNECTED','_RETENTION_ENTERED','_RAW',
+                                        '_ERROR_COUNT','_IO_POISON','_ERROR_OVERFLOW',
+                                        '_RETENTION_FAILURE','_PROJECTION_FAILURE'},
+                   'error_custody':{'_EXPORTED_BYTES','_REVIEWED_SOURCE_TYPES'}}.get(key,set())
+        need(set(saved) == set(current) and all(current[k] is saved[k] for k in saved if k not in allowed),
+             'actual source-private immutable globals not substituted')
+        for name in allowed:
+            value = current[name]
+            prior = self._runtime_seen.get((key,name), saved[name])
+            if name == '_PROCESS':
+                need(value is None or (type(value) is current['Context'] and
+                     any(value is item for item in current['_LIVE'])), 'actual registered native IO context')
+                need(prior is None or value is prior, 'one native IO process context')
+            elif name == '_COMPLETED' and key in ('queue','supervisor'):
+                need(value is None or (type(value) is tuple and len(value) == 3 and
+                     value[2] is self.guardian), 'actual layout/registry/guardian completion tuple')
+                need(prior is None or value is prior, 'one irreversible completed-source binding')
+            elif name == '_JOINED' and key == 'supervisor':
+                need(value is None or (type(value) is tuple and len(value) == 9 and
+                     value[0] is self.modules.get('bounded_relay') and
+                     value[3] is self.modules.get('full_receiver') and
+                     value[5] is self._environment_association and value[8] == self._pid),
+                     'actual same-process supervisor module/association tuple')
+                need(prior is None or value is prior, 'one irreversible supervisor binding')
+            elif name in ('_OWNER','_FORK','_JOINED','_JOINED_RUN','_CONTEXT','_CONNECTED','_COMPLETED','_ENVIRONMENT_ASSOCIATION'):
+                need(value is None or type(value) is dict, 'source-private lifecycle record')
+                need(prior is None or value is prior, 'one irreversible private lifecycle record')
+                if name == '_OWNER' and value is not None:
+                    need(value['pid'] == self._pid and value['phase'] in
+                        ('OPEN','SEALED','BIRTH_PENDING','FORK_PENDING','BORROWER','READBACK','COMPLETE','UNCERTAIN','RELEASED'),
+                        'actual owner PID and finite lifecycle')
+            elif name == '_QUERY_JOINED':
+                need(value is None or (type(value) is tuple and len(value) == 4 and
+                     value[0] is self.modules.get('query_receiver')), 'actual once-bound query module/profile')
+                need(prior is None or value is prior, 'one irreversible property-query binding')
+            elif name == '_JOINED_STATE':
+                need(value in ('UNENTERED','ENTERED','BOUND') and
+                     ('UNENTERED','ENTERED','BOUND').index(value) >= ('UNENTERED','ENTERED','BOUND').index(prior),
+                     'monotone genuine joined configuration lifecycle')
+            elif name == '_FULL_RECEIVER':
+                need(value is None or (type(value) is ModuleType and
+                     self.modules.get('full_receiver') is value),
+                     'actual authenticated full receiver module')
+                need(prior is None or value is prior, 'one receiver binding')
+            elif name == '_FULL_RECEIVER_IMAGE':
+                need(value is None or type(value) is tuple, 'source captured receiver function image')
+                need(prior is None or value is prior, 'one receiver function image')
+            elif name in ('_RETENTION_ENTERED','_IO_POISON'):
+                need(type(value) is bool and (prior is False or value is True), 'monotone source-owned one-use/poison flag')
+            elif name == '_ERROR_COUNT':
+                need(type(value) is int and type(prior) is int and prior <= value <= len(current['_ERRORS']),
+                     'monotone bounded actual error slots')
+            elif name == '_RAW':
+                need(value is None or type(value) is dict, 'source-owned raw snapshot DATA')
+            elif name in ('_ERROR_OVERFLOW','_RETENTION_FAILURE','_PROJECTION_FAILURE'):
+                need(value is None or BaseException in type.__getattribute__(type(value),'__mro__'),
+                     'actual retained exception only')
+                need(prior is None or value is prior, 'first actual exception retained')
+            elif name == '_EXPORTED_BYTES':
+                need(type(value) is int and type(prior) is int and prior <= value <= current['_EXPORT_CAP'],
+                     'monotone bounded actual error export count')
+            else:
+                need(type(value) is tuple and len(value) <= 256, 'bounded source-owned lifecycle tuple')
+                need(type(prior) is tuple and len(value) >= len(prior) and all(value[i] is prior[i] for i in range(len(prior))), 'source-owned tuple grows only')
+            self._runtime_seen[(key,name)] = value
+        for fn,code,defaults,kwdefaults,closure in self._functions[key]:
+            need(fn.__globals__ is current and fn.__code__ is code and fn.__defaults__ is defaults and
+                 fn.__kwdefaults__ is kwdefaults and fn.__closure__ is closure, 'actual selected function code/globals')
+        for cls,image in self._classes[key]:
+            now = type.__getattribute__(cls,'__dict__')
+            need(set(now) == set(image) and all(now[name] is image[name] for name in image),
+                 'actual selected class/method/descriptor identities')
+        return module
+
+
+def load_fixed(role):
+    need(USED[0] is False and role in ROLE, 'one fixed startup including failed load')
+    USED[0] = True
+    clean_launch()
+    args = arguments()
+    raw, mp = actual_pin(MANIFEST)
+    need(str(mp['bytes']) == args['--manifest-bytes'] and
+         mp['sha256'] == args['--manifest-sha256'], 'externally selected detached source manifest')
+    manifest = decode(raw)
+    exact(manifest, ('schema','source_pins','profiles','argv_shapes','control_pins',
+                     'source_only','execution_permission'))
+    need(manifest['schema'] == 's03-joined-source-manifest-v1' and
+         manifest['source_only'] is True and manifest['execution_permission'] is False,
+         'source binding never grants command execution')
+    need(type(manifest['source_pins']) is dict and ENTRY[role] in manifest['source_pins'],
+         'actual entry leaf selected')
+    for row in manifest['source_pins'].values():
+        pin(row)
+        need(row['mode'] == 0o444, 'every selected source immutable0444')
+    own = manifest['source_pins'][ENTRY[role]]
+    need(str(Path(sys.argv[0]).absolute()) == own['path'] and own['sha256'] == args['--source-sha256'],
+         'actual fixed entry path and externally selected source pin')
+    read_fixed(Path(own['path']), own['bytes'], own)
+    loader = manifest['source_pins']['private_loader']
+    need(loader['path'] == __file__ and loader['sha256'] == args['--loader-sha256'] and
+         str(loader['bytes']) == args['--loader-bytes'], 'actual fixed loader leaf selected')
+    read_fixed(Path(loader['path']), loader['bytes'], loader)
+    need(type(manifest['profiles']) is dict and set(manifest['profiles']) ==
+         {'native','cpython','filesystem','OS','effects','clock','commands'}, 'complete finite profile binding')
+    for row in manifest['profiles'].values():
+        read_fixed(Path(row['path']), row['bytes'], row)
+    for row in manifest['control_pins']:
+        read_fixed(Path(row['path']), row['bytes'], row)
+    raw, cp = actual_pin(CONTRACTS)
+    need(str(cp['bytes']) == args['--contracts-bytes'] and cp['sha256'] == args['--contracts-sha256'],
+         'externally selected actual original role contracts')
+    contracts = decode(raw)
+    exact(contracts, ('schema','source_manifest_sha256','roles','source_only','execution_permission'))
+    need(contracts['schema'] == 's03-joined-role-contracts-v1' and
+         contracts['source_manifest_sha256'] == mp['sha256'] and
+         contracts['source_only'] is True and contracts['execution_permission'] is False,
+         'acyclic leaf -> manifest -> immutable original role template')
+    need(set(contracts['roles']) == set(ROLE), 'finite four actual fixed role contracts')
+    runtime = decode(read_fixed(RUNTIME, 131072))
+    exact(runtime, ('schema','attempt_id','original_start_pin','guardian_pid',
+                    'whole_deadline_ns','role_binding_pins'))
+    need(runtime['schema'] == 's03-guardian-runtime-v1' and
+         set(runtime['role_binding_pins']) == {'M','K','P','C2'}, 'actual native G runtime roster')
+    sp = runtime['original_start_pin']
+    need(Path(sp['path']) == ADMIN / 'G/START.json', 'fixed fresh G START path')
+    start = decode(read_fixed(Path(sp['path']), 65536, sp, mode=sp['mode']))
+    exact(start, ('schema','start_monotonic_ns','source_sha256','probe_sha256',
+                  'actual_grant_sha256','future_operation_blocked_until_separate_adjudication'))
+    need(start['schema'] == 'fresh-owner-meter-incomplete-v1' and
+         start['source_sha256'] == manifest['source_pins']['outer']['sha256'] and
+         start['probe_sha256'] == manifest['source_pins']['capture_bootstrap']['sha256'] and
+         start['future_operation_blocked_until_separate_adjudication'] is True and
+         type(start['start_monotonic_ns']) is int, 'actual original FULL_SIX GSTART source association')
+    rb = runtime['role_binding_pins'][ROLE[role]]
+    need(Path(rb['path']) == ADMIN / ('control/' + ROLE[role] + '-RUNTIME.json'), 'fixed own role runtime path')
+    manual = decode(read_fixed(Path(rb['path']), 131072, rb, mode=rb['mode']))
+    exact(manual, ('schema','request','provenance','closed_state_pin','registration_checks','start_checks'))
+    need(manual['schema'] == 'fresh-active-manual-entry-binding-v1' and
+         manual['request']['label'] == runtime['attempt_id'] and
+         manual['provenance']['original_start_pin'] == sp and
+         runtime['whole_deadline_ns'] == start['start_monotonic_ns'] + manual['request']['body_reservation_ns'],
+         'same original request/reservation/GSTART; no numeric argv authority')
+    runtime['start_monotonic_ns'] = start['start_monotonic_ns']  # Derived from full pinned START, never argv.
+    template = contracts['roles'][role]
+    exact(template, ('actor_contract','entry_argv','retention','runtime_paths'))
+    tokens = {'@CONTRACTS_SHA256@':cp['sha256'], '@CONTRACTS_BYTES@':str(cp['bytes']),
+              '@MANIFEST_SHA256@':mp['sha256'], '@MANIFEST_BYTES@':str(mp['bytes']),
+              '@LOADER_SHA256@':loader['sha256'], '@LOADER_BYTES@':str(loader['bytes'])}
+    for name, row in manifest['source_pins'].items():
+        tokens['@SOURCE_' + name + '_SHA256@'] = row['sha256']
+        tokens['@SOURCE_' + name + '_BYTES@'] = str(row['bytes'])
+    def resolve(value):
+        if type(value) is str:
+            return tokens.get(value, value)
+        if type(value) is list:
+            return [resolve(item) for item in value]
+        if type(value) is dict:
+            return {name:resolve(item) for name,item in value.items()}
+        return value
+    template = resolve(template)
+    need(type(template['entry_argv']) is list and template['entry_argv'] == list(sys.argv),
+         'exact actual selected fixed role argv, including normal-mode arguments')
+    contract = decode(canonical(template['actor_contract']))
+    need('manual_entry' not in contract and 'source_pins' not in contract,
+         'templates cannot impersonate future runtime provenance or source pin')
+    contract.update(manual_entry=manual, source_pins=manifest['source_pins'])
+    need(contract['request'] == manual['request'] and contract['candidate_document_sha256'] ==
+         manual['request']['command_sha256'], 'original exact request/candidate template association')
+    bundle = PrivateBundle(role, manifest, contract, manual, runtime)
+    bundle.retention = template['retention']
+    bundle.role_data = template['runtime_paths']
+    exact(bundle.role_data, ('admin_root','grant_path','accounting_path','capture_argv','outer_actor'))
+    need(bundle.role_data['admin_root'] == str(ADMIN) and
+         bundle.role_data['grant_path'] == str(R / ('control/CAPTURE-ACTUAL-GRANT.json' if role == 'CAPTURE' else 'control/ORIGINAL-FULL-SIX-GRANT.json')) and
+         bundle.role_data['accounting_path'] == str(ADMIN / 'C2/ACCOUNTING.json'), 'fixed prospective runtime paths only')
+    RETAINED.append(bundle)
+    return bundle

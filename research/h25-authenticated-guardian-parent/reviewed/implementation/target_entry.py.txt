@@ -1,0 +1,531 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Prospective original-parent entry. SOURCE ONLY; no authority is issued.
+
+The original authenticated Tool parent sends one late input frame. Authentic
+issuance is the existing entry premise, not a conclusion of JSON validation.
+This source calls the actual selected derivation, owns its publication, and
+keeps a surviving original subreaper until whole descendant and holder retirement.
+Incomplete native custody keeps this same source process alive without retry.
+No archived body was executed while authoring this file. AI-authored candidate.
+Publication custody follows #6709 manual_parent_v1; original authors retain credit.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import select
+import stat
+import sys
+import time
+from types import ModuleType
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W/'outputs/group-retirement-repair-20261108T0136Z/repair-v2'
+ENTRY = W/'outputs/guardian-retirement-owner-20261108T0803Z/implementation/target_entry.py'
+CLAIM = ENTRY.parent.parent/'runtime/ENTRY-CLAIM.json'
+CAPTURE = W/'outputs/native-dispatch-closure-20261106T2206Z/runtime/native-caller/IndependentPrefixDATAComposedV1'
+NAME = 'IndependentPrefixDATAComposedV1'
+ENV = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8',
+       'LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+MANIFEST = {'path':str(R/'implementation/bindings/SOURCE-MANIFEST-v2.json'),
+            'bytes':39563,'mode':0o444,'sha256':'3742b1a7e83dddaed87ffd147a18c0002474aa0772174a9c5d4d01e9f5d17d6f'}
+LOADER = {'path':str(R/'implementation/bindings/private_loader.py'),'bytes':41716,
+          'mode':0o444,'sha256':'68809e658a2dee62d1970d0ea668c100cfb0e6c651f7ad1b2f72623da2ff9d69'}
+C_PIN = {'path':str(R/'implementation/controller/composed_controller.py'),'bytes':100641,
+         'mode':0o444,'sha256':'fe55fa1372028a04011e8fc76adae51ecdad0d4eeb734256ca09a82e014ac227'}
+G_SOURCE = {'path':str(R/'implementation/native/retention_guardian.c'),'bytes':69450,
+            'mode':0o444,'sha256':'72bf7d0f7e1a4fe7adf909ebd74ae9411b69042ca7740c487b1ba25ba31c9c43'}
+OUTER_PIN = {'path':str(ENTRY.with_name('outer_retirement.py')),
+             'bytes':28567,'mode':0o444,'sha256':'28f72ed4294b9fbd273cbad56177dd4fc926ed08884b8185af6e1dc89270127f'}
+FIRST = [None]
+FIRST_TRACEBACK = [None]
+STOP_SIGNAL = [None]
+SIGNAL_TICKETS = []
+PENDING_CUSTODY = [None,None,None]
+LIVE_OWNER = [None]
+CONTROLLED_BIRTH = [False]
+SAFE_TO_EXIT = [False]
+CAPTURE_OBSERVATIONS = [None,None]
+SECONDARY = [None]*128
+UNKNOWN = [False]
+SLOTS = [[None,'FREE'] for _ in range(32)]
+RETAINED = []
+CHILD = {'phase':'NOT_ENTERED','pid':None,'waited':False,'status':None}
+
+def need(value, message):
+    if value is not True:
+        raise RuntimeError(message)
+
+def remember(error):
+    if FIRST[0] is None:
+        FIRST[0] = error
+        FIRST_TRACEBACK[0] = BaseException.__dict__['__traceback__'].__get__(error,BaseException)
+    elif error is not FIRST[0]:
+        for i,item in enumerate(SECONDARY):
+            if item is error:
+                break
+            if item is None:
+                SECONDARY[i] = error
+                break
+        else:
+            UNKNOWN[0] = True
+    return FIRST[0]
+
+def canonical(value):
+    return (json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=True,
+                       allow_nan=False)+'\n').encode('ascii')
+
+def pairs(items):
+    result = {}
+    for key,value in items:
+        need(key not in result,'duplicate JSON key')
+        result[key] = value
+    return result
+
+def decode(raw):
+    def no_number(unused):
+        raise ValueError('noninteger JSON number')
+    return json.loads(raw.decode('utf-8'),object_pairs_hook=pairs,
+                      parse_float=no_number,parse_constant=no_number)
+
+def identity(st):
+    return (st.st_dev,st.st_ino,st.st_mode,st.st_uid,st.st_nlink,
+            st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+
+def acquire(path, flags, mode=0o600):
+    need(not UNKNOWN[0] and FIRST[0] is None,'blocked custody')
+    slot = next(x for x in SLOTS if x[1] in ('FREE','CLOSED'))
+    slot[:] = [None,'OPEN_PENDING']
+    try:
+        slot[0] = os.open(path, flags|os.O_NOFOLLOW|os.O_CLOEXEC,mode)
+        slot[1] = 'OWNED'
+    except BaseException as error:
+        UNKNOWN[0] = True
+        raise remember(error)
+    return slot
+
+def close(slot):
+    need(slot[1] == 'OWNED','known close once')
+    slot[1] = 'CLOSE_ENTERED'
+    try:
+        os.close(slot[0])
+        slot[1] = 'CLOSED'
+    except BaseException as error:
+        slot[1],UNKNOWN[0] = 'CLOSE_UNKNOWN',True
+        raise remember(error)
+
+def read_pin(pin, cap=8*1024*1024):
+    need(type(pin) is dict and set(pin)=={'path','bytes','mode','sha256'},'exact pin')
+    path = Path(pin['path'])
+    need(path.is_absolute() and path.resolve(strict=True)==path,'canonical input')
+    before = path.lstat()
+    need(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and
+         before.st_uid in (0,os.getuid()) and stat.S_IMODE(before.st_mode)==pin['mode'] and
+         type(pin['bytes']) is int and 0<=pin['bytes']<=cap and before.st_size==pin['bytes'],'input inode/mode/size')
+    slot = acquire(path,os.O_RDONLY|os.O_NONBLOCK)
+    parts=[]; count=0
+    try:
+        need(identity(os.fstat(slot[0]))==identity(before),'same opened input')
+        while True:
+            part=os.read(slot[0],min(65536,cap+1-count))
+            if not part: break
+            count+=len(part); need(count<=cap,'bounded full input'); parts.append(part)
+        raw=b''.join(parts)
+        need(identity(os.fstat(slot[0]))==identity(path.lstat())==identity(before) and
+             count==pin['bytes'] and hashlib.sha256(raw).hexdigest()==pin['sha256'],'complete stable selected bytes')
+    except BaseException as error:
+        remember(error)
+    finally:
+        if slot[1]=='OWNED':
+            try: close(slot)
+            except BaseException: pass
+    if FIRST[0] is not None: raise FIRST[0]
+    return raw
+
+def publish(path, raw, expected=None):
+    path=Path(path)
+    need(path.parent.resolve(strict=True)==path.parent and
+         stat.S_IMODE(path.parent.stat().st_mode)==0o700 and
+         path.parent.stat().st_uid==os.getuid(),'original prepared private directory')
+    wanted={'path':str(path),'bytes':len(raw),'mode':0o444,'sha256':hashlib.sha256(raw).hexdigest()}
+    need(expected is None or expected==wanted,'exact canonical returned publication')
+    slot=acquire(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL)
+    try:
+        at=0
+        while at<len(raw):
+            n=os.write(slot[0],raw[at:at+65536]); need(type(n) is int and n>0,'full write'); at+=n
+        os.fsync(slot[0]); os.fchmod(slot[0],0o444); os.fsync(slot[0])
+    except BaseException as error:
+        remember(error)
+    finally:
+        if slot[1]=='OWNED':
+            try: close(slot)
+            except BaseException: pass
+    if FIRST[0] is not None: raise FIRST[0]
+    need(read_pin(wanted)==raw,'independent immutable publication reread')
+    directory=acquire(path.parent,os.O_RDONLY|os.O_DIRECTORY)
+    try: os.fsync(directory[0])
+    except BaseException as error: remember(error)
+    finally:
+        if directory[1]=='OWNED':
+            try: close(directory)
+            except BaseException: pass
+    if FIRST[0] is not None: raise FIRST[0]
+    return wanted
+
+def load_private(pin, name):
+    raw=read_pin(pin)
+    need(name not in sys.modules,'fresh private module')
+    module=ModuleType(name)
+    module.__dict__.update(__name__=name,__file__=pin['path'],__package__=None,__spec__=None)
+    RETAINED.append((module,raw)); sys.modules[name]=module
+    exec(compile(raw,pin['path'],'exec',dont_inherit=True),module.__dict__)
+    return module
+
+def deadline_read(fd, size, deadline):
+    remaining=(deadline-time.monotonic_ns())/1_000_000_000
+    need(remaining>0,'original entry deadline before read')
+    ready,unused,errors=select.select([fd],[],[fd],remaining)
+    need(bool(ready) and not errors,'original entry deadline/read readiness')
+    return os.read(fd,size)
+
+def late_frame(deadline):
+    parts=[]; size=0
+    while True:
+        part=deadline_read(0,1,deadline)
+        need(bool(part),'original parent frame ended early')
+        size+=1; need(size<=32768,'bounded single original frame')
+        if part==b'\n': break
+        parts.append(part)
+    value=decode(b''.join(parts))
+    need(type(value) is dict and set(value)=={'schema','manifest_pin','inputs_pin',
+         'guardian_image_pin','guardian_source_pin','guardian_grant_pin',
+         'operation_id','exact_shell_sha256'},'exact original late transport fields')
+    need(value['schema']=='h25-original-parent-late-input-v1' and
+         value['operation_id']==NAME and value['manifest_pin']==MANIFEST and
+         value['guardian_source_pin']==G_SOURCE,'same fixed source/operation')
+    return value
+
+def capture_readback_known(path, slot, deadline):
+    """Full independent cleanup read through a reader acquired before birth.
+
+    A working error does not suppress either stream. No new native descriptor
+    or authority is acquired. Only proven descendant emptiness authorises this
+    final stable read; unknown live writers remain explicitly pending.
+    """
+    need(slot[1]=='OWNED','actual retained prebirth capture reader')
+    before=path.lstat()
+    need(stat.S_ISREG(before.st_mode) and before.st_uid==os.getuid() and
+         before.st_nlink==1 and stat.S_IMODE(before.st_mode)==0o600,
+         'actual original capture')
+    need(identity(os.fstat(slot[0]))==identity(before),'same preowned capture inode')
+    h=hashlib.sha256(); size=0
+    while True:
+        need(time.monotonic_ns()<deadline,'original whole deadline during capture readback')
+        block=os.read(slot[0],65536)
+        if not block: break
+        size+=len(block)
+        need(size<=8*1024*1024,'unchanged complete capture qualification bound')
+        h.update(block)
+    need(size==before.st_size and identity(os.fstat(slot[0]))==identity(path.lstat())==identity(before),
+         'full independent stable capture with actual EOF')
+    return {'path':str(path),'bytes':size,'sha256':h.hexdigest(),'full_read':True,
+            'actual_eof':True,'reader_acquired_before_birth':True}
+
+
+def request_stop(signum, unused_frame):
+    # Never throw through an ownership transition or destroy the surviving S.
+    if STOP_SIGNAL[0] is None:
+        STOP_SIGNAL[0]=signum
+
+
+def install_stop_handlers():
+    for signum in (signal.SIGINT,signal.SIGTERM,signal.SIGHUP):
+        ticket=[signum,signal.getsignal(signum),'INSTALL_PENDING']
+        SIGNAL_TICKETS.append(ticket)
+        signal.signal(signum,request_stop)
+        ticket[2]='INSTALLED'
+
+
+def restore_stop_handlers():
+    # Called only after proven native domain and holder retirement.
+    for ticket in SIGNAL_TICKETS:
+        if ticket[2]!='INSTALLED':
+            continue
+        ticket[2]='RESTORE_ENTERED'
+        try:
+            signal.signal(ticket[0],ticket[1]); ticket[2]='RESTORED'
+        except BaseException as error:
+            ticket[2]='RESTORE_UNKNOWN'; UNKNOWN[0]=True; remember(error)
+
+
+def working_checkpoint(deadline):
+    need(STOP_SIGNAL[0] is None,'original catchable signal requests owned retirement')
+    need(time.monotonic_ns()<deadline,'original whole reservation before work')
+
+
+def retain_pending(owner, reason):
+    """Keep the real surviving native owner, not merely an UNKNOWN report.
+
+    No extra retirement entry, attempt, acquisition, timer, or grant is made.
+    This blocked operation remains unresolved and its continuing elapsed cost
+    is not zero or clipped. The original independent terminal owner must not
+    admit physical completion, successful CLOSE, or a replacement attempt.
+    """
+    PENDING_CUSTODY[0]=owner
+    PENDING_CUSTODY[1]=reason
+    PENDING_CUSTODY[2]=CAPTURE_OBSERVATIONS
+    CHILD['phase']='ACTUAL_SURVIVING_CUSTODY_PENDING'
+    while True:
+        try:
+            signal.pause()
+        except BaseException as error:
+            remember(error)
+
+def close_pair(pair,index):
+    fd=pair[index]
+    if fd is None: return
+    pair[index]=None
+    pair[2]='CLOSE_ENTERED'
+    try:
+        os.close(fd)
+        pair[2]='OWNED' if pair[1-index] is not None else 'CLOSED'
+    except BaseException as error:
+        pair[2]='CLOSE_UNKNOWN'; UNKNOWN[0]=True
+        raise remember(error)
+
+def run_guardian(argv, image, whole_deadline, cleanup_reservation):
+    captures=[]; readers=[]; null=None; gate=None; ready=None; owner=None
+    outer=None; birth_entered=False; retirement=None
+    work_deadline=whole_deadline-cleanup_reservation
+    try:
+        working_checkpoint(work_deadline)
+        outer=load_private(OUTER_PIN,'_h25_external_outer_retirement')
+        factory=outer.open_outer_owner
+        factory_image=(factory,factory.__code__,factory.__globals__,factory.__defaults__,factory.__closure__)
+        install_stop_handlers()
+        owner=factory()  # Actual original installer, before any controlled birth.
+        LIVE_OWNER[0]=owner  # Before the only controlled birth or fallible reporting.
+        RETAINED.append((outer,owner,factory_image))
+        for name in ('G.stdout.raw','G.stderr.raw'):
+            path=CAPTURE/name
+            writer=acquire(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL)
+            captures.append(writer)
+            reader=acquire(path,os.O_RDONLY|os.O_NONBLOCK)
+            readers.append(reader)
+            need(identity(os.fstat(writer[0]))==identity(os.fstat(reader[0])),
+                 'prebirth independent reader of the actual capture inode')
+        null=acquire('/dev/null',os.O_RDONLY)
+        gate=[None,None,'PENDING']; ready=[None,None,'PENDING']
+        gate[0],gate[1]=os.pipe2(os.O_CLOEXEC); gate[2]='OWNED'
+        ready[0],ready[1]=os.pipe2(os.O_CLOEXEC); ready[2]='OWNED'
+        working_checkpoint(work_deadline)
+        need(outer.open_outer_owner is factory_image[0] and
+             factory.__code__ is factory_image[1] and factory.__globals__ is factory_image[2] and
+             factory.__defaults__ is factory_image[3] and factory.__closure__ is factory_image[4],
+             'same actual source constructor before controlled birth')
+        owner.birth_pending()
+        birth_entered=True; CONTROLLED_BIRTH[0]=True; CHILD['phase']='FORK_PENDING'
+        try:
+            pid=os.fork()
+        except BaseException as error:
+            owner.birth_failed(error)
+            raise
+        if pid==0:
+            # This child cannot enter G before its parent retains actual custody.
+            try:
+                # S alone is the surviving owner. The disposable gated child
+                # restores original default stop dispositions before G entry.
+                for signum in (signal.SIGINT,signal.SIGTERM,signal.SIGHUP):
+                    signal.signal(signum,signal.SIG_DFL)
+                if STOP_SIGNAL[0] is not None: os._exit(78)
+                os.close(gate[1]); os.close(ready[0]); os.setsid()
+                os.write(ready[1],b'R'); os.close(ready[1])
+                if deadline_read(gate[0],1,work_deadline)!=b'G': os._exit(78)
+                os.close(gate[0])
+                os.dup2(null[0],0); os.dup2(captures[0][0],1); os.dup2(captures[1][0],2)
+                for slot in SLOTS:
+                    if slot[1]=='OWNED' and slot[0]>2: os.close(slot[0])
+                # The actual original G entry checks only its documented stdio.
+                # Source/native loader descriptors are CLOEXEC; only 0/1/2 persist.
+                os.execve(image['path'],argv,ENV)
+            except BaseException:
+                os._exit(78)
+        CHILD.update(pid=pid,phase='RETAINED_BEFORE_GO')
+        owner.retain_root(pid)
+        close_pair(gate,0); close_pair(ready,1)
+        need(deadline_read(ready[0],1,work_deadline)==b'R','actual gated child session ready')
+        close_pair(ready,0)
+        working_checkpoint(work_deadline)
+        need(os.write(gate[1],b'G')==1,'one original native entry release')
+        close_pair(gate,1)
+        CHILD['phase']='RUNNING'
+        for slot in captures+[null]:
+            close(slot)
+        while not owner.root_exit_observed():
+            working_checkpoint(work_deadline)
+            time.sleep(min(0.01,max(0,work_deadline-time.monotonic_ns())/1e9))
+        CHILD['phase']='OBSERVED_UNCONSUMED'
+        working_checkpoint(work_deadline)
+        observed=owner._root_observation
+        need(observed is not None and observed.si_code==os.CLD_EXITED and
+             observed.si_status==0,'actual observed G working exit must succeed')
+    except BaseException as error:
+        remember(error)
+    finally:
+        # Retire parent control/writer handles once, without suppressing earlier
+        # work errors. Closing the gate prevents uncertain pre-G births entering.
+        for pair in (gate,ready):
+            if pair is not None:
+                if pair[2]=='PENDING': UNKNOWN[0]=True
+                for index in (0,1):
+                    if pair[index] is not None:
+                        try: close_pair(pair,index)
+                        except BaseException as error: remember(error)
+        # SLOTS, not append-success of a convenience list, owns native opens.
+        for slot in SLOTS:
+            if slot[1]=='OWNED' and not any(slot is item for item in readers):
+                try: close(slot)
+                except BaseException as error: remember(error)
+        if birth_entered:
+            retire_error=None
+            try:
+                if UNKNOWN[0]:
+                    owner.retain_external_custody_uncertainty(FIRST[0])
+                retirement=owner.retire(whole_deadline)
+            except BaseException as error:
+                retire_error=error
+            # Retain raw cleanup errors in their original native operation order.
+            if owner.first_error is not None: remember(owner.first_error)
+            for error in owner.secondary_errors: remember(error)
+            if retire_error is not None: remember(retire_error)
+            empty=owner._empty_observed
+        else:
+            empty=True  # No source edge entered the one controlled fork.
+        # A working failure never hides available full capture readback. Even a
+        # pidfd-close uncertainty permits reads through these already owned FDs
+        # after exact descendant emptiness, but never permits new acquisitions.
+        if empty:
+            for index,slot in enumerate(readers):
+                try:
+                    CAPTURE_OBSERVATIONS[index]=capture_readback_known(
+                        CAPTURE/('G.stdout.raw','G.stderr.raw')[index],slot,whole_deadline)
+                except BaseException as error:
+                    remember(error)
+                finally:
+                    if slot[1]=='OWNED':
+                        try: close(slot)
+                        except BaseException as error: remember(error)
+        if empty:
+            # Includes a returned descriptor whose convenience-list append
+            # failed. Every known slot is retired once before normal exit.
+            for slot in SLOTS:
+                if slot[1]=='OWNED':
+                    try: close(slot)
+                    except BaseException as error: remember(error)
+        if birth_entered and (not owner.retired or UNKNOWN[0]):
+            retain_pending(owner,FIRST[0])
+        # This marker is reached only after actual domain, waits, and known
+        # holder retirement, including both preowned capture reader closes.
+        SAFE_TO_EXIT[0]=True
+        restore_stop_handlers()
+    if FIRST[0] is not None:
+        raise BaseException.with_traceback(FIRST[0],FIRST_TRACEBACK[0])
+    need(owner is not None and owner.retired and not UNKNOWN[0],
+         'genuine complete outer domain, waits, and holder retirement')
+    CHILD.update(waited=True,status=owner.root_status,phase='WHOLE_DOMAIN_RETIRED')
+    need(CHILD['status'] is not None and os.WIFEXITED(CHILD['status']) and
+         os.WEXITSTATUS(CHILD['status'])==0,'actual G exit success')
+    need(all(type(item) is dict and item['full_read'] for item in CAPTURE_OBSERVATIONS),
+         'both complete independent capture reads')
+    return list(CAPTURE_OBSERVATIONS),retirement
+
+def main():
+    begin=time.monotonic_ns()
+    need(len(sys.argv)==3 and Path(__file__)==ENTRY,'fixed source entry')
+    need(sys.executable=='/usr/bin/python3.12' and sys.flags.no_site==1 and
+         sys.flags.no_user_site==1 and sys.flags.safe_path and sys.flags.dont_write_bytecode==1 and
+         sys.flags.optimize==0 and dict(os.environ)==ENV and os.getcwd()==str(W) and
+         tuple(sys.path)==('/usr/lib/python312.zip','/usr/lib/python3.12','/usr/lib/python3.12/lib-dynload') and
+         signal.getsignal(signal.SIGCHLD)==signal.SIG_DFL,'genuine original fresh interpreter profile')
+    need(os.umask(0o077)==0o077,'original umask')
+    read_pin({'path':str(ENTRY),'bytes':int(sys.argv[2]),'sha256':sys.argv[1],'mode':0o444})
+    wire=late_frame(begin+180_000_000_000)
+    loader=load_private(LOADER,'_h25_external_selected_loader')
+    controller=load_private(C_PIN,'_h25_external_selected_controller')
+    derive=loader.derive_fixed_role_data
+    image=(derive,derive.__code__,derive.__globals__,derive.__defaults__,derive.__closure__)
+    lease=controller.GlobalLease(); lease_entered=False; lease_closed=False; data=None
+    try:
+        lease_entered=True; lease.acquire(); lease.verify()
+        publish(CLAIM,canonical({'schema':'original-entry-attempt-claim-v1','operation_id':NAME,
+                'inputs_pin':wire['inputs_pin'],'authority_issued':False,'automatic_retry':False}))
+        inputs=decode(read_pin(wire['inputs_pin']))
+        original=inputs['original']
+        candidate=decode(read_pin(original['candidate_document_pin']))
+        need(hashlib.sha256(candidate['exact_shell_command'].encode('utf-8')).hexdigest()==wire['exact_shell_sha256'],
+             'distinct exact original shell identity')
+        need(original['original_actual_grant_pin']==wire['guardian_grant_pin'],'original selected G grant')
+        read_pin(wire['guardian_image_pin'],128*1024*1024)
+        need(wire['guardian_image_pin']['mode'] in (0o555,0o755),'original qualified native executable mode')
+        need(derive is image[0] and derive.__code__ is image[1] and derive.__globals__ is image[2] and
+             derive.__defaults__ is image[3] and derive.__closure__ is image[4],'actual retained source constructor')
+        data=derive(wire['manifest_pin'],wire['inputs_pin'])
+        for key,pin_key in (('contracts','contracts_pin'),('guardian_config','guardian_config_pin')):
+            publish(data[pin_key]['path'],canonical(data[key]),data[pin_key])
+        lease.verify()
+    except BaseException as error:
+        remember(error)
+    finally:
+        if lease_entered and not lease_closed:
+            lease_closed=True
+            try: lease.close()
+            except BaseException as error: remember(error); UNKNOWN[0]=True
+    if FIRST[0] is not None: raise FIRST[0]
+    need(data is not None and not UNKNOWN[0],'known publication and EX retirement before G')
+    config=data['guardian_config_pin']; source=wire['guardian_source_pin']; grant=wire['guardian_grant_pin']
+    argv=[wire['guardian_image_pin']['path'],'--config',config['path'],config['sha256'],str(config['bytes']),
+          '--source',source['path'],source['sha256'],str(source['bytes']),
+          '--grant',grant['path'],grant['sha256'],str(grant['bytes'])]
+    body=data['guardian_config']['manual_entry']['request']['body_reservation_ns']
+    need(type(body) is int and 0<body<=180_000_000_000,'unchanged original whole reservation')
+    outer_actor=data['guardian_config']['outer_actor']
+    need(outer_actor['body_reservation_ns']==body,'same original outer and request body reservation')
+    cleanup=outer_actor['cleanup_reservation_ns']
+    need(type(cleanup) is int and 0<cleanup<body,'same original positive cleanup reservation')
+    observations,retirement=run_guardian(argv,wire['guardian_image_pin'],begin+body,cleanup)
+    receipt={'schema':'original-external-entry-observation-v1','operation_id':NAME,
+             'candidate_document_sha256':original['candidate_document_pin']['sha256'],
+             'exact_shell_sha256':wire['exact_shell_sha256'],'config_pin':config,
+             'captures':observations,'outer_retirement':retirement,
+             'actual_wait_status':CHILD['status'],'source_only_authority':False,
+             'outer_begin_monotonic_ns':begin,'outer_last_observed_monotonic_ns':time.monotonic_ns(),
+             'original_whole_reservation_ns':body,
+             'financial_CLOSE_created':False,'all_costs_settled':False,'physical_boundary':'OPEN_NOT_ZERO'}
+    raw=canonical(receipt)
+    at=0
+    while at<len(raw):
+        n=os.write(1,raw[at:]); need(type(n) is int and n>0,'complete parent observation delivery'); at+=n
+    return 0
+
+if __name__=='__main__':
+    # Structural final custody guard. Even allocation/formatting/property errors
+    # in run_guardian's cleanup cannot unwind the genuine surviving S after a
+    # controlled birth. It uses preallocated retained references and performs no
+    # new acquisition, retry, signal, consuming wait, or authority construction.
+    try:
+        try:
+            exit_status=main()
+        except BaseException as error:
+            remember(error)
+        finally:
+            if CONTROLLED_BIRTH[0] and not SAFE_TO_EXIT[0]:
+                retain_pending(LIVE_OWNER[0],FIRST[0])
+        if FIRST[0] is not None:
+            raise BaseException.with_traceback(FIRST[0],FIRST_TRACEBACK[0])
+        raise SystemExit(exit_status)
+    except BaseException:
+        # The guard above has already established no remaining controlled native
+        # custody on every path that can reach interpreter termination.
+        raise

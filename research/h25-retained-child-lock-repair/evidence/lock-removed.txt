@@ -1,0 +1,139 @@
+    with (HERE / 'runtime/science.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        stage = HERE / 'stages' / args.stage
+        stage_raw = (stage / 'STAGE.json').read_bytes()
+        declared = json.loads(stage_raw)
+        before = inventory(stage)
+        if before != declared['files']:
+            raise ValueError('Stage bytes/modes differ from declared closure')
+        jobs = json.loads((stage / 'JOBS.json').read_bytes())
+        job = jobs[args.job]
+        phase_raw = (HERE / 'control/EXECUTION-PHASE.json').read_bytes()
+        phase = json.loads(phase_raw)
+        cap = phase['aggregate_cap_seconds']
+        if type(cap) is not int or cap not in (600, TOTAL_CAP):
+            raise ValueError('Unrecognized parent budget phase')
+        candidate_entry = job.get('entry') == 'integration/candidate_entry.py'
+        waiting = None
+        if candidate_entry:
+            if not args.waiting_config or not args.waiting_sha256:
+                raise ValueError('Candidate waiting configuration required')
+            waiting = read_waiting_configuration(args.waiting_config,args.waiting_sha256)
+            expected_case = SOURCE_ROOT / args.label
+            expected_layout = waiting.get('completed_layout')
+            if (waiting.get('case_id') != args.label or waiting.get('job') != args.job or
+                    waiting.get('stage_path') != str(stage) or waiting.get('stage_sha256') != digest(stage_raw) or
+                    waiting.get('runner_path') != str(Path(__file__).resolve()) or
+                    waiting.get('runner_sha256') != declared['runner_sha256'] or
+                    waiting.get('entry_sha256') != declared['files']['integration/candidate_entry.py']['sha256'] or
+                    waiting.get('outer_output') != str(expected_case/'runner/artifact/science') or
+                    type(expected_layout) is not dict or expected_layout.get('case_container') != str(expected_case) or
+                    expected_layout.get('runner_root') != str(expected_case/'runner') or
+                    Path(args.waiting_config) != expected_case/'supervision/WAIT.json'):
+                raise ValueError('Exact registered candidate waiting inverse')
+        elif args.waiting_config is not None or args.waiting_sha256 is not None:
+            raise ValueError('Waiting configuration belongs only to the candidate entry')
+        runs = SOURCE_ROOT
+        runs.mkdir(exist_ok=True)
+        spent = 0.0
+        for run in runs.iterdir():
+            if not run.is_dir():
+                continue
+            # The current case is genuinely reserved before birth. Its exact
+            # WAIT binding permits only this one pre-launch absence.
+            if candidate_entry and run == SOURCE_ROOT/args.label:
+                if (run/'runner').exists() or (run/'runner').is_symlink():
+                    raise ValueError('Current registered runner must still be absent')
+                continue
+            receipt_path = run / 'runner/receipt.json'
+            if not receipt_path.exists():
+                raise ValueError('Unclosed prior attempt: preserve and reconcile before another run')
+            prior = json.loads(receipt_path.read_bytes())
+            spent += prior.get('runner_wall_seconds', prior['wall_seconds'])
+        if spent >= cap:
+            raise ValueError('Aggregate budget consumed')
+        if 'entry' in job:
+            entry = job['entry']
+            if (type(entry) is not str or entry not in ('integration/predecessor_entry.py','integration/candidate_entry.py') or
+                    'bootstrap' in job or entry not in declared['files'] or
+                    (stage / entry).is_symlink() or
+                    (stage / entry).resolve() != stage.resolve() / entry):
+                raise ValueError('Entry must be the declared canonical predecessor file without bootstrap')
+        folder = runs / args.label / 'runner'
+        folder.mkdir()
+        runner_before = Path(__file__).read_bytes()
+        if digest(runner_before) != declared['runner_sha256']:
+            raise ValueError('Actual runner differs from frozen runner source')
+        fraction_path = Path('/usr/lib/python3.12/fractions.py')
+        fractions_before = fraction_path.read_bytes()
+        env = dict(LAUNCH_ENV)
+        command = ['/usr/bin/python3.12', *LAUNCH_FLAGS]
+        if job.get('optimized', False):
+            command.append('-O')
+        if 'entry' in job:
+            command.append(str(stage / entry))
+        else:
+            command.append(str(stage / 'integration/full_driver.py'))
+        if 'bootstrap' in job:
+            bootstrap = job['bootstrap']
+            if type(bootstrap) is not dict or set(bootstrap) != {'provider', 'driver'}:
+                raise ValueError('Exact bootstrap map required')
+            for relative in bootstrap.values():
+                if (type(relative) is not str or relative not in declared['files'] or
+                        Path(relative).is_absolute() or '..' in Path(relative).parts or
+                        Path(relative).parent != Path('integration')):
+                    raise ValueError('Bootstrap source must be a declared integration file')
+            command.extend(['--root-sha256', declared['files']['integration/full_driver.py']['sha256'],
+                            '--provider', str(stage / bootstrap['provider']),
+                            declared['files'][bootstrap['provider']]['sha256'],
+                            '--driver', str(stage / bootstrap['driver']),
+                            declared['files'][bootstrap['driver']]['sha256'],
+                            '--integration', str(stage / 'integration'), '--'])
+        command.extend(['--output', str(folder / 'artifact/science'), '--lanes', job['lanes']])
+        if candidate_entry:
+            if job.get('finite_only',False) or job.get('lanes') != 'candidate':
+                raise ValueError('Complete candidate entry cannot select finite science')
+            command.extend(['--waiting-config',args.waiting_config,'--waiting-sha256',args.waiting_sha256])
+        if job.get('finite_only', False):
+            command.append('--finite-only')
+        usage = folder / 'usage.json'
+        timed = ['/usr/bin/time', '-f', '{"user_seconds":%U,"system_seconds":%S,"kernel_max_rss_kib":%M,"exit":%x}', '-o', str(usage), '--', *command]
+        started = {'command': command, 'parent_launch': launch, 'stage_sha256': digest(stage_raw),
+                   'runner_sha256': digest(runner_before), 'fractions_sha256': digest(fractions_before),
+                   'budget_phase_sha256': digest(phase_raw), 'spent_before_seconds': spent,
+                   'phase_cap_seconds': cap, 'job': args.job, 'label': args.label}
+        (folder / 'START.json').write_text(json.dumps(started, indent=2, sort_keys=True) + '\n')
+        start = time.monotonic()
+        code, peak, stop = run_group_capture(
+            timed, stage, env, folder, runner_start, cap, spent)
+        elapsed = time.monotonic() - start
+        stdout, stderr, stop, cap_seen = finalize_logs(folder, stop)
+        measurement, oversized_usage = read_usage(usage)
+        if oversized_usage:
+            stop = stop or 'usage_metadata_cap'
+        unchanged = (inventory(stage) == before and (stage / 'STAGE.json').read_bytes() == stage_raw and
+                     Path(__file__).read_bytes() == runner_before and fraction_path.read_bytes() == fractions_before)
+        runner_elapsed = time.monotonic() - runner_start
+        runner_usage_end = resource.getrusage(resource.RUSAGE_SELF)
+        if runner_elapsed > min(TIMEOUT, cap - spent):
+            stop = stop or 'wall_or_aggregate_cap'
+        if runner_usage_end.ru_maxrss * 1024 > RSS_CAP:
+            stop = stop or 'runner_rss_cap'
+        receipt = dict(started, exit=code, wall_seconds=elapsed, usage=measurement,
+                       termination=stop, sampled_process_group_rss_bytes=peak,
+                       source_bytes_and_modes_unchanged=unchanged,
+                       stdout_sha256=stdout['sha256'], stdout_bytes=stdout['bytes'],
+                       stderr_sha256=stderr['sha256'], stderr_bytes=stderr['bytes'],
+                       stdout_final_bytes=stdout['final_bytes'], stderr_final_bytes=stderr['final_bytes'],
+                       retained_log_bytes_stable=stdout['stable'] and stderr['stable'],
+                       output_cap_observed_at=cap_seen, log_read_chunk_bytes=LOG_CHUNK_BYTES,
+                       runner_wall_seconds=runner_elapsed,
+                       runner_user_seconds=runner_usage_end.ru_utime - runner_usage_start.ru_utime,
+                       runner_system_seconds=runner_usage_end.ru_stime - runner_usage_start.ru_stime,
+                       runner_lifetime_max_rss_kib=runner_usage_end.ru_maxrss,
+                       python=sys.version, platform=platform.platform(),
+                       status='PASS' if code == 0 and stop is None and stderr['bytes'] == 0 and unchanged else 'STOP')
+        (folder / 'receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+        print(json.dumps(receipt, sort_keys=True), flush=True)
+        if receipt['status'] != 'PASS':
+            raise SystemExit(1)

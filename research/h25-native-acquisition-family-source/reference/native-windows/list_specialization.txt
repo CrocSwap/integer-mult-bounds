@@ -1,0 +1,14 @@
+_Py_Specialize_StoreSubscr(PyObject *container, PyObject *sub, _Py_CODEUNIT *instr)
+{
+    assert(ENABLE_SPECIALIZATION);
+    _PyStoreSubscrCache *cache = (_PyStoreSubscrCache *)(instr + 1);
+    PyTypeObject *container_type = Py_TYPE(container);
+    if (container_type == &PyList_Type) {
+        if (PyLong_CheckExact(sub)) {
+            if (_PyLong_IsNonNegativeCompact((PyLongObject *)sub)
+                && ((PyLongObject *)sub)->long_value.ob_digit[0] < (size_t)PyList_GET_SIZE(container))
+            {
+                instr->op.code = STORE_SUBSCR_LIST_INT;
+                goto success;
+            }
+            else {

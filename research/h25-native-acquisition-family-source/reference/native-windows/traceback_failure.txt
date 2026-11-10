@@ -1,0 +1,15 @@
+PyTraceBack_Here(PyFrameObject *frame)
+{
+    PyObject *exc = PyErr_GetRaisedException();
+    assert(PyExceptionInstance_Check(exc));
+    PyObject *tb = PyException_GetTraceback(exc);
+    PyObject *newtb = _PyTraceBack_FromFrame(tb, frame);
+    Py_XDECREF(tb);
+    if (newtb == NULL) {
+        _PyErr_ChainExceptions1(exc);
+        return -1;
+    }
+    PyException_SetTraceback(exc, newtb);
+    Py_XDECREF(newtb);
+    PyErr_SetRaisedException(exc);
+    return 0;

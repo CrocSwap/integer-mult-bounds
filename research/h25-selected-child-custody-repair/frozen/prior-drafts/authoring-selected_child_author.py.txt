@@ -1,0 +1,322 @@
+from pathlib import Path
+root=Path('/workspace/scratch/35c1441288db/h25-selected-child-construction-20261108T203610Z')
+src=root/'inputs/files'; out=root/'implementation'; out.mkdir(exist_ok=True)
+base=Path('/workspace/scratch/35c1441288db/h25-native-control-construction/inputs/loader-supplement/source_bindings_v3.py').read_text()
+base=base.replace('import marshal\n','import marshal\nimport dataclasses\n')
+base=base.replace('_INSTALLATIONS = []','_INSTALLATIONS = []\n_ENTRY_ATTEMPTS = []')
+start=base.index('def _source_objects(');end=base.index('\ndef _import_namespace(',start)
+new='''def _source_value(node, namespace, definitions, active=()):
+    """Finite source expression interpreter; never eval or candidate callbacks."""
+    if type(node) is ast.Name:
+        _need(node.id in definitions and node.id not in active and len(active) < 32,
+              'source default name is not a finite constant')
+        value = _source_value(definitions[node.id], namespace, definitions, active + (node.id,))
+        _need(_data(namespace[node.id]) == _data(value), 'source default constant changed')
+        return value
+    if type(node) is ast.Attribute and type(node.value) is ast.Name:
+        module = namespace[node.value.id]
+        _need(type(module) is types.ModuleType, 'source default owner is not a module')
+        value = _MODULE_DICT(module, types.ModuleType)[node.attr]
+        _data(value)
+        return value
+    if type(node) is ast.BinOp:
+        left = _source_value(node.left, namespace, definitions, active)
+        right = _source_value(node.right, namespace, definitions, active)
+        _need(type(left) is int and type(right) is int, 'exact source integer default required')
+        if type(node.op) is ast.Add: value = left + right
+        elif type(node.op) is ast.Sub: value = left - right
+        elif type(node.op) is ast.Mult: value = left * right
+        elif type(node.op) is ast.LShift:
+            _need(0 <= right <= 127, 'source default shift bound')
+            value = left << right
+        elif type(node.op) is ast.Pow:
+            _need(0 <= right <= 127 and left.bit_length() * right <= 128, 'source default power bound')
+            value = left ** right
+        else: raise BindingStop('unsupported source default arithmetic')
+        _need(value.bit_length() <= 128, 'source default integer bound')
+        return value
+    value = ast.literal_eval(node)
+    _data(value)
+    return value
+
+
+def _defined_function(function, node, codes, namespace, definitions, cls=None):
+    _validate_code(function, codes, namespace)
+    values = tuple(getter(function, types.FunctionType) for getter in _FUNCTION_GETTERS)
+    expected = tuple(_source_value(v, namespace, definitions) for v in node.args.defaults) or None
+    keywords = {a.arg: _source_value(v, namespace, definitions)
+        for a, v in zip(node.args.kwonlyargs, node.args.kw_defaults) if v is not None} or None
+    _need(_data(values[3]) == _data(expected) and _data(values[4]) == _data(keywords),
+          'initial function defaults differ from actual selected source')
+    if cls is None or not function.__code__.co_freevars:
+        _need(values[5] is None, 'unexpected source function closure')
+    else:
+        _need(function.__code__.co_freevars == ('__class__',) and len(values[5]) == 1 and
+              _CELL_GET(values[5][0], types.CellType) is cls, 'class closure does not own actual class')
+    return _function_record(function)
+
+
+def _source_objects(module, source_pin, raw, exact_modules):
+    namespace = _namespace(module)
+    _need(namespace.get('__file__') == source_pin['path'] and
+          sys.modules.get(namespace['__name__']) is module, 'installed actual source module differs')
+    tree = ast.parse(raw, filename=source_pin['path'])
+    code = compile(raw, source_pin['path'], 'exec', dont_inherit=True, optimize=sys.flags.optimize)
+    codes = {}; _codes(code, codes)
+    definitions = {n.targets[0].id: n.value for n in tree.body
+        if type(n) is ast.Assign and len(n.targets) == 1 and type(n.targets[0]) is ast.Name}
+    records, classes = [], []
+    for node in tree.body:
+        if type(node) is ast.FunctionDef:
+            _need(not node.decorator_list, 'top-level decorated selected function unsupported')
+            records.append(_defined_function(namespace[node.name], node, codes, namespace, definitions))
+        elif type(node) is ast.ClassDef:
+            cls = namespace[node.name]
+            _need(type(cls) is type and not node.keywords, 'source class/metaclass differs')
+            bases = []
+            for base in node.bases:
+                _need(type(base) is ast.Name, 'unreviewed computed class base')
+                bases.append(namespace.get(base.id, builtins.__dict__.get(base.id)))
+            _need(cls.__bases__ == tuple(bases or [object]), 'actual source class bases differ')
+            dataclass_owned = False
+            if node.decorator_list:
+                _need(len(node.decorator_list) == 1, 'unreviewed source class decorator composition')
+                decorator = node.decorator_list[0]
+                _need(type(decorator) is ast.Call and type(decorator.func) is ast.Name and
+                      namespace.get(decorator.func.id) is dataclasses.dataclass and not decorator.args,
+                      'only actual original dataclass factory admitted')
+                options = {kw.arg: ast.literal_eval(kw.value) for kw in decorator.keywords}
+                _need(options == {'frozen': True, 'slots': True} and cls.__dataclass_params__.frozen is True,
+                      'original dataclass constructor options differ')
+                fields = tuple(n.target.id for n in node.body
+                    if type(n) is ast.AnnAssign and type(n.target) is ast.Name)
+                _need(tuple(cls.__dataclass_fields__) == fields and tuple(cls.__slots__) == fields,
+                      'actual generated dataclass fields/slots differ')
+                dataclass_owned = True
+            own = _CLASS_DICT(cls, type)
+            declared = set()
+            for item in node.body:
+                if type(item) is ast.FunctionDef:
+                    method = own[item.name]; declared.add(item.name)
+                    decorators = tuple(d.id if type(d) is ast.Name else None for d in item.decorator_list)
+                    if decorators:
+                        _need(decorators in (('staticmethod',), ('classmethod',)),
+                              'unreviewed explicit method decorator')
+                        descriptor = staticmethod if decorators == ('staticmethod',) else classmethod
+                        _need(namespace.get(decorators[0], builtins.__dict__[decorators[0]]) is descriptor and
+                              type(method) is descriptor, 'actual method wrapper owner differs')
+                        method = (_STATIC_FUNCTION(method, staticmethod) if descriptor is staticmethod
+                                  else _CLASS_FUNCTION(method, classmethod))
+                    elif item.name == '__new__' and type(method) is staticmethod:
+                        method = _STATIC_FUNCTION(method, staticmethod)
+                    elif item.name in ('__init_subclass__', '__class_getitem__') and type(method) is classmethod:
+                        method = _CLASS_FUNCTION(method, classmethod)
+                    records.append(_defined_function(method, item, codes, namespace, definitions, cls))
+            for name, method in own.items():
+                if type(method) is types.FunctionType and name not in declared:
+                    _need(dataclass_owned and name in ('__init__', '__repr__', '__eq__', '__hash__',
+                        '__setattr__', '__delattr__', '__getstate__', '__setstate__'),
+                        'extra generated source method lacks the original fixed factory')
+                    records.append(_function_record(method))
+            classes.append((cls, tuple(own.items())))
+    return tree, tuple(records), tuple(classes), _import_bindings(tree, namespace, exact_modules)
+
+'''
+base=base[:start]+new+base[end:]
+# A gate installation changes only exact source-owned imported module slots.
+base=base.replace('def _imports_unchanged(records):','def _imports_unchanged(records, installed=None):')
+base=base.replace("_need(namespace.get(key) is value, 'import package/submodule/symbol binding changed')", "expected = value if installed is None else installed.get((name, key), value)\n            _need(namespace.get(key) is expected, 'import package/submodule/symbol binding changed')")
+base=base.replace("_imports_unchanged(imports)\n        _read_pin(state, state['sources'][name])", "_imports_unchanged(imports, {(module_name, key): value for module_name, values in state['bindings'].items() for key, value in values.items()})\n        _read_pin(state, state['sources'][name])")
+# The source-fixed default profile must be staged before the source object capture.
+base += '''\n\n_NATIVE_UNITS = ('epoch-v4/C03/native-enoent', 'epoch-v4/C03/native-eexist', 'epoch-v4/C03/native-eloop')
+_NATIVE_COPY = 'b8303732ede41dd48aa767f2c40cbbff249f34e2621f532b5484d38a218a0f69'
+_PORT_COPY = 'bcc465a7c61261b58e92c06f1cf7937b134256243f1a0ff84ad859965ad0134d'
+_SCHEMA = 'b89a789654be87bde40a47300f4d9702dce2b90e6ab3be9a2025f6d8041b3e9a'
+
+
+def prepare_selected_child(lane_text, exact_modules):
+    """Actual Root driver dispatch, using its authenticated unchanged argv tail.
+
+    The original source-owned parent binds these lane bytes in immutable JOBS
+    and the exact whole command. This function proves checks/use, not that an
+    arbitrary string caller is that parent. The unchanged original fresh-Root
+    premise supplies that factual source/input provenance.
+    """
+    _need(not _ENTRY_ATTEMPTS and type(lane_text) is str and len(lane_text) <= 16384,
+          'selected child pre-capture entry is one-shot')
+    state = {'owner': parent._UNKNOWN_OWNER, 'pid': _GETPID(), 'phase': 'READING',
+             'fds': [None, None], 'close_errors': [], 'primary': [None]}
+    _ENTRY_ATTEMPTS.append(state)  # Before the first acquisition.
+    try:
+        transport = _document(lane_text.encode('ascii'))
+        _exact(transport, ('schema', 'plan'))
+        _need(transport['schema'] == 'h25-selected-child-argv-v1' and
+              json.dumps(transport, sort_keys=True, separators=(',', ':')) == lane_text,
+              'exact canonical original-owner lane transport required')
+        plan = _document(_read_pin(state, transport['plan']))
+        _exact(plan, ('schema', 'outer_context', 'entry_configuration', 'selection'))
+        _need(plan['schema'] == 'h25-selected-child-preparation-v1', 'selected preparation schema differs')
+        selection = plan['selection']
+        _exact(selection, ('unit_id', 'mode', 'kind'))
+        _need(selection['mode'] == ('normal' if sys.flags.optimize == 0 else 'optimized') and
+              sys.flags.optimize in (0, 1), 'actual selected child mode differs')
+        kind = 'NATIVE_PRODUCTION' if selection['unit_id'] in _NATIVE_UNITS else 'HISTORICAL_PORT'
+        _need(selection['kind'] == kind, 'source-owned native/port choice differs')
+        token = prepare_binding_context(parent, parent._UNKNOWN_OWNER, exact_modules, plan['outer_context'])
+        installed = _entry(token)
+        context = installed['bindings']['component_control_root_v1']['CONTEXT_CONFIGURATION']
+        _need(context['unit_id'] == selection['unit_id'] and context['mode'] == selection['mode'],
+              'installed actual context differs from selection')
+        source_manifest = _document(_read_pin(installed, installed['outer']['source_manifest']))
+        modules = source_manifest['modules']
+        _need(modules['epoch_copy_v5']['template_inverse']['template_sha256'] ==
+              (_NATIVE_COPY if kind == 'NATIVE_PRODUCTION' else _PORT_COPY) and
+              modules['epoch_schema_v5']['template_inverse']['template_sha256'] == _SCHEMA,
+              'actual selected production/port source differs')
+        _need(modules['component_control_root_v1']['template_inverse']['assignments'] == {},
+              'context must be installed before capture, never a cyclic configured source')
+        install_before_capture(token)
+        state['token'], state['plan'], state['transport'] = token, plan, transport
+        state['phase'] = 'SEALED'
+        return plan['entry_configuration']
+    except BaseException as error:
+        if state['primary'][0] is None: state['primary'][0] = error
+        if state['owner']['primary'][0] is None: state['owner']['primary'][0] = error
+        state['owner']['quarantine'][0] = True
+        state['phase'] = 'STOP'
+        raise
+
+
+def require_selected_child(modules, source_policy, unit, mode):
+    _need(len(_ENTRY_ATTEMPTS) == 1 and _ENTRY_ATTEMPTS[0]['phase'] == 'SEALED',
+          'actual selected child constructor was not reached')
+    state = _ENTRY_ATTEMPTS[0]; installed = _entry(state['token'])
+    _need(installed['modules'] is modules or all(installed['modules'].get(k) is v for k,v in modules.items()),
+          'actual selected module objects differ')
+    _need(set(installed['sources']) == set(source_policy) and all(
+          _data(installed['sources'][name]) == _data(source_policy[name]) for name in source_policy),
+          'receiver policy differs from actual authenticated source manifest')
+    selection = state['plan']['selection']
+    _need(selection['unit_id'] == unit and selection['mode'] == mode, 'actual selection context differs')
+    verify_bindings(state['token'])
+    return state['token']
+'''
+(out/'selected_child_bindings_v1.py').write_text(base)
+# Preserve actual current driver/root/family and anchor for subsequent exact edits.
+for name,num in [('component_control_root_v1.py','10'),('component_stage_entry_v1.py','08'),('family_batching_v1.py','09'),('requirement_anchor_v1.py','18')]:
+ (out/name).write_bytes((src/(num+'_'+name)).read_bytes())
+# Rewrite actual receiver binding to use the reached, authenticated provider.
+closure=(src/'00_component_receiver_closure_v1.py').read_text()
+closure=closure.replace("'epoch_copy_v5': ('_CONTROL',),", "'epoch_copy_v5': ('_CONTROL',),\n    'selected_child_bindings_v1': ('_INSTALLATIONS', '_ENTRY_ATTEMPTS'),\n    'h25_parent_supervisor': ('_GUARD_ATTEMPTS', '_PUBLICATION_BINDING', '_SUPERVISION_CURRENT', '_SUPERVISION_HISTORY'),")
+a=closure.index('def bind_receivers(');z=closure.index('\ndef _packet(',a)
+closure=closure[:a]+'''def bind_receivers(modules, source_policy, error_owner, configuration_profile):
+    """Bind actual selected modules after the reached before-capture installer."""
+    schema.owner_state(error_owner)
+    schema.need(type(modules) is dict and 1 <= len(modules) <= MAX_MODULES and
+                type(source_policy) is dict and set(modules) == set(source_policy),
+                'exact finite actual selected module closure required')
+    binding = modules['selected_child_bindings_v1']
+    schema.need(binding is sys.modules['selected_child_bindings_v1'], 'actual selected source constructor absent')
+    component = modules['component_control_root_v1']
+    context = _namespace(component)['CONTEXT_CONFIGURATION']
+    token = binding.require_selected_child(modules, source_policy, context['unit_id'], context['mode'])
+    installed = binding._entry(token)
+    expected_gates = dict(_configuration_profile(configuration_profile))
+    records = []
+    for name in sorted(modules):
+        module = modules[name]; namespace = _namespace(module); pin = source_policy[name]
+        schema.need(sys.modules.get(name) is module and namespace['__name__'] == name and
+                    namespace['__file__'] == pin['path'], 'actual selected module/name/path differs')
+        raw = copying.read_verified(pin, schema.FILE_BYTES, error_owner=error_owner)
+        tree, functions, classes, imports = binding._source_objects(module, pin, raw, modules)
+        literals, configured = [], []
+        for node in tree.body:
+            if type(node) is not ast.Assign or len(node.targets) != 1 or type(node.targets[0]) is not ast.Name:
+                continue
+            key = node.targets[0].id
+            if key in installed['bindings'][name]:
+                value = installed['bindings'][name][key]
+                schema.need(namespace[key] is value and type(node.value) is ast.Constant and
+                            node.value.value is None, 'gate was not installed into its exact source None slot')
+                configured.append((key, value, binding._data(value)))
+                if name == 'policy_parent_domain_v1' and key in _CONFIGURED_GATE_NAMES:
+                    _configured_gate(value, key, expected_gates[key])
+                continue
+            if key in _MUTABLE_NAMES.get(name, ()):
+                continue
+            try:
+                value = ast.literal_eval(node.value)
+            except (ValueError, TypeError, SyntaxError):
+                continue
+            schema.need(_data(namespace[key]) == _data(value), 'actual selected source literal changed')
+            literals.append((key, _data(value)))
+        records.append((name, module, namespace, pin, tuple(namespace.items()),
+                        functions, classes, tuple(literals), imports, tuple(configured)))
+    schema.need(len(_SOURCE_RECEIVERS) < 2, 'receiver registration bound exceeded')
+    authority = object()
+    _SOURCE_RECEIVERS.append((authority, tuple(records), error_owner, binding, token))
+    check_receivers(authority)
+    return authority
+
+''' +closure[z:]
+# Preserve fixed registered object lookup, changing its tuple shape explicitly.
+a=closure.index('def _packet(')
+closure=closure[:a]+'''def _packet(authority):
+    schema.need(type(authority) is object, 'exact original receiver authority required')
+    for packet in _SOURCE_RECEIVERS:
+        if packet[0] is authority:
+            return packet
+    raise schema.EpochStop('unregistered actual receiver authority')
+
+
+def check_receivers(authority):
+    unused, records, error_owner, binding, token = _packet(authority)
+    schema.need(sys.modules.get('selected_child_bindings_v1') is binding,
+                'actual selected source constructor changed')
+    for name, module, namespace, pin, original, functions, classes, literals, imports, configured in records:
+        schema.need(sys.modules.get(name) is module and _namespace(module) is namespace and
+                    len(namespace) == len(original), 'actual selected module namespace changed')
+        for key, value in original:
+            schema.need(namespace.get(key) is value, 'actual selected global object changed')
+        for record in functions:
+            binding._function_check(record)
+        binding._classes_unchanged(classes)
+        binding._imports_unchanged(imports)
+        for key, expected in literals:
+            schema.need(_data(namespace[key]) == expected, 'source literal contents changed')
+        for key, value, expected in configured:
+            schema.need(namespace[key] is value and binding._data(value) == expected,
+                        'actual installed gate identity/contents changed')
+        copying.verify(pin, schema.FILE_BYTES, error_owner=error_owner)
+    return None
+
+
+def receiver(authority, module_name, function_name):
+    check_receivers(authority)
+    unused, records, error_owner, binding, token = _packet(authority)
+    for name, module, namespace, pin, original, functions, classes, literals, imports, configured in records:
+        if name == module_name:
+            value = namespace[function_name]
+            schema.need(type(value) is types.FunctionType, 'fixed actual receiving function required')
+            return value
+    raise schema.EpochStop('fixed actual receiving module absent')
+'''
+(out/'component_receiver_closure_v1.py').write_text(closure)
+roottext=(out/'component_control_root_v1.py').read_text()
+roottext=roottext.replace("'component_receiver_closure_v1', 'component_control_root_v1')", "'component_receiver_closure_v1', 'component_control_root_v1',\n    'configured_inverse_v2', 'selected_child_bindings_v1')")
+(out/'component_control_root_v1.py').write_text(roottext)
+entry=(out/'component_stage_entry_v1.py').read_text()
+entry=entry.replace('import time\n','import time\nimport sys\nimport types\n')
+# All fixed dependencies are actually imported before source-object capture.
+import ast
+parenttree=ast.parse((src/'03_parent_completion_v1.py').read_bytes())
+required=next(ast.literal_eval(n.value) for n in parenttree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='REQUIRED_MODULES' for t in n.targets))
+extra=['persistent_replay_v1','replay_receiver_closure_v1','policy_parent_domain_v1','policy_receiver_closure_v1','policy_process_domain_v1','component_receiver_closure_v1','component_control_root_v1','configured_inverse_v2']
+entry=entry.replace('START_CONFIGURATION = None', '\n'.join('import '+name for name in tuple(required)+tuple(extra))+'\nimport selected_child_bindings_v1 as selected_bindings\n\nSTART_CONFIGURATION = None')
+entry=entry.replace("schema.exact(START_CONFIGURATION, ('marker_path', 'case_id', 'context_id', 'unit_id', 'mode', 'guard', 'publication_admission', 'publication_root'))\n        c = START_CONFIGURATION", "schema.need(START_CONFIGURATION is None and len(sys.argv) == 5 and\n            sys.argv[1] == '--output' and sys.argv[3] == '--lanes',\n            'actual fixed Root tail and unconfigured entry source required')\n        modules = {name: sys.modules[name] for name in component._REQUIRED}\n        schema.need(all(type(module) is types.ModuleType for module in modules.values()),\n            'actual imported selected child modules required')\n        c = selected_bindings.prepare_selected_child(sys.argv[4], modules)\n        schema.exact(c, ('marker_path', 'case_id', 'context_id', 'unit_id', 'mode', 'guard', 'publication_admission', 'publication_root'))")
+entry=entry.replace('copying.read_verified_complete_v3(c[\'publication_admission\']','copying.read_verified(c[\'publication_admission\']')
+# Actual local imports have already executed under original Root. The preparer
+# authenticates exact source objects, installs original source gates, and only
+# then the prelude acquires its ErrorOwner and publication native binding.
+entry=entry.replace('    error_owner = schema.make_error_owner()\n', '    error_owner = schema.make_error_owner()\n')
+(out/'component_stage_entry_v1.py').write_text(entry)

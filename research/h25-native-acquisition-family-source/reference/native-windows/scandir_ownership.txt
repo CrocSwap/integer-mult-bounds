@@ -1,0 +1,81 @@
+    iterator = PyObject_New(ScandirIterator, (PyTypeObject *)ScandirIteratorType);
+    if (!iterator)
+        return NULL;
+
+#ifdef MS_WINDOWS
+    iterator->handle = INVALID_HANDLE_VALUE;
+#else
+    iterator->dirp = NULL;
+#endif
+
+    /* Move the ownership to iterator->path */
+    memcpy(&iterator->path, path, sizeof(path_t));
+    memset(path, 0, sizeof(path_t));
+
+#ifdef MS_WINDOWS
+    iterator->first_time = 1;
+
+    path_strW = join_path_filenameW(iterator->path.wide, L"*.*");
+    if (!path_strW)
+        goto error;
+
+    Py_BEGIN_ALLOW_THREADS
+    iterator->handle = FindFirstFileW(path_strW, &iterator->file_data);
+    Py_END_ALLOW_THREADS
+
+    if (iterator->handle == INVALID_HANDLE_VALUE) {
+        path_error(&iterator->path);
+        PyMem_Free(path_strW);
+        goto error;
+    }
+    PyMem_Free(path_strW);
+#else /* POSIX */
+    errno = 0;
+#ifdef HAVE_FDOPENDIR
+    if (iterator->path.fd != -1) {
+      if (HAVE_FDOPENDIR_RUNTIME) {
+        /* closedir() closes the FD, so we duplicate it */
+        fd = _Py_dup(iterator->path.fd);
+        if (fd == -1)
+            goto error;
+
+        Py_BEGIN_ALLOW_THREADS
+        iterator->dirp = fdopendir(fd);
+        Py_END_ALLOW_THREADS
+      } else {
+        PyErr_SetString(PyExc_TypeError,
+            "scandir: path should be string, bytes, os.PathLike or None, not int");
+        return NULL;
+      }
+    }
+    else
+#endif
+    {
+        if (iterator->path.narrow)
+            path_str = iterator->path.narrow;
+        else
+            path_str = ".";
+
+        Py_BEGIN_ALLOW_THREADS
+        iterator->dirp = opendir(path_str);
+        Py_END_ALLOW_THREADS
+    }
+
+    if (!iterator->dirp) {
+        path_error(&iterator->path);
+#ifdef HAVE_FDOPENDIR
+        if (fd != -1) {
+            Py_BEGIN_ALLOW_THREADS
+            close(fd);
+            Py_END_ALLOW_THREADS
+        }
+#endif
+        goto error;
+    }
+#endif
+
+    return (PyObject *)iterator;
+
+error:
+    Py_DECREF(iterator);
+    return NULL;

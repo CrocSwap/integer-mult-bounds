@@ -1,0 +1,20 @@
+            int positional_args = total_args - KWNAMES_LEN();
+            // Check if the call can be inlined or not
+            if (Py_TYPE(callable) == &PyFunction_Type &&
+                tstate->interp->eval_frame == NULL &&
+                ((PyFunctionObject *)callable)->vectorcall == _PyFunction_Vectorcall)
+            {
+                int code_flags = ((PyCodeObject*)PyFunction_GET_CODE(callable))->co_flags;
+                PyObject *locals = code_flags & CO_OPTIMIZED ? NULL : Py_NewRef(PyFunction_GET_GLOBALS(callable));
+                _PyInterpreterFrame *new_frame = _PyEvalFramePushAndInit(
+                    tstate, (PyFunctionObject *)callable, locals,
+                    args, positional_args, kwnames
+                );
+                kwnames = NULL;
+                // Manipulate stack directly since we leave using DISPATCH_INLINED().
+                STACK_SHRINK(oparg + 2);
+                // The frame has stolen all the arguments from the stack,
+                // so there is no need to clean them up.
+                if (new_frame == NULL) {
+                    goto error;
+                }

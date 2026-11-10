@@ -1,0 +1,110 @@
+def _native_prepare(case):
+    """Prepare a real private filesystem cause before original protected IO.
+
+    The actual setup owner and a preallocated first-error slot are published
+    before fallible fixture creation. Failed setup retains pending custody and
+    cannot register or invoke the observed operation. No retry follows it.
+    """
+    state = _STATE[0]
+    _need(case in ('epoch-v4/C03/native-enoent',
+                   'epoch-v4/C03/native-eexist',
+                   'epoch-v4/C03/native-eloop') and state['unit'] == case,
+          'fixed native acquisition unit differs')
+    _need('native_case' not in state and not state['fault_armed'],
+          'native case replay or pre-call injection')
+    _guard()
+    copying._gate()
+    fixture = CONTEXT_CONFIGURATION['fixture_directory']
+    path = fixture + '/native-target'
+    schema.path(path)
+    _need(_MKDIR is os.mkdir, 'native fixture primitive differs')
+    setup_owner = schema.make_error_owner()
+    owner = schema.make_error_owner()
+    caught = [None]
+    returned = [None]
+    setup_error = [None]
+    setup_pending = [False]
+    setup_status = [None]
+    ambient = RuntimeError('older-native-case-caller-exception')
+    record = {'case': case, 'mode': state['mode'], 'path': path,
+              'owner': owner, 'caught': caught, 'returned': returned,
+              'ambient': ambient, 'phase': 'PREPARING',
+              'setup_owner': setup_owner, 'setup_blob': None,
+              'setup_error': setup_error, 'setup_pending': setup_pending,
+              'setup_status': setup_status}
+    state['native_case'] = record
+    # Pending publication precedes every fallible fixture operation. No
+    # traceback or allocating failure handler is needed to root its owner.
+    setup_pending[0] = True
+    try:
+        _MKDIR(fixture, 0o700)
+        if case == 'epoch-v4/C03/native-eexist':
+            # Original exclusive writer, full reread, and known-token cleanup.
+            # Mode0600 plus private custody is not a read-only-file assertion.
+            record['setup_blob'] = copying.write_once(
+                path, b'h25-native-existing-file-v1\n', error_owner=setup_owner)
+        elif case == 'epoch-v4/C03/native-eloop':
+            # This actual original primitive joins the successor native profile.
+            # It installs no filter, tracer, callback, or replacement.
+            os.symlink(CONTEXT_CONFIGURATION['raw_fixture']['path'], path)
+        # ENOENT leaves the final name absent in the exclusive private directory.
+        # This last guard is still setup, before any observed acquisition.
+        _guard()
+    except BaseException as error:
+        setup_error[0] = error
+        setup_status[0] = 'SETUP_FAILED'
+        # Leave pending true and phase PREPARING. No helper, source guard,
+        # close retry, observer, or target operation follows this failure.
+        raise
+    setup_status[0] = 'SETUP_SUCCEEDED'
+    setup_pending[0] = False
+    record['phase'] = 'PREPARED'
+    return record
+
+
+def _native_invoke(record):
+    """Run one unchanged original operation, then retain its actual outcome.
+
+    The first statement in the delivered handler stores the exact outward
+    exception in a preallocated None slot. There is no helper call, formatting,
+    protocol conversion, new acquisition, or independent observer before it.
+    Original operation cleanup has already attempted each known token once.
+    """
+    state = _STATE[0]
+    _need(record is state['native_case'] and record['phase'] == 'REGISTERED',
+          'native operation lacks one-use independent registration')
+    owner = record['owner']
+    path = record['path']
+    case = record['case']
+    caught = record['caught']
+    returned = record['returned']
+    ambient = record['ambient']
+    record['phase'] = 'INVOKING'
+    try:
+        raise ambient
+    except RuntimeError:
+        try:
+            if case == 'epoch-v4/C03/native-eexist':
+                returned[0] = copying.write_once(path, b'never-overwrite-existing\n',
+                                                 error_owner=owner)
+            else:
+                returned[0] = copying.inspect(path, schema.RECORD_BYTES,
+                                              error_owner=owner)
+        except BaseException as error:
+            caught[0] = error
+    # Known cleanup is already over. The strong root above precedes these
+    # fallible bookkeeping operations. No acquisition/retry follows a failure.
+    record['phase'] = 'RETURNED'
+
+
+def native_acquisition_case(case):
+    record = _native_prepare(case)
+    ticket = _native_before(record['owner'], record['mode'], case)
+    _native_invoke(record)
+    facts = _native_observe(ticket, record['caught'])
+    _raised('epoch_copy_v5.native_acquisition', record['caught'][0], facts)
+    _oracle('native-acquisition-local-delivery',
+            record['caught'][0] is not None and record['returned'][0] is None,
+            {'source_owned_observer_completed': True, 'subcase_only': True,
+             'family_completion': False})
+

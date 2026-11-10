@@ -1,0 +1,114 @@
+def stable_file(path, limit, keep=False):
+    """Full bounded snapshot with local raw primary and close-once custody."""
+    path = Path(path)
+    owner = _SUPERVISION_CURRENT[0]
+    before = path.stat(follow_symlinks=False)
+    need(stat.S_ISREG(before.st_mode) and before.st_size <= limit, 'File type/size bound: ' + str(path))
+    slot = None
+    fd = None
+    primary = close_error = None
+    h, count, blocks = hashlib.sha256(), 0, []
+    try:
+        if owner is not None:
+            slot = owner.open_fd(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+            fd = slot['fd']
+        else:
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        opened = os.fstat(fd)
+        need(identity(before) == identity(opened), 'File changed while opening')
+        while count < opened.st_size:
+            block = os.read(fd, min(CHUNK, opened.st_size - count))
+            need(bool(block), 'Short retained-file read')
+            count += len(block)
+            h.update(block)
+            if keep:
+                blocks.append(block)
+        need(os.read(fd, 1) == b'', 'Complete retained-file EOF')
+        after_fd = os.fstat(fd)
+    except BaseException as error:
+        primary = error
+        if slot is not None:
+            slot['working'] = error
+        if owner is not None:
+            owner.last_error = error
+            if owner.first_error is None:
+                owner.first_error = error
+            if owner.guard['primary'][0] is None:
+                owner.guard['primary'][0] = error
+            owner._remember(error, 'stable-file-read')
+    finally:
+        if fd is not None:
+            if slot is not None:
+                try:
+                    owner.close_fd(slot)
+                except BaseException as error:
+                    close_error = error
+            else:
+                closing, fd = fd, None
+                try:
+                    os.close(closing)
+                except BaseException as error:
+                    close_error = error
+    if primary is not None:
+        raise primary
+    if close_error is not None:
+        raise close_error
+    after = path.stat(follow_symlinks=False)
+    need(identity(before) == identity(after_fd) == identity(after), 'File drift during retained snapshot')
+    row = {'path': str(path), 'sha256': h.hexdigest(), 'bytes': count,
+           'identity': list(identity(after)), 'stable': True, 'read_chunk_bytes': CHUNK}
+    return (row, b''.join(blocks)) if keep else row
+
+
+def read_json(path, limit=META_CAP):
+    row, raw = stable_file(path, limit, True)
+    return json.loads(raw), row
+
+
+def write_new(path, row):
+    raw = json.dumps(row, sort_keys=True, indent=2).encode('ascii') + b'\n'
+    need(len(raw) <= META_CAP, 'Bounded metadata record exceeded')
+    owner = _SUPERVISION_CURRENT[0]
+    slot = None
+    fd = None
+    primary = close_error = None
+    try:
+        if owner is not None:
+            slot = owner.open_fd(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW)
+            fd = slot['fd']
+        else:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+        view = memoryview(raw)
+        while view:
+            written = os.write(fd, view)
+            need(written > 0, 'Metadata write made no progress')
+            view = view[written:]
+        os.fsync(fd)
+    except BaseException as error:
+        primary = error
+        if slot is not None:
+            slot['working'] = error
+        if owner is not None:
+            owner.last_error = error
+            if owner.first_error is None:
+                owner.first_error = error
+            if owner.guard['primary'][0] is None:
+                owner.guard['primary'][0] = error
+            owner._remember(error, 'metadata-write')
+    finally:
+        if fd is not None:
+            if slot is not None:
+                try:
+                    owner.close_fd(slot)
+                except BaseException as error:
+                    close_error = error
+            else:
+                closing, fd = fd, None
+                try:
+                    os.close(closing)
+                except BaseException as error:
+                    close_error = error
+    if primary is not None:
+        raise primary
+    if close_error is not None:
+        raise close_error

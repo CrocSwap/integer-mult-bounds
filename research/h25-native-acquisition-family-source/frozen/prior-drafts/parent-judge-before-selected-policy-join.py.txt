@@ -1,0 +1,124 @@
+def _native_acquisition_contract(contract):
+    """Only the three explicit source-owned additions have a native judge.
+
+    The original212 requirement document and original86 unit list are not
+    rewritten. The separately source-bound extension is literal source, not
+    a child record, a generic callback, or a supplied expected-value table.
+    """
+    extension = anchor.NATIVE_ACQUISITION_EXTENSION
+    unit = contract['unit_id']
+    schema.need(type(unit) is str and unit in extension['units'],
+                'native/opaque delivery has no implemented fixed consumer')
+    definition = extension['units'][unit]
+    schema.need(contract['original_requirement_sha256'] ==
+                '1cc648451c320e245764dd1827773301460a28d69637f4d858fa11f9bcbfe402' and
+                contract['body_source']['sha256'] == extension['root_template_sha256'] and
+                contract['body_sha256'] == definition['body_sha256'] and
+                contract['requires_opaque_identity'] is True and
+                contract['delivery_kind'] == 'NATIVE_OR_OPAQUE_REQUIRED' and
+                contract['occurrence'] == 1 and contract['role'] == 'NO_ROLE',
+                'native original requirement/body/observer scope differs')
+    return definition
+
+
+def _judge_native_acquisition(protocol, contract, owned_facts, state, artifacts):
+    """Independent fixed predicates over the actual source-authenticated child.
+
+    Called only by _case_observation after complete raw capture, protocol
+    validation, original process/guard/generation and terminal custody checks.
+    The pointer comparison happens in the separately fixed child observer over
+    genuine held ErrorOwner slots. This receiver does not accept child ORACLE
+    truth or deserialize an opaque pointer into a capability.
+    """
+    definition = _native_acquisition_contract(contract)
+    extension = anchor.NATIVE_ACQUISITION_EXTENSION
+    pending = state['pending'][0]
+    schema.need(type(pending) is dict and pending['result'] is not None,
+                'native judge lacks the actual pending joined child')
+    child = pending['child']
+    context = child['context_configuration']
+    schema.need(context['unit_id'] == contract['unit_id'] == protocol['unit_id'] and
+                context['mode'] == state['mode'] == contract['mode'] == protocol['mode'] and
+                child['context_inverse']['template_sha256'] == extension['root_template_sha256'] and
+                child['context_inverse']['configured_sha256'] == child['context_source']['sha256'],
+                'native current source/mode/context inverse differs')
+    schema.need(protocol['protocol_is_case_PASS'] is False and
+                protocol['family_completion'] is False and protocol['complete_finite_union'] is False,
+                'native unit cannot supply family authority')
+    # Existing _validate_envelopes and _case_observation authenticate the exact
+    # configured source/context and actual live generation. Also require these
+    # unchanged original implementation leaves in the whole source inventory.
+    for module, digest in (('epoch_copy_v5.py', extension['copy_template_sha256']),
+                           ('epoch_schema_v5.py', extension['schema_template_sha256'])):
+        schema.need(any(pin['path'].rsplit('/', 1)[-1] == module and pin['sha256'] == digest
+                        for pin in owned_facts['source']),
+                    'native case original implementation source absent')
+    events = protocol['events']
+    schema.need(len(events) == 4 and [event['kind'] for event in events] ==
+                ['CONTEXT_BOUND', 'RAW_RAISE', 'ORACLE', 'UNIT_TERMINAL'] and
+                events[1]['target'] == 'epoch_copy_v5.native_acquisition' and
+                events[2]['payload']['raw_ordinal'] == 1,
+                'native source-fixed actual event sequence differs')
+    raw = events[1]['decoded']
+    facts = raw['facts']
+    keys = ('schema', 'case_id', 'mode', 'path', 'site', 'occurrence', 'role',
+            'native_error_type', 'native_errno', 'native_filename', 'primary_phase',
+            'first_primary_is_outward', 'first_acquisition_is_outward',
+            'outward_is_older_ambient', 'secondary_count', 'secondary_occupied',
+            'secondary_phases', 'uncertain_fd_slots', 'primary_uncertain_fd',
+            'close_attempts', 'close_confirmed_returns', 'quarantine',
+            'pending_acquisition', 'possible_unreturned_fd',
+            'parent_kernel_teardown_required', 'retained_iterator_present',
+            'close_counter_overflow', 'historical_release_premise',
+            'external_guard_acquisition_pending', 'external_guard_fd_count_unavailable',
+            'error_overflow', 'overflow_error_present', 'operation_returned_value',
+            'delivery_phase', 'observer_token_consumed', 'injected_before_native_call',
+            'kernel_release_observed', 'post_acquisition_boxing_covered', 'full_family_completion')
+    schema.exact(facts, keys)
+    path = context['fixture_directory'] + '/native-target'
+    schema.path(path)
+    expected_closes = len(path.split('/')) - 1
+    schema.need(facts['schema'] == 'h25-native-acquisition-observation-v1' and
+                facts['case_id'] == contract['unit_id'] and facts['mode'] == state['mode'] and
+                facts['path'] == path and facts['site'] == 'epoch_copy_v5.final_native_open' and
+                type(facts['occurrence']) is int and facts['occurrence'] == 1 and
+                facts['role'] == 'NO_ROLE', 'native original occurrence/context differs')
+    schema.need(raw['exception_type'] == facts['native_error_type'] == definition['error_type'] and
+                type(facts['native_errno']) is int and facts['native_errno'] == definition['errno'] and
+                type(facts['native_filename']) is str and facts['native_filename'] == 'native-target' and
+                facts['primary_phase'] == definition['primary_phase'] and
+                type(raw['args']) is tuple and len(raw['args']) == 2 and
+                type(raw['args'][0]) is int and raw['args'][0] == definition['errno'],
+                'actual original native leaf error/phase differs')
+    for key in ('first_primary_is_outward', 'first_acquisition_is_outward',
+                'quarantine', 'pending_acquisition', 'possible_unreturned_fd',
+                'parent_kernel_teardown_required', 'observer_token_consumed'):
+        schema.need(facts[key] is True, 'actual native identity/pending/quarantine fact differs')
+    for key in ('outward_is_older_ambient', 'retained_iterator_present', 'close_counter_overflow',
+                'historical_release_premise', 'external_guard_acquisition_pending',
+                'external_guard_fd_count_unavailable', 'error_overflow', 'overflow_error_present',
+                'operation_returned_value', 'injected_before_native_call', 'kernel_release_observed',
+                'post_acquisition_boxing_covered', 'full_family_completion'):
+        schema.need(facts[key] is False, 'native case scope or uncertainty was falsely strengthened')
+    schema.need(type(facts['secondary_count']) is int and facts['secondary_count'] == 0 and
+                type(facts['secondary_occupied']) is list and len(facts['secondary_occupied']) == 64 and
+                all(value is False for value in facts['secondary_occupied']) and
+                type(facts['secondary_phases']) is list and len(facts['secondary_phases']) == 64 and
+                all(value is None for value in facts['secondary_phases']) and
+                type(facts['uncertain_fd_slots']) is list and len(facts['uncertain_fd_slots']) == 64 and
+                all(value is None for value in facts['uncertain_fd_slots']) and
+                facts['primary_uncertain_fd'] is None and facts['delivery_phase'] == 'RETURNED',
+                'native subcase has an unaccounted cleanup/secondary/result')
+    schema.need(type(facts['close_attempts']) is int and type(facts['close_confirmed_returns']) is int and
+                facts['close_attempts'] == facts['close_confirmed_returns'] == expected_closes,
+                'native known-close path count differs; no success from an earlier ancestor failure')
+    if definition['errno'] == 17:
+        # The original exclusive writer must leave every byte of the earlier
+        # owned fixture intact. Actual full artifact bytes are read by parent.
+        candidates = [pin for pin in artifacts if pin['path'] == path]
+        schema.need(len(candidates) == 1 and
+                    _read(state, candidates[0], schema.FILE_BYTES) == b'h25-native-existing-file-v1\n',
+                    'actual O_EXCL fixture bytes were omitted or changed')
+    # No complete family token is minted. Existing original _judge predicates
+    # and caller state transitions still apply after this fixed added check.
+    return None

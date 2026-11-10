@@ -1,0 +1,51 @@
+from pathlib import Path
+p=Path('/workspace/scratch/35c1441288db/h25-selected-child-construction-20261108T203610Z/implementation/selected_child_bindings_v1.py');s=p.read_text()
+s=s.replace("    primary = None\n    state['fds'] = [None, None]\n    try:", """    primary = close_primary = None
+    parts = path.split('/')[1:]
+    _need(len(parts) <= 2048, 'source path component bound')
+    record = {'fds': [None, None], 'close_fds': [None, None],
+              'close_entered': [False, False], 'close_errors': [None, None],
+              'walk_fds': [None] * len(parts), 'walk_entered': [False] * len(parts),
+              'walk_errors': [None] * len(parts), 'primary': [None]}
+    # Record allocation/retention precedes every acquisition owned by this read.
+    state['read_records'].append(record)
+    state['fds'] = record['fds']
+    try:""")
+s=s.replace("        parts = path.split('/')[1:]\n        for component in parts[:-1]:", "        for walk_index, component in enumerate(parts[:-1]):")
+s=s.replace("            old = state['fds'][0]; state['fds'][0] = None\n            _CLOSE(old)\n            state['fds'][0], state['fds'][1] = state['fds'][1], None", """            old = state['fds'][0]
+            record['walk_fds'][walk_index] = old
+            record['walk_entered'][walk_index] = True
+            state['fds'][0] = None
+            try:
+                _CLOSE(old)
+            except BaseException as error:
+                record['walk_errors'][walk_index] = error
+                raise
+            state['fds'][0] = state['fds'][1]
+            state['fds'][1] = None""")
+s=s.replace("        primary = error\n        if state['owner']['primary'][0] is None:", "        primary = error\n        record['primary'][0] = error\n        if state['owner']['primary'][0] is None:",1)
+a=s.index('    finally:\n        close_primary = None',s.index('def _read_pin('));z=s.index('\n\ndef _pairs(',a)
+body='    finally:\n'
+for i in (1,0):
+ body+=f'''        descriptor = state['fds'][{i}]
+        record['close_fds'][{i}] = descriptor
+        if descriptor is not None:
+            record['close_entered'][{i}] = True
+            state['fds'][{i}] = None
+            try:
+                _CLOSE(descriptor)
+            except BaseException as error:
+                record['close_errors'][{i}] = error
+                if close_primary is None:
+                    close_primary = error
+                if state['owner']['primary'][0] is None:
+                    state['owner']['primary'][0] = error
+                state['owner']['quarantine'][0] = True
+                state['phase'] = 'STOP'
+'''
+body+="        if primary is None and close_primary is not None:\n            raise close_primary\n"
+s=s[:a]+body+s[z:]
+s=s.replace("'fds': [None, None], 'close_errors': [], 'records': []", "'fds': [None, None], 'close_errors': [], 'read_records': [], 'records': []")
+s=s.replace("'fds': [None, None], 'close_errors': [], 'primary': [None]}", "'fds': [None, None], 'close_errors': [], 'read_records': [], 'primary': [None]}")
+s=s.replace("return state['primary'], tuple(state['close_errors']), tuple(state['fds'])", "return state['primary'], tuple(state['read_records']), tuple(state['fds'])")
+p.write_text(s)

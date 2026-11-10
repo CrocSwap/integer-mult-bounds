@@ -1,0 +1,27 @@
+        TARGET(STORE_SUBSCR_LIST_INT) {
+            PyObject *sub = stack_pointer[-1];
+            PyObject *list = stack_pointer[-2];
+            PyObject *value = stack_pointer[-3];
+            #line 558 "Python/bytecodes.c"
+            DEOPT_IF(!PyLong_CheckExact(sub), STORE_SUBSCR);
+            DEOPT_IF(!PyList_CheckExact(list), STORE_SUBSCR);
+
+            // Ensure nonnegative, zero-or-one-digit ints.
+            DEOPT_IF(!_PyLong_IsNonNegativeCompact((PyLongObject *)sub), STORE_SUBSCR);
+            Py_ssize_t index = ((PyLongObject*)sub)->long_value.ob_digit[0];
+            // Ensure index < len(list)
+            DEOPT_IF(index >= PyList_GET_SIZE(list), STORE_SUBSCR);
+            STAT_INC(STORE_SUBSCR, hit);
+
+            PyObject *old_value = PyList_GET_ITEM(list, index);
+            PyList_SET_ITEM(list, index, value);
+            assert(old_value != NULL);
+            Py_DECREF(old_value);
+            _Py_DECREF_SPECIALIZED(sub, (destructor)PyObject_Free);
+            Py_DECREF(list);
+            #line 817 "Python/generated_cases.c.h"
+            STACK_SHRINK(3);
+            next_instr += 1;
+            DISPATCH();
+        }
+

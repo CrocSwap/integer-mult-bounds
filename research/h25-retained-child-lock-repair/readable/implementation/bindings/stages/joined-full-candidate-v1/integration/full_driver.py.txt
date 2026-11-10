@@ -1,0 +1,851 @@
+"""Parent-owned pristine bootstrap; SOURCE ONLY until the parent execution gate.
+
+The parent authenticates this first script, executable and native dependency
+closure before launch. Its clean -S -s -P -B process is the initial trust root;
+these checks do not retrospectively prove that provenance. No candidate,
+scientific, plugin or callback code may precede root capture.
+"""
+import builtins
+import sys
+import posix
+import _imp
+import _hashlib
+
+def _make_metadata_factory():
+    # Capture these native operations before any candidate/provider code exists.
+    type0, id0, len0, next0 = type, id, len, next
+    dict0, tuple0, str0, int0, bool0, bytes0 = dict, tuple, str, int, bool, bytes
+    error, value_error, base_error = RuntimeError, ValueError, BaseException
+    function_type, module_type = type(lambda: None), type(sys)
+    builtin_type = type(len)
+    cell_type = type((lambda item: lambda: item)(None).__closure__[0])
+    proxy_type = type(type.__dict__)
+    none_type = type(None)
+    function_fields = tuple((name, function_type.__dict__[name].__get__) for name in
+                           ('__code__', '__globals__', '__builtins__', '__defaults__',
+                            '__kwdefaults__', '__closure__'))
+    mro_get = type.__dict__['__mro__'].__get__
+    module_dict_get = module_type.__dict__['__dict__'].__get__
+    builtin_self_get = builtin_type.__dict__['__self__'].__get__
+    cell_get = cell_type.__dict__['cell_contents'].__get__
+    dict_get, dict_set, dict_clear = dict.get, dict.__setitem__, dict.clear
+    dict_iter, dict_len = dict.__iter__, dict.__len__
+    proxy_get, proxy_iter, proxy_len = proxy_type.get, proxy_type.__iter__, proxy_type.__len__
+    tuple_get, tuple_len = tuple.__getitem__, tuple.__len__
+    missing = object()
+    missing_id = id0(missing)
+
+    def new_scope():
+        # Keys contain only source-owned names and identity integers. Values are
+        # integers, booleans or fixed tuples of those; never actual current data.
+        observations = {}
+        live = [True]
+        counters = [0, 0, 0, 0, 0, 0]
+
+        def field_id(owner, selector):
+            try:
+                if not live[0]:
+                    raise error('Metadata scope was already disposed')
+                if type0(selector) is not str0:
+                    return -1
+                token = ('field', id0(owner), selector)
+                prior = dict_get(observations, token, missing)
+                if prior is not missing:
+                    counters[1] += 1
+                    return prior
+                kind = type0(owner)
+                actual_id = -1
+                if kind is function_type:
+                    for name, getter in function_fields:
+                        if selector == name:
+                            actual_id = id0(getter(owner, function_type))
+                            break
+                elif kind is type0 and selector == '__mro__':
+                    actual_id = id0(mro_get(owner, type0))
+                elif kind is module_type and selector == '__dict__':
+                    actual_id = id0(module_dict_get(owner, module_type))
+                elif kind is builtin_type and selector == '__self__':
+                    actual_id = id0(builtin_self_get(owner, builtin_type))
+                dict_set(observations, token, actual_id)
+                counters[0] += 1
+                return actual_id
+            finally:
+                # Even a misuse or unexpected native exception cannot retain a
+                # newly supplied owner through this helper's traceback frame.
+                owner = kind = None
+
+        def length(owner):
+            try:
+                if not live[0]:
+                    raise error('Metadata scope was already disposed')
+                token = ('length', id0(owner))
+                prior = dict_get(observations, token, missing)
+                if prior is not missing:
+                    counters[1] += 1
+                    return prior
+                kind = type0(owner)
+                if kind is dict0:
+                    value = dict_len(owner)
+                elif kind is proxy_type:
+                    value = proxy_len(owner)
+                else:
+                    value = -1
+                dict_set(observations, token, value)
+                counters[0] += 1
+                return value
+            finally:
+                owner = kind = None
+
+        def domain(owner):
+            iterator = key = None
+            try:
+                if not live[0]:
+                    raise error('Metadata scope was already disposed')
+                token = ('key-domain', id0(owner))
+                prior = dict_get(observations, token, missing)
+                if prior is not missing:
+                    counters[1] += 1
+                    return prior
+                kind = type0(owner)
+                if kind is dict0:
+                    iterator = dict_iter(owner)
+                elif kind is proxy_type:
+                    iterator = proxy_iter(owner)
+                else:
+                    dict_set(observations, token, False)
+                    counters[0] += 1
+                    return False
+                counters[2] += 1
+                while True:
+                    key = next0(iterator, missing)
+                    if key is missing:
+                        break
+                    counters[3] += 1
+                    if type0(key) is not str0:
+                        dict_set(observations, token, False)
+                        counters[0] += 1
+                        return False
+                    key = None
+                dict_set(observations, token, True)
+                counters[0] += 1
+                return True
+            finally:
+                # The current key can be a foreign finalizable object. It must
+                # be dropped before the caller raises any rejection exception.
+                key = iterator = owner = kind = None
+
+        def get_id(owner, name, absent):
+            try:
+                if not live[0]:
+                    raise error('Metadata scope was already disposed')
+                if type0(name) is not str0 or not domain(owner):
+                    return -1
+                token = ('lookup', id0(owner), name)
+                observed_id = dict_get(observations, token, missing)
+                if observed_id is missing:
+                    if type0(owner) is dict0:
+                        observed_id = id0(dict_get(owner, name, missing))
+                    else:
+                        observed_id = id0(proxy_get(owner, name, missing))
+                    if observed_id == missing_id:
+                        observed_id = 0
+                    dict_set(observations, token, observed_id)
+                    counters[0] += 1
+                else:
+                    counters[1] += 1
+                return id0(absent) if observed_id == 0 else observed_id
+            finally:
+                owner = absent = None
+
+        def cell_info(cell):
+            try:
+                if not live[0]:
+                    raise error('Metadata scope was already disposed')
+                token = ('cell', id0(cell))
+                prior = dict_get(observations, token, missing)
+                if prior is not missing:
+                    counters[1] += 1
+                    return prior
+                if type0(cell) is not cell_type:
+                    result = (False, -1)
+                else:
+                    try:
+                        result = (True, id0(cell_get(cell, cell_type)))
+                    except value_error:
+                        result = (False, 0)
+                dict_set(observations, token, result)
+                counters[0] += 1
+                return result
+            finally:
+                cell = None
+
+        def immutable_equal(actual, expected):
+            child = None
+            try:
+                kind = type0(actual)
+                if kind is not expected[0]:
+                    return False
+                if (kind is none_type or kind is bool0 or kind is int0 or
+                        kind is str0 or kind is bytes0):
+                    return actual == expected[1]
+                if kind is not tuple0 or tuple_len(actual) != tuple_len(expected[2]):
+                    return False
+                index = 0
+                for expected_child in expected[2]:
+                    child = tuple_get(actual, index)
+                    if not immutable_equal(child, expected_child):
+                        return False
+                    child = None
+                    index += 1
+                return True
+            finally:
+                # Structural root defaults are deliberately compared afresh;
+                # observed trees and their contents never enter the scalar map.
+                child = actual = kind = None
+
+        def keyword_equal(owner, name, expected):
+            actual = None
+            try:
+                if not live[0]:
+                    raise error('Metadata scope was already disposed')
+                if type0(owner) is not dict0 or type0(name) is not str0 or not domain(owner):
+                    return False
+                actual = dict_get(owner, name, missing)
+                counters[4] += 1
+                if actual is missing:
+                    return False
+                return immutable_equal(actual, expected)
+            finally:
+                actual = owner = None
+
+        def statistics():
+            # No object identity or observed current value escapes in a receipt.
+            return {'actual_reads': counters[0], 'reused_reads': counters[1],
+                    'key_domain_scans': counters[2], 'key_type_reads': counters[3],
+                    'structural_keyword_reads': counters[4], 'close_calls': counters[5],
+                    'live': live[0], 'retained_scalar_cells': dict_len(observations)}
+
+        def close():
+            # Idempotent disposal makes both normal and exceptional tail paths
+            # safe. There is no scope registry and no reuse by a later call.
+            dict_clear(observations)
+            live[0] = False
+            counters[5] += 1
+
+        return (field_id, length, get_id, cell_info, keyword_equal, statistics, close)
+
+    return new_scope
+
+def _scope_factory_gate(factory):
+    """Cold private authenticator; returned gate has no effective global loads.
+
+    The gate itself is captured only in private guard closures. The public
+    factory remains covered by normal root/provider records as well. These
+    direct native reads run before invoking any mutable collector code.
+    """
+    type0, id0 = type, id
+    error, value_error = RuntimeError, ValueError
+    function_type = type(lambda: None)
+    cell_type = type((lambda item: lambda: item)(None).__closure__[0])
+    fields = tuple((function_type.__dict__[name].__get__, getattr(factory, name)) for name in
+                   ('__code__', '__globals__', '__builtins__', '__defaults__',
+                    '__kwdefaults__', '__closure__'))
+    cells = () if factory.__closure__ is None else tuple(
+        (cell, cell.cell_contents) for cell in factory.__closure__)
+    cell_get = cell_type.__dict__['cell_contents'].__get__
+
+    def checked_scope():
+        if type0(factory) is not function_type:
+            raise error('Metadata collector exact function changed')
+        for getter, expected in fields:
+            if id0(getter(factory, function_type)) != id0(expected):
+                raise error('Metadata collector calling environment changed')
+        for cell, expected in cells:
+            try:
+                observed_id = id0(cell_get(cell, cell_type))
+            except value_error:
+                raise error('Metadata collector closure became empty') from None
+            if observed_id != id0(expected):
+                raise error('Metadata collector closure value changed')
+        return factory()
+
+    return checked_scope
+
+_TYPE, _OBJECT, _DICT, _TUPLE, _STR, _INT = type, object, dict, tuple, str, int
+_LEN, _ID, _GLOBALS = len, id, globals
+_ERROR, _BASE_ERROR, _OSERROR = RuntimeError, BaseException, OSError
+_COMPILE, _EXEC = compile, exec
+ModuleType, FunctionType = type(sys), type(lambda: None)
+CodeType, BuiltinFunctionType = type((lambda: None).__code__), type(len)
+_OPEN, _READ, _FSTAT, _CLOSE, _GETPID = posix.open, posix.read, posix.fstat, posix.close, posix.getpid
+_SHA256 = _hashlib.openssl_sha256
+_CREATE_DYNAMIC, _EXEC_DYNAMIC = _imp.create_dynamic, _imp.exec_dynamic
+_GETTRACE, _GETPROFILE = sys.gettrace, sys.getprofile
+_FLAGS = posix.O_RDONLY | posix.O_CLOEXEC | posix.O_NOFOLLOW
+_PROC_FLAGS = posix.O_RDONLY | posix.O_CLOEXEC
+_ENVIRONMENT = {b'PATH': b'/usr/bin:/bin', b'PYTHONHASHSEED': b'0', b'LANG': b'C.UTF-8',
+                b'LC_ALL': b'C.UTF-8', b'TZ': b'UTC', b'PYTHONDONTWRITEBYTECODE': b'1'}
+_INITIAL_PATH = ('/usr/lib/python312.zip', '/usr/lib/python3.12', '/usr/lib/python3.12/lib-dynload')
+_ROOT_NAME = '_h25_probe_bootstrap_v3'
+_ROOT_MODULE = sys.modules[__name__]
+_ROOT_NAMESPACE = globals()
+_ROOT_PID = _GETPID()
+_ROOT_SYS = sys
+_ROOT_SYS_NAMESPACE = sys.__dict__
+_ROOT_MODULES = sys.modules
+_ROOT_FLAGS = sys.flags
+_OPTIMIZE = sys.flags.optimize
+_MISSING = object()
+_CAPABILITIES = {}
+_LOADS = {}
+_ROOT_CELL = []
+_ROOT_METADATA = {}
+_MAX_SOURCE = 262144
+_MAX_BINARY = 16777216
+_NATIVE_NAME = '_h25_dict_probe'
+_ROOT_RECORD_NAMES = ('builtins', 'sys', 'posix', '_imp', '_hashlib')
+_ROOT_MODULE_RECORDS = tuple((name, sys.modules[name]) for name in _ROOT_RECORD_NAMES)
+_NATIVE_RECORDS = (
+    (builtins, 'type', type), (builtins, 'object', object), (builtins, 'dict', dict),
+    (builtins, 'tuple', tuple), (builtins, 'str', str), (builtins, 'int', int),
+    (builtins, 'len', len), (builtins, 'id', id), (builtins, 'globals', globals),
+    (builtins, 'compile', compile), (builtins, 'exec', exec),
+    (posix, 'open', _OPEN), (posix, 'read', _READ), (posix, 'fstat', _FSTAT),
+    (posix, 'close', _CLOSE), (posix, 'getpid', _GETPID),
+    (_hashlib, 'openssl_sha256', _SHA256),
+    (_imp, 'create_dynamic', _CREATE_DYNAMIC), (_imp, 'exec_dynamic', _EXEC_DYNAMIC),
+    (sys, 'gettrace', _GETTRACE), (sys, 'getprofile', _GETPROFILE))
+
+
+_NATIVE_NAMESPACES = tuple((module, module.__dict__, name, value)
+                           for module, name, value in _NATIVE_RECORDS)
+_NEW_SCOPE = _make_metadata_factory()
+
+
+def _need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def _code_names(code):
+    names = set(code.co_names)
+    for constant in code.co_consts:
+        if _TYPE(constant) is CodeType:
+            names.update(_code_names(constant))
+    return names
+
+
+def _immutable_default(value):
+    kind = _TYPE(value)
+    if value is None or kind in (bool, int, str, bytes):
+        return (kind, value)
+    if kind is tuple:
+        return (kind, value, tuple(_immutable_default(item) for item in value))
+    raise _ERROR('Bootstrap source has unsupported mutable default contents')
+
+
+def _function_record(function):
+    namespace, builtin_owner = function.__globals__, function.__builtins__
+    defaults, keywords, closure = function.__defaults__, function.__kwdefaults__, function.__closure__
+    default_record = _immutable_default(defaults)
+    keyword_record = () if keywords is None else tuple((name, _immutable_default(value)) for name, value in keywords.items())
+    cells = () if closure is None else tuple((cell, cell.cell_contents) for cell in closure)
+    lookups = tuple((name, namespace.get(name, _MISSING), builtin_owner.get(name, _MISSING))
+                    for name in _code_names(function.__code__))
+    return (function, function.__code__, namespace, builtin_owner, defaults, default_record,
+            keywords, keyword_record, closure, cells, lookups)
+
+
+def _function_fresh(record, observations):
+    function, code, namespace, builtin_owner, defaults, default_record, keywords, keyword_record, closure, cells, lookups = record
+    field, length, get_id, cell_info, keyword_equal = observations[:5]
+    if not (_TYPE(function) is FunctionType and
+            field(function, '__code__') == _ID(code) and
+            field(function, '__globals__') == _ID(namespace) and
+            field(function, '__builtins__') == _ID(builtin_owner) and
+            field(function, '__defaults__') == _ID(defaults) and
+            field(function, '__kwdefaults__') == _ID(keywords) and
+            field(function, '__closure__') == _ID(closure)):
+        return False
+    # Default identity still binds recursively immutable initial contents.
+    # Root keyword contents retain their independent structural comparison.
+    if keywords is not None:
+        if length(keywords) != _LEN(keyword_record):
+            return False
+        for name, expected in keyword_record:
+            if not keyword_equal(keywords, name, expected):
+                return False
+    for cell, value in cells:
+        present, actual_id = cell_info(cell)
+        if not present or actual_id != _ID(value):
+            return False
+    for name, global_value, builtin_value in lookups:
+        if (get_id(namespace, name, _MISSING) != _ID(global_value) or
+                get_id(builtin_owner, name, _MISSING) != _ID(builtin_value)):
+            return False
+    return True
+
+
+def _environment_guard(namespace, classes):
+    """Capture expected owners only in the pre-admitted pristine interval."""
+    items = tuple(namespace.items())
+    class_records = tuple((cls, cls.__mro__, cls.__dict__, tuple(cls.__dict__.items())) for cls in classes)
+    functions = []
+    for _, value in items:
+        if type(value) is FunctionType and value not in functions:
+            functions.append(value)
+    for cls, mro, proxy, members in class_records:
+        for _, value in members:
+            if type(value) in (staticmethod, classmethod):
+                value = value.__func__
+            if type(value) is FunctionType and value not in functions:
+                functions.append(value)
+    records = tuple(_function_record(function) for function in functions)
+    builtins_owner = builtins.__dict__
+    builtin_items = tuple(builtins_owner.items())
+    fresh, fresh_code = _function_fresh, _function_fresh.__code__
+    defaults_check, defaults_code = _immutable_default, _immutable_default.__code__
+    len0, id0, type0, error, missing = _LEN, _ID, _TYPE, _ERROR, _MISSING
+    function_type = FunctionType
+    code_get = FunctionType.__dict__['__code__'].__get__
+    new_scope = _scope_factory_gate(_NEW_SCOPE)
+    def guard(observations=None):
+        # These original checker-code obligations precede the observation code.
+        if (code_get(fresh, function_type) is not fresh_code or
+                code_get(defaults_check, function_type) is not defaults_code):
+            raise error('Bootstrap checker source changed')
+        owned_scope = observations is None
+        if owned_scope:
+            observations = new_scope()
+        try:
+            field, length, get_id = observations[:3]
+            if length(namespace) != len0(items):
+                raise error('Bootstrap/provider namespace changed')
+            for name, value in items:
+                if get_id(namespace, name, missing) != id0(value):
+                    raise error('Bootstrap/provider global changed: ' + name)
+            if length(builtins_owner) != len0(builtin_items):
+                raise error('Bootstrap builtins changed')
+            for name, value in builtin_items:
+                if get_id(builtins_owner, name, missing) != id0(value):
+                    raise error('Bootstrap builtin changed: ' + name)
+            for cls, mro, proxy, members in class_records:
+                if field(cls, '__mro__') != id0(mro) or length(proxy) != len0(members):
+                    raise error('Bootstrap/provider class changed')
+                for name, value in members:
+                    if get_id(proxy, name, missing) != id0(value):
+                        raise error('Bootstrap/provider class member changed: ' + name)
+            for record in records:
+                if not fresh(record, observations):
+                    raise error('Bootstrap/provider function environment changed')
+        finally:
+            if owned_scope:
+                observations[6]()
+    return guard
+
+
+def _check_root(observations=None):
+    owned_scope = observations is None
+    if owned_scope:
+        observations = _ROOT_CELL[1]()
+    try:
+        _ROOT_CELL[0](observations)
+        field, length, get_id = observations[:3]
+        _need(sys is _ROOT_SYS and
+              _TYPE(_ROOT_MODULE) is ModuleType and
+              field(_ROOT_MODULE, '__dict__') == _ID(_ROOT_NAMESPACE) and
+              field(_ROOT_SYS, '__dict__') == _ID(_ROOT_SYS_NAMESPACE) and
+              get_id(_ROOT_SYS_NAMESPACE, 'modules', _MISSING) == _ID(_ROOT_MODULES) and
+              get_id(_ROOT_SYS_NAMESPACE, 'flags', _MISSING) == _ID(_ROOT_FLAGS) and
+              _GETPID() == _ROOT_PID and
+              get_id(_ROOT_MODULES, _ROOT_NAME, _MISSING) == _ID(_ROOT_MODULE),
+              'Bootstrap process/interpreter/registered root differs')
+        for name, module in _ROOT_MODULE_RECORDS:
+            _need(get_id(_ROOT_MODULES, name, _MISSING) == _ID(module),
+                  'Bootstrap module owner changed: ' + name)
+        for module, namespace, name, value in _NATIVE_NAMESPACES:
+            _need(field(module, '__dict__') == _ID(namespace) and
+                  get_id(namespace, name, _MISSING) == _ID(value),
+                  'Bootstrap native primitive changed: ' + name)
+        _need(_GETTRACE() is None and _GETPROFILE() is None, 'Bootstrap trace/profile callback installed')
+    finally:
+        if owned_scope:
+            observations[6]()
+
+
+def _fingerprint(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _hash_regular(path, limit, materialize):
+    _need(type(path) is str and path.startswith('/'), 'Bootstrap path must be absolute exact str')
+    descriptor = None
+    try:
+        descriptor = _OPEN(path, _PROC_FLAGS if path == '/proc/self/exe' else _FLAGS)
+        before = _FSTAT(descriptor)
+        _need((before.st_mode & 0o170000) == 0o100000 and 0 <= before.st_size <= limit,
+              'Bootstrap file type/size differs')
+        digest, count, parts = _SHA256(), 0, []
+        while True:
+            block = _READ(descriptor, min(1048576, limit + 1 - count))
+            if not block:
+                break
+            count += len(block)
+            _need(count <= limit, 'Bootstrap file exceeded bound')
+            digest.update(block)
+            if materialize:
+                parts.append(block)
+        after = _FSTAT(descriptor)
+        _need(_fingerprint(before) == _fingerprint(after) and count == before.st_size,
+              'Bootstrap file changed while reading')
+        return digest.hexdigest(), count, b''.join(parts) if materialize else None
+    except _OSERROR as error:
+        raise _ERROR('Bootstrap file could not be read: ' + path) from error
+    finally:
+        if descriptor is not None:
+            _CLOSE(descriptor)
+
+
+def initialize(expected_root_sha256):
+    """Parent supplies its independently expected root source pin, once."""
+    _check_root()
+    _need(not _ROOT_METADATA, 'Bootstrap root already initialized')
+    _need(type(expected_root_sha256) is str and len(expected_root_sha256) == 64,
+          'Bootstrap root expected digest differs')
+    actual, size, _ = _hash_regular(__file__, _MAX_SOURCE, False)
+    _need(actual == expected_root_sha256, 'Bootstrap root source custody differs')
+    _ROOT_METADATA.update({'source_sha256': actual, 'source_bytes': size,
+                           'initial_sys_path': _INITIAL_PATH, 'initial_environment': tuple(sorted(_ENVIRONMENT.items())),
+                           'initial_flags': (sys.flags.no_site, sys.flags.no_user_site, sys.flags.safe_path,
+                                             sys.flags.dont_write_bytecode, sys.flags.ignore_environment,
+                                             sys.flags.isolated, sys.flags.hash_randomization, sys.flags.optimize)})
+    return None
+
+
+def _source_identity_scoped(observations):
+    _check_root(observations)
+    _need('source_sha256' in _ROOT_METADATA, 'Bootstrap root not initialized by parent')
+    return _ROOT_METADATA['source_sha256']
+
+
+def source_identity():
+    observations = _ROOT_CELL[1]()
+    try:
+        return _source_identity_scoped(observations)
+    finally:
+        observations[6]()
+
+
+class BootstrapCapability:
+    __slots__ = ()
+    def __new__(cls):
+        raise _ERROR('BootstrapCapability requires source-authenticated admit_provider')
+
+
+class _NativeSpec:
+    __slots__ = ('name', 'origin')
+    def __init__(self, name, origin):
+        self.name = name
+        self.origin = origin
+
+
+def _capability_state(capability, observations=None):
+    owned_scope = observations is None
+    if owned_scope:
+        observations = _ROOT_CELL[1]()
+    try:
+        _check_root(observations)
+        _need(type(capability) is BootstrapCapability, 'Bootstrap capability exact class differs')
+        state = _CAPABILITIES.get(id(capability))
+        _need(state is not None and state[0] is capability, 'Bootstrap capability not registered')
+        _need(_TYPE(state[1]) is ModuleType and
+              observations[0](state[1], '__dict__') == _ID(state[6]),
+              'Bootstrap provider namespace owner differs')
+        state[2](observations)
+        return state
+    finally:
+        if owned_scope:
+            observations[6]()
+
+
+def _validate_namespace(capability, namespace):
+    state = _capability_state(capability)
+    _need(state[6] is namespace, 'Bootstrap provider namespace owner differs')
+    return None
+
+
+def admit_provider(provider_path, expected_provider_sha256):
+    _check_root()
+    source_identity()
+    _need(type(expected_provider_sha256) is str and len(expected_provider_sha256) == 64,
+          'Bootstrap provider expected digest differs')
+    digest, _, source = _hash_regular(provider_path, _MAX_SOURCE, True)
+    _need(digest == expected_provider_sha256, 'Bootstrap provider source differs')
+    _check_root()
+    capability = object.__new__(BootstrapCapability)
+    provider = ModuleType('_h25_source_provider_v3_' + str(len(_CAPABILITIES)))
+    namespace = provider.__dict__
+    namespace.update({'__file__': provider_path, '__builtins__': builtins.__dict__,
+        '_TYPE': _TYPE, '_OBJECT': _OBJECT, '_DICT': _DICT, '_TUPLE': _TUPLE,
+        '_STR': _STR, '_INT': _INT, '_LEN': _LEN, '_ID': _ID, '_GLOBALS': _GLOBALS,
+        '_ERROR': _ERROR, '_OSERROR': _OSERROR, '_OPEN': _OPEN, '_READ': _READ,
+        '_FSTAT': _FSTAT, '_CLOSE': _CLOSE, '_SHA256': _SHA256,
+        '_FLAGS': _FLAGS, '_PROC_FLAGS': _PROC_FLAGS,
+        'BuiltinFunctionType': BuiltinFunctionType, 'CodeType': CodeType,
+        'FunctionType': FunctionType, 'ModuleType': ModuleType,
+        '_BOOTSTRAP_CAPABILITY': capability, '_ROOT_VALIDATE': _validate_namespace,
+        '_ROOT_CREATE': _create_native, '_ROOT_EXEC': _exec_native,
+        '_ROOT_ACTIVATE': _activate_native,
+        '_MAKE_METADATA_SCOPE': _scope_factory_gate(_NEW_SCOPE)})
+    code = _COMPILE(source, provider_path, 'exec', dont_inherit=True, optimize=_OPTIMIZE)
+    _check_root()
+    _EXEC(code, namespace)
+    _check_root()
+    _need(type(namespace.get('ProbeBinding')) is type and type(namespace.get('load_probe')) is FunctionType,
+          'Bootstrap provider source interface differs')
+    guard = _environment_guard(namespace, (namespace['ProbeBinding'],))
+    counts = dict(load_calls=0, native_creations=0, native_execs=0, activation_attempts=0,
+                  successful_bindings=0, deactivation_attempts=0, cleanup_failures=0, control_module_creations=0)
+    _CAPABILITIES[id(capability)] = (capability, provider, guard, digest, provider_path, counts, namespace)
+    guard()
+    return capability
+
+
+def _validate_capability_scoped(capability, expected_provider_sha256, observations):
+    state = _capability_state(capability, observations)
+    _need(type(expected_provider_sha256) is str and state[3] == expected_provider_sha256,
+          'Bootstrap capability provider source pin differs')
+    return state[1]
+
+
+def validate_capability(capability, expected_provider_sha256):
+    observations = _ROOT_CELL[1]()
+    try:
+        return _validate_capability_scoped(capability, expected_provider_sha256, observations)
+    finally:
+        observations[6]()
+
+
+def _pending(capability):
+    state = _capability_state(capability)
+    pending = _LOADS.get(id(capability))
+    _need(pending is not None and pending['capability'] is capability,
+          'Bootstrap native creation requires an active authenticated load')
+    return state, pending
+
+
+def _check_spec(spec, path):
+    _need(type(spec) is _NativeSpec and type(spec.name) is str and
+          type(spec.origin) is str and spec.name is _NATIVE_NAME and spec.origin is path,
+          'Bootstrap narrow native specification differs')
+
+
+def _create_native(capability, extension_path):
+    state, pending = _pending(capability)
+    _need(extension_path is pending['path'] and pending['native'] is None,
+          'Bootstrap native creation path/lifecycle differs')
+    spec = _NativeSpec(_NATIVE_NAME, extension_path)
+    _check_spec(spec, extension_path)
+    # Final root/provider/spec checks immediately precede native creation.
+    _capability_state(capability)
+    _check_spec(spec, extension_path)
+    native = _CREATE_DYNAMIC(spec)
+    pending['native'], pending['spec'] = native, spec
+    state[5]['native_creations'] += 1
+    _need(type(native) is ModuleType, 'Bootstrap native create returned non-module')
+    native.__dict__['__file__'] = extension_path
+    native.__dict__['__spec__'] = spec
+    pending['deactivate'] = native.__dict__.get('_deactivate')
+    return native
+
+
+def _exec_native(capability, native):
+    state, pending = _pending(capability)
+    _need(native is pending['native'], 'Bootstrap native execution owner differs')
+    _check_spec(pending['spec'], pending['path'])
+    _EXEC_DYNAMIC(native)
+    state[5]['native_execs'] += 1
+    return None
+
+
+def _activate_native(capability, activate):
+    state, pending = _pending(capability)
+    native = pending['native']
+    _check_spec(pending['spec'], pending['path'])
+    _need(type(activate) is BuiltinFunctionType and activate.__self__ is native and
+          activate.__name__ == '_activate' and native.__dict__.get('_activate') is activate,
+          'Bootstrap activation entry owner differs')
+    # No arbitrary caller callback: only the authenticated owned native entry.
+    _capability_state(capability)
+    _check_spec(pending['spec'], pending['path'])
+    state[5]['activation_attempts'] += 1
+    activate()
+    pending['activated'] = True
+    return None
+
+
+def load_probe(capability, extension_path, expected_extension_sha256):
+    state = _capability_state(capability)
+    _need(type(extension_path) is str and extension_path.startswith('/') and
+          type(expected_extension_sha256) is str and len(expected_extension_sha256) == 64,
+          'Bootstrap native load arguments differ')
+    _need(id(capability) not in _LOADS, 'Bootstrap capability already loading')
+    type0, module_type, builtin_type, base_error, id0 = _TYPE, ModuleType, BuiltinFunctionType, _BASE_ERROR, _ID
+    pending = {'capability': capability, 'path': extension_path, 'native': None,
+               'spec': None, 'activated': False, 'deactivate': None}
+    _LOADS[id(capability)] = pending
+    state[5]['load_calls'] += 1
+    try:
+        binding = state[1].load_probe(extension_path, expected_extension_sha256)
+        _capability_state(capability)
+        state[5]['successful_bindings'] += 1
+        return binding
+    except base_error:
+        # Cleanup is intentionally independent of freshness validation. A module
+        # created but not yet executed has no active state; disarm may reject its
+        # missing state, which is retained as a secondary cleanup count.
+        native = pending['native']
+        if type0(native) is module_type:
+            deactivate = pending['deactivate']
+            if type0(deactivate) is builtin_type and deactivate.__self__ is native:
+                state[5]['deactivation_attempts'] += 1
+                try:
+                    deactivate()
+                except base_error:
+                    state[5]['cleanup_failures'] += 1
+        raise
+    finally:
+        del _LOADS[id0(capability)]
+
+
+
+
+def load_control_module(capability, extension_path, expected_extension_sha256, module_name):
+    """Authenticated separate raw-disarmed/watcher/bounds modules for controls.
+
+    Caller first invokes its sealed source_identity guard, then this source-bound
+    function without intervening callbacks. This is never scientific authority.
+    """
+    state = _capability_state(capability)
+    _need(type(module_name) is str and module_name in
+          ('_h25_dict_probe', '_h25_probe_watch_fixture', '_h25_probe_bounds_fixture'),
+          'Bootstrap control module name differs')
+    preflight(capability)
+    digest, size, _ = _hash_regular(extension_path, _MAX_BINARY, False)
+    _need(digest == expected_extension_sha256, 'Bootstrap control extension source differs')
+    spec = _NativeSpec(module_name, extension_path)
+    _capability_state(capability)
+    _need(type(spec) is _NativeSpec and spec.name is module_name and spec.origin is extension_path,
+          'Bootstrap control specification differs')
+    native = _CREATE_DYNAMIC(spec)
+    state[5]['control_module_creations'] += 1
+    _need(type(native) is ModuleType, 'Bootstrap control module type differs')
+    native.__dict__['__file__'] = extension_path
+    native.__dict__['__spec__'] = spec
+    _capability_state(capability)
+    _EXEC_DYNAMIC(native)
+    _capability_state(capability)
+    after_digest, after_size, _ = _hash_regular(extension_path, _MAX_BINARY, False)
+    _need((after_digest, after_size) == (digest, size), 'Bootstrap control extension changed')
+    expected_names = {'_h25_dict_probe': ('inspect', 'check', 'profile', 'counters', '_activate', '_deactivate'),
+                      '_h25_probe_watch_fixture': ('attach', 'counts', 'detach', 'profile'),
+                      '_h25_probe_bounds_fixture': ('bounds',)}[module_name]
+    for name in expected_names:
+        entry = native.__dict__.get(name)
+        _need(type(entry) is BuiltinFunctionType and entry.__self__ is native and entry.__name__ == name,
+              'Bootstrap control native entry owner differs')
+    return native
+
+
+def preflight(capability):
+    """Fresh public runtime/header/profile audit; never a reusable PASS."""
+    state = _capability_state(capability)
+    return state[1].preflight_runtime()
+
+
+def diagnostics(capability):
+    state = _capability_state(capability)
+    return dict(state[5])
+
+
+
+def capture_api():
+    """Sealed fourtuple; no caller receives or supplies an observation scope."""
+    _check_root()
+    guard = _ROOT_CELL[0]
+    new_scope = _scope_factory_gate(_NEW_SCOPE)
+    identity, validate = _source_identity_scoped, _validate_capability_scoped
+    load, diagnostic = load_probe, diagnostics
+    def sealed_identity():
+        observations = new_scope()
+        try:
+            guard(observations)
+            return identity(observations)
+        finally:
+            observations[6]()
+    def sealed_validate(capability, expected_provider_sha256):
+        observations = new_scope()
+        try:
+            guard(observations)
+            return validate(capability, expected_provider_sha256, observations)
+        finally:
+            observations[6]()
+    def sealed_load(capability, extension_path, expected_extension_sha256):
+        # Native creation/exec/activation can expose audit callbacks. Retain the
+        # original independent guards and scopes on each side of those calls.
+        guard()
+        return load(capability, extension_path, expected_extension_sha256)
+    def sealed_diagnostics(capability):
+        guard()
+        return diagnostic(capability)
+    return (sealed_identity, sealed_validate, sealed_load, sealed_diagnostics)
+
+
+def _entry():
+    args = sys.argv[1:]
+    _need(len(args) >= 11 and args[0] == '--root-sha256' and args[2] == '--provider' and
+          args[5] == '--driver' and args[8] == '--integration' and args[10] == '--',
+          'Bootstrap launch argument schema differs')
+    initialize(args[1])
+    provider_path, provider_sha = args[3], args[4]
+    driver_path, driver_sha, integration = args[6], args[7], args[9]
+    _need(type(integration) is str and integration.startswith('/') and
+          provider_path.rsplit('/', 1)[0] == integration and
+          driver_path.rsplit('/', 1)[0] == integration,
+          'Bootstrap integration/source directory differs')
+    capability = admit_provider(provider_path, provider_sha)
+    api = capture_api()
+    preflight(capability)  # reject unsupported profile before any driver/build work
+    _check_root()
+    digest, _, driver_source = _hash_regular(driver_path, _MAX_SOURCE, True)
+    _need(digest == driver_sha, 'Bootstrap scientific driver source differs')
+    _need(tuple(sys.path) == _INITIAL_PATH, 'Bootstrap initial search path changed before stage installation')
+    sys.path.insert(0, integration)
+    driver = ModuleType('__main__')
+    driver_namespace = driver.__dict__
+    driver_namespace.update({'__file__': driver_path, '__builtins__': builtins.__dict__,
+                             'bootstrap_root': _ROOT_MODULE,
+                             'bootstrap_capability': capability, 'bootstrap_api': api})
+    code = _COMPILE(driver_source, driver_path, 'exec', dont_inherit=True, optimize=_OPTIMIZE)
+    _check_root()
+    sys.argv = [driver_path] + args[11:]
+    sys.modules['__main__'] = driver
+    _EXEC(code, driver_namespace)
+
+
+# This first capture is valid only under the parent's explicit fresh-process,
+# authenticated-source/native-dependency and clean-launch provenance boundary.
+_need(sys.executable == '/usr/bin/python3.12' and
+      sys.flags.no_site == 1 and sys.flags.no_user_site == 1 and
+      sys.flags.safe_path == 1 and sys.flags.dont_write_bytecode == 1 and
+      sys.flags.ignore_environment == 0 and sys.flags.isolated == 0 and
+      sys.flags.hash_randomization == 0 and sys.flags.optimize in (0, 1) and
+      tuple(sys.path) == _INITIAL_PATH and posix.environ == _ENVIRONMENT,
+      'Bootstrap requires the exact reviewed clean seeded parent launch')
+_need(_GETTRACE() is None and _GETPROFILE() is None, 'Bootstrap callback root is not pristine')
+_need(_ROOT_MODULE.__dict__ is _ROOT_NAMESPACE, 'Bootstrap root module namespace differs')
+sys.modules[_ROOT_NAME] = _ROOT_MODULE
+_ROOT_CELL.append(_environment_guard(_ROOT_NAMESPACE, (BootstrapCapability, _NativeSpec)))
+_ROOT_CELL.append(_scope_factory_gate(_NEW_SCOPE))
+if __name__ == '__main__':
+    _entry()

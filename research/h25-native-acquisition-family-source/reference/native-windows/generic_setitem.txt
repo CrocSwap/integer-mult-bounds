@@ -1,0 +1,14 @@
+PyObject_SetItem(PyObject *o, PyObject *key, PyObject *value)
+{
+    if (o == NULL || key == NULL || value == NULL) {
+        null_error();
+        return -1;
+    }
+
+    PyMappingMethods *m = Py_TYPE(o)->tp_as_mapping;
+    if (m && m->mp_ass_subscript) {
+        int res = m->mp_ass_subscript(o, key, value);
+        assert(_Py_CheckSlotResult(o, "__setitem__", res >= 0));
+        return res;
+    }
+

@@ -1,0 +1,20 @@
+do_raise(PyThreadState *tstate, PyObject *exc, PyObject *cause)
+{
+    PyObject *type = NULL, *value = NULL;
+
+    if (exc == NULL) {
+        /* Reraise */
+        _PyErr_StackItem *exc_info = _PyErr_GetTopmostException(tstate);
+        exc = exc_info->exc_value;
+        if (Py_IsNone(exc) || exc == NULL) {
+            _PyErr_SetString(tstate, PyExc_RuntimeError,
+                             "No active exception to reraise");
+            return 0;
+        }
+        Py_INCREF(exc);
+        assert(PyExceptionInstance_Check(exc));
+        _PyErr_SetRaisedException(tstate, exc);
+        return 1;
+    }
+
+    /* We support the following forms of raise:

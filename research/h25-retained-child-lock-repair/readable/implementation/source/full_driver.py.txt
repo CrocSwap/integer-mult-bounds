@@ -1,0 +1,826 @@
+"""Unprivileged serialized-DATA adapter SOURCE; APPROVED_BINDING is source-fixed DATA.
+
+The parent authenticates the complete immutable stage/queue/runtime before this
+entry. Local source comparisons are consistency checks under that boundary, not
+Python self-authentication, native identity proof, or an execution grant.
+"""
+import argparse
+import builtins
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import stat
+import sys
+from types import ModuleType, FunctionType
+
+# This configured SOURCE candidate requires independent whole-source review before use.
+# source_review_sha256 preserves the unchanged scientific oracle predecessor;
+# current complete-code adoption is detached and cannot be manufactured here.
+# No environment, receipt, command-line option or decoder can fill this value.
+APPROVED_BINDING = {
+    "adapter_contract": {
+        "bytes": 95220,
+        "sha256": "ab581c43b87254273371cf0094ab773ac91e967f3f4d1d1b54e380dd859943ec"
+    },
+    "composed_layout": {
+        "external_base": "/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z/runtime/completed-source/IndependentPrefixDATAComposedV1",
+        "mode_labels": {
+            "normal": "IndependentPrefixDATAComposedV1N",
+            "optimized": "IndependentPrefixDATAComposedV1O"
+        },
+        "outer_entry_label": "IndependentPrefixDATAComposedV1",
+        "schema": "fresh-composed-prefix-layout-v2",
+        "stage": "independent-prefix-data-composed-v1"
+    },
+    "control_inventory_sha256": "e52f36a90cba6bcb838823543b0b6681983eaa4bcc0e235eeba8f65ffa56ab3b",
+    "decoder": {
+        "bytes": 102124,
+        "sha256": "878eb30176c7cd54427954f445464b4137a41e1ceca62638b16e91f11ef56770"
+    },
+    "input_contract": {
+        "bytes": 63192,
+        "sha256": "9858aca8ee6a3bebb0b3142e6599572a8f45e602959eef7b77d42a9d1f35a737"
+    },
+    "schema": "independent-prefix-adapter-approved-binding-v3",
+    "source_review_sha256": "55358400e185e9e93d8506d8493b4e2de083b9aa83fb160e27e992e0a5483094",
+    "version": 3
+}
+
+ROUND = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/h25-data-handling-20261028')
+EXTERNAL_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z/runtime/completed-source/IndependentPrefixDATAComposedV1')
+STAGE_BASE = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453/outputs/s03-completion-repair-20261105T1139Z/implementation/bindings/stages')
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+INITIAL_PATH = ('/usr/lib/python312.zip', '/usr/lib/python3.12', '/usr/lib/python3.12/lib-dynload')
+LANES = 'DATAaudit'
+MODULE_NAME = '_h25_independent_prefix_data_decoder_v1'
+INVENTORY_KEYS = ('schema', 'ids', 'count', 'old59_ids', 'old59_preserved', 'executed', 'new_controls_count', 'parameterized_future_adapter_required', 'no_fixed59_admission', 'prior165_ids', 'new_v3_controls_count', 'prior165_preserved', 'descriptors', 'generator_source', 'generator_dependencies', 'descriptor_byte_offsets', 'fixture_identity_boundary', 'raw_before_oracle_fields', 'expected_codes_from')
+INVENTORY_SCHEMA = 'independent-prefix-v3-source-descriptor-control-inventory-v1'
+INVENTORY_OFFSETS = 'Zero-based half-open offsets in exactly the same frozen UTF8 standalone source; SHA256 over source[start:end].'
+INVENTORY_FIXTURE_BOUNDARY = 'Reviewed immutable generating source/body/global dependencies; RAW hex/length/hash are observed before oracle in the same guarded full-control plus real-DATA run. No precomputed external fixture RAW golden hashes and no separate generation run.'
+INVENTORY_EXPECTED_CODES = 'Independent source literals/explicit source branch equations, passively mapped from AST/text; never observed verdicts.'
+INPUT_ORDER = ('artifact', 'stdout', 'metadata', 'root_receipt')
+FALSE_FLAGS = ('full99_fit', 'full52prefix_qualification', 'runtime_profile_qualified',
+               'native_identity_proved', 'fullcaller_admitted', 'fullscience', 'gain',
+               'execution_grant_created', 'all_costs_settled', 'native_fault_totality_qualified')
+OUTCOME_FALSE_FLAGS = ('complete99case_qualification', 'full52prefix_qualification',
+                       'current_runtime_profile_qualified', 'native_header_FFI_fullcaller_admission',
+                       'native_identity_proved', 'fullscience', 'gain', 'controls_waived')
+FILE_CAPS = {'RAW-artifact.typed': 16777216, 'RAW-stdout.typed': 2097152,
+             'RAW-metadata.json': 65536, 'RAW-root_receipt.json': 65536,
+             'observations.jsonl': 4194304, 'receipt.json': 1048576}
+# Fixed IO/error ownership census is allocated below before any acquisition.
+
+
+class AdapterStop(RuntimeError):
+    pass
+
+
+def _new_io_state():
+    """Pure Python state; never an OS ownership grant or restored Root capability."""
+    return [False, None, [None] * 16, None,
+            [['read-fd', 'IDLE', None, False, False],
+             ['write-fd', 'IDLE', None, False, False],
+             ['scandir', 'IDLE', None, False, False],
+             ['mkdir-effect', 'IDLE', None, False, False]]]
+
+
+IO_STATE = _new_io_state()
+READ_SLOT, WRITE_SLOT, SCANDIR_SLOT, MKDIR_SLOT = IO_STATE[4]
+ERRORS = IO_STATE[2]  # Fixed secondary slots; first/overflow are IO_STATE[1]/[3].
+IO_BLOCKED = AdapterStop('IO ownership uncertain; parent whole-process teardown required')
+
+
+def _retain_error(owner, error):
+    """Keep first and distinct secondary objects without growing a container."""
+    if owner[1] is None:
+        owner[1] = error
+    elif error is not owner[1]:
+        for index in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15):
+            if owner[2][index] is error:
+                return owner[1]
+            if owner[2][index] is None:
+                owner[2][index] = error
+                return owner[1]
+        owner[0] = True
+        if owner[3] is None:
+            owner[3] = error  # First saturation object is never overwritten.
+    return owner[1]
+
+
+def _publication_allowed(owner):
+    if owner[0]:
+        return False
+    for slot in owner[4]:
+        if slot[1] not in ('IDLE', 'CLOSED', 'DONE'):
+            owner[0] = True
+            return False
+    return True
+
+
+def _ensure_io(owner):
+    if not _publication_allowed(owner):
+        raise _retain_error(owner, IO_BLOCKED)
+
+
+def _begin_acquisition(owner, slot):
+    _ensure_io(owner)
+    need(any(item is slot for item in owner[4]), 'foreign Python IO slot')
+    slot[2] = None
+    slot[3] = False
+    slot[4] = False
+    slot[1] = 'PENDING'  # Before entering a primitive or argument conversion.
+
+
+def _slot_returned(owner, slot):
+    need(any(item is slot for item in owner[4]) and slot[1] == 'PENDING',
+         'IO acquisition state differs')
+    slot[1] = 'OWNED'  # Resource was already transferred directly to slot[2].
+
+
+def _mark_unknown(owner, slot, error):
+    owner[0] = True  # Block acquisition/publication before error projection.
+    slot[1] = 'UNKNOWN'
+    return _retain_error(owner, error)
+
+
+def _quarantine_error(owner, error):
+    # An unclassified same-process decoder/argv failure cannot authorize new IO.
+    owner[0] = True
+    return _retain_error(owner, error)
+
+
+def _close_enter(owner, slot):
+    need(any(item is slot for item in owner[4]) and slot[1] == 'OWNED' and
+         slot[3] is False, 'known IO close cannot replay')
+    slot[3] = True
+    slot[1] = 'CLOSING'  # Burn the only close attempt before native entry.
+
+
+def _close_returned(owner, slot):
+    need(any(item is slot for item in owner[4]) and slot[1] == 'CLOSING' and
+         slot[3] is True, 'IO close state differs')
+    slot[4] = True
+    slot[1] = 'CLOSED'
+
+
+def _finish_handle(slot):
+    """Actual production slots only; pure Python port controls never call this."""
+    need(slot is READ_SLOT or slot is WRITE_SLOT or slot is SCANDIR_SLOT,
+         'foreign production IO slot')
+    _close_enter(IO_STATE, slot)
+    try:
+        if slot is SCANDIR_SLOT:
+            slot[2].close()
+        else:
+            os.close(slot[2])
+    except BaseException as error:
+        raise _mark_unknown(IO_STATE, slot, error)
+    _close_returned(IO_STATE, slot)
+
+
+def _create_science_directory(path):
+    _begin_acquisition(IO_STATE, MKDIR_SLOT)
+    MKDIR_SLOT[2] = path  # Known effect destination before mkdir entry.
+    try:
+        os.mkdir(path, 0o700)
+        _slot_returned(IO_STATE, MKDIR_SLOT)
+        MKDIR_SLOT[1] = 'DONE'  # Directory effect, not an FD/release claim.
+    except BaseException as error:
+        raise _mark_unknown(IO_STATE, MKDIR_SLOT, error)
+
+
+def need(value, message):
+    if not value:
+        raise AdapterStop(message)
+
+
+def exact(value, keys):
+    need(type(value) is dict and set(value) == set(keys), 'exact DATA object keys differ')
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def sha_value(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact sha256 required')
+
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'),
+                       ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+
+
+def json_data(raw, cap):
+    """Bounded file/line before JSON parsing; post-parse node/type checks.
+
+    json.loads allocations and recursion precede postchecks; outer 1GiB/180s
+    supervision remains mandatory. This is not a proved successful-fit bound.
+    """
+    need(type(raw) is bytes and 0 < len(raw) <= cap, 'JSON byte cap')
+    def pairs(rows):
+        out = {}
+        for key, value in rows:
+            need(type(key) is str and key not in out, 'duplicate or foreign JSON key')
+            out[key] = value
+        return out
+    def constant(value):
+        raise AdapterStop('nonfinite JSON constant')
+    value = json.loads(raw.decode('ascii'), object_pairs_hook=pairs, parse_constant=constant)
+    nodes = [0]
+    def walk(item, depth):
+        nodes[0] += 1
+        need(nodes[0] <= 200000 and depth <= 32, 'JSON nodes/depth')
+        kind = type(item)
+        if item is None or kind is bool:
+            return
+        if kind is int:
+            need(item.bit_length() <= 128, 'JSON integer bound')
+        elif kind is float:
+            need(math.isfinite(item), 'JSON finite float')
+        elif kind is str:
+            need(len(item) <= 1048576, 'JSON string bound')
+        elif kind in (dict, list):
+            need(len(item) <= 16384, 'JSON collection bound')
+            if kind is dict:
+                for key, child in item.items():
+                    need(type(key) is str and len(key) <= 65536, 'JSON key bound')
+                    walk(child, depth + 1)
+            else:
+                for child in item:
+                    walk(child, depth + 1)
+        else:
+            raise AdapterStop('foreign JSON type')
+    walk(value, 0)
+    return value
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_uid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def stable_blob(path, cap, mode, expected=None, materialize=False):
+    """Read only one canonical file; all fallible buffers precede acquisition."""
+    _ensure_io(IO_STATE)
+    need(type(path) is Path or isinstance(path, Path), 'Path required')
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical file path')
+    before = path.lstat()
+    need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode) == mode and
+         before.st_nlink == 1 and before.st_uid == os.getuid() and
+         0 <= before.st_size <= cap, 'file type/mode/size/uid/nlink')
+    primary = None
+    pieces, count, hasher = [], 0, hashlib.sha256()
+    try:
+        _begin_acquisition(IO_STATE, READ_SLOT)
+        READ_SLOT[2] = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        _slot_returned(IO_STATE, READ_SLOT)
+        need(type(READ_SLOT[2]) is int and READ_SLOT[2] >= 0, 'native descriptor type differs')
+        need(identity(os.fstat(READ_SLOT[2])) == identity(before), 'opened file identity drift')
+        while count < before.st_size:
+            block = os.read(READ_SLOT[2], min(65536, before.st_size - count))
+            need(type(block) is bytes and 0 < len(block) <= min(65536, before.st_size - count),
+                 'short/oversized file read')
+            hasher.update(block)
+            count += len(block)
+            if materialize:
+                pieces.append(block)
+        need(os.read(READ_SLOT[2], 1) == b'', 'file grew')
+        need(identity(os.fstat(READ_SLOT[2])) == identity(before), 'descriptor identity drift')
+    except BaseException as error:
+        if READ_SLOT[1] == 'PENDING':
+            primary = _mark_unknown(IO_STATE, READ_SLOT, error)
+        else:
+            primary = _retain_error(IO_STATE, error)
+    finally:
+        if READ_SLOT[1] == 'OWNED':
+            try:
+                _finish_handle(READ_SLOT)
+            except BaseException as error:
+                primary = _retain_error(IO_STATE, error)
+    if primary is not None:
+        raise primary
+    _ensure_io(IO_STATE)
+    need(identity(path.lstat()) == identity(before), 'path identity drift')
+    row = {'path': str(path), 'bytes': count, 'sha256': hasher.hexdigest(),
+           'mode': mode, 'uid': before.st_uid, 'nlink': before.st_nlink,
+           'identity': list(identity(before))}
+    if expected is not None:
+        need(type(expected['bytes']) is int and expected['bytes'] == count and
+             type(expected['sha256']) is str and expected['sha256'] == row['sha256'],
+             'fixed source/data size or digest differs')
+    return row, b''.join(pieces) if materialize else None
+
+
+def private_directory(path):
+    _ensure_io(IO_STATE)
+    need(path.is_absolute() and path.resolve(strict=True) == path, 'canonical directory')
+    info = path.lstat()
+    need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o700 and
+         info.st_uid == os.getuid(), 'private directory mode/owner')
+    return identity(info)
+
+
+def clean_launch():
+    need(sys.executable == '/usr/bin/python3.12' and sys.implementation.name == 'cpython' and
+         sys.version_info[:2] == (3, 12), 'admitted CPython3.12 required')
+    need(sys.flags.optimize in (0, 1) and sys.flags.no_site == 1 and
+         sys.flags.no_user_site == 1 and sys.flags.safe_path and
+         sys.flags.dont_write_bytecode == 1 and sys.flags.ignore_environment == 0 and
+         sys.flags.isolated == 0 and sys.flags.hash_randomization == 0,
+         'clean normal/O flags differ')
+    need(dict(os.environ) == ENV and tuple(sys.path) == INITIAL_PATH, 'clean environment/path differ')
+    return 'optimized' if sys.flags.optimize == 1 else 'normal'
+
+
+def configuration():
+    """Source-fixed selection only; no dynamic receipt/argv/decoder adoption."""
+    need(type(APPROVED_BINDING) is dict, 'future approved immutable binding is absent')
+    exact(APPROVED_BINDING, ('schema', 'version', 'adapter_contract', 'decoder',
+                            'input_contract', 'source_review_sha256', 'control_inventory_sha256',
+                            'composed_layout'))
+    need(APPROVED_BINDING['schema'] == 'independent-prefix-adapter-approved-binding-v3' and
+         type(APPROVED_BINDING['version']) is int and APPROVED_BINDING['version'] >= 3,
+         'immutable binding version')
+    for key in ('adapter_contract', 'decoder', 'input_contract'):
+        row = APPROVED_BINDING[key]
+        exact(row, ('bytes', 'sha256'))
+        need(type(row['bytes']) is int and 0 < row['bytes'] <= 1048576, 'source byte bound')
+        sha_value(row['sha256'])
+    sha_value(APPROVED_BINDING['source_review_sha256'])
+    sha_value(APPROVED_BINDING['control_inventory_sha256'])
+    layout = APPROVED_BINDING['composed_layout']
+    exact(layout, ('schema', 'outer_entry_label', 'stage', 'mode_labels', 'external_base'))
+    name = layout['outer_entry_label']
+    need(layout['schema'] == 'fresh-composed-prefix-layout-v2' and
+         type(name) is str and 1 <= len(name) <= 64 and
+         all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in name),
+         'exact simple enclosing request label required')
+    need(layout['stage'] == 'independent-prefix-data-composed-v1' and
+         layout['external_base'] == str(EXTERNAL_BASE), 'fixed composed stage/external base')
+    exact(layout['mode_labels'], ('normal', 'optimized'))
+    need(type(layout['mode_labels']['normal']) is str and
+         layout['mode_labels']['normal'] == 'IndependentPrefixDATAComposedV1N' and
+         type(layout['mode_labels']['optimized']) is str and
+         layout['mode_labels']['optimized'] == 'IndependentPrefixDATAComposedV1O',
+         'fixed composed mode labels')
+    return APPROVED_BINDING
+
+
+def fixed_contract(here, binding, mode, output):
+    row, raw = stable_blob(here / 'ADAPTER-CONTRACT.json', 1048576, 0o444,
+                           binding['adapter_contract'], True)
+    spec = json_data(raw, 1048576)
+    exact(spec, ('schema', 'version', 'source_review_sha256', 'approved_decoder',
+                 'approved_input_contract', 'decoder_inventory', 'control_inventory', 'generator_dependencies', 'all_required_controls',
+                 'original_control_preservation_review_sha256', 'modes', 'external_file_caps',
+                 'external_total_cap_bytes', 'input_source_pin_count', 'data_scope', 'grants_execution', 'composed_layout'))
+    need(spec['schema'] == 'independent-prefix-adapter-contract-v3' and
+         type(spec['version']) is int and spec['version'] == binding['version'] and
+         spec['source_review_sha256'] == binding['source_review_sha256'] and
+         spec['grants_execution'] is False and spec['all_required_controls'] is True,
+         'source-fixed inert adapter contract differs')
+    sha_value(spec['original_control_preservation_review_sha256'])
+    need(canonical(spec['approved_decoder']) == canonical(binding['decoder']) and
+         canonical(spec['approved_input_contract']) == canonical(binding['input_contract']),
+         'approved decoder/input source binding differs')
+    need(canonical(spec['external_file_caps']) == canonical(FILE_CAPS) and
+         type(spec['external_total_cap_bytes']) is int and
+         spec['external_total_cap_bytes'] == sum(FILE_CAPS.values()), 'external caps differ')
+    need(spec['data_scope'] == 'SERIALIZED_DATA_ONLY_NO_RUNTIME_AUTHORITY', 'DATA scope differs')
+    layout = binding['composed_layout']
+    need(canonical(spec['composed_layout']) == canonical(layout), 'exact selected composed layout differs')
+    exact(spec['modes'], ('normal', 'optimized'))
+    for selected in ('normal', 'optimized'):
+        item = spec['modes'][selected]
+        exact(item, ('mode', 'job', 'label', 'stage', 'external_output'))
+        need(item['mode'] == selected and item['job'] == selected and
+             item['stage'] == layout['stage'] and
+             item['label'] == layout['mode_labels'][selected] and
+             item['external_output'] == str(EXTERNAL_BASE / layout['mode_labels'][selected] / 'serialized-DATA'),
+             'fixed mode/job/stage/label/external path differs')
+    selected = spec['modes'][mode]
+    need(here == STAGE_BASE / selected['stage'] / 'integration', 'actual stage entry differs')
+    need(output == EXTERNAL_BASE / selected['label'] / 'runner/science', 'actual guarded label/output differs')
+    inventory_pin = spec['decoder_inventory']
+    exact(inventory_pin, ('path', 'bytes', 'sha256', 'mode', 'count'))
+    need(type(inventory_pin['path']) is str and type(inventory_pin['bytes']) is int and
+         0 < inventory_pin['bytes'] <= 1048576 and type(inventory_pin['mode']) is int and
+         inventory_pin['mode'] == 0o444 and type(inventory_pin['count']) is int and
+         1 <= inventory_pin['count'] <= 1024, 'exact approved inventory pin required')
+    sha_value(inventory_pin['sha256'])
+    inventory = spec['control_inventory']
+    need(type(inventory) is list and 1 <= len(inventory) <= 1024 and
+         digest(canonical(inventory)) == binding['control_inventory_sha256'],
+         'future reviewed complete literal inventory absent or changed')
+    names = []
+    for control in inventory:
+        exact(control, ('name', 'scope', 'expected_code', 'generator_source_sha256',
+                        'generator_span_start', 'generator_span_end',
+                        'generator_span_sha256', 'generator_case_key'))
+        need(type(control['name']) is str and 0 < len(control['name']) <= 256 and
+             type(control['scope']) is str and 0 < len(control['scope']) <= 64 and
+             type(control['generator_case_key']) is str and
+             0 < len(control['generator_case_key']) <= 256 and
+             (control['expected_code'] is None or
+              type(control['expected_code']) is str and len(control['expected_code']) <= 256),
+             'literal control descriptor types/bounds')
+        sha_value(control['generator_source_sha256'])
+        sha_value(control['generator_span_sha256'])
+        need(type(control['generator_span_start']) is int and
+             type(control['generator_span_end']) is int and
+             0 <= control['generator_span_start'] < control['generator_span_end'] <= binding['decoder']['bytes'],
+             'generator source byte span differs')
+        names.append(control['name'])
+    need(len(set(names)) == len(names), 'duplicate required literal control identity')
+    dependencies = spec['generator_dependencies']
+    need(type(dependencies) is list and 1 <= len(dependencies) <= 1024,
+         'complete generating-body dependencies absent')
+    for dependency in dependencies:
+        exact(dependency, ('generator_source_sha256', 'generator_span_start', 'generator_span_end',
+                           'generator_span_sha256', 'generator_case_key'))
+        sha_value(dependency['generator_source_sha256'])
+        sha_value(dependency['generator_span_sha256'])
+        need(type(dependency['generator_span_start']) is int and
+             type(dependency['generator_span_end']) is int and
+             0 <= dependency['generator_span_start'] < dependency['generator_span_end'] <= binding['decoder']['bytes'] and
+             type(dependency['generator_case_key']) is str and
+             0 < len(dependency['generator_case_key']) <= 256,
+             'generating dependency byte span differs')
+    return spec, row
+
+
+def _verify_generator_source(raw, source_row, spec, binding):
+    """One fresh immutable buffer/hash; each distinct span hashed once locally.
+
+    Every independent descriptor/dependency expected digest is still compared.
+    No file opens, whole-source rehash or PASS cache across freshness boundaries.
+    Case-key/body/dependency semantics require independent source review.
+    """
+    need(type(raw) is bytes and len(raw) == source_row['bytes'] == binding['decoder']['bytes'] and
+         source_row['sha256'] == binding['decoder']['sha256'], 'fresh whole generating source differs')
+    span_hashes = {}
+    for control in spec['control_inventory']:
+        key = (control['generator_span_start'], control['generator_span_end'])
+        if key not in span_hashes:
+            span_hashes[key] = digest(raw[key[0]:key[1]])
+        need(control['generator_source_sha256'] == source_row['sha256'] and
+             span_hashes[key] == control['generator_span_sha256'], 'source-fixed generator body differs')
+    for dependency in spec['generator_dependencies']:
+        key = (dependency['generator_span_start'], dependency['generator_span_end'])
+        if key not in span_hashes:
+            span_hashes[key] = digest(raw[key[0]:key[1]])
+        need(dependency['generator_source_sha256'] == source_row['sha256'] and
+             span_hashes[key] == dependency['generator_span_sha256'], 'source-fixed generator dependency differs')
+
+
+def _verify_inventory_contract(inputs, spec, binding):
+    pin = spec['decoder_inventory']
+    need(canonical(inputs['control_inventory']) == canonical(pin), 'INPUT/adapter inventory pin differs')
+    row, raw = stable_blob(Path(pin['path']), 1048576, 0o444, pin, True)
+    value = json_data(raw, 1048576)
+    exact(value, INVENTORY_KEYS)
+    need(value['schema'] == INVENTORY_SCHEMA and type(value['count']) is int and
+         value['count'] == pin['count'] == len(spec['control_inventory']) and
+         value['ids'] == [item['name'] for item in spec['control_inventory']] and
+         canonical(value['descriptors']) == canonical(spec['control_inventory']) and
+         canonical(value['generator_dependencies']) == canonical(spec['generator_dependencies']),
+         'complete source-bound inventory/descriptors/dependencies differ')
+    for key in ('old59_preserved', 'prior165_preserved',
+                'parameterized_future_adapter_required', 'no_fixed59_admission'):
+        need(value[key] is True, 'complete control-preservation metadata differs')
+    need(type(value['executed']) is int and value['executed'] == 0,
+         'source inventory is not inert control metadata')
+    for key in ('old59_ids', 'prior165_ids', 'ids'):
+        need(type(value[key]) is list and all(type(name) is str for name in value[key]) and
+             len(set(value[key])) == len(value[key]), 'inventory identity types/uniqueness')
+    need(value['ids'][:len(value['prior165_ids'])] == value['prior165_ids'] and
+         value['prior165_ids'][:len(value['old59_ids'])] == value['old59_ids'],
+         'complete ordered predecessor control identities not preserved')
+    need(type(value['new_controls_count']) is int and value['new_controls_count'] >= 0 and
+         type(value['new_v3_controls_count']) is int and value['new_v3_controls_count'] >= 0 and
+         value['count'] == len(value['old59_ids']) + value['new_controls_count'] and
+         value['count'] == len(value['prior165_ids']) + value['new_v3_controls_count'],
+         'complete source inventory count equation differs')
+    original = value['generator_source']
+    exact(original, ('path', 'sha256', 'bytes', 'mode'))
+    need(type(original['path']) is str and type(original['bytes']) is int and
+         original['bytes'] == binding['decoder']['bytes'] and
+         original['sha256'] == binding['decoder']['sha256'] and
+         type(original['mode']) is int and original['mode'] == 0o444,
+         'whole approved generating-source provenance differs')
+    need(value['raw_before_oracle_fields'] ==
+         ['kind', 'name', 'scope', 'raw_hex', 'raw_bytes', 'raw_sha256', 'expected_code'] and
+         value['descriptor_byte_offsets'] == INVENTORY_OFFSETS and
+         value['fixture_identity_boundary'] == INVENTORY_FIXTURE_BOUNDARY and
+         value['expected_codes_from'] == INVENTORY_EXPECTED_CODES,
+         'explicit source-generating fixture independence contract differs')
+    return row
+
+
+def invoke_decoder(here, binding, spec, mode, destination):
+    """One fresh same-process module/main invocation; no second child or producer import."""
+    source = here / 'decode_prefix.py'
+    source_row, raw = stable_blob(source, 1048576, 0o444, binding['decoder'], True)
+    contract_row, contract_raw = stable_blob(here / 'INPUT-CONTRACT.json', 1048576,
+                                            0o444, binding['input_contract'], True)
+    inputs = json_data(contract_raw, 1048576)
+    need(inputs.get('grants_execution') is False and inputs.get('originals_read_only') is True and
+         inputs.get('round_root') == str(ROUND), 'inert input/original contract differs')
+    exact(inputs['inputs'], ('normal', 'optimized'))
+    for selected in ('normal', 'optimized'):
+        exact(inputs['inputs'][selected], INPUT_ORDER)
+    need(type(spec['input_source_pin_count']) is int and 1 <= spec['input_source_pin_count'] <= 4096 and
+         type(inputs['source_pins']) is dict and
+         len(inputs['source_pins']) == spec['input_source_pin_count'], 'complete approved source pin inventory absent')
+    _verify_inventory_contract(inputs, spec, binding)
+    _verify_generator_source(raw, source_row, spec, binding)
+    need(MODULE_NAME not in sys.modules, 'decoder module was already loaded')
+    module = ModuleType(MODULE_NAME)
+    module.__dict__.update(__file__=str(source), __package__=None, __spec__=None,
+                           __cached__=None, __loader__=None, __builtins__=builtins)
+    sys.modules[MODULE_NAME] = module
+    old_argv = sys.argv
+    stdio = (sys.stdin, sys.stdout, sys.stderr)
+    try:
+        # Compile/exec are FUTURE reviewed adapter behavior, never worker actions.
+        exec(compile(raw, str(source), 'exec', dont_inherit=True,
+                     optimize=sys.flags.optimize), module.__dict__)
+        entry = module.__dict__.get('main')
+        need(type(entry) is FunctionType and entry.__globals__ is module.__dict__ and
+             entry.__code__.co_filename == str(source), 'fixed decoder main absent or foreign')
+        sys.argv = [str(source), '--mode', mode, '--output', str(destination),
+                    '--source-sha256', binding['decoder']['sha256'],
+                    '--contract-sha256', binding['input_contract']['sha256']]
+        result = module.main()
+        need(result is None or type(result) is int and result == 0, 'decoder did not return zero')
+    except BaseException as error:
+        raise _quarantine_error(IO_STATE, error)
+    finally:
+        try:
+            sys.argv = old_argv
+        except BaseException as error:
+            raise _quarantine_error(IO_STATE, error)
+    need(all(now is before for now, before in zip((sys.stdin, sys.stdout, sys.stderr), stdio)),
+         'decoder changed current stdio objects')
+    stable_blob(source, 1048576, 0o444, binding['decoder'])
+    stable_blob(here / 'INPUT-CONTRACT.json', 1048576, 0o444, binding['input_contract'])
+    stable_blob(Path(spec['decoder_inventory']['path']), 1048576, 0o444, spec['decoder_inventory'])
+    return inputs, source_row, contract_row, module
+
+
+def external_census(directory):
+    """Only six fixed files; explicit pending/owned/one-close Scandir custody."""
+    _ensure_io(IO_STATE)
+    before = private_directory(directory)
+    names, primary = [], None
+    try:
+        _begin_acquisition(IO_STATE, SCANDIR_SLOT)
+        SCANDIR_SLOT[2] = os.scandir(directory)
+        _slot_returned(IO_STATE, SCANDIR_SLOT)
+        for entry in SCANDIR_SLOT[2]:
+            need(len(names) < len(FILE_CAPS), 'extra external member')
+            names.append(entry.name)
+            need(entry.name in FILE_CAPS and entry.is_file(follow_symlinks=False),
+                 'unexpected external path/kind')
+    except BaseException as error:
+        if SCANDIR_SLOT[1] == 'PENDING':
+            primary = _mark_unknown(IO_STATE, SCANDIR_SLOT, error)
+        else:
+            primary = _retain_error(IO_STATE, error)
+    finally:
+        if SCANDIR_SLOT[1] == 'OWNED':
+            try:
+                _finish_handle(SCANDIR_SLOT)
+            except BaseException as error:
+                primary = _retain_error(IO_STATE, error)
+    if primary is not None:
+        raise primary
+    _ensure_io(IO_STATE)
+    need(set(names) == set(FILE_CAPS) and len(names) == len(FILE_CAPS), 'external membership differs')
+    need(private_directory(directory) == before, 'external directory census drift')
+    return before
+
+
+def verify_journal(raw, inputs, inventory, mode, outcome):
+    """DATA journal only; never decode the typed input or invoke an oracle again."""
+    need(raw.endswith(b'\n'), 'journal lacks final newline')
+    lines = raw.splitlines()
+    need(len(lines) == len(INPUT_ORDER) + 2 * len(inventory) + 1, 'complete journal inventory differs')
+    position = 0
+    for name in INPUT_ORDER:
+        observed = json_data(lines[position], 1048576)
+        position += 1
+        exact(observed, ('kind', 'name', 'bytes', 'sha256', 'mode'))
+        expected = inputs[name]
+        need(observed['kind'] == 'INPUT_RAW_BEFORE_ORACLE' and observed['name'] == name and
+             type(observed['bytes']) is int and observed['bytes'] == expected['bytes'] and
+             observed['sha256'] == expected['sha256'] and observed['mode'] == mode,
+             'input RAW-before-oracle journal differs')
+    for control in inventory:
+        first = json_data(lines[position], 1048576)
+        second = json_data(lines[position + 1], 1048576)
+        position += 2
+        exact(first, ('kind', 'name', 'scope', 'raw_hex', 'raw_bytes', 'raw_sha256', 'expected_code'))
+        exact(second, ('kind', 'name', 'code'))
+        need(first['kind'] == 'CONTROL_RAW_BEFORE_ORACLE' and first['name'] == control['name'] and
+             first['scope'] == control['scope'] and first['expected_code'] == control['expected_code'] and
+             second['kind'] == 'CONTROL_OBSERVED' and second['name'] == control['name'] and
+             second['code'] == control['expected_code'], 'literal RAW/order/observed code differs')
+        hx = first['raw_hex']
+        need(type(first['raw_bytes']) is int and 0 <= first['raw_bytes'] <= 131072 and
+             type(hx) is str and len(hx) == first['raw_bytes'] * 2 and
+             all(c in '0123456789abcdef' for c in hx), 'observed RAW hex type/length')
+        sha_value(first['raw_sha256'])
+        # Observed transport consistency only. Fixture identity is source/body-pinned;
+        # expected code/value checks stay independently fixed, never learned here.
+        need(digest(bytes.fromhex(hx)) == first['raw_sha256'], 'observed RAW transport digest differs')
+    final = json_data(lines[position], 1048576)
+    exact(final, ('kind', 'outcome'))
+    need(final['kind'] == 'SEMANTIC_OBSERVATION' and canonical(final['outcome']) == canonical(outcome),
+         'complete semantic observation cross-binding differs')
+
+
+def verify_external(directory, spec, inputs, mode, binding):
+    before = external_census(directory)
+    manifest, material = {}, {}
+    for name, cap in FILE_CAPS.items():
+        row, raw = stable_blob(directory / name, cap, 0o600,
+                               materialize=name in ('receipt.json', 'observations.jsonl'))
+        manifest[name] = row
+        if raw is not None:
+            material[name] = raw
+    need(sum(row['bytes'] for row in manifest.values()) <= spec['external_total_cap_bytes'],
+         'external aggregate byte cap')
+    for name in INPUT_ORDER:
+        filename = 'RAW-' + name + ('.typed' if name in ('artifact', 'stdout') else '.json')
+        expected, observed = inputs['inputs'][mode][name], manifest[filename]
+        need(type(expected['bytes']) is int and expected['bytes'] == observed['bytes'] and
+             expected['sha256'] == observed['sha256'], 'external RAW copy differs from fixed input')
+    receipt = json_data(material['receipt.json'], FILE_CAPS['receipt.json'])
+    exact(receipt, ('schema', 'status', 'mode', 'source_sha256', 'contract_sha256',
+                    *FALSE_FLAGS, 'controls_completed', 'outcome',
+                    'observed_internal_wall_before_receipt_seconds',
+                    'observed_internal_CPU_before_receipt_seconds', 'internal_receipt_and_cleanup_tail_excluded'))
+    for key in ('observed_internal_wall_before_receipt_seconds',
+                'observed_internal_CPU_before_receipt_seconds'):
+        need(type(receipt[key]) in (int, float) and math.isfinite(receipt[key]) and
+             receipt[key] >= 0, 'internal DATA timing type/value')
+    need(receipt['internal_receipt_and_cleanup_tail_excluded'] is True, 'internal receipt timing scope differs')
+    need(type(receipt) is dict and receipt.get('schema') == 'independent-exact-prefix-DATA-outcome-v2' and
+         receipt.get('status') == 'EXACT_PREFIX_SERIALIZED_DATA_OBSERVED' and
+         receipt.get('mode') == mode and receipt.get('source_sha256') == binding['decoder']['sha256'] and
+         receipt.get('contract_sha256') == binding['input_contract']['sha256'],
+         'external DATA receipt source/status/mode differs')
+    for key in FALSE_FLAGS:
+        need(receipt.get(key) is False, 'qualified/native/science/gain flag is not exactly false')
+    required = [row['name'] for row in spec['control_inventory']]
+    need(type(receipt.get('controls_completed')) is list and
+         all(type(name) is str for name in receipt['controls_completed']) and
+         receipt['controls_completed'] == required, 'all required literal controls not completed in order')
+    outcome = receipt.get('outcome')
+    exact(outcome, ('decision', 'scope', 'mode', 'journal_rows', 'independent_documents',
+                    'independent_decoded_bytes', 'independent_nodes', 'documents',
+                    'trusted_source_lifetime_proof_separate', *OUTCOME_FALSE_FLAGS))
+    need(outcome['trusted_source_lifetime_proof_separate'] is True, 'source lifetime premise scope differs')
+    for key in ('independent_documents', 'independent_decoded_bytes', 'independent_nodes'):
+        need(type(outcome[key]) is int and outcome[key] >= 0, 'DATA outcome counter type')
+    need(type(outcome) is dict and outcome.get('decision') == receipt['status'] and
+         outcome.get('mode') == mode, 'semantic DATA outcome mode/status differs')
+    for key in OUTCOME_FALSE_FLAGS:
+        need(outcome.get(key) is False, 'semantic qualified/native/science flag is not exactly false')
+    verify_journal(material['observations.jsonl'], inputs['inputs'][mode],
+                   spec['control_inventory'], mode, outcome)
+    # Distinct final freshness boundary: no cached PASS across changes.
+    for name, cap in FILE_CAPS.items():
+        final, unused = stable_blob(directory / name, cap, 0o600)
+        need(final == manifest[name], 'external final stable bytes/identity changed')
+    need(external_census(directory) == before, 'external final directory/membership changed')
+    return {'schema': 'independent-prefix-external-DATA-manifest-v1',
+            'directory': str(directory), 'directory_identity': list(before),
+            'files': manifest, 'file_count': len(manifest),
+            'total_bytes': sum(row['bytes'] for row in manifest.values()),
+            'external_receipt_sha256': manifest['receipt.json']['sha256']}, required
+
+
+def write_receipt(directory, value):
+    _ensure_io(IO_STATE)  # No canonicalization, path lookup or publish after unknown.
+    raw = canonical(value)
+    need(len(raw) <= 65536, 'small adapter receipt cap')
+    path, offset, primary = directory / 'receipt.json', 0, None
+    try:
+        _begin_acquisition(IO_STATE, WRITE_SLOT)
+        WRITE_SLOT[2] = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                               os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+        _slot_returned(IO_STATE, WRITE_SLOT)
+        need(type(WRITE_SLOT[2]) is int and WRITE_SLOT[2] >= 0, 'native descriptor type differs')
+        while offset < len(raw):
+            size = os.write(WRITE_SLOT[2], raw[offset:offset + 65536])
+            need(type(size) is int and 0 < size <= min(65536, len(raw) - offset), 'receipt short write')
+            offset += size
+        os.fsync(WRITE_SLOT[2])
+    except BaseException as error:
+        if WRITE_SLOT[1] == 'PENDING':
+            primary = _mark_unknown(IO_STATE, WRITE_SLOT, error)
+        else:
+            primary = _retain_error(IO_STATE, error)
+    finally:
+        if WRITE_SLOT[1] == 'OWNED':
+            try:
+                _finish_handle(WRITE_SLOT)
+            except BaseException as error:
+                primary = _retain_error(IO_STATE, error)
+    if primary is not None:
+        raise primary
+    _ensure_io(IO_STATE)
+    row, unused = stable_blob(path, 65536, 0o600,
+                              {'bytes': len(raw), 'sha256': digest(raw)})
+    return row
+
+
+def _run_adapter():
+    binding = configuration()  # None fails before output reads/writes or decoder loading.
+    mode = clean_launch()
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--lanes', required=True, choices=(LANES,))
+    parser.add_argument('--finite-only', required=True, action='store_true')
+    args = parser.parse_args()
+    here = Path(__file__).absolute().parent
+    need(here.resolve(strict=True) == here and stat.S_IMODE(here.stat().st_mode) == 0o555,
+         'readonly canonical integration directory')
+    output = Path(args.output)
+    need(output.is_absolute() and output.parent.resolve(strict=True) == output.parent and
+         not output.exists() and not output.is_symlink(), 'fresh guarded science path')
+    spec, adapter_pin = fixed_contract(here, binding, mode, output)
+    private_directory(EXTERNAL_BASE)
+    private_directory(EXTERNAL_BASE / binding['composed_layout']['mode_labels'][mode])
+    destination = Path(spec['modes'][mode]['external_output'])
+    need(not destination.exists() and not destination.is_symlink() and
+         destination == EXTERNAL_BASE / binding['composed_layout']['mode_labels'][mode] / 'serialized-DATA' and
+         destination.parent == EXTERNAL_BASE / binding['composed_layout']['mode_labels'][mode] and not destination.is_relative_to(ROUND),
+         'fresh fixed external DATA output required')
+    _create_science_directory(output)
+    report = {'schema': 'independent-prefix-generic-runner-adapter-outcome-v1',
+              'status': 'STOP', 'mode': mode, 'optimized': mode == 'optimized',
+              'job': mode, 'label': spec['modes'][mode]['label'], 'lanes': LANES,
+              'finite_only': True, 'source_review_sha256': binding['source_review_sha256'],
+              'adapter_contract': adapter_pin, 'decoder_sha256': binding['decoder']['sha256'],
+              'input_contract_sha256': binding['input_contract']['sha256'],
+              'control_inventory_sha256': binding['control_inventory_sha256'],
+              'qualified': False, 'full99_fit': False, 'full52prefix_qualification': False,
+              'runtime_profile_qualified': False, 'native_identity_proved': False,
+              'fullcaller_admitted': False, 'fullscience': False, 'gain': False,
+              'execution_grant_created': False, 'all_costs_settled': False,
+              'native_fault_totality_qualified': False,
+              'fixture_byte_independence': 'REVIEWED_GENERATOR_SOURCE_WITH_OBSERVED_RAW_TRANSPORT'}
+    try:
+        inputs, source_pin, contract_pin, module = invoke_decoder(here, binding, spec, mode, destination)
+        manifest, completed = verify_external(destination, spec, inputs, mode, binding)
+        stable_blob(here / 'decode_prefix.py', 1048576, 0o444, binding['decoder'])
+        stable_blob(here / 'INPUT-CONTRACT.json', 1048576, 0o444, binding['input_contract'])
+        stable_blob(here / 'ADAPTER-CONTRACT.json', 1048576, 0o444, binding['adapter_contract'])
+        inventory_row, unused = stable_blob(Path(spec['decoder_inventory']['path']),
+                                            1048576, 0o444, spec['decoder_inventory'])
+        need(sys.modules.get(MODULE_NAME) is module, 'decoder module binding changed')
+        clean_launch()
+        report.update(status='EXACT_PREFIX_SERIALIZED_DATA_OBSERVED', decoder=source_pin,
+                      decoder_control_inventory=inventory_row,
+                      input_contract=contract_pin, controls_completed=len(completed),
+                      all_required_controls_observed=True, external_manifest=manifest,
+                      external_manifest_sha256=digest(canonical(manifest)),
+                      external_receipt=manifest['files']['receipt.json'])
+        write_receipt(output, report)
+    except BaseException as error:
+        primary = _retain_error(IO_STATE, error)
+        # Unknown/pending/closing state permits only parent process teardown.
+        # In particular do not stat a receipt path or acquire another FD here.
+        if _publication_allowed(IO_STATE):
+            try:
+                report['error_type'] = type(primary).__name__
+                if not (output / 'receipt.json').exists():
+                    write_receipt(output, report)
+            except BaseException as secondary:
+                _retain_error(IO_STATE, secondary)
+        raise primary
+    print(json.dumps({'status': report['status'], 'mode': mode,
+                      'label': report['label'], 'qualified': False,
+                      'external_manifest_sha256': report['external_manifest_sha256']}, sort_keys=True))
+
+
+def main():
+    try:
+        return _run_adapter()
+    except BaseException as error:
+        # Includes configuration/early allocation/format/print failures.
+        # No fallback IO is performed by this final error owner.
+        raise _retain_error(IO_STATE, error)
+
+
+if __name__ == '__main__':
+    main()

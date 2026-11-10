@@ -1,0 +1,289 @@
+"""Actual selected owner with inert syscall/process ports; no target launch."""
+import ast
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+from types import SimpleNamespace
+import unittest
+
+D = Path(__file__).resolve().parents[1]
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+OLD = W / 'outputs/caller-qualification-reconciliation-20261107T2312Z/successor'
+NEW = D / 'successor'
+RUNNER = NEW / 'implementation/source/run_guarded_v3.py'
+
+
+class Model:
+    """Independent identity rule: consuming wait releases q for unrelated U."""
+    def __init__(self, code=0, failures=None, observations=None, rss=0, clock=0, size=0):
+        self.code, self.failures = code, failures or {}
+        self.observations = list(observations) if observations is not None else ['terminal']
+        self.rss, self.clock, self.size = rss, clock, size
+        self.events, self.signals = [], []
+        self.anchor, self.group = False, 'ABSENT'
+        self.pid = 741
+
+    def fault(self, operation):
+        if operation in self.failures:
+            raise self.failures[operation]
+
+    def spawn(self, *args, **kwargs):
+        self.events.append('spawn')
+        self.anchor, self.group = True, 'OWNED'
+        self.fault('spawn')
+        return self
+
+    def consume(self):
+        self.anchor, self.group = False, 'UNRELATED'
+        return self.code
+
+    def poll(self):
+        self.events.append('consuming-poll')
+        return self.consume()
+
+    def wait(self):
+        self.events.append('wait')
+        self.fault('wait')
+        return self.consume()
+
+    def peek(self, kind, pid, flags):
+        if kind != os.P_PID or pid != self.pid or flags != os.WEXITED | os.WNOHANG | os.WNOWAIT:
+            raise AssertionError('non-consuming owned wait request')
+        self.events.append('peek')
+        self.fault('peek')
+        item = self.observations.pop(0)
+        if item is None or type(item) is not str:
+            return item
+        row = os.waitid_result((self.pid, 0, signal.SIGCHLD, self.code, os.CLD_EXITED))
+        if row.si_pid != self.pid or row.si_code != os.CLD_EXITED:
+            raise AssertionError('actual stdlib observation field layout')
+        return row
+
+    def kill(self, pid, sig):
+        if pid != self.pid or sig != signal.SIGKILL:
+            raise AssertionError('selected numeric signal')
+        self.events.append('signal')
+        self.signals.append(self.group)
+        self.fault('signal')
+
+    def group_rss(self, pid):
+        if pid != self.pid:
+            raise AssertionError('owned group sample')
+        self.events.append('rss')
+        self.fault('rss')
+        return self.rss
+
+    def sleep(self, delay):
+        if delay != 0.05:
+            raise AssertionError('original sampling delay')
+        self.events.append('sleep')
+
+    def ports(self):
+        return dict(os=SimpleNamespace(waitid=self.peek, killpg=self.kill,
+                    P_PID=os.P_PID, WEXITED=os.WEXITED, WNOHANG=os.WNOHANG,
+                    WNOWAIT=os.WNOWAIT, waitid_result=os.waitid_result,
+                    CLD_EXITED=os.CLD_EXITED, CLD_KILLED=os.CLD_KILLED, CLD_DUMPED=os.CLD_DUMPED),
+                    subprocess=SimpleNamespace(Popen=self.spawn), signal=signal,
+                    group_rss=self.group_rss, time=SimpleNamespace(monotonic=lambda:self.clock, sleep=self.sleep),
+                    RSS_CAP=1024**3, OUTPUT_CAP=2*1024**2, TIMEOUT=180)
+
+    def folder(self):
+        model = self
+        class Stream:
+            def __init__(self, name): self.name = name
+            def close(self):
+                model.events.append('close-'+self.name)
+                model.fault('close-'+self.name)
+        class Leaf:
+            def __init__(self, name): self.name = name
+            def open(self, mode):
+                if mode != 'wb': raise AssertionError('original capture mode')
+                model.events.append('open-'+self.name)
+                model.fault('open-'+self.name)
+                return Stream(self.name)
+            def stat(self): return SimpleNamespace(st_size=model.size)
+        class Folder:
+            def __truediv__(self, name): return Leaf(name)
+        return Folder()
+
+
+def actual_owner(model):
+    tree = ast.parse(RUNNER.read_bytes())
+    body = [n for n in tree.body if
+            isinstance(n, ast.FunctionDef) and n.name == 'run_group_capture' or
+            isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == '_GROUP_CUSTODY' for t in n.targets)]
+    if len(body) != 2: raise AssertionError('one actual owner and preallocated custody cell')
+    ns = model.ports()
+    exec(compile(ast.Module(body=body, type_ignores=[]), str(RUNNER), 'exec'), ns)
+    return ns
+
+
+def invoke(model, ns=None):
+    ns = actual_owner(model) if ns is None else ns
+    result, error = None, None
+    try:
+        result = ns['run_group_capture'](['/inert/time'], '/inert/stage', {}, model.folder(), 0, 1000, 0)
+    except BaseException as caught:
+        error = caught
+    return ns, result, error
+
+
+class RetirementControls(unittest.TestCase):
+    def test_old_numeric_signal_targets_reused_group_new_owner_does_not(self):
+        m = Model()
+        tree = ast.parse((OLD/'implementation/source/run_guarded_v3.py').read_bytes())
+        main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'main')
+        nodes = [n for n in ast.walk(main) if isinstance(n, ast.With) and len(n.items) == 2 and
+                 any(isinstance(x.context_expr, ast.Call) and isinstance(x.context_expr.func, ast.Attribute) and
+                     x.context_expr.func.attr == 'open' for x in n.items)]
+        self.assertEqual(len(nodes), 1)
+        # The predecessor with statement is executed verbatim; only ports are inert.
+        class ContextStream:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+        folder = SimpleNamespace()
+        class OldFolder:
+            def __truediv__(self, name): return SimpleNamespace(open=lambda mode:ContextStream())
+        ns = dict(m.ports(), folder=OldFolder(), timed=['/inert/time'], stage='/inert/stage',
+                  env={}, peak=0, stop=None, runner_start=0, cap=1000, spent=0)
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), '<actual predecessor block / inert identity model>', 'exec'), ns)
+        self.assertEqual(m.signals, ['UNRELATED'])
+        new = Model(); state, result, error = invoke(new)
+        self.assertIsNone(error); self.assertEqual(result, (0, 0, None))
+        self.assertEqual(new.signals, ['OWNED'])
+        self.assertLess(new.events.index('signal'), new.events.index('wait'))
+        self.assertEqual(new.events.count('wait'), 1)
+
+    def test_normal_and_original_refusal_return_codes(self):
+        for code in (0, 1, -9):
+            with self.subTest(code=code):
+                m = Model(code=code); ns, result, error = invoke(m)
+                self.assertIsNone(error); self.assertEqual(result, (code, 0, None))
+                self.assertEqual(m.events[-2:], ['close-stderr.txt','close-stdout.txt'])
+
+    def test_first_and_all_cleanup_errors_retain_actual_objects_and_tracebacks(self):
+        failures = {name: RuntimeError(name) for name in
+                    ('rss','signal','wait','close-stderr.txt','close-stdout.txt')}
+        m = Model(failures=failures, observations=[None]); ns, result, error = invoke(m)
+        self.assertIs(error, failures['rss']); self.assertIsNone(result)
+        state = ns['_GROUP_CUSTODY'][0]
+        self.assertEqual([r[0] for r in state['errors']], list(failures.values()))
+        for caught, tb in state['errors']:
+            self.assertIsNotNone(tb); self.assertIs(tb.tb_frame.f_code, ns['run_group_capture'].__code__)
+            self.assertIsNotNone(tb.tb_next)
+        for operation in ('signal','wait','close-stderr.txt','close-stdout.txt'):
+            self.assertEqual(m.events.count(operation),1)
+        self.assertTrue(state['unknown'])
+
+    def test_clean_body_promotes_first_cleanup_error_without_skipping_later_cleanup(self):
+        failures = {name: RuntimeError(name) for name in ('signal','wait','close-stderr.txt','close-stdout.txt')}
+        m=Model(failures=failures); ns,result,error=invoke(m)
+        self.assertIs(error,failures['signal']);self.assertIsNone(result)
+        self.assertEqual([r[0] for r in ns['_GROUP_CUSTODY'][0]['errors'] if r[0] is not None],list(failures.values()))
+        self.assertEqual(m.events[-4:],['signal','wait','close-stderr.txt','close-stdout.txt'])
+
+    def test_keyboard_interrupt_is_preserved_through_cleanup_failures(self):
+        primary=KeyboardInterrupt('inert cancellation');secondary=OSError('close')
+        m=Model(failures={'rss':primary,'close-stderr.txt':secondary},observations=[None]);ns,result,error=invoke(m)
+        self.assertIs(error,primary);self.assertIsNone(result)
+        self.assertIs(ns['_GROUP_CUSTODY'][0]['errors'][3][0],secondary)
+        self.assertEqual(m.signals,['OWNED'])
+
+    def test_lost_or_invalid_wait_ownership_never_guesses_a_signal_or_wait(self):
+        observations=[object(),os.waitid_result((999,0,signal.SIGCHLD,0,os.CLD_EXITED)),
+                      os.waitid_result((741,0,signal.SIGCHLD,0,os.CLD_STOPPED))]
+        for observation in observations:
+            with self.subTest(observation=repr(observation)):
+                m=Model(observations=[observation]);ns,result,error=invoke(m)
+                self.assertIsNotNone(error);self.assertIsNone(result)
+                self.assertNotIn('signal',m.events);self.assertNotIn('wait',m.events)
+                self.assertTrue(ns['_GROUP_CUSTODY'][0]['unknown'])
+        primary=ChildProcessError('no owned child');m=Model(failures={'peek':primary});ns,result,error=invoke(m)
+        self.assertIs(error,primary);self.assertNotIn('signal',m.events);self.assertNotIn('wait',m.events)
+
+    def test_partial_opening_closes_only_known_capture_once(self):
+        primary=OSError('stderr open');secondary=OSError('stdout close')
+        m=Model(failures={'open-stderr.txt':primary,'close-stdout.txt':secondary});ns,result,error=invoke(m)
+        self.assertIs(error,primary);self.assertIsNone(result)
+        self.assertEqual(m.events,['open-stdout.txt','open-stderr.txt','close-stdout.txt'])
+        self.assertIs(ns['_GROUP_CUSTODY'][0]['errors'][4][0],secondary)
+
+    def test_uncertain_launch_does_not_reconstruct_numeric_identity(self):
+        primary=OSError('uncertain Popen');m=Model(failures={'spawn':primary});ns,result,error=invoke(m)
+        self.assertIs(error,primary);self.assertIsNone(result)
+        self.assertNotIn('signal',m.events);self.assertNotIn('wait',m.events)
+        self.assertEqual(ns['_GROUP_CUSTODY'][0]['spawn'],'UNKNOWN')
+        self.assertEqual(m.events[-2:],['close-stderr.txt','close-stdout.txt'])
+
+    def test_known_absent_owned_group_keeps_actual_absence_and_waits_once(self):
+        absent=ProcessLookupError('owned group absent');m=Model(failures={'signal':absent});ns,result,error=invoke(m)
+        self.assertIsNone(error);self.assertEqual(result,(0,0,None))
+        self.assertIs(ns['_GROUP_CUSTODY'][0]['signal_absent'],absent)
+        self.assertEqual(m.events.count('wait'),1)
+
+    def test_each_original_cap_signals_before_consuming_wait(self):
+        for values,expected in [({'rss':2*1024**3},'sampled_group_rss_cap'),
+                                ({'clock':181},'wall_or_aggregate_cap'),
+                                ({'size':2*1024**2+1},'output_cap')]:
+            with self.subTest(cap=expected):
+                m=Model(observations=[None],**values);ns,result,error=invoke(m)
+                self.assertIsNone(error);self.assertEqual(result[2],expected)
+                self.assertEqual(m.signals,['OWNED']);self.assertEqual(m.events.count('wait'),1)
+
+    def test_nonterminal_sampling_uses_original_delay_and_keeps_anchor(self):
+        m=Model(observations=[None,'terminal']);ns,result,error=invoke(m)
+        self.assertIsNone(error);self.assertEqual(m.events.count('sleep'),1)
+        self.assertEqual(m.signals,['OWNED']);self.assertEqual(m.events.count('peek'),2)
+
+    def test_invalid_consuming_wait_result_never_returns_success_or_signals_again(self):
+        for code in (None,False,'0'):
+            with self.subTest(code=code):
+                m=Model();m.code=code;ns,result,error=invoke(m)
+                self.assertIsNotNone(error);self.assertIsNone(result)
+                self.assertEqual(m.signals,['OWNED']);self.assertEqual(m.events.count('wait'),1)
+
+    def test_capture_close_failures_do_not_return_a_success_tuple(self):
+        first=OSError('stderr');later=OSError('stdout');m=Model(failures={'close-stderr.txt':first,'close-stdout.txt':later})
+        ns,result,error=invoke(m);self.assertIs(error,first);self.assertIsNone(result)
+        self.assertEqual([r[0] for r in ns['_GROUP_CUSTODY'][0]['errors'][3:]],[first,later])
+
+    def test_owner_is_one_shot_without_repeated_native_interfaces(self):
+        m=Model();ns,result,error=invoke(m);events=list(m.events)
+        unused,result,error=invoke(m,ns);self.assertIsInstance(error,RuntimeError)
+        self.assertEqual(m.events,events);self.assertIsNone(result)
+
+    def test_actual_call_and_source_inverse_plus_complete_changed_binding_graph(self):
+        new=RUNNER.read_text();old=(OLD/'implementation/source/run_guarded_v3.py').read_text()
+        function=(D/'evidence/adopted-public-function-v1.py.txt').read_text().rstrip()+'\n\n\n'
+        call=(D/'evidence/retirement-replacement-block-v1.txt').read_text();removed=(D/'evidence/retirement-removed-block-v1.txt').read_text()
+        self.assertEqual(new.count(function),1);self.assertEqual(new.count(call),1)
+        inverse=new.replace(function,'',1).replace(call,removed,1).replace(str(NEW),str(OLD))
+        self.assertEqual(inverse,old)
+        manifest=json.loads((NEW/'implementation/bindings/SOURCE-MANIFEST-v2.json').read_bytes())
+        prior=json.loads((OLD/'implementation/bindings/SOURCE-MANIFEST-v2.json').read_bytes())
+        self.assertEqual(manifest['control_pins'],prior['control_pins'])
+        self.assertEqual(manifest['source_pins']['runner'],manifest['source_pins']['common_runner'])
+        common=manifest['source_pins']['common_runner'];self.assertEqual(common['path'],str(RUNNER))
+        for row in [*manifest['source_pins'].values(),*manifest['profiles'].values()]:
+            p=Path(row['path']);raw=p.read_bytes();self.assertEqual(len(raw),row['bytes'])
+            self.assertEqual(hashlib.sha256(raw).hexdigest(),row['sha256']);self.assertEqual(p.stat().st_mode&0o777,row['mode'])
+        sup=Path(manifest['source_pins']['supervisor']['path']).read_text()
+        self.assertIn('RUNNER_SHA = '+repr(common['sha256']),sup)
+        commands=json.loads((NEW/'implementation/bindings/profiles/commands.json').read_bytes())
+        self.assertFalse(commands['execution_permission']);self.assertFalse(commands['common_retirement_construction']['independently_accepted_successor'])
+        for mode,leaf in [('normal','joined-full-candidate-v1'),('optimized','joined-full-candidate-refusal-v1')]:
+            base=NEW/'implementation/bindings/stages'/leaf;stage=json.loads((base/'STAGE.json').read_bytes())
+            oldbase=OLD/'implementation/bindings/stages'/leaf;before=json.loads((oldbase/'STAGE.json').read_bytes())
+            self.assertEqual(set(stage['files']),set(before['files']));self.assertEqual(stage['runner_sha256'],common['sha256'])
+            self.assertIn(str(RUNNER),commands['root_runner_argv'][mode])
+            for rel,row in stage['files'].items():
+                raw=(base/rel).read_bytes();self.assertEqual(hashlib.sha256(raw).hexdigest(),row['sha256'])
+                if rel!='integration/candidate_entry.py':self.assertEqual(raw,(oldbase/rel).read_bytes())
+        for rel in ['implementation/bindings/environment_association.py','implementation/source/candidate_entry.py']:
+            self.assertEqual((NEW/rel).read_text().replace(str(NEW),str(OLD)).replace(str(NEW.relative_to(W)),str(OLD.relative_to(W))),(OLD/rel).read_text())
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

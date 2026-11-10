@@ -1,0 +1,21 @@
+        uint64_t new_version = _PyDict_NotifyEvent(
+                interp, PyDict_EVENT_MODIFIED, mp, key, value);
+        if (_PyDict_HasSplitTable(mp)) {
+            mp->ma_values->values[ix] = value;
+            if (old_value == NULL) {
+                _PyDictValues_AddToInsertionOrder(mp->ma_values, ix);
+                mp->ma_used++;
+            }
+        }
+        else {
+            assert(old_value != NULL);
+            if (DK_IS_UNICODE(mp->ma_keys)) {
+                DK_UNICODE_ENTRIES(mp->ma_keys)[ix].me_value = value;
+            }
+            else {
+                DK_ENTRIES(mp->ma_keys)[ix].me_value = value;
+            }
+        }
+        mp->ma_version_tag = new_version;
+    }
+    Py_XDECREF(old_value); /* which **CAN** re-enter (see issue #22653) */

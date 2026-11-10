@@ -1,0 +1,182 @@
+"""Changed enclosing owner and real binding predicates; all process ports inert."""
+import ast
+import copy
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+from types import SimpleNamespace
+import unittest
+
+D=Path(__file__).resolve().parents[1]
+FIRST=D/'successor'
+NEW=D/'repair-v2'
+R=NEW/'implementation/source/run_guarded_v3.py'
+spec=importlib.util.spec_from_file_location('prior_retirement_fixture',D/'validation/test_group_retirement.py')
+prior=importlib.util.module_from_spec(spec);spec.loader.exec_module(prior)
+prior.RUNNER=R  # Reuse only inert ports and actual-function extraction, not old tests.
+
+
+def need(value,message):
+    if value is not True:raise ValueError(message)
+
+
+def actual_call(path,message):
+    tree=ast.parse(path.read_bytes())
+    calls=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and
+           any(isinstance(a,ast.Constant) and a.value==message for a in n.args)]
+    if len(calls)!=1:raise AssertionError('one actual binding guard: '+message)
+    return copy.deepcopy(calls[0])
+
+
+def lock_projection(model,close_error=None,open_error=None,status='PASS',old=False):
+    """Actual main owner/handlers/admin exit; working scientific body is one inert port."""
+    path=(FIRST if old else NEW)/'implementation/source/run_guarded_v3.py'
+    tree=ast.parse(path.read_bytes());main=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='main')
+    ns=prior.actual_owner(model);events=[]
+    class Lock:
+        def __enter__(self):return self
+        def __exit__(self,*args):return self.close()
+        def close(self):
+            events.append('lock-close')
+            if close_error is not None:raise close_error
+    class LockPath:
+        def __truediv__(self,name):return self
+        def open(self,mode):
+            if mode!='a':raise AssertionError('original lock open mode')
+            events.append('lock-open')
+            if open_error is not None:raise open_error
+            return Lock()
+    def working_body():
+        events.append('body')
+        ns['run_group_capture'](['/inert/time'],'/inert/stage',{},model.folder(),0,1000,0)
+        return {'status':status}
+    ns.update(HERE=LockPath(),working_body=working_body)
+    assignment=ast.parse('receipt = working_body()').body[0]
+    if old:
+        owner=copy.deepcopy(next(n for n in main.body if isinstance(n,ast.With)))
+        owner.body=[assignment,copy.deepcopy(owner.body[-1])]
+        body=[owner]
+    else:
+        start=next(i for i,n in enumerate(main.body) if isinstance(n,ast.If) and
+                   any(isinstance(x,ast.Name) and x.id=='_LOCK_CUSTODY' for x in ast.walk(n)))
+        body=copy.deepcopy(main.body[start:]);owner=next(n for n in body if isinstance(n,ast.Try))
+        owner.body=owner.body[:4]+[assignment,owner.body[-1]]
+        cell=next(n for n in tree.body if isinstance(n,ast.Assign) and
+                  any(isinstance(x,ast.Name) and x.id=='_LOCK_CUSTODY' for x in n.targets))
+        exec(compile(ast.Module(body=[copy.deepcopy(cell)],type_ignores=[]),str(path),'exec'),ns)
+    fn=ast.FunctionDef(name='actual_main_lock_projection',args=ast.arguments(posonlyargs=[],args=[],vararg=None,kwonlyargs=[],kw_defaults=[],kwarg=None,defaults=[]),body=body,decorator_list=[],returns=None,type_comment=None)
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[fn],type_ignores=[])),str(path),'exec'),ns)
+    error=None
+    try:ns['actual_main_lock_projection']()
+    except BaseException as caught:error=caught
+    return ns,events,error
+
+
+class LockAndBindings(unittest.TestCase):
+    def test_actual_old_lock_masks_primary_and_corrected_main_retains_all_six_errors(self):
+        def faults():return {k:RuntimeError(k) for k in ('rss','signal','wait','close-stderr.txt','close-stdout.txt')}
+        f=faults();lock=OSError('lock-close');ns,events,error=lock_projection(prior.Model(failures=f,observations=[None]),lock,old=True)
+        self.assertIs(error,lock);self.assertEqual(events,['lock-open','body','lock-close'])
+        f=faults();lock=OSError('lock-close');ns,events,error=lock_projection(prior.Model(failures=f,observations=[None]),lock)
+        self.assertIs(error,f['rss']);self.assertEqual(events,['lock-open','body','lock-close'])
+        self.assertEqual([row[0] for row in ns['_GROUP_CUSTODY'][0]['errors']],list(f.values()))
+        state=ns['_LOCK_CUSTODY'][0]
+        self.assertIs(state['errors'][0][0],f['rss']);self.assertIs(state['errors'][1][0],lock)
+        self.assertTrue(state['unknown']);self.assertEqual(state['close'],'UNKNOWN')
+        for error,tb in state['errors']:
+            self.assertIsNotNone(tb);self.assertIsNotNone(tb.tb_next)
+
+    def test_clean_main_and_expected_exit_follow_known_lock_retirement(self):
+        ns,events,error=lock_projection(prior.Model())
+        self.assertIsNone(error);self.assertEqual(ns['_LOCK_CUSTODY'][0]['close'],'CLOSED')
+        ns,events,error=lock_projection(prior.Model(code=1),status='STOP')
+        self.assertIs(type(error),SystemExit);self.assertEqual(error.code,1)
+        self.assertEqual(events[-1],'lock-close');self.assertEqual(ns['_LOCK_CUSTODY'][0]['close'],'CLOSED')
+
+    def test_lock_error_is_not_hidden_by_expected_exit_and_actual_queue_rejects_stderr(self):
+        lock=OSError('lock-close');ns,events,error=lock_projection(prior.Model(code=1),lock,status='STOP')
+        self.assertIs(error,lock);self.assertNotIsInstance(error,SystemExit)
+        q=NEW/'implementation/source/composed_queue.py'
+        tree=ast.parse(q.read_bytes())
+        call=next(n for n in ast.walk(tree) if isinstance(n,ast.Call) and
+                  any(isinstance(a,ast.Constant) and type(a.value)is str and a.value.startswith('actual common runner terminal code differs: ') for a in ast.walk(n)))
+        unit=compile(ast.Expression(body=copy.deepcopy(call)),str(q),'eval')
+        env={'need':need,'case':{'job':'optimized','label':'inert'},'result':SimpleNamespace(returncode=1,stderr=b'')}
+        self.assertIsNone(eval(unit,env))
+        env['result']=SimpleNamespace(returncode=1,stderr=b'Traceback: actual lock-close error\n')
+        with self.assertRaises(ValueError):eval(unit,env)
+
+    def test_unknown_lock_acquisition_and_working_cancellation_preserve_errors_once(self):
+        primary=OSError('open');ns,events,error=lock_projection(prior.Model(),open_error=primary)
+        self.assertIs(error,primary);self.assertEqual(events,['lock-open'])
+        self.assertEqual(ns['_LOCK_CUSTODY'][0]['acquire'],'UNKNOWN')
+        primary=KeyboardInterrupt('cancel');lock=OSError('close')
+        ns,events,error=lock_projection(prior.Model(failures={'rss':primary},observations=[None]),lock)
+        self.assertIs(error,primary);self.assertEqual(events.count('lock-close'),1)
+        self.assertIs(ns['_LOCK_CUSTODY'][0]['errors'][1][0],lock)
+
+    def test_later_wait_observation_failure_clears_previous_ownership(self):
+        m=prior.Model(observations=[None]);original=m.peek;calls=[];error=ChildProcessError('late lost child')
+        def peek(*args):
+            calls.append(1)
+            if len(calls)==2:raise error
+            return original(*args)
+        m.peek=peek;ns,result,caught=prior.invoke(m)
+        self.assertIs(caught,error);self.assertIsNone(result)
+        self.assertEqual(len(calls),2);self.assertNotIn('signal',m.events);self.assertNotIn('wait',m.events)
+
+    def test_stale_runner_and_each_stale_stage_are_rejected_by_actual_binding_predicates(self):
+        m=json.loads((NEW/'implementation/bindings/SOURCE-MANIFEST-v2.json').read_bytes())
+        p=m['source_pins']['common_runner'];sup=NEW/'implementation/source/fresh_supervisor.py';tree=ast.parse(sup.read_bytes())
+        call=next(n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='need' and
+                  {'RUNNER_PATH','RUNNER_SHA'}<={x.id for x in ast.walk(n.args[0]) if isinstance(x,ast.Name)})
+        unit=compile(ast.Expression(body=copy.deepcopy(call)),str(sup),'eval');env={'need':need,'Path':Path,'RUNNER_PATH':Path(p['path']),'RUNNER_SHA':p['sha256'],'common_runner_pin':dict(p)}
+        self.assertIsNone(eval(unit,env))
+        for change in [{'sha256':'17380a3839c6ba83b23613c2af7fd96485625de9d306e355fbc96bf88d2f99a8'},{'path':str(FIRST/'implementation/source/run_guarded_v3.py')}]:
+            env['common_runner_pin']={**p,**change}
+            with self.assertRaises(ValueError):eval(unit,env)
+        q=NEW/'implementation/source/composed_queue.py';call=actual_call(q,'Admitted stage differs before queue');unit=compile(ast.Expression(body=call),str(q),'eval')
+        queue=json.loads((NEW/'implementation/bindings/control/IndependentPrefixDATAComposedV1-QUEUE.json').read_bytes())
+        for case in queue['cases']:
+            env={'need':need,'STAGE_BASE':NEW/'implementation/bindings/stages','case':dict(case),'digest':lambda p:(hashlib.sha256(p.read_bytes()).hexdigest(),)}
+            self.assertIsNone(eval(unit,env))
+            old_stage=FIRST/'implementation/bindings/stages'/case['stage']/'STAGE.json'
+            env['case']['stage_sha256']=hashlib.sha256(old_stage.read_bytes()).hexdigest()
+            with self.assertRaises(ValueError):eval(unit,env)
+
+    def test_actual_inventory_boundary_rejects_changed_scientific_and_independent_validator(self):
+        tree=ast.parse(R.read_bytes());defs=[copy.deepcopy(n) for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in ('digest','inventory')]
+        ns={'hashlib':hashlib};exec(compile(ast.Module(body=defs,type_ignores=[]),str(R),'exec'),ns)
+        main=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='main')
+        guard=next(n for n in ast.walk(main) if isinstance(n,ast.If) and
+                   any(isinstance(a,ast.Constant) and a.value=='Stage bytes/modes differ from declared closure' for a in ast.walk(n)))
+        unit=compile(ast.Module(body=[copy.deepcopy(guard)],type_ignores=[]),str(R),'exec')
+        for leaf in ('joined-full-candidate-v1','joined-full-candidate-refusal-v1'):
+            base=NEW/'implementation/bindings/stages'/leaf;declared=json.loads((base/'STAGE.json').read_bytes());before=ns['inventory'](base)
+            exec(unit,{'before':before,'declared':declared})
+            for member in ('integration/scientific_driver.py','baseline/verify_full.py'):
+                changed=copy.deepcopy(declared);changed['files'][member]['sha256']='f'*64
+                with self.assertRaises(ValueError):exec(unit,{'before':before,'declared':changed})
+
+    def test_complete_changed_graph_and_literal_lock_inverse_preserve_prior_function_controls(self):
+        text=R.read_text();replacement=(D/'evidence/lock-replacement-block-v2.txt').read_text();removed=(D/'evidence/lock-removed-block-v2.txt').read_text()
+        inverse=text.replace('_LOCK_CUSTODY = [None]\n\n','',1).replace(replacement,removed,1).replace(str(NEW),str(FIRST))
+        self.assertEqual(inverse,(FIRST/'implementation/source/run_guarded_v3.py').read_text())
+        def function(p):
+            t=ast.parse(p.read_bytes());n=next(n for n in t.body if isinstance(n,ast.FunctionDef) and n.name=='run_group_capture')
+            return ast.get_source_segment(p.read_text(),n)
+        self.assertEqual(function(R),function(FIRST/'implementation/source/run_guarded_v3.py'))
+        m=json.loads((NEW/'implementation/bindings/SOURCE-MANIFEST-v2.json').read_bytes());old=json.loads((FIRST/'implementation/bindings/SOURCE-MANIFEST-v2.json').read_bytes())
+        self.assertEqual(m['control_pins'],old['control_pins']);self.assertEqual(m['source_pins']['runner'],m['source_pins']['common_runner'])
+        for row in [*m['source_pins'].values(),*m['profiles'].values()]:
+            p=Path(row['path']);b=p.read_bytes();self.assertEqual(hashlib.sha256(b).hexdigest(),row['sha256']);self.assertEqual(len(b),row['bytes']);self.assertEqual(p.stat().st_mode&0o777,row['mode'])
+        for leaf in ('joined-full-candidate-v1','joined-full-candidate-refusal-v1'):
+            base=NEW/'implementation/bindings/stages'/leaf;oldbase=FIRST/'implementation/bindings/stages'/leaf;stage=json.loads((base/'STAGE.json').read_bytes());oldstage=json.loads((oldbase/'STAGE.json').read_bytes())
+            self.assertEqual(set(stage['files']),set(oldstage['files']));self.assertEqual(stage['runner_sha256'],m['source_pins']['common_runner']['sha256'])
+            for rel,row in stage['files'].items():
+                b=(base/rel).read_bytes();self.assertEqual(hashlib.sha256(b).hexdigest(),row['sha256'])
+                if rel!='integration/candidate_entry.py':self.assertEqual(b,(oldbase/rel).read_bytes())
+
+
+if __name__=='__main__':unittest.main(verbosity=2)

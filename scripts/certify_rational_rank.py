@@ -10,6 +10,7 @@ from fractions import Fraction as Q
 from hashlib import sha256
 import json
 from math import gcd, lcm
+from operator import mul
 from pathlib import Path
 import re
 import sys
@@ -102,16 +103,18 @@ def certify(value):
     a=validate(value);m,n=len(a),len(a[0])
     chosen_rows,cols=_pivot_minor(a)
     r=len(cols);inv=inverse([[a[i][j] for j in cols] for i in chosen_rows])
-    coeff=[[sum((inv[k][l]*a[chosen_rows[l]][j] for l in range(r)),Q(0)) for j in range(n)] for k in range(r)]
+    coeff=_product(inv,[a[i] for i in chosen_rows],r,r,n)
+    free_rows=[i for i in range(m) if i not in chosen_rows]
+    left_coeff=_product([[a[i][j] for j in cols] for i in free_rows],inv,m-r,r,r)
     right=[]
     for free in (j for j in range(n) if j not in cols):
         v=[Q(j==free) for j in range(n)]
         for k,j in enumerate(cols):v[j]=-coeff[k][free]
         right.append(v)
     left=[]
-    for free in (i for i in range(m) if i not in chosen_rows):
+    for index,free in enumerate(free_rows):
         v=[Q(i==free) for i in range(m)]
-        for l,i in enumerate(chosen_rows):v[i]=-sum((a[free][cols[k]]*inv[k][l] for k in range(r)),Q(0))
+        for l,i in enumerate(chosen_rows):v[i]=-left_coeff[index][l]
         left.append(v)
     encode=lambda rows:[[encode_rational(x) for x in row] for row in rows]
     result={'schema':'rational-rank-certificate/v1','rank':r,'rows':chosen_rows,'columns':cols,
@@ -132,6 +135,17 @@ def _scaled_rows(rows):
     return result
 
 
+def _product(a,b,m,k,n):
+    """Produce exact rational products with one reduction per output entry."""
+    left=_scaled_rows(a)
+    right=_scaled_rows([[b[i][j] for i in range(k)] for j in range(n)])
+    if left is None or right is None:
+        return [[sum((a[i][t]*b[t][j] for t in range(k)),Q(0))
+                 for j in range(n)] for i in range(m)]
+    return [[Q(sum(map(mul,row,column)),rd*cd) for column,cd in right]
+            for row,rd in left]
+
+
 def _product_equal(a,b,c,m,k,n):
     """Test A B = C using exact integer dot products after row/column scaling.
 
@@ -143,11 +157,16 @@ def _product_equal(a,b,c,m,k,n):
     if left is None or right is None:
         return all(sum((a[i][t]*b[t][j] for t in range(k)),Q(0))==c[i][j]
                    for i in range(m) for j in range(n))
-    for i in range(m):
-        row,rd=left[i]
-        for j in range(n):
-            column,cd=right[j];target=c[i][j]
-            numerator=sum(x*y for x,y in zip(row,column))
+    # Kernel witnesses contain a free-coordinate identity block. Keep the
+    # cheaper exact support for each dot product; no product check is dropped.
+    left=[(row,rd,[(t,x) for t,x in enumerate(row) if x]) for row,rd in left]
+    right=[(column,cd,[(t,x) for t,x in enumerate(column) if x]) for column,cd in right]
+    for i,(row,rd,row_support) in enumerate(left):
+        for j,(column,cd,column_support) in enumerate(right):
+            target=c[i][j]
+            numerator=(sum(x*column[t] for t,x in row_support)
+                       if len(row_support)<=len(column_support)
+                       else sum(row[t]*x for t,x in column_support))
             if numerator*target.denominator != target.numerator*rd*cd:return False
     return True
 

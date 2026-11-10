@@ -1,0 +1,56 @@
+
+        /* Log traceback info. */
+        assert(frame != &entry_frame);
+        if (!_PyFrame_IsIncomplete(frame)) {
+            PyFrameObject *f = _PyFrame_GetFrameObject(frame);
+            if (f != NULL) {
+                PyTraceBack_Here(f);
+            }
+        }
+        monitor_raise(tstate, frame, next_instr-1);
+exception_unwind:
+        {
+            /* We can't use frame->f_lasti here, as RERAISE may have set it */
+            int offset = INSTR_OFFSET()-1;
+            int level, handler, lasti;
+            if (get_exception_handler(frame->f_code, offset, &level, &handler, &lasti) == 0) {
+                // No handlers, so exit.
+                assert(_PyErr_Occurred(tstate));
+
+                /* Pop remaining stack entries. */
+                PyObject **stackbase = _PyFrame_Stackbase(frame);
+                while (stack_pointer > stackbase) {
+                    PyObject *o = POP();
+                    Py_XDECREF(o);
+                }
+                assert(STACK_LEVEL() == 0);
+                _PyFrame_SetStackPointer(frame, stack_pointer);
+                monitor_unwind(tstate, frame, next_instr-1);
+                goto exit_unwind;
+            }
+
+            assert(STACK_LEVEL() >= level);
+            PyObject **new_top = _PyFrame_Stackbase(frame) + level;
+            while (stack_pointer > new_top) {
+                PyObject *v = POP();
+                Py_XDECREF(v);
+            }
+            if (lasti) {
+                int frame_lasti = _PyInterpreterFrame_LASTI(frame);
+                PyObject *lasti = PyLong_FromLong(frame_lasti);
+                if (lasti == NULL) {
+                    goto exception_unwind;
+                }
+                PUSH(lasti);
+            }
+
+            /* Make the raw exception data
+                available to the handler,
+                so a program can emulate the
+                Python main loop. */
+            PyObject *exc = _PyErr_GetRaisedException(tstate);
+            PUSH(exc);
+            JUMPTO(handler);
+            if (monitor_handled(tstate, frame, next_instr, exc) < 0) {
+                goto exception_unwind;
+            }

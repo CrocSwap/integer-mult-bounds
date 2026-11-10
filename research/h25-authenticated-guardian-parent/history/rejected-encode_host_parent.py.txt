@@ -1,0 +1,153 @@
+"""Encode the concrete H25 original-parent Tool caller without executing it.
+
+The original authenticated parent supplies genuinely issued gamma at the
+existing original call boundary. Neither this encoder nor its JSON inputs
+establish issuance. Source authentication and original authority are separate.
+Original authors retain credit. Authored with OpenAI AI source assistance.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shlex
+import stat
+import sys
+
+WORKDIR = '/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453'
+OPERATION = 'IndependentPrefixDATAComposedV1'
+ENTRY_PATH = WORKDIR + '/outputs/authenticated-entry-construction-20261108T0645Z/implementation/target_entry.py'
+ENV = ('PATH=/usr/bin:/bin', 'PYTHONHASHSEED=0', 'LANG=C.UTF-8',
+       'LC_ALL=C.UTF-8', 'TZ=UTC', 'PYTHONDONTWRITEBYTECODE=1')
+TEMPLATE_BYTES = 7135
+TEMPLATE_SHA256 = '570ce7f5a453524b578cfe5a71d97d612ae9fbcbc2478fc456bf6b25329cf4d4'
+WIRE_KEYS = {'schema', 'manifest_pin', 'inputs_pin', 'guardian_image_pin',
+             'guardian_source_pin', 'guardian_grant_pin', 'operation_id',
+             'exact_shell_sha256'}
+
+
+def need(value, reason):
+    if value is not True:
+        raise ValueError(reason)
+
+
+def plain(value, depth=0, nodes=None):
+    if nodes is None:
+        nodes = [0]
+    nodes[0] += 1
+    need(depth <= 24 and nodes[0] <= 65536, 'bounded genuine original DATA')
+    if type(value) is dict:
+        need(len(value) <= 1024 and all(type(k) is str for k in value), 'DATA keys')
+        for item in value.values():
+            plain(item, depth + 1, nodes)
+    elif type(value) is list:
+        need(len(value) <= 8192, 'DATA list')
+        for item in value:
+            plain(item, depth + 1, nodes)
+    elif type(value) is str:
+        need(len(value) <= 131072, 'DATA string')
+    elif type(value) is int:
+        need(-(1 << 53) < value < (1 << 53), 'exact JavaScript DATA integer')
+    else:
+        need(value is None or type(value) is bool, 'plain scalar DATA only')
+
+
+def canonical(value):
+    plain(value)
+    return json.dumps(value, sort_keys=True, separators=(',', ':'),
+                      ensure_ascii=True, allow_nan=False)
+
+
+def pin(value, image=False):
+    need(type(value) is dict and set(value) == {'path', 'sha256', 'bytes', 'mode'},
+         'exact original pin')
+    need(type(value['path']) is str and value['path'].startswith('/') and
+         '\x00' not in value['path'] and '..' not in Path(value['path']).parts,
+         'absolute original selected path')
+    need(type(value['sha256']) is str and len(value['sha256']) == 64 and
+         all(c in '0123456789abcdef' for c in value['sha256']), 'original SHA256')
+    need(type(value['bytes']) is int and 0 < value['bytes'] <= 64 * 1024 * 1024,
+         'bounded original source/image')
+    need(type(value['mode']) is int and
+         value['mode'] in ((0o555, 0o755) if image else (0o444, 0o600)), 'original pin mode')
+
+
+def fixed_template():
+    path = Path(__file__).resolve(strict=True).with_name('host_parent.js.in')
+    before = path.stat()
+    need(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and
+         before.st_size == TEMPLATE_BYTES, 'fixed exact host source leaf')
+    raw = path.read_bytes()
+    after = path.stat()
+    need(before == after and len(raw) == TEMPLATE_BYTES and
+         hashlib.sha256(raw).hexdigest() == TEMPLATE_SHA256,
+         'complete immutable host template source identity')
+    return raw.decode('utf-8')
+
+
+def exact_shell(entry_pin):
+    pin(entry_pin)
+    need(entry_pin['path'] == ENTRY_PATH and entry_pin['mode'] == 0o444,
+         'fixed installed external entry source')
+    argv = ['/usr/bin/env', '-i', *ENV, '/usr/bin/python3.12',
+            '-S', '-s', '-P', '-B', ENTRY_PATH, entry_pin['sha256'],
+            str(entry_pin['bytes'])]
+    return 'umask 077; exec ' + ' '.join(shlex.quote(item) for item in argv)
+
+
+def encode_host_program(installation, gamma):
+    """Pure exact-source encoding, not an original financial issuer or Tool call.
+
+    The emitted programme contains an immediate awaited dispatcher, so the
+    original parent's actual host execution reaches the concrete Tool methods.
+    """
+    plain(installation); plain(gamma)
+    need(type(installation) is dict and set(installation) ==
+         {'exact_shell_command', 'exact_shell_sha256', 'workdir', 'entry_pin'},
+         'frozen external installation tuple')
+    pin(installation['entry_pin'])
+    command = installation['exact_shell_command']
+    need(type(command) is str and 0 < len(command) <= 16384 and
+         installation['workdir'] == WORKDIR, 'fixed original command/cwd')
+    need(command == exact_shell(installation['entry_pin']),
+         'actual fixed source/argv/cwd/environment exact command')
+    need(hashlib.sha256(command.encode('utf-8')).hexdigest() ==
+         installation['exact_shell_sha256'], 'fixed distinct exact-shell digest')
+    need(type(gamma) is dict and set(gamma) == {'wire', 'exact_candidate_document'},
+         'original issued operation input')
+    wire, candidate = gamma['wire'], gamma['exact_candidate_document']
+    need(type(wire) is dict and set(wire) == WIRE_KEYS and
+         wire['schema'] == 'h25-original-parent-late-input-v1' and
+         wire['operation_id'] == OPERATION and
+         wire['exact_shell_sha256'] == installation['exact_shell_sha256'],
+         'same original operation and fixed shell')
+    for key in ('manifest_pin', 'inputs_pin', 'guardian_source_pin', 'guardian_grant_pin'):
+        pin(wire[key])
+    pin(wire['guardian_image_pin'], image=True)
+    need(type(candidate) is dict and candidate.get('exact_shell_command') == command,
+         'original candidate document has the fixed exact shell')
+    need(len((canonical(wire) + '\n').encode('ascii')) <= 32768,
+         'single bounded original native input frame')
+    template = fixed_template()
+    for marker in ('__H25_INSTALLATION_JSON_STRING__', '__H25_GAMMA_JSON_STRING__'):
+        need(template.count(marker) == 1, 'one source-owned DATA substitution site')
+    # The inserted text is a JSON string literal consumed by JSON.parse.
+    # No DATA is interpreted as source, shell text, a function, or a callback.
+    source = template.replace('__H25_INSTALLATION_JSON_STRING__',
+                              json.dumps(canonical(installation), ensure_ascii=True))
+    source = source.replace('__H25_GAMMA_JSON_STRING__',
+                            json.dumps(canonical(gamma), ensure_ascii=True))
+    return source.encode('utf-8')
+
+
+def main():
+    need(len(sys.argv) == 4, 'installation.json genuine-gamma.json output.js')
+    installation = json.loads(Path(sys.argv[1]).read_bytes())
+    gamma = json.loads(Path(sys.argv[2]).read_bytes())
+    source = encode_host_program(installation, gamma)
+    with open(sys.argv[3], 'xb') as output:
+        output.write(source)
+    # No financial/native authority, original Tool invocation, or target import.
+
+
+if __name__ == '__main__':
+    main()

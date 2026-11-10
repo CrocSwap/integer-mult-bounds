@@ -1,0 +1,888 @@
+"""Source-only two-producer completion owner for one future guarded parent.
+
+No configuration or execution gate is installed.  The original trusted parent
+must authenticate this source, its exact receiver closure and initial OS/runtime
+before importing it.  Capabilities are process local.  This component never
+invokes run_guarded, a queue wrapper, a global ledger writer, or a child report
+as authority.  The enclosing single orchestrator pays this entire component
+once, including all child, validation, retention, failure and final-exit costs.
+"""
+import fcntl
+import os
+import resource
+import signal
+import stat
+import subprocess
+import sys
+import time
+import epoch_schema_v5 as schema
+import epoch_copy_v5 as copying
+import epoch_parent_v5 as epoch
+import parent_closure_v1 as closure
+import parent_domain_v1 as domain
+import group01_evidence_v1 as group01
+
+CONFIGURATION = None
+SOURCE_REVIEW = None
+STAGE_APPROVAL = None
+COMMAND_APPROVAL = None
+FUNDING = None
+EXECUTION_APPROVAL = None
+
+FLAGS = ('-S', '-s', '-P', '-B')
+ENV = {'PATH': '/usr/bin:/bin', 'PYTHONHASHSEED': '0', 'LANG': 'C.UTF-8',
+       'LC_ALL': 'C.UTF-8', 'TZ': 'UTC', 'PYTHONDONTWRITEBYTECODE': '1'}
+_TYPE, _LEN = type, len
+_OPEN, _CLOSE, _MKDIR, _STAT, _SCANDIR = os.open, os.close, os.mkdir, os.stat, os.scandir
+_POPEN = subprocess.Popen
+_CLOCK, _SLEEP = time.monotonic, time.sleep
+_SETRLIMIT, _GETRLIMIT = resource.setrlimit, resource.getrlimit
+_SETTIMER, _GETTIMER = signal.setitimer, signal.getitimer
+_SIGNAL, _GETSIGNAL = signal.signal, signal.getsignal
+_PARENTS = []
+_PROCESS = [None]
+# Shared before the first constructor read, including failures before a parent
+# capability can be published. No mode can replace or reset this owner.
+_UNKNOWN_OWNER = {'quarantine': [False], 'pending': [False],
+                  'iterator_uncertain': [False], 'primary': [None],
+                  'native_errors': [None] * 4}
+_EPOCH_ENTRY = epoch._entry_state
+_EPOCH_RESERVE = epoch.ParentEpoch.reserve_producer
+_EPOCH_ACCEPT = epoch.ParentEpoch.accept_completed_producer
+_EPOCH_COMPLETION = epoch.ParentCompletion
+_EPOCH_COMMIT = epoch.ParentEpoch.commit_exports
+_EPOCH_CLOSE = epoch.ParentEpoch.close
+MAX_SOURCE_FILES = 8192
+MAX_STAGE_ENTRIES = 16384
+MAX_RAW_VARIANT_FILES = 64
+VARIANT_MODULE = 'variant_validation_v1'
+VARIANT_FUNCTION = 'validate_variant_producer'
+MAX_VARIANT_RAW_BYTES = 32 * 1024 * 1024
+# Source-literal inventory copied from the separately pinned concrete interface.
+VARIANT_FILES = ('initial-tcb.raw.json', 'initial-controls.raw.json', 'initial-restoration.raw.json', 'root-before.raw.json', 'preflight-before.raw.json', 'custody-before.raw.json', 'pyinit_failure/control.attempt.json', 'pyinit_failure/control.attempt.jsonl', 'pyinit_failure/control.stdout.raw', 'pyinit_failure/control.stderr.raw', 'pyinit_failure/helper-return.raw.json', 'pyinit_failure/build.json', 'pyinit_failure/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so', 'pyinit_failure/elf.raw.json', 'exec_failure/control.attempt.json', 'exec_failure/control.attempt.jsonl', 'exec_failure/control.stdout.raw', 'exec_failure/control.stderr.raw', 'exec_failure/helper-return.raw.json', 'exec_failure/build.json', 'exec_failure/_h25_dict_probe.cpython-312-x86_64-linux-gnu.so', 'exec_failure/elf.raw.json', 'preflight-after.raw.json', 'custody-after.raw.json', 'root-after.raw.json', 'receipt.json')
+VARIANT_GROUPS = ('initial-tcb.raw.json', 'initial-controls.raw.json', 'initial-restoration.raw.json', 'root-before.raw.json', 'preflight-before.raw.json', 'custody-before.raw.json', 'pyinit_failure/helper-return.raw.json', 'pyinit_failure/elf.raw.json', 'exec_failure/helper-return.raw.json', 'exec_failure/elf.raw.json', 'preflight-after.raw.json', 'custody-after.raw.json', 'root-after.raw.json')
+REQUIRED_MODULES = (
+    'epoch_schema_v5', 'epoch_copy_v5', 'epoch_parent_v5', 'epoch_stop_v5',
+    'original_build_provenance_v5', 'h25_parent_supervisor', 'parent_closure_v1',
+    'parent_domain_v1', 'parent_completion_v1', 'group01_evidence_v1',
+    'group01_original_predicates_v1', 'receipt_contract_v1', 'native_field_controls_v1',
+    'transport_controls_v1', 'collector_controls_v1', 'elf_literal_fixture_v1',
+    'elf_controls_v1', 'provider_controls_v1', 'run_pure_controls_v1',
+    'elf_literal_fixture_v2', 'elf_extended_controls_v2', 'run_pure_controls_v2',
+    'restoration_contract_v1', 'loader_model_controls_v1', 'driver_model_body_sources_v3',
+    'root_model_body_sources_v3', 'loader_model_controls_v3', 'group_evidence_v5',
+    'close_model_controls_v5', 'projection_model_controls_v5', 'run_controls_v5',
+    'variant_validation_v1', 'sealed_elf_profile_v2')
+
+
+class ParentDeadline(RuntimeError):
+    pass
+
+
+def _alarm(signum, frame):
+    raise ParentDeadline('owned producer deadline including Popen/preexec')
+
+
+def _gate():
+    schema.exact(CONFIGURATION, ('plans', 'receiver_policy', 'checker_source'))
+    schema.exact(CONFIGURATION['plans'], ('normal', 'optimized'))
+    for pin in tuple(CONFIGURATION['plans'].values()) + (CONFIGURATION['receiver_policy'], CONFIGURATION['checker_source']):
+        schema.blob(pin, schema.RECORD_BYTES)
+    for record, key in ((SOURCE_REVIEW, 'review_sha256'), (STAGE_APPROVAL, 'stage_review_sha256'),
+        (COMMAND_APPROVAL, 'command_review_sha256'), (FUNDING, 'reservation_sha256'),
+        (EXECUTION_APPROVAL, 'external_launch_policy_sha256')):
+        schema.exact(record, (key,))
+        schema.digest(record[key])
+
+
+def _state(capability):
+    schema.need(_TYPE(capability) is object, 'exact parent capability required')
+    for token, state in _PARENTS:
+        if token is capability:
+            return state
+    raise schema.EpochStop('unregistered parent completion owner')
+
+
+def _receiver_gate_values(receivers):
+    # Fail before any producer if the concrete downstream parsers are still
+    # source-only.  These stronger parent envelopes are installed by the
+    # independently authenticated original bootstrap; hashes alone grant none.
+    specifications = (
+        ('original_build_provenance_v5', 'PARSER_CONFIGURATION',
+         ('leaf_policy_sha256', 'configuration_sha256', 'original_helper_sha256')),
+        ('original_build_provenance_v5', 'PARSER_EXECUTION_APPROVAL', ('external_launch_policy_sha256',)),
+        ('original_build_provenance_v5', 'PARSER_FUNDING', ('reservation_sha256',)),
+        ('variant_validation_v1', 'VALIDATION_CONFIGURATION', ('leaf_policy_sha256', 'configuration_sha256')),
+        ('variant_validation_v1', 'VALIDATION_SOURCE_REVIEW', ('review_sha256',)),
+        ('variant_validation_v1', 'VALIDATION_EXECUTION', ('external_launch_policy_sha256',)),
+        ('variant_validation_v1', 'VALIDATION_FUNDING', ('reservation_sha256',)))
+    result = {}
+    for module, name, keys in specifications:
+        value = closure.receiver(receivers, module, name)
+        schema.exact(value, keys)
+        for item in value.values():
+            schema.digest(item)
+        result[module + '.' + name] = schema.plain_copy(value)
+    schema.need(result['original_build_provenance_v5.PARSER_CONFIGURATION']['original_helper_sha256'] ==
+                'aa0a315110e031e19291970c9611fe5e0f91465fa20eaec51e81186099563f78',
+                'original helper source protocol differs before producer launch')
+    return result
+
+
+def _guard(state):
+    _gate()
+    schema.need(state['phase'] not in ('STOP', 'CLOSED'), 'parent completion owner is terminal')
+    domain.refresh_unknown_owner(state['unknown_owner'])
+    schema.need(state['io_quarantine'][0] is False and state['unknown_owner']['pending'][0] is False and
+                state['unknown_owner']['iterator_uncertain'][0] is False and
+                state['unknown_owner']['primary'][0] is None,
+                'parent I/O ownership requires kernel teardown')
+    schema.need(os.getpid() == state['pid'], 'parent capability cannot cross exec/process')
+    schema.need(_POPEN is subprocess.Popen and _OPEN is os.open and _CLOSE is os.close and
+                _SETRLIMIT is resource.setrlimit and _GETRLIMIT is resource.getrlimit and
+                _CLOCK is time.monotonic and _SETTIMER is signal.setitimer and
+                _GETTIMER is signal.getitimer and _SIGNAL is signal.signal and
+                _GETSIGNAL is signal.getsignal,
+                'original parent runtime primitive binding changed')
+    schema.need(epoch._entry_state is _EPOCH_ENTRY and epoch.ParentEpoch.reserve_producer is _EPOCH_RESERVE and
+                epoch.ParentEpoch.accept_completed_producer is _EPOCH_ACCEPT and
+                epoch.ParentCompletion is _EPOCH_COMPLETION and epoch.ParentEpoch.commit_exports is _EPOCH_COMMIT and
+                epoch.ParentEpoch.close is _EPOCH_CLOSE, 'original epoch receiving entry changed')
+    closure.check_receivers(state['receivers'])
+    schema.need(_receiver_gate_values(state['receivers']) == state['receiver_gate_snapshot'],
+                'independently installed receiver gates changed')
+    for key in ('plan', 'receiver_policy', 'checker_source'):
+        current = CONFIGURATION['plans'][state['plan']['mode']] if key == 'plan' else CONFIGURATION[key]
+        schema.need(current == state['configuration'][key], 'configured source binding changed')
+        copying.verify(state['configuration'][key], error_owner=state['errors'])
+    schema.need(_CLOCK() <= state['shared_deadline'], 'complete parent reservation deadline exceeded')
+
+
+def _stop(state, operation, primary):
+    # No formatting or instance dispatch on an exception.  Capture failure is
+    # separate, never a reason to replace the already delivered primary.
+    state['phase'] = 'STOP'
+    # The shared slot was stored inline at the first delivered local/domain
+    # failure, before any optional retention helper or cleanup call.
+    if state['unknown_owner']['primary'][0] is None:
+        state['unknown_owner']['primary'][0] = primary
+    elif state['unknown_owner']['primary'][0] is not primary:
+        if state['fallback'][4] is None:
+            state['fallback'][4] = primary
+        primary = state['unknown_owner']['primary'][0]
+    if state['stop'][0] is None:
+        state['stop'][0] = primary
+        state['stop'][1] = operation
+    try:
+        domain.refresh_unknown_owner(state['unknown_owner'])
+    except BaseException as error:
+        # Failure even to inspect retained ownership cannot permit a writer.
+        state['io_quarantine'][0] = True
+        if state['fallback'][5] is None:
+            state['fallback'][5] = error
+    try:
+        schema.retain_primary(state['errors'], primary, operation)
+    except BaseException as error:
+        state['fallback'][0] = error
+    # An uncertain native acquisition prevents further diagnostic I/O.  The
+    # outer guard must retain memory state and observe kernel parent teardown.
+    if (state['directory_created'] and not state['stop_write_attempted'] and not state['io_quarantine'][0] and
+            not state['unknown_owner']['pending'][0] and not state['unknown_owner']['iterator_uncertain'][0] and
+            not (_PROCESS[0] is not None and _PROCESS[0]['acquisition_in_flight'])):
+        try:
+            state['stop_write_attempted'] = True
+            record = {'schema': 'h25-parent-completion-stop-v1', 'operation': operation,
+                'epoch_id': state['plan']['epoch_id'], 'mode': state['plan']['mode'],
+                'status': 'STOP', 'retry_or_restore_allowed': False,
+                'error': schema.error_snapshot(state['errors']),
+                'domain_obligations_may_be_incomplete': True,
+                'enclosing_guard_must_observe_parent_exit': True}
+            state['stop_file'] = copying.write_once(state['plan']['session_directory'] + '/STOP.json',
+                schema.canonical(record), error_owner=state['errors'])
+        except BaseException as error:
+            state['fallback'][1] = error
+
+
+def _snapshot_sources(plan, error_owner):
+    schema.need(_TYPE(plan['source_files']) is list and 1 <= _LEN(plan['source_files']) <= MAX_SOURCE_FILES,
+                'complete prelaunch source inventory bound differs')
+    rows, paths, categories = [], set(), set()
+    for expected in plan['source_files']:
+        schema.exact(expected, ('category', 'path', 'sha256', 'bytes', 'mode'))
+        schema.choice(expected['category'], ('parent', 'root', 'provider', 'driver', 'project',
+            'system_headers', 'compiler_link', 'oracle', 'stage'))
+        schema.path(expected['path'])
+        schema.digest(expected['sha256'])
+        schema.integer(expected['bytes'], 1, schema.FILE_BYTES)
+        schema.integer(expected['mode'], 0, 0o7777)
+        schema.need(expected['path'] not in paths, 'duplicate prelaunch source path')
+        paths.add(expected['path'])
+        categories.add(expected['category'])
+        actual = copying.inspect(expected['path'], schema.FILE_BYTES, error_owner=error_owner)
+        schema.need(actual['sha256'] == expected['sha256'] and actual['bytes'] == expected['bytes'] and
+                    actual['identity']['mode'] & 0o7777 == expected['mode'], 'source/profile/closure changed')
+        rows.append(actual)
+    schema.need(categories == {'parent', 'root', 'provider', 'driver', 'project', 'system_headers',
+                               'compiler_link', 'oracle', 'stage'}, 'a mandatory source category is absent')
+    return rows
+
+
+def _tree(root, state):
+    """Bounded exact stage census; all actual file contents are separately read."""
+    schema.path(root)
+    pending, files, directories = [('', root)], [], []
+    count = 0
+    while pending:
+        schema.need(state['io_quarantine'][0] is False and state['unknown_owner']['pending'][0] is False and
+                    state['unknown_owner']['iterator_uncertain'][0] is False,
+                    'stage census cannot acquire after uncertain ownership')
+        relative, current = pending.pop()
+        before = _STAT(current, follow_symlinks=False)
+        schema.need(stat.S_ISDIR(before.st_mode) and not before.st_mode & 0o222,
+                    'immutable stage directory kind/mode differs')
+        entries, primary = None, None
+        state['unknown_owner']['pending'][0] = True
+        try:
+            copying._control_hit('parent.stage.acquire')
+            entries = _SCANDIR(current)
+            state['unknown_owner']['pending'][0] = False
+            for entry in entries:
+                copying._control_hit('parent.stage.count')
+                count += 1
+                schema.need(count <= MAX_STAGE_ENTRIES, 'stage census bound exceeded')
+                copying._control_hit('parent.stage.name')
+                name = entry.name
+                schema.need(_TYPE(name) is str and name not in ('.', '..') and '/' not in name,
+                            'stage entry name differs')
+                copying._control_hit('parent.stage.path')
+                child = name if not relative else relative + '/' + name
+                copying._control_hit('parent.stage.stat')
+                info = entry.stat(follow_symlinks=False)
+                if stat.S_ISREG(info.st_mode):
+                    copying._control_hit('parent.stage.files_append')
+                    files.append(child)
+                elif stat.S_ISDIR(info.st_mode):
+                    directories.append(child)
+                    pending.append((child, current + '/' + name))
+                else:
+                    raise schema.EpochStop('stage has symlink or special file')
+        except BaseException as error:
+            primary = error
+            if state['unknown_owner']['primary'][0] is None:
+                state['unknown_owner']['primary'][0] = error
+            state['io_quarantine'][0] = True
+            state['unknown_owner']['iterator_uncertain'][0] = True
+            state['fallback'][2] = error
+            raise
+        finally:
+            if entries is not None:
+                owned = entries
+                entries = None
+                try:
+                    copying._control_hit('parent.stage.close')
+                    owned.close()
+                except BaseException as error:
+                    if state['unknown_owner']['primary'][0] is None:
+                        state['unknown_owner']['primary'][0] = error
+                    state['io_quarantine'][0] = True
+                    state['unknown_owner']['iterator_uncertain'][0] = True
+                    state['fallback'][3] = error
+                    if primary is None:
+                        raise
+        after = _STAT(current, follow_symlinks=False)
+        schema.need((before.st_dev, before.st_ino, before.st_mode, before.st_mtime_ns, before.st_ctime_ns) ==
+                    (after.st_dev, after.st_ino, after.st_mode, after.st_mtime_ns, after.st_ctime_ns),
+                    'stage directory changed during census')
+    return sorted(files), sorted(directories)
+
+
+def _stage(plan, error_owner, state):
+    copying.verify(plan['stage_manifest'], error_owner=error_owner)
+    raw = copying.read_verified(plan['stage_manifest'], schema.RECORD_BYTES, error_owner=error_owner)
+    declared = group01.decode(raw)
+    schema.need(_TYPE(declared.get('files')) is dict and
+                plan['stage_manifest']['path'] == plan['stage_directory'] + '/STAGE.json',
+                'independent stage manifest origin differs')
+    files, directories = _tree(plan['stage_directory'], state)
+    schema.need(files == sorted(list(declared['files']) + ['STAGE.json']) and
+                directories == plan['stage_directories'], 'complete immutable stage census differs')
+    source_by_path = {row['path']: row for row in plan['source_files']}
+    for relative, expected in declared['files'].items():
+        schema.need(_TYPE(relative) is str and not relative.startswith('/') and
+                    all(part not in ('', '.', '..') for part in relative.split('/')),
+                    'stage relative path differs')
+        path = plan['stage_directory'] + '/' + relative
+        schema.need(path in source_by_path and expected ==
+            {'sha256': source_by_path[path]['sha256'], 'mode': source_by_path[path]['mode']},
+            'stage file absent from independently fixed current source closure')
+    return {'manifest': plan['stage_manifest'], 'file_count': len(files), 'directories': directories}
+
+
+def _validate_plan(plan):
+    schema.exact(plan, ('schema', 'epoch_id', 'mode', 'round_root', 'session_directory',
+        'session_seconds', 'source_closure_admission_sha256', 'source_files', 'producers'))
+    schema.need(plan['schema'] == 'h25-parent-completion-plan-v1', 'parent plan schema differs')
+    schema.label(plan['epoch_id'])
+    schema.choice(plan['mode'], ('normal', 'optimized'))
+    schema.path(plan['round_root'])
+    schema.path(plan['session_directory'])
+    schema.integer(plan['session_seconds'], 1, 600)
+    schema.digest(plan['source_closure_admission_sha256'])
+    schema.exact(plan['producers'], ('group01', 'failure_variants'))
+    for role in schema.PRODUCERS:
+        row = plan['producers'][role]
+        schema.exact(row, ('epoch_plan', 'command', 'cwd', 'output', 'evidence_directory',
+            'stage_directory', 'stage_manifest', 'stage_directories', 'launch_binding', 'launch_nonce',
+            'root_seconds', 'address_space_bytes', 'rss_bytes', 'evidence_plan', 'launch_artifacts'))
+        epoch._plan(row['epoch_plan'], role)
+        schema.launch(row['launch_binding'])
+        schema.text(row['launch_nonce'], 64)
+        schema.need(_LEN(row['launch_nonce']) == 64 and
+                    all(c in '0123456789abcdef' for c in row['launch_nonce']), 'one-use launch nonce differs')
+        for key in ('cwd', 'output', 'evidence_directory', 'stage_directory'):
+            schema.path(row[key])
+        schema.blob(row['stage_manifest'], schema.RECORD_BYTES)
+        schema.need(row['stage_manifest']['sha256'] == row['epoch_plan']['stage_sha256'] ==
+                    row['launch_binding']['stage_sha256'], 'independent producer stage pins differ')
+        schema.need(row['launch_binding']['root_sha256'] == row['epoch_plan']['root_sha256'],
+                    'independent producer root pins differ')
+        schema.integer(row['root_seconds'], 1, 180)
+        schema.integer(row['address_space_bytes'], 1, 1024 ** 3)
+        schema.integer(row['rss_bytes'], 1, 1024 ** 3)
+        command = row['command']
+        schema.need(_TYPE(command) is list and 6 <= _LEN(command) <= 128, 'bounded original root argv required')
+        for argument in command:
+            schema.text(argument, 8192)
+            schema.need(bool(argument), 'empty root argument')
+        prefix = ['/usr/bin/python3.12', *FLAGS] + (['-O'] if plan['mode'] == 'optimized' else [])
+        schema.need(command[:len(prefix)] == prefix, 'original root interpreter/flags/mode differs')
+        entry = command[len(prefix)]
+        schema.path(entry)
+        schema.need(entry.startswith(row['stage_directory'] + '/') and
+                    entry == row['stage_directory'] + '/integration/full_driver.py',
+                    'source-fixed genuine root entry differs')
+        schema.need(command.count('--output') == 1 and
+                    command[command.index('--output') + 1] == row['output'], 'independent root output differs')
+        args = command[len(prefix) + 1:]
+        schema.need(len(args) >= 11 and args[0] == '--root-sha256' and args[2] == '--provider' and
+                    args[5] == '--driver' and args[8] == '--integration' and args[10] == '--',
+                    'original bootstrap argv positions differ')
+        by_path = {item['path']: item for item in plan['source_files']}
+        integration = row['stage_directory'] + '/integration'
+        schema.need(args[1] == row['epoch_plan']['root_sha256'] and args[9] == integration and
+                    args[3].rsplit('/', 1)[0] == args[6].rsplit('/', 1)[0] == integration,
+                    'actual root/provider/driver source origins differ')
+        for path, digest, category in ((entry, args[1], 'root'), (args[3], args[4], 'provider'),
+                                       (args[6], args[7], 'driver')):
+            schema.need(path in by_path and by_path[path]['sha256'] == digest and
+                        by_path[path]['category'] == category, 'bootstrap hash not in independent source closure')
+        schema.exact(row['launch_artifacts'], ('configuration_sha256', 'startup_tcb_sha256', 'expected_history_sha256'))
+        for key, pin in row['launch_artifacts'].items():
+            schema.blob(pin, schema.RECORD_BYTES)
+            schema.need(pin['sha256'] == row['launch_binding'][key] and pin['path'] in by_path and
+                        by_path[pin['path']]['sha256'] == pin['sha256'] and
+                        by_path[pin['path']]['bytes'] == pin['bytes'], 'launch data binding lacks actual source pin')
+        evidence = row['evidence_plan']
+        if role == 'group01':
+            schema.need(command.count('--finite-only') == 1 and command.count('--lanes') == 1 and
+                        command[command.index('--lanes') + 1] == 'candidate', 'Group01 must use original finite candidate route')
+            schema.need(evidence['mode'] == plan['mode'] and evidence['generation'] == row['epoch_plan']['generation'] and
+                        evidence['stage_sha256'] == row['epoch_plan']['stage_sha256'] and
+                        evidence['root_sha256'] == args[1] and evidence['driver_sha256'] == args[7],
+                        'Group01 evidence expectation not bound to actual independent launch')
+        else:
+            schema.need(args[11:] == ['--output', row['output'], '--generation', row['epoch_plan']['generation'],
+                        '--launch-nonce', row['launch_nonce']], 'variant exact tail argv differs')
+            schema.need(args[1] == 'f5a2d33f2b4d3651f214156a0e7094c2bb516ce2d5ab7698d18c11f98f35dee0' and
+                        args[3] == integration + '/probe_binding_v3.py' and
+                        args[4] == '9cbb7368f89e71d1e6cc46db5dc77efed3e03ed2a801c98c88fe316e4d9f3ef2' and
+                        args[6] == integration + '/variant_driver_v1.py', 'variant genuine original bootstrap differs')
+            schema.need(evidence['binding'] == {'mode': plan['mode'], 'generation': row['epoch_plan']['generation'],
+                        'launch_nonce': row['launch_nonce']} and evidence['output'] == row['output'] and
+                        evidence['stage_root'] == row['stage_directory'] and evidence['raw_file_names'] == list(VARIANT_FILES),
+                        'variant expectation not bound to actual independent launch')
+        schema.need(schema.sha(schema.canonical({'argv': command})) == row['epoch_plan']['command_sha256'] ==
+                    row['launch_binding']['command_sha256'], 'independent exact root command digest differs')
+        schema.need(row['evidence_directory'] == plan['session_directory'] + '/' + role and
+                    row['output'] == row['evidence_directory'] + '/producer-output',
+                    'source-fixed private producer origins differ')
+    schema.need(plan['producers']['group01']['launch_nonce'] != plan['producers']['failure_variants']['launch_nonce'],
+                'producer exec launch nonce reused')
+
+
+def make_parent(original_epoch, original_authority, original_receivers):
+    _gate()
+    schema.need(_LEN(_PARENTS) < 2, 'finite two-mode parent owner bound exceeded')
+    # A second mode shares the same process and therefore the same unknown
+    # resources. Check before the first configuration read can acquire an FD.
+    for unused, prior in _PARENTS:
+        owner = prior['unknown_owner']
+        domain.refresh_unknown_owner(owner)
+        schema.need(prior['phase'] != 'STOP' and owner['primary'][0] is None and
+                    owner['quarantine'][0] is False and owner['pending'][0] is False and
+                    owner['iterator_uncertain'][0] is False,
+                    'prior parent failure forbids a new mode or configuration read')
+    schema.need(_PROCESS[0] is None or _PROCESS[0]['acquisition_in_flight'] is False,
+                'uncertain process-owned lock acquisition requires kernel teardown')
+    owner = _UNKNOWN_OWNER
+    domain.refresh_unknown_owner(owner)
+    schema.need(owner['primary'][0] is None and owner['quarantine'][0] is False and
+                owner['pending'][0] is False and owner['iterator_uncertain'][0] is False,
+                'earlier constructor failure prohibits configuration reads')
+    try:
+        errors = schema.make_error_owner()
+        native_index = 2 * len(_PARENTS)
+        owner['native_errors'][native_index] = schema.owner_state(errors)
+        original_state = _EPOCH_ENTRY(original_epoch, original_authority)
+        owner['native_errors'][native_index + 1] = schema.owner_state(original_state['_error_owner'])
+        domain.refresh_unknown_owner(owner)
+        schema.need(owner['quarantine'][0] is False, 'original V5 owner already requires teardown')
+        mode = original_state['_mode']
+        schema.choice(mode, ('normal', 'optimized'))
+        schema.need(not any(item[1]['plan']['mode'] == mode for item in _PARENTS), 'mode parent already consumed')
+        configuration = schema.plain_copy({'plan': CONFIGURATION['plans'][mode],
+            'receiver_policy': CONFIGURATION['receiver_policy'], 'checker_source': CONFIGURATION['checker_source']})
+        copying._control_hit('parent.constructor.before_plan_read')
+        plan = group01.decode(copying.read_verified(configuration['plan'], schema.RECORD_BYTES, error_owner=errors))
+        _validate_plan(plan)
+        policy = group01.decode(copying.read_verified(configuration['receiver_policy'], schema.RECORD_BYTES, error_owner=errors))
+        schema.need(set(policy) == set(REQUIRED_MODULES), 'exact fixed parent/producer receiving closure differs')
+        schema.need(policy['parent_completion_v1'] == configuration['checker_source'],
+                    'actual completion source differs from configured checker')
+        receivers = closure.bind_receivers(original_receivers, policy, errors)
+        receiver_gate_snapshot = _receiver_gate_values(receivers)
+        schema.need(closure.receiver(receivers, 'epoch_parent_v5', 'ParentEpoch') is epoch.ParentEpoch and
+                    closure.receiver(receivers, 'epoch_schema_v5', 'need') is schema.need and
+                    closure.receiver(receivers, 'epoch_copy_v5', 'inspect') is copying.inspect,
+                    'parent/checker epoch module identities differ')
+        source_guard = closure.receiver(receivers, 'h25_parent_supervisor', 'launch_contract')
+        source_guard()
+        closure.check_receivers(receivers)
+        original_state = _EPOCH_ENTRY(original_epoch, original_authority)
+        schema.need(original_state['_epoch_id'] == plan['epoch_id'] and original_state['_mode'] == plan['mode'] and
+                    original_state['_state'] == 'PRODUCERS_PENDING' and
+                    original_state['_plans'] == {role: row['epoch_plan'] for role, row in plan['producers'].items()} and
+                    epoch.CONFIGURATION['parent_checker_sha256'] == configuration['checker_source']['sha256'],
+                    'original constructor registry is not this prelaunch epoch/plan/checker')
+        token = object()
+        state = {'pid': os.getpid(), 'phase': 'CONSTRUCTING', 'epoch': original_epoch,
+            'authority': original_authority, 'errors': errors, 'plan': plan, 'configuration': configuration,
+            'receivers': receivers, 'receiver_gate_snapshot': receiver_gate_snapshot,
+            'runs': {}, 'next': 0, 'directory_created': False,
+            'stop': [None, None], 'fallback': [None] * 8, 'stop_file': None,
+            'stop_write_attempted': False, 'io_quarantine': owner['quarantine'],
+            'unknown_owner': owner,
+            'began': _CLOCK(), 'shared_deadline': _CLOCK() + plan['session_seconds'],
+            'subreaper': None, 'native_keeper': None, 'lock_fds': [None, None],
+            'lock_attempted': [False, False], 'initial_sources': None}
+        _PARENTS.append((token, state))
+    except BaseException as error:
+        # Reserve the original error before another call or native cleanup.
+        # This also covers failures before _PARENTS receives a capability.
+        if owner['primary'][0] is None:
+            owner['primary'][0] = error
+        owner['quarantine'][0] = True
+        raise
+    try:
+        # Exclusive creation is the persistent no-restore marker.  It is never
+        # deleted by this source; a crashed/partial same-plan session cannot run.
+        _MKDIR(plan['session_directory'], 0o700)
+        state['directory_created'] = True
+        if _PROCESS[0] is None:
+            process_record = {'pid': state['pid'], 'locks': [None, None], 'keeper': None,
+                              'subreaper': None, 'acquisition_in_flight': False}
+            _PROCESS[0] = process_record
+            for index, name in enumerate(('parent-queue.lock', 'science.lock')):
+                process_record['acquisition_in_flight'] = True
+                process_record['locks'][index] = _OPEN(plan['round_root'] + '/runtime/' + name,
+                    os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+                process_record['acquisition_in_flight'] = False
+                fcntl.flock(process_record['locks'][index], fcntl.LOCK_EX | fcntl.LOCK_NB)
+            installer = closure.receiver(receivers, 'h25_parent_supervisor', 'install_subreaper')
+            # Original installer has a concrete pinned source/TCB/native closure.
+            # Its path interface is the original pathlib.Path contract.
+            from pathlib import Path
+            subreaper, keeper = installer(Path(plan['round_root']))
+            process_record['subreaper'], process_record['keeper'] = subreaper, keeper
+        process_record = _PROCESS[0]
+        schema.need(process_record['pid'] == state['pid'] and process_record['keeper'] is not None,
+                    'original same-process subreaper ownership missing')
+        state['subreaper'], state['native_keeper'] = process_record['subreaper'], process_record['keeper']
+        closure.check_receivers(receivers)
+        state['initial_sources'] = _snapshot_sources(plan, errors)
+        copying.verify(configuration['checker_source'], error_owner=errors)
+        copying.write_once(plan['session_directory'] + '/PARENT-INTENT.json',
+            schema.canonical({'schema': 'h25-parent-completion-intent-v1', 'epoch_id': plan['epoch_id'],
+                'mode': plan['mode'], 'configuration': configuration, 'parent_pid': state['pid'],
+                'source_closure_admission_sha256': plan['source_closure_admission_sha256'],
+                'retry_or_restore_allowed': False, 'accounting': 'nested non-additive; paid by one outer orchestrator'}),
+            error_owner=errors)
+        state['phase'] = 'READY'
+        _guard(state)
+        return token
+    except BaseException as primary:
+        _stop(state, 'make_parent', primary)
+        raise
+
+
+def _close_logs(run, primary):
+    first = None
+    for index in range(2):
+        descriptor = run['log_fds'][index]
+        if descriptor is None or run['log_close_attempted'][index]:
+            continue
+        run['log_close_attempted'][index] = True
+        try:
+            _CLOSE(descriptor)
+            run['log_close_confirmed'][index] = True
+        except BaseException as error:
+            if run['unknown_owner']['primary'][0] is None:
+                run['unknown_owner']['primary'][0] = primary if primary is not None else error
+            run['unknown_owner']['quarantine'][0] = True
+            run['errors'][index] = error
+            if first is None:
+                first = error
+    if primary is None and first is not None:
+        raise first
+
+
+def run_producer(owner_capability, producer_role):
+    state = _state(owner_capability)
+    try:
+        _guard(state)
+        schema.choice(producer_role, schema.PRODUCERS)
+        schema.need(state['phase'] == 'READY' and state['next'] < 2 and
+                    producer_role == schema.PRODUCERS[state['next']] and producer_role not in state['runs'],
+                    'producer order, replay or prior completion differs')
+    except BaseException as primary:
+        _stop(state, 'run_producer_entry', primary)
+        raise
+    row = state['plan']['producers'][producer_role]
+    # Burn the actual epoch ticket before any later preparation or launch.
+    try:
+        ticket = _EPOCH_RESERVE(state['epoch'], state['authority'], producer_role)
+        run_token = object()
+        run = {'token': run_token, 'ticket': ticket, 'role': producer_role, 'phase': 'RESERVED',
+           'unknown_owner': state['unknown_owner'],
+           'plan': row, 'domain': None, 'process': None, 'root': None, 'terminal': None,
+           'log_fds': [None, None], 'log_close_attempted': [False, False],
+           'log_close_confirmed': [False, False], 'errors': [None] * 8,
+           'primary': [None], 'acquisition_in_flight': False, 'spawn_entered': False,
+           'spawn_returned': False, 'source_before': None, 'stage_before': None,
+               'began': _CLOCK(), 'peak_rss': 0, 'file_limits': tuple(_GETRLIMIT(resource.RLIMIT_FSIZE))}
+        state['runs'][producer_role] = run
+        state['phase'] = 'PRODUCER_IN_FLIGHT'
+    except BaseException as primary:
+        _stop(state, 'run_producer_reservation', primary)
+        raise
+    primary = None
+    old_handler = None
+    alarm_installed = False
+    try:
+        _guard(state)
+        _MKDIR(row['evidence_directory'], 0o700)
+        # output remains absent; the genuine original Root creates it exclusively.
+        try:
+            _STAT(row['output'], follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            raise schema.EpochStop('producer output already exists')
+        local_plan = dict(state['plan'], **row)
+        run['source_before'] = _snapshot_sources(state['plan'], state['errors'])
+        run['stage_before'] = _stage(local_plan, state['errors'], state)
+        # Reject oversized complete-custody records BEFORE any child launch.
+        run['source_bytes_before'] = _source_custody_bytes(state, run['source_before'], run['stage_before'])
+        for pin in row['launch_artifacts'].values():
+            copying.verify(pin, schema.RECORD_BYTES, error_owner=state['errors'])
+        run['domain'] = domain.create_domain(state['unknown_owner'])
+        launch = {'schema': 'h25-owned-producer-launch-v1', 'epoch_id': state['plan']['epoch_id'],
+            'mode': state['plan']['mode'], 'role': producer_role,
+            'generation': row['epoch_plan']['generation'], 'launch_nonce': row['launch_nonce'],
+            'parent_pid': state['pid'], 'command': row['command'], 'environment': ENV, 'cwd': row['cwd'],
+            'launch_binding': row['launch_binding'], 'parent_file_limits': list(run['file_limits']),
+            'new_session': True, 'close_fds': True, 'pass_fds': [],
+            'root_seconds': row['root_seconds'], 'rss_bytes': row['rss_bytes'],
+            'address_space_bytes': row['address_space_bytes']}
+        run['launch'] = copying.write_once(row['evidence_directory'] + '/LAUNCH.json',
+            schema.canonical(launch), error_owner=state['errors'])
+        for index, name in enumerate(('stdout.raw', 'stderr.raw')):
+            schema.need(state['io_quarantine'][0] is False and state['unknown_owner']['pending'][0] is False and
+                        state['unknown_owner']['iterator_uncertain'][0] is False,
+                        'raw stream cannot acquire after uncertain ownership')
+            run['acquisition_in_flight'] = True
+            state['unknown_owner']['pending'][0] = True
+            run['log_fds'][index] = _OPEN(row['evidence_directory'] + '/' + name,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+            run['acquisition_in_flight'] = False
+            state['unknown_owner']['pending'][0] = False
+        setter, kind, limits = _SETRLIMIT, resource.RLIMIT_AS, (row['address_space_bytes'], row['address_space_bytes'])
+        def child_limit():
+            setter(kind, limits)
+        schema.need(_GETTIMER(signal.ITIMER_REAL) == (0.0, 0.0), 'existing parent timer cannot be replaced')
+        old_handler = _GETSIGNAL(signal.SIGALRM)
+        _SIGNAL(signal.SIGALRM, _alarm)
+        alarm_installed = True
+        deadline = min(run['began'] + row['root_seconds'], state['shared_deadline'] - domain.CLEANUP_SECONDS)
+        schema.need(_CLOCK() < deadline, 'no funded root/cleanup interval remains')
+        _SETTIMER(signal.ITIMER_REAL, max(0.000001, deadline - _CLOCK()))
+        run['spawn_entered'] = True
+        run['process'] = _POPEN(row['command'], cwd=row['cwd'], env=dict(ENV),
+            stdout=run['log_fds'][0], stderr=run['log_fds'][1], stdin=subprocess.DEVNULL,
+            close_fds=True, pass_fds=(), start_new_session=True, preexec_fn=child_limit)
+        run['spawn_returned'] = True
+        run['root'] = domain.adopt_popen(run['domain'], run['process'])
+        while True:
+            unused, current = domain.observe(run['domain'])
+            run['peak_rss'] = max(run['peak_rss'], sum(item[6] for item in current))
+            schema.need(run['peak_rss'] <= row['rss_bytes'], 'owned process RSS sum exceeded')
+            schema.need(max(_STAT(row['evidence_directory'] + '/' + name, follow_symlinks=False).st_size
+                        for name in ('stdout.raw', 'stderr.raw')) <= schema.LOG_BYTES, 'root output bound exceeded')
+            if domain.poll_owned(run['domain']) is not None:
+                break
+            _SLEEP(0.01)
+    except BaseException as error:
+        if state['unknown_owner']['primary'][0] is None:
+            state['unknown_owner']['primary'][0] = error
+        primary = state['unknown_owner']['primary'][0]
+        run['primary'][0] = primary
+        if primary is not error:
+            run['errors'][4] = error
+        if (run['acquisition_in_flight'] or state['unknown_owner']['pending'][0] or
+                state['unknown_owner']['iterator_uncertain'][0] or _TYPE(error) is MemoryError):
+            state['io_quarantine'][0] = True
+        raise primary
+    finally:
+        # Preserve the first locally delivered primary through all cleanup.
+        first_cleanup = None
+        if alarm_installed:
+            try:
+                _SETTIMER(signal.ITIMER_REAL, 0)
+                _SIGNAL(signal.SIGALRM, old_handler)
+            except BaseException as error:
+                run['errors'][2] = error
+                first_cleanup = error
+        if run['domain'] is not None:
+            try:
+                domain.finish_domain(run['domain'])
+            except BaseException as error:
+                run['errors'][3] = error
+                state['io_quarantine'][0] = True
+                if first_cleanup is None:
+                    first_cleanup = error
+        try:
+            _close_logs(run, primary if primary is not None else first_cleanup)
+        except BaseException as error:
+            if first_cleanup is None:
+                first_cleanup = error
+        for index in range(2):
+            if run['log_close_attempted'][index] and not run['log_close_confirmed'][index]:
+                state['io_quarantine'][0] = True
+        if primary is not None:
+            _stop(state, 'run_producer', primary)
+        elif first_cleanup is not None:
+            _stop(state, 'run_producer_cleanup', first_cleanup)
+            raise first_cleanup
+    try:
+        schema.need(run['spawn_entered'] is True and run['spawn_returned'] is True and
+                    run['acquisition_in_flight'] is False and all(run['log_close_confirmed']),
+                    'root spawn or raw stream ownership incomplete')
+        run['terminal'] = domain.terminal_facts(run['domain'])
+        schema.need(tuple(_GETRLIMIT(resource.RLIMIT_FSIZE)) == run['file_limits'], 'parent file limit drift')
+        run['phase'] = 'JOINED'
+        state['phase'] = 'PRODUCER_JOINED'
+        _guard(state)
+        return run_token
+    except BaseException as primary:
+        _stop(state, 'postcleanup_terminal', primary)
+        raise
+
+
+def _source_custody_bytes(state, files, stage):
+    raw = group01.encode({'schema': 'h25-parent-current-source-custody-v1', 'files': files,
+        'stage': stage, 'source_closure_admission_sha256': state['plan']['source_closure_admission_sha256'],
+        'historical_compiler_interval_proof_claimed_by_this_record': False})
+    schema.need(len(raw) <= schema.RECORD_BYTES, 'complete source custody record exceeds admitted writer bound')
+    return raw
+
+
+def _variant(state, run, stdout_raw):
+    """Dedicated concrete typed receiver; source remains external until frozen."""
+    expected = group01.decode(group01.encode(run['plan']['evidence_plan']))
+    expected['producer_process_id'] = run['root'][0]
+    expected['parent_file_limits'] = list(run['file_limits'])
+    files = expected['raw_file_names']
+    schema.need(_TYPE(files) is list and files == list(VARIANT_FILES),
+                'fixed variant raw file inventory missing')
+    raw_files, pins, total = {}, [], 0
+    for relative in files:
+        schema.text(relative, 256)
+        schema.need(not relative.startswith('/') and all(part not in ('', '.', '..') for part in relative.split('/')),
+                    'variant raw origin differs')
+        path = run['plan']['output'] + '/' + relative
+        limit = 8388608 if relative.endswith('.so') else schema.LOG_BYTES if relative.endswith('.raw') else schema.RECORD_BYTES
+        pin = copying.inspect(path, limit, error_owner=state['errors'])
+        total += pin['bytes']
+        schema.need(total <= MAX_VARIANT_RAW_BYTES, 'variant aggregate byte bound exceeded before allocation')
+        raw_files[relative] = copying.read_verified(pin, limit, error_owner=state['errors'])
+        pins.append(pin)
+    closure.check_receivers(state['receivers'])
+    validator = closure.receiver(state['receivers'], VARIANT_MODULE, VARIANT_FUNCTION)
+    result = validator(raw_files, expected)
+    closure.check_receivers(state['receivers'])
+    # Exact result schema is fixed with the separately frozen variant source.
+    # This branch cannot run before that complete source/interface is admitted.
+    schema.exact(result, ('schema', 'raw_result_relative', 'raw_group_relatives', 'builds',
+                           'zero_candidate_loads', 'not_runtime_authority'))
+    schema.need(result['schema'] == 'h25-negative-variant-data-authentication-v1' and
+                result['zero_candidate_loads'] is True and result['not_runtime_authority'] is True,
+                'variant data-validation scope differs')
+    pin_by_relative = dict(zip(files, pins))
+    schema.need(result['raw_result_relative'] == 'receipt.json' and
+                group01.same_json(group01.decode(stdout_raw), group01.decode(raw_files['receipt.json'])),
+                'variant original stdout/final raw result differs')
+    builds = []
+    schema.sequence(result['builds'], 2)
+    for role, row in zip(schema.ROLES[3:], result['builds']):
+        schema.exact(row, ('role', 'command_sha256', 'profile', 'files'))
+        schema.need(row['role'] == role, 'variant build role order differs')
+        schema.exact(row['files'], ('original_output', 'original_receipt', 'attempt', 'journal', 'stdout', 'stderr'))
+        build = {'role': role, 'producer_role': 'failure_variants',
+            'producer_generation': run['plan']['epoch_plan']['generation'],
+            'producer_stage_sha256': run['plan']['epoch_plan']['stage_sha256'],
+            'command_sha256': row['command_sha256'], 'profile': row['profile']}
+        for key, relative in row['files'].items():
+            schema.text(relative, 256)
+            schema.need(relative in pin_by_relative, 'variant validator returned unowned file')
+            build[key] = pin_by_relative[relative]
+        schema.build(build)
+        builds.append(build)
+    schema.need(result['raw_group_relatives'] == list(VARIANT_GROUPS), 'variant exact raw group census differs')
+    raw_groups = []
+    for relative in result['raw_group_relatives']:
+        schema.text(relative, 256)
+        schema.need(relative in pin_by_relative, 'variant validator returned unowned raw group')
+        raw_groups.append({'file': relative, 'raw': pin_by_relative[relative]})
+    return {'raw_result': pin_by_relative['receipt.json'], 'group_rows': raw_groups,
+            'builds': builds, 'additional_raw': pins,
+            'native_runtime_or_full_union_qualified': False}
+
+
+def accept_producer(owner_capability, completed_run_capability):
+    state = _state(owner_capability)
+    try:
+        _guard(state)
+        schema.need(_TYPE(completed_run_capability) is object and state['phase'] == 'PRODUCER_JOINED',
+                    'joined original producer capability required')
+        matches = [run for run in state['runs'].values() if run['token'] is completed_run_capability]
+        schema.need(_LEN(matches) == 1 and matches[0]['phase'] == 'JOINED', 'unknown or replayed producer completion')
+        run = matches[0]
+        run['phase'] = 'COMPLETION_CONSUMED'
+        terminal = domain.terminal_facts(run['domain'])
+        schema.need(terminal == run['terminal'], 'owned terminal facts changed')
+        row, errors = run['plan'], state['errors']
+        stdout = copying.inspect(row['evidence_directory'] + '/stdout.raw', schema.LOG_BYTES, error_owner=errors)
+        stderr = copying.inspect(row['evidence_directory'] + '/stderr.raw', schema.LOG_BYTES, error_owner=errors)
+        schema.need(stderr['bytes'] == 0, 'original producer stderr is not empty')
+        stdout_raw = copying.read_verified(stdout, schema.LOG_BYTES, error_owner=errors)
+        if run['role'] == 'group01':
+            actual = group01.authenticate_group01(row['output'], row['evidence_plan'], run['root'][0],
+                run['file_limits'], state['receivers'], errors, stdout_raw)
+        else:
+            actual = _variant(state, run, stdout_raw)
+        # These facts are parent-derived from current bytes and real owned
+        # cleanup, never child status flags or an imported ParentCompletion.
+        source_after = _snapshot_sources(state['plan'], errors)
+        schema.need(source_after == run['source_before'] == state['initial_sources'], 'complete current source identity changed')
+        stage_after = _stage(dict(state['plan'], **row), errors, state)
+        schema.need(stage_after == run['stage_before'], 'late complete stage custody changed')
+        closure.check_receivers(state['receivers'])
+        schema.need(domain.terminal_facts(run['domain']) == terminal, 'late parent-domain cleanup changed')
+        copying.verify(stdout, schema.LOG_BYTES, error_owner=errors)
+        copying.verify(stderr, schema.LOG_BYTES, error_owner=errors)
+        for build in actual['builds']:
+            for key, limit in (('original_output', schema.FILE_BYTES), ('original_receipt', 65536),
+                ('attempt', 65536), ('journal', schema.JOURNAL_BYTES), ('stdout', schema.LOG_BYTES), ('stderr', schema.LOG_BYTES)):
+                copying.verify(build[key], limit, error_owner=errors)
+        for pin in actual['additional_raw']:
+            copying.verify(pin, schema.FILE_BYTES, error_owner=errors)
+        copying.verify(actual['raw_result'], schema.RAW_RESULT_BYTES, error_owner=errors)
+        for pin in row['launch_artifacts'].values():
+            copying.verify(pin, schema.RECORD_BYTES, error_owner=errors)
+        for group in actual['group_rows']:
+            copying.verify(group['raw'], schema.RECORD_BYTES, error_owner=errors)
+            if run['role'] == 'group01':
+                copying.verify(group['validation'], 8192, error_owner=errors)
+        directory = row['evidence_directory']
+        terminal_pin = copying.write_once(directory + '/TERMINAL.json', schema.canonical({
+            'schema': 'h25-owned-producer-terminal-v1', 'launch': run['launch'],
+            'generation': row['epoch_plan']['generation'], 'launch_nonce': row['launch_nonce'],
+            'actual': terminal, 'stdout': stdout, 'stderr': stderr,
+            'root_wall_before_completion_diagnostic_nanoseconds': int((_CLOCK() - run['began']) * 1000000000),
+            'diagnostic_is_nested_not_additive': True}), error_owner=errors)
+        raw_groups = copying.write_once(directory + '/RAW-GROUPS.json',
+            group01.encode({'schema': 'h25-parent-retained-raw-groups-v1', 'rows': actual['group_rows'],
+                'additional_raw': actual['additional_raw'], 'returned_groups_checked_before_mint': True}), error_owner=errors)
+        source_bytes_after = _source_custody_bytes(state, source_after, stage_after)
+        schema.need(source_bytes_after == run['source_bytes_before'], 'source custody changed after prelaunch size gate')
+        source_pin = copying.write_once(directory + '/FINAL-SOURCE-CUSTODY.json', source_bytes_after, error_owner=errors)
+        _guard(state)
+        schema.need(_CLOCK() - run['began'] <= row['root_seconds'], 'complete root including validation/custody exceeded bound')
+        observation = {'schema': 'h25-owned-parent-observation-v1', 'epoch_id': state['plan']['epoch_id'],
+            'mode': state['plan']['mode'], 'producer_role': run['role'], 'generation': row['epoch_plan']['generation'],
+            'launch_nonce': row['launch_nonce'], 'launch': run['launch'], 'terminal': terminal_pin,
+            'raw_result': actual['raw_result'], 'raw_groups': raw_groups, 'final_source_custody': source_pin,
+            'root_pid': run['root'][0], 'root_start_ticks': run['root'][4],
+            'later_cross_root_aggregate_required_before_export': False,
+            'native_full_or_gain_qualification': False}
+        observed_pin = copying.write_once(directory + '/PARENT-OBSERVATION.json', schema.canonical(observation), error_owner=errors)
+        record = {key: row['epoch_plan'][key] for key in ('role', 'generation', 'stage_sha256', 'command_sha256', 'root_sha256')}
+        record.update(terminal=terminal_pin, raw_result=actual['raw_result'], raw_groups=raw_groups,
+            final_source_custody=source_pin, parent_observation=observed_pin,
+            completion_checker_sha256=state['configuration']['checker_source']['sha256'], builds=actual['builds'])
+        schema.producer(record)
+        # The only mint site is below every actual launch/domain/raw/source
+        # check.  Neither ticket nor completion is ever returned to a caller.
+        _guard(state)
+        completion = _EPOCH_COMPLETION(run['ticket'], state['configuration']['checker_source']['sha256'],
+            observed_pin['sha256'], row['epoch_plan']['generation'], state['plan']['mode'], run['role'],
+            run['root'][0], run['root'][4], True, True, True, True, True, True)
+        _EPOCH_ACCEPT(state['epoch'], state['authority'], run['ticket'], completion, record)
+        _guard(state)
+        schema.need(_CLOCK() - run['began'] <= row['root_seconds'],
+                    'complete root plus acceptance tail exceeded bound')
+        run['phase'], run['record'] = 'ACCEPTED', record
+        state['next'] += 1
+        state['phase'] = 'READY' if state['next'] < 2 else 'PRODUCERS_ACCEPTED'
+        return schema.plain_copy(record)
+    except BaseException as primary:
+        _stop(state, 'accept_producer', primary)
+        raise
+
+
+def commit_exports(owner_capability):
+    state = _state(owner_capability)
+    try:
+        _guard(state)
+        schema.need(state['phase'] == 'PRODUCERS_ACCEPTED' and state['next'] == 2 and
+                    all(run['phase'] == 'ACCEPTED' for run in state['runs'].values()),
+                    'only two genuinely accepted producer records may export')
+        result = _EPOCH_COMMIT(state['epoch'], state['authority'])
+        _guard(state)
+        state['phase'] = 'EXPORTED'
+        return result
+    except BaseException as primary:
+        _stop(state, 'commit_exports', primary)
+        raise
+
+
+def stop_evidence(owner_capability):
+    state = _state(owner_capability)
+    summaries = [{'role': run['role'], 'phase': run['phase'],
+                  'spawn_entered': run['spawn_entered'], 'spawn_returned': run['spawn_returned'],
+                  'log_close_attempted': list(run['log_close_attempted']),
+                  'log_close_confirmed': list(run['log_close_confirmed'])}
+                 for run in state['runs'].values()]
+    # Never expose the epoch ticket, Popen object, domain capability or private
+    # run sidecar through diagnostic return values.
+    return state['stop'], state['errors'], state['fallback'], summaries

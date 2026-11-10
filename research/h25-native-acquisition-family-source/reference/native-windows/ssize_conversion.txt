@@ -1,0 +1,14 @@
+PyNumber_AsSsize_t(PyObject *item, PyObject *err)
+{
+    Py_ssize_t result;
+    PyObject *runerr;
+    PyObject *value = _PyNumber_Index(item);
+    if (value == NULL)
+        return -1;
+
+    /* We're done if PyLong_AsSsize_t() returns without error. */
+    result = PyLong_AsSsize_t(value);
+    if (result != -1)
+        goto finish;
+
+    PyThreadState *tstate = _PyThreadState_GET();

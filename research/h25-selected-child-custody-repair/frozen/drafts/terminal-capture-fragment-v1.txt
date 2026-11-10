@@ -1,0 +1,73 @@
+    def prepare_capture(self, evidence):
+        # Both immutable reader identities are acquired before the only birth.
+        for item in self.capture:
+            path = evidence / item['name']
+            item['path'] = path
+            item['writer'] = self.open_fd(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                                           os.O_CLOEXEC | os.O_NOFOLLOW)
+            item['reader'] = self.open_fd(path, os.O_RDONLY | os.O_NONBLOCK |
+                                           os.O_CLOEXEC | os.O_NOFOLLOW)
+            a, b = os.fstat(item['writer']['fd']), os.fstat(item['reader']['fd'])
+            need(stat.S_ISREG(a.st_mode) and stat.S_IMODE(a.st_mode) == 0o600 and
+                 a.st_uid == os.getuid() and a.st_nlink == 1 and
+                 identity(a) == identity(b) == identity(path.lstat()),
+                 'same exclusive parent capture writer/preowned reader')
+            item['initial'] = (a.st_dev, a.st_ino, a.st_mode, a.st_uid, a.st_nlink)
+
+    def read_capture_known(self, item):
+        """No descriptor acquisition and no exception formatting occurs here."""
+        reader = item['reader']
+        need(reader is not None and reader['phase'] == 'OWNED', 'actual pre-birth capture reader')
+        fd, path = reader['fd'], item['path']
+        before = os.fstat(fd)
+        current = path.lstat()
+        need((before.st_dev, before.st_ino, before.st_mode, before.st_uid, before.st_nlink) ==
+             item['initial'] and identity(before) == identity(current) and
+             stat.S_ISREG(before.st_mode) and before.st_size <= LOG_CAP,
+             'actual complete available capture identity and bound')
+        need(os.lseek(fd, 0, os.SEEK_SET) == 0, 'retained capture reader starts at zero')
+        digest, total = hashlib.sha256(), 0
+        while total < before.st_size:
+            data = os.read(fd, min(CHUNK, before.st_size - total))
+            need(bool(data), 'complete available bounded capture')
+            total += len(data)
+            digest.update(data)
+        eof = os.read(fd, 1)
+        after = os.fstat(fd)
+        need(eof == b'' and identity(before) == identity(after) == identity(path.lstat()),
+             'stable complete capture EOF after actual domain emptiness')
+        item['observation'] = dict(path=str(path), sha256=digest.hexdigest(), bytes=total,
+                                   identity=list(identity(after)), stable=True,
+                                   full_read=True, eof=True, prebirth_reader=True,
+                                   read_chunk_bytes=CHUNK)
+        return item['observation']
+
+    def capture_after_retirement(self):
+        # A close error on stdout never prevents stderr's known reader attempt.
+        # A working error never suppresses either available capture read.
+        for item in self.capture:
+            if self.empty_observed and item['reader'] is not None and item['reader']['phase'] == 'OWNED':
+                try:
+                    self.read_capture_known(item)
+                except BaseException as error:
+                    item['read_error'] = error
+                    self.last_error = error
+                    if self.first_error is None:
+                        self.first_error = error
+                    if self.guard['primary'][0] is None:
+                        self.guard['primary'][0] = error
+                    self._remember(error, 'capture-full-read')
+            if self.empty_observed and item['reader'] is not None:
+                try:
+                    self.close_fd(item['reader'])
+                except BaseException as error:
+                    # close_fd already retained the distinct native close error.
+                    self.cleanup_errors[2 if item['name'] == 'root.stdout.raw' else 3] = error
+
+    def close_capture_writers(self):
+        for item in self.capture:
+            if item['writer'] is not None:
+                try:
+                    self.close_fd(item['writer'])
+                except BaseException as error:
+                    self.cleanup_errors[4 if item['name'] == 'root.stdout.raw' else 5] = error
