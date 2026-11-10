@@ -5711,3 +5711,62 @@ Source archives preserve contributor attribution; scientific review remains open
 - **unpaidmoon (@unpaidmoon)** — [#6946](https://github.com/CrocSwap/integer-mult-bounds/pull/6946): Bound the odd-character port window by 36. (archive).
 - **unpaidmoon (@unpaidmoon)** — [#6947](https://github.com/CrocSwap/integer-mult-bounds/pull/6947): Record a swap-free route for the helper-462 matcher. (archive).
 - **unpaidmoon (@unpaidmoon)** — [#6948](https://github.com/CrocSwap/integer-mult-bounds/pull/6948): Record that the E6 4-frame code matches the bit-lane iterator. (archive).
+
+## Queue intake, 10 November 2026 (chunk G)
+
+Source archives preserve contributor attribution; scientific review remains open.
+
+- **unpaidmoon (@unpaidmoon)** — [#6949](https://github.com/CrocSwap/integer-mult-bounds/pull/6949): Record that the selected pricing rejects the PR5679 BIT component. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6950](https://github.com/CrocSwap/integer-mult-bounds/pull/6950): Record that the helper-462 swap-free word loses the P2 ordinary bill (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6951](https://github.com/CrocSwap/integer-mult-bounds/pull/6951): Record the owner-indexed y0 defect and its monomial charge (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6952](https://github.com/CrocSwap/integer-mult-bounds/pull/6952): Prove four once-each rank-one frames miss the four-call endpoint. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6953](https://github.com/CrocSwap/integer-mult-bounds/pull/6953): Witness a characteristic-3 rank-36 pattern on P104. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6954](https://github.com/CrocSwap/integer-mult-bounds/pull/6954): Record a one-scale zero-swap word for the helper-462 matcher. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6955](https://github.com/CrocSwap/integer-mult-bounds/pull/6955): Classify the c=6 centre on s+t=39 as empty of weight-3 masks. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6956](https://github.com/CrocSwap/integer-mult-bounds/pull/6956): Record that three full calls miss the paired-star endpoint. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6957](https://github.com/CrocSwap/integer-mult-bounds/pull/6957): Record that the only emitted after-cover misses the PR5679 component. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6958](https://github.com/CrocSwap/integer-mult-bounds/pull/6958): Record that the caller outside the selected pricing has no bit_saving input (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6959](https://github.com/CrocSwap/integer-mult-bounds/pull/6959): Record that the D6 punctured frame code matches the bit-lane iterator. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6960](https://github.com/CrocSwap/integer-mult-bounds/pull/6960): Record that the intersection-counter engine returns the E6 64-word set. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6961](https://github.com/CrocSwap/integer-mult-bounds/pull/6961): Record that the C1 Q feedback edge leaves the four-input row coupled. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6962](https://github.com/CrocSwap/integer-mult-bounds/pull/6962): Show the no-edge irreducible bound fails in pattern dimension 4. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6963](https://github.com/CrocSwap/integer-mult-bounds/pull/6963): Record that two moved corrections do not emit on length-5 G20 intervals. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6964](https://github.com/CrocSwap/integer-mult-bounds/pull/6964): Record the characteristic polynomial of one 216-dimensional A1 joint … (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6965](https://github.com/CrocSwap/integer-mult-bounds/pull/6965): Classify the signed permutations that split every c=3 centre character. (source archive).
+- **unpaidmoon (@unpaidmoon)** — [#6966](https://github.com/CrocSwap/integer-mult-bounds/pull/6966): Prove length-28 double sojourns use at least four sources. (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6967](https://github.com/CrocSwap/integer-mult-bounds/pull/6967): Research: Coded Gaussian leaf (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6968](https://github.com/CrocSwap/integer-mult-bounds/pull/6968): Research: Exact scalar tables (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6969](https://github.com/CrocSwap/integer-mult-bounds/pull/6969): Research: Core/halo source bridge (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6970](https://github.com/CrocSwap/integer-mult-bounds/pull/6970): Research: Odd-word precision grid (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6971](https://github.com/CrocSwap/integer-mult-bounds/pull/6971): Research: SWAP tables (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6972](https://github.com/CrocSwap/integer-mult-bounds/pull/6972): Research: Nonempty production windows (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6973](https://github.com/CrocSwap/integer-mult-bounds/pull/6973): Research: Group scale ledger (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6974](https://github.com/CrocSwap/integer-mult-bounds/pull/6974): Research: Atomic MOVE (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6975](https://github.com/CrocSwap/integer-mult-bounds/pull/6975): Research: QSELF ownership lowering (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6976](https://github.com/CrocSwap/integer-mult-bounds/pull/6976): Research: Remaining diagonal (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6977](https://github.com/CrocSwap/integer-mult-bounds/pull/6977): Research: Production Reference gap (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6978](https://github.com/CrocSwap/integer-mult-bounds/pull/6978): Research: Source-complete native leaves (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6979](https://github.com/CrocSwap/integer-mult-bounds/pull/6979): Research: Serial monomial leaf (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6980](https://github.com/CrocSwap/integer-mult-bounds/pull/6980): Research: QUERY-only caller (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6981](https://github.com/CrocSwap/integer-mult-bounds/pull/6981): Research: Reference/ideal compression join (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6982](https://github.com/CrocSwap/integer-mult-bounds/pull/6982): Research: Fine-catalogue obstruction (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6983](https://github.com/CrocSwap/integer-mult-bounds/pull/6983): Research: Complete direct MOVE (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6984](https://github.com/CrocSwap/integer-mult-bounds/pull/6984): Research: Restricted three-query optimum (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6985](https://github.com/CrocSwap/integer-mult-bounds/pull/6985): Research: Current-word precision envelope (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6986](https://github.com/CrocSwap/integer-mult-bounds/pull/6986): Research: Leaf cutoff transport (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6987](https://github.com/CrocSwap/integer-mult-bounds/pull/6987): Research: Cached chirp/cyclic join (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6988](https://github.com/CrocSwap/integer-mult-bounds/pull/6988): Research: Rounded scalar tables (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6989](https://github.com/CrocSwap/integer-mult-bounds/pull/6989): Research: Rounded positive leaf (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6990](https://github.com/CrocSwap/integer-mult-bounds/pull/6990): Research: Compact rounded ADD (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6991](https://github.com/CrocSwap/integer-mult-bounds/pull/6991): Research: Fine expansion admission (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6992](https://github.com/CrocSwap/integer-mult-bounds/pull/6992): Research: Rounded global Lambda (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6993](https://github.com/CrocSwap/integer-mult-bounds/pull/6993): Research: Deferred Gaussian recovery (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6994](https://github.com/CrocSwap/integer-mult-bounds/pull/6994): Research: Actual #6936 MOVE port (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6995](https://github.com/CrocSwap/integer-mult-bounds/pull/6995): Research: Original-q field extraction (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6996](https://github.com/CrocSwap/integer-mult-bounds/pull/6996): Research: Rounded selected MOVE (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6997](https://github.com/CrocSwap/integer-mult-bounds/pull/6997): Research: Serial pass lower bound (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6998](https://github.com/CrocSwap/integer-mult-bounds/pull/6998): Research: ADD tariff conversion audit (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#6999](https://github.com/CrocSwap/integer-mult-bounds/pull/6999): Research: Scalar finite-state microcontrol (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#7000](https://github.com/CrocSwap/integer-mult-bounds/pull/7000): Conditional κ = 0.00363005817 (+0.0838% over #6936): shared wires and two helper splits (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#7001](https://github.com/CrocSwap/integer-mult-bounds/pull/7001): Remove empty-root credits from the paired BIT supplier at 0.00385248 (no new κ) (source archive).
+- **Jerry Jiaheng Chen (@CubeJerry)** — [#7002](https://github.com/CrocSwap/integer-mult-bounds/pull/7002): Construct a connected 18-stage root and bound its native completion (no new κ) (source archive).
