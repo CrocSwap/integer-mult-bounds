@@ -202,8 +202,10 @@ idempotents; the other 20,040 valuation-1 matrices are not idempotent.
 All 802 by 802 ordered pairs (B, C) were multiplied after E_11. Exactly 58
 products equal I + x I_4. Each of those 58 has B orthogonal to E_11,
 C = I + E_11 + B, and B supported on coordinates 1, 2 and 3. The same scan
-finds exactly 58 idempotents with that support. The solution set and that
-support set therefore coincide.
+finds exactly 58 idempotents with that support. Each solution determines its
+middle factor, that factor is kernel-supported, and the two counts are equal,
+so every kernel-supported idempotent occurs exactly once. The solution set
+and the support set therefore coincide.
 
 Those 58 matrices are the idempotents of the coordinate 3-space ker(E_11).
 On F_2^3 there are (8-1)/(2-1) = 7 lines and 7 planes. A fixed line lies in
