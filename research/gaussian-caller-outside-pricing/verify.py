@@ -2,7 +2,7 @@
 """The Gaussian caller outside the selected pricing assembly has no bit_saving input.
 
 The selected PR6030 verifier loads research/p104-productive-controller/caller.py
-and calls physical(word, local) before pricing.run. That function checks the
+and calls physical before pricing.run. That function checks the
 idle Gaussian axes and the Gaussian pair. Its parameters are word and local.
 Neither it, nor the controller object the verifier labels the physical caller,
 carries bit_saving. It therefore cannot consume the recorded PR5679 component.
@@ -55,6 +55,14 @@ GAUSSIAN_CALLER_PY = (
     "research/p104-productive-controller/caller.py",
     "research/physical-boundary-rhs-caller/caller.py",
 )
+PHYSICAL_BLOB = "6ac5e735691555ecafe2afbcff71edd923178113"
+PHYSICAL_COPIES = (
+    "research/p104-caller-independent-audit/capsule/outputs/p104-contact-reassessment-20261025/sources/predecessor/caller.py",
+    "research/p104-contact-independent-audit/capsule/outputs/p104-contact-reassessment-20261025/sources/predecessor/caller.py",
+    "research/p104-coupled-helper-bases/caller.py",
+    "research/p104-cut-stability/whole-caller/inputs/caller.py",
+    "research/p104-productive-controller/caller.py",
+)
 
 
 def need(ok, message):
@@ -74,6 +82,14 @@ def ordered(text, marks):
             return False
         position = found + len(mark)
     return True
+
+
+def git_blob(revision, path):
+    raw = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "--verify", revision + ":" + path],
+        stderr=subprocess.DEVNULL,
+    )
+    return raw.decode("ascii").strip()
 
 
 def git_text(revision, path):
@@ -132,6 +148,16 @@ def main():
     need(hits == [], "no caller.py blob at the base commit contains bit_saving")
     need(tuple(gaussian_files) == GAUSSIAN_CALLER_PY,
          "Gaussian caller.py census matches the pinned list")
+    need(all(git_blob(base, path) == PHYSICAL_BLOB for path in PHYSICAL_COPIES),
+         "five physical caller.py paths are one blob")
+    dual = git_text(base, "research/native-involutive-dual/caller.py")
+    boundary = git_text(base, "research/physical-boundary-rhs-caller/caller.py")
+    need("def physical(" not in dual and "def physical(" not in boundary,
+         "the other two Gaussian caller.py files do not define physical")
+    need("Real K commutes full Gaussian" in dual and "gaussian_supplier" in dual,
+         "native involutive caller is the commutation check")
+    need("from gaussian_page import Header, Cell, skip_bits" in boundary,
+         "boundary caller imports gaussian_page")
 
     caller_text = CALLER.read_text(encoding="utf-8")
     need(caller_text == git_text(base, "research/p104-productive-controller/caller.py"),

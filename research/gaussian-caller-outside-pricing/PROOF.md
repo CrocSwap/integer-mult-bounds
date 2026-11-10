@@ -42,13 +42,15 @@ has exactly one copy of each of
     Multiply the Gaussian pair twice with exact real and imaginary parts.
     All idle Gaussian axes
 
-and its only parameters are `word` and `local`, with no defaults. At the
-call above, `word` receives the controller object and `local` receives the
-edited local program. Neither argument is C, and neither parameter is
-named `bit_saving`. The function's only return value is a dictionary. Its
-keys include `whole_idle_jobs` and do not include `bit_saving`. No function
-in the module has an argument named `bit_saving`, and the module text does
-not contain that identifier.
+and its only parameters are `word` and `local`, with no defaults. The
+selected call passes two positional arguments. The first is the controller
+returned by `construct`. The second is the regenerated edited word stored
+in the verifier's variable `word`. That second object is the edited PR5907
+word, not the replay dictionary the verifier names `local`, and not C.
+Neither parameter is named `bit_saving`. The function's only direct return
+statement builds a dictionary. Its keys include `whole_idle_jobs` and do
+not include `bit_saving`. No function in the module has an argument named
+`bit_saving`, and the module text does not contain that identifier.
 
 `pricing.run` is a different function. Its parameters are
 `local, native, word, physical`. The `bit_saving` entry is created inside
@@ -69,14 +71,21 @@ At base commit `7c49fe32c55de02c2c873655c804b16e4c3fef0a`,
 `git ls-tree -r --name-only` lists every path in the tree. The paths whose
 final component is `caller.py` are exactly 15, and they are the list in
 `verify.py`. Each blob was read in full. None contains the byte string
-`bit_saving`. Exactly seven of those blobs contain `Gaussian` or `gaussian`. The named
-file is one of them. The other six are the predecessor copies of this
-caller, `research/native-involutive-dual/caller.py`, and
-`research/physical-boundary-rhs-caller/caller.py`. None of the seven
-contains `bit_saving`. This is an exhaustive finite census of that filename
-at that commit. It is not a census of every function in the repository. In
-particular, `research/gaussian-height-contract/check_caller.py` is not
-named `caller.py`, and the PR4359 ledger is not in this census.
+`bit_saving`. Exactly seven of those blobs contain `Gaussian` or
+`gaussian`. Five of them are the same blob,
+`6ac5e735691555ecafe2afbcff71edd923178113`: the named file and the copies
+under the caller-independent audit, the contact-independent audit,
+`research/p104-coupled-helper-bases/caller.py`, and
+`research/p104-cut-stability/whole-caller/inputs/caller.py`. The other two
+are different files. `research/native-involutive-dual/caller.py` contains
+the check `Real K commutes full Gaussian` and the field
+`gaussian_supplier`. `research/physical-boundary-rhs-caller/caller.py`
+imports `gaussian_page`. Neither of those two defines `physical`. None of
+the seven contains `bit_saving`. This is an exhaustive finite census of
+that filename at that commit. It is not a census of every function in the
+repository. In particular,
+`research/gaussian-height-contract/check_caller.py` is not named
+`caller.py`, and the PR4359 ledger is not in this census.
 
 ## What is not claimed
 

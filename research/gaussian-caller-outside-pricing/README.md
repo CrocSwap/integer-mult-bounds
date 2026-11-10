@@ -17,8 +17,10 @@ The caller outside that assembly is `physical` in
 that module and calls `C.physical(caller, word)` before `pricing.run`. The
 function's parameters are `word` and `local`. It checks the Gaussian pair
 and the idle Gaussian axes, and it has no `bit_saving` parameter. The
-controller object passed as its first argument is `CONTROLLER.json`, which
-also has no `bit_saving` field. This caller does not consume C.
+selected call is `physical(caller, word)`. Its first argument is the
+controller returned by `construct`, equal to `CONTROLLER.json`, which has
+no `bit_saving` field. Its second argument is the regenerated edited word,
+not the replay dictionary and not C. This caller does not consume C.
 
 At the same base commit, the tree contains exactly 15 files named
 `caller.py`. None of those blobs contains `bit_saving`. That is a census of
