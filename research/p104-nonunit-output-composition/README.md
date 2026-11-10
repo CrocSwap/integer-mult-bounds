@@ -1,13 +1,20 @@
-# Conditional candidate κ = 0.003642408496869
+# Conditional κ = 0.003642408496869
 
 This composes PR7130's nonunit-pivot split with the global output rechart
 mechanism from PR7124. The exact arbitrary-input native adjoint, complete
 paid/target recount and both directed complete-price engines passed at
 κ=0.003642408496869, improving PR7130 by 0.000000189212232.
 
-Full native and application verification, including the source's F25 grid
-and increased precision cost, is pending. This is an early draft, not full
-verification or admission. The five inherited framework assumptions remain.
+After that early draft, full native/application checks and registered isolated
+CPython 3.12.14 replay passed, matching every frozen receipt field. This includes
+the source's independently rederived 1125/F25 grid and increased precision
+context 2362; F24 is rejected. All 3,038 catalogue checks, 104 main boundaries,
+physical/phase/ownership checks, fresh envelopes, ordinary and fixed-tape costs,
+both directed prices and 54 strict plus four functional outer conditions passed.
+The complete ordinary bill is 778,867,208, with 110,400 paid positions and
+22,308 productive fields. See REPLAY.txt, NATIVE-RESULT.json, RESULT.json and
+VALIDATION.md. Five inherited assumptions and independent review remain;
+source-aware local replay is not maintainer or formal acceptance.
 
 The complete PR7130 source export and nested sources/notices are authenticated
 by INPUTS.json. CHANGES.json and construct.py regenerate the entire word;
@@ -15,7 +22,7 @@ by INPUTS.json. CHANGES.json and construct.py regenerate the entire word;
 coefficients/order, main endpoints and owned inventory remain unchanged.
 
 ```sh
-python3.12 -B research/p104-nonunit-output-composition/verify_early.py
+python3.12 -B scripts/research_package.py --package research/p104-nonunit-output-composition
 ```
 
 Credit dillona/OpenAI Codex for PR7130's legal nonunit-pivot split and precision
@@ -27,5 +34,5 @@ Rohan Arun with substantial OpenAI Codex assistance; no subagents. Apache-2.0.
 
 ## Open next questions
 
-- Complete source-specific native/application verification and registered replay.
+- Obtain independent reviewer confirmation of the registered replay.
 - Obtain independent review of the composed construction and all charges.
