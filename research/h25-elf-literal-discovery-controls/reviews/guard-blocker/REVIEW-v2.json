@@ -1,0 +1,184 @@
+{
+  "schema": "independent-passive-discovery-successor-source-review-v2",
+  "started_utc": "2026-11-02T23:46:42Z",
+  "fixed_stop_utc": "2026-11-02T23:57:00Z",
+  "frozen_utc": "2026-11-02T23:53:28.699148+00:00",
+  "disposition": "PASS_REPAIRED_HELPER_AND_FAKE_CONTROLS_SOURCE; REJECT_FINAL_GUARD_FIRST_FAILURE_PATHS; FULL_P1_WITHHELD; NO_EXECUTION_GRANT",
+  "inputs": [
+    {
+      "path": "review-source/REVIEW-v1.json",
+      "bytes": 11328,
+      "sha256": "db17ad5ea0f5e260746f17649884f37d2bd434831fb5bf99e3bae28e3d7c289c"
+    },
+    {
+      "path": "repair-v2/passive_image_candidates_v2.py",
+      "bytes": 11809,
+      "sha256": "56b44235f55685d61e5c8b8099d825b4ec5a53987910f506dffad309c12ffb53"
+    },
+    {
+      "path": "repair-v2/helper-v1-to-v2.diff",
+      "bytes": 1704,
+      "sha256": "d2fffc2943e064cddb4b20a60870ed7b19f6e5beb5eeb70047899d39cea74074"
+    },
+    {
+      "path": "controls-v1/literal_fixtures_v1.py",
+      "bytes": 3022,
+      "sha256": "979f719820707490920bf39f3c398129ed6e49b2df898e76a1f7292cc8d8d47d"
+    },
+    {
+      "path": "controls-v1/test_literal_candidates_v1.py",
+      "bytes": 8023,
+      "sha256": "cbbe3139f6d67d2da653f5aaf4a62f0ab108f5a1cde37e0f444f3ef826ae9ed6"
+    },
+    {
+      "path": "controls-v1/CONTROLS-v1.json",
+      "bytes": 4370,
+      "sha256": "dff80f346111786b6a2622b0039e4aa478aba3cb9c44582c343d1a5fe0dc9f83"
+    },
+    {
+      "path": "controls-v1/FREEZE-v1.json",
+      "bytes": 1628,
+      "sha256": "cb1e34650e0d0b8b1d8b20a05f137d26ed84df101140f1423762dd85799402dc"
+    },
+    {
+      "path": "repair-v2/parent_passive_supervisor_v2.py",
+      "bytes": 20744,
+      "sha256": "a5f29b2eb9bceb4f5bf6286de2de6d3bfbe795007c8cf11bc6998517fd46f8a3"
+    },
+    {
+      "path": "repair-v2/EXECUTION-PLAN-v2.json",
+      "bytes": 5288,
+      "sha256": "ba3ab25fb753485db99a2b8e52d477b569b76c0aa353ed4c7569a1492146425b"
+    },
+    {
+      "path": "repair-v2/FREEZE-v2.json",
+      "bytes": 1477,
+      "sha256": "d4e15ee2650818fd6f11200cf386e370a839a40279c4bb2d3b8fe675d528ba7f"
+    }
+  ],
+  "preservation": "Initial v1 report and byte-exact snapshots preserved unchanged. Same-read draft and final guard snapshots precede consequential findings in this owned review directory. No candidate source edits.",
+  "accepted_components": [
+    {
+      "component": "Repaired helper",
+      "scope": "Pure bounded candidate discovery only",
+      "anchors": "68-91",
+      "conclusion": "M01 reverse file/VA check rejects competing full/partial memory mappings including zero-fill. M02 checks PF_X on the exact unique entry VA LOAD, not a different-VA file alias. No boundary, relocation-effect, role, reachability or runtime-frame qualification."
+    },
+    {
+      "component": "Frozen synthetic controls source",
+      "source_checkpoint_sha256": "cdf88f0eeaff9ca22d9964a086875a43b5e87a0647de41c4b637129acb553f37",
+      "scope": "Separate parent fake-fixture-only grant may be justified",
+      "cases": 23,
+      "literal_buffers": 20,
+      "conclusion": "Exact checked NEW helper/builder bytes compiled into non-main modules; only inspect on synthetic data. C01/C02 require actual Stop, explicit checks remain under -O, independent literal oracle values. S11-S13 conceptual only. No helper.main or installed target operation."
+    }
+  ],
+  "draft_corrections_verified": [
+    {
+      "id": "V2G01",
+      "final_anchors": "229-243",
+      "conclusion": "capture_complete now assigned after raw retention attempts and exceptions fail run."
+    },
+    {
+      "id": "V2G02",
+      "final_anchors": "354-365",
+      "conclusion": "Outer cleanup/fd/lock-close secondary errors convert final outcome to STOP; lock close moved before terminal. This does not fix intermediate cleanup continuation below."
+    },
+    {
+      "id": "V2G03",
+      "final_anchors": "292-296",
+      "conclusion": "Admission size bounded before descriptor retained read_pin, which enforces regular exact size/hash and endpoint metadata."
+    }
+  ],
+  "remaining_blockers": [
+    {
+      "id": "V2F01",
+      "severity": "MATERIAL_PROTOCOL_DEFECT",
+      "anchors": "cleanup157-170;run217-244;main363-365",
+      "finding": "cleanup appends pipe-close, leader-survivor and pidfd-survivor errors without raising. run only marks failure when cleanup raises. A first pipe-close error after an otherwise successful payload therefore leaves failure None and capture_complete True, returns its data, and permits a later readelf/objdump launch. Final outer STOP occurs only after later work.",
+      "counterexample": "Payload exits0 and pipes are drained; p.stdout.close raises OSError, which cleanup catches/appends at167. No earlier primary error. run returns at244; helper structured status passes and readelf is launched at334.",
+      "limits": "This is a source failure-branch counterexample, not an observed native fault. Survivor clauses share the missing propagation; no claim that a survivor follows an ordinary successful wait under the OS contract.",
+      "required_behavior": "Every first unexpected cleanup failure must prevent subsequent payload launches and preserve that failure. Current frozen source does not do so."
+    },
+    {
+      "id": "V2F02",
+      "severity": "MATERIAL_FIRST_ERROR_PRESERVATION_DEFECT",
+      "anchors": "read_pin42-61;Guard.write83-98",
+      "finding": "Close failures can replace an earlier read/pin/write exception, contrary to the declared first-primary/secondary retention contract.",
+      "counterexample": "Guard.write os.write raises ENOSPC; its finally os.close raises EIO. The propagated exception is EIO and the first ENOSPC is not retained. read_pin has the analogous except-close-before-bare-raise path.",
+      "limits": "Source reasoning only; no fault injection or candidate execution.",
+      "required_behavior": "Retain the original operation failure before independently attempting close; append close failure without replacing it."
+    }
+  ],
+  "resource_source_review": {
+    "max_payload_launches": 10,
+    "max_objdump_windows": 8,
+    "max_window_bytes": 256,
+    "max_window_total_bytes": 2048,
+    "specific_raw_max_sum": 475136,
+    "reserve": 262144,
+    "specific_raw_plus_reserve": 737280,
+    "aggregate": 1048576,
+    "baseline_max": 262144,
+    "baseline_plus_specific_raw_plus_reserve": 999424,
+    "per_stream_max": 196608,
+    "whole_seconds_from_main": 60,
+    "work_seconds": 55,
+    "cleanup_reserve_seconds": 5,
+    "per_payload_seconds": [
+      5,
+      5,
+      3
+    ],
+    "sampled_memory_bytes": 1073741824,
+    "accepted_mechanisms": [
+      "Structured helper STOP/overflow is gated before readelf.",
+      "Exact tool byte/size pins and executable descriptors; no shell/target execution/fallback.",
+      "Candidate raw fields and decoder address-row bytes compared to authoritative pinned B; FD not claimed immutable.",
+      "Cap+1 retained as failure evidence, aggregate accounting and permanent marker/lock present.",
+      "Pidfds and start identities bind known processes; unknown descendants cause STOP."
+    ],
+    "limits": [
+      "No guard controls executed or claimed; source is not an admitted live guard.",
+      "Memory sampled, not a hard peak cap.",
+      "Cap-failure raw_bytes excludes streams charged to terminal reserve; parent must use actual retained file inventory and per-stream records for total billing.",
+      "Parent startup/transport, external stderr capture, actual queue/context/funding and immutable/no-writer or raw-binding premises remain genuine external obligations.",
+      "Final guards do not erase the remaining first-failure defects."
+    ]
+  },
+  "evidence_status": {
+    "helper_control_source": "INDEPENDENT_PASS_SOURCE_ONLY",
+    "controls_actual_results": "Parent reports23of23 normal and optimized; separate independent evidence reviewer owns raw-log acceptance. Not reexecuted or independently adopted as test truth here.",
+    "guard_source": "REJECT_FOR_DECLARED_FAILURE_PROTOCOL",
+    "guard_actual_run": "NONE_BY_REVIEWER; NOT_GRANTED",
+    "round_P1_complete": false,
+    "automatic_no_progress_clock_reset": false
+  },
+  "next_operation": "STOP/HOLD this exact round at its fixed gate unless parent has an already authorized, source-correct route. Preserve partial source/control progress and rejection; no second repair, alternate controller reroll or silent relaxation of first-error/no-continuation protocol.",
+  "preserved": {
+    "initial_no_progress_stop_utc": "2026-11-02T23:57:51.401519Z",
+    "round_hard_stop_utc": "2026-11-03T00:12:51.401519Z",
+    "sole_repair_stop_utc": "2026-11-02T23:52:23Z",
+    "full_C05": false,
+    "full_V03": false,
+    "certificate_feasible": false,
+    "source_role_qualified": false,
+    "original_completion_percent": 43.5,
+    "original_credit": 0,
+    "canonical_old_seconds": "94.550533479",
+    "prior_supplemental_seconds": "98.950533479",
+    "new_actual_controls_debit": "Not independently recalculated here; parent ledger remains separate.",
+    "costs": "OPEN_NOT_ZERO"
+  },
+  "activity": {
+    "retained_text_read_and_hash": true,
+    "owned_snapshots_and_reports_written": true,
+    "candidate_import_compile_execution": false,
+    "tests_or_helper_execution": false,
+    "actual_binary_read_or_decode": false,
+    "decoder_or_target_or_compiler_execution": false,
+    "network_acquisition": false,
+    "original_or_closed_source_edits": false,
+    "protected_runtime_reads": false
+  }
+}

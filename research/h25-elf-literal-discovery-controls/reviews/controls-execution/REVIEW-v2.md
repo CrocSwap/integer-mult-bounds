@@ -1,0 +1,15 @@
+# Independent fake-control execution review — PASS, discovery scope only
+
+Review began23:50:35UTC; fixed stop23:55:35UTC, before the original23:57:51no-progress boundary. All6raw output/error/GNU-time files, exact grant, tool results and ledger were read/hash-verified. **Normal and optimized each record23/23unique passing discovery cases**, zero failures, with optimize flags0and1. Their ordered case names are identical. No test was rerun by this reviewer.
+
+The v2helper is11,809bytes/SHA25656b44235f55685d61e5c8b8099d825b4ec5a53987910f506dffad309c12ffb53; test8,023bytes/cbbe3139f6d67d2da653f5aaf4a62f0ab108f5a1cde37e0f444f3ef826ae9ed6; builder3,022bytes/979f719820707490920bf39f3c398129ed6e49b2df898e76a1f7292cc8d8d47d. All post-run bodies match the grant and source-review pins. Static AST/literal census confirms20unique fixture buffers without running their builder.
+
+Complete test/builder/helper source was read as text. The authorized harness authenticates checked NEW bytes before compilation, loads fresh non-main modules and calls only helper.inspect on owned literal buffers. It does not call helper.main or open the actual driver through the inspected test call graph; guarded module main is not entered. No readelf/objdump/external decoder invocation is present. The helper contains a separate actual-image main, but its existence is not authority to execute it. The reviewer imported/compiled/executed nothing.
+
+The PASS remains **discovery controls only**. S04 confirms interior-pattern candidates remain boundary-unvalidated; S06 confirms no semantic qualification after overwrite. S11role/reachability, S12relocation effects and S13private-call/alias effects remain conceptual/unimplemented. Wrong-pin controls exercise the pin-check function; their before-compilation source ordering is separately visible. No complete loader/race/ABI/semantic-certificate inference follows. These synthetic metadata buffers are not asserted to be genuine loadable executables.
+
+GNUwalls0.16/0.17and toolwalls0.065126715/0.071047239 remain separately retained. max(toolwall,GNUwall)+0.01 gives0.17+0.18=**0.35seconds**. Supplemental combined99.780533479→**100.130533479seconds**; canonical94.550533479unchanged. Individual GNU RSS22,608/22,604KiB is not full process-tree peak, and all physical costs remain **OPEN_NOT_ZERO**.
+
+The grant is845eab937144d8f4079d3558ce5f6649662ab8b29f5a2e95359afe81d59bc0aa; ledger4955efcccf2160f87e75ab02dfca82da6ed733e2690bad8a65dfd15e4f64c7b9. Actual helper/driver/guard/fullP1authority remains separate and withheld by this review. NoP3/full-goal or original credit is assigned; fullC05/fullV03false and43.5%/denominators unchanged. No source edits, rerun, actual driver read, process inspection, query, budget change or automatic continuation.
+
+Metadata-only successor clarification: REVIEW-v2.json replaces the ambiguous nested v1 `still_withheld` labels with explicit false authority/qualification fields. V1 is preserved exactly; no actual pass, source/P1/P3 acceptance, scientific result, test outcome, timing or source bytes changed.
