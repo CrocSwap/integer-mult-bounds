@@ -1,0 +1,35 @@
+# Conditional κ = 0.003641428753638
+
+This output rechart of exact PR7123 improves its complete signed invoice by
+0.000000189103454. The early exact arbitrary-input native adjoint, complete
+paid/target recount and both directed price engines passed before the initial
+draft. Full native and complete application checks subsequently passed, followed
+by registered isolated CPython 3.12.14 replay matching every frozen field.
+Coverage includes eleven 512-column chart checks, phase/corruption controls,
+independent native/caller grids, physical ownership, fresh precision/error bounds,
+ordinary work and fixed-tape substitution, both directed prices and 54 strict
+plus four functional outer conditions. All 3,038 catalogue checks and 104 main
+boundary pairs passed. See `REPLAY.txt`, `NATIVE-RESULT.json`, `RESULT.json`
+and `VALIDATION.md`.
+
+The five inherited framework assumptions remain. These are source-aware author
+checks, not independent human/formal acceptance or maintainer admission.
+
+`CHANGES.json` and `construct.py` regenerate the whole native from the complete
+authenticated PR7123 export. Scalar coefficients and chronological order,
+main input/output boundaries and owned inventory remain unchanged.
+
+```sh
+python3.12 -B scripts/research_package.py --package research/p104-global-output-rechart
+```
+
+Credit 1337isnot1337/OpenAI Codex for fresh-helper-boundary alpha expansion;
+dillona/OpenAI Codex for PR7123; Rohan Arun's PR7122 rechart and PR7113 caller;
+Ali Romman, Jerry Chen/CubeJerry, ToikY, Matarener, DreamingOfClouds,
+Douglas Colkitt/#7000 reviewers and all retained source authors and notices.
+Rohan Arun with substantial OpenAI Codex assistance; no subagents. Apache-2.0.
+
+## Open next questions
+
+- Obtain independent reviewer confirmation of the registered replay.
+- Independently review the changed helper promises, chart maps and complete cost.
