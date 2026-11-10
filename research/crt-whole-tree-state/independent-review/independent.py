@@ -32,7 +32,8 @@ def load(path):
 tree = load(P / 'tree.py')
 w = load(ROOT / 'research/r437-preparation-composition/predecessor4025/source/words.py')
 entry = load(ROOT / 'research/encoded-crt-entry-lifecycle/entry.py')
-pins = json.loads((P / 'SOURCES.json').read_text())['files']
+pins = [pin for pin in json.loads((P / 'SOURCES.json').read_text())['files']
+        if pin['usage'] == 'input']
 for pin in pins:
     raw = (ROOT / pin['path']).read_bytes()
     need(sha256(raw).hexdigest() == pin['sha256'], 'SHA256 ' + pin['path'])

@@ -19,9 +19,11 @@ I read the package proof, implementation and receipt, the actual #6100
 workspace/query source and proof, the #5625 adapter and proof, the #5353 RowEntry,
 the #5219 Port/Entry implementation, the numerical Word boundary, and the
 retained explicit-width logical Caller and balanced CRT definitions. All pinned
-input bytes and the single declared geometry substitution passed separate
+scientific input bytes and the single declared geometry substitution passed separate
 SHA256/Git-blob checks. The predecessor paths have no changes relative to the
-base in the author worktree. The reader-facing author package is still being
+base in the author worktree. The task-catalogue provenance row is historically
+bound by package metadata and is not treated as a live scientific input.
+The reader-facing author package is still being
 finished; file hashes of the reviewed core are in RESULT.json.
 
 ## Defect found and corrected
