@@ -139,6 +139,6 @@ word from DreamingOfClouds in #6902. The present package adds the proper
 terminal case, the crossing-path theorem, the zero-start proposition and the
 four-path counterexample. Nothing from #7283 is replayed or re-audited.
 
-Prepared by Nick Petalas. Apache-2.0.
+This package was produced by Nick Petalas. Apache-2.0.
 
 [#7283]: https://github.com/CrocSwap/integer-mult-bounds/pull/7283

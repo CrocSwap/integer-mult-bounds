@@ -182,5 +182,5 @@ nonpositive endpoints is not proved.
 The rank-bill formula, its zero-to-`D` endpoint theorem and the proper-terminal
 question are unpaidmoon's #7283. That package credits CubeJerry's shared-native
 helper-split exploration and the two-chain word from DreamingOfClouds in #6902.
-No part of #7283 is replayed or re-audited here. Prepared by Nick Petalas.
+No part of #7283 is replayed or re-audited here. This package was produced by Nick Petalas.
 Apache-2.0.
