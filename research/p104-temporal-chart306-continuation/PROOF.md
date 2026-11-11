@@ -1,0 +1,19 @@
+# Temporal chart 306 continuation
+
+The complete 32-file PR7155 export at594d57036057f88f8bacc82e9c203bd4cb3276b9 is retained with all nested sources and author notices. INPUTS.json authenticates every member. The source is reconstructed through its constructor and compared with every canonical native byte before use.
+
+This instantiates Ali Romman's causal-history owned-buffer identity using CubeJerry's contact-free retiming and temporal coefficients, Matarener's kernels, dillona's generic constructor, and Clear1nsight's guarded coefficient certificate. Rohan Arun supplied this source-specific instance and bounded paid-path search, with substantial OpenAI Codex assistance. No new splitting mechanism is claimed.
+
+Let P(t,r) be the full source prefix row and S(t,r) the guarded suffix response. In addition to final public and owned coordinates, the suffix includes a unique coordinate for each interior COPY destination-zero obligation. WITNESS.json gives five gathers and seven injections whose exact full-coordinate sums are c=−5e1029/2−4e349−2e1025+2e334 and d=−e349/2+e1021/2−e831/2−e334/2. The boundary pairing is c d=1. All non-helper, final-owned and COPY-guard coefficients must cancel in certificate.py. This is checked independently of discovery.
+
+All gathers occur at or before cut36772 and all injections at or after it. The contact-free neutral paths in PATHS.json are retimed without changing paid ranks. Role1034's rank-eight path9→127 is replaced by9→306→127, ranks three and five. Its original MOVE is event48585 in interval[37857,48586]. The paid midpoint supplies later observations; its availability need not precede retirement. Every path interval, source read, target write, frame and pivot residency is explicitly checked.
+
+Let G have pivot831 row c and G d=e831. Prepend G inverse at the input helper frame. The owned accumulator A gathers the original pivot input x. At retirement, let v be the current pivot value and z a fresh independent public input at306. Initialize B and emit B+=z; B-=A; z+=pivot; z-=A; z-=B; pivot+=A; pivot-=z. This leaves B=z_original−x, successor z=v and retired pivot=x. Clear A explicitly under the inherited owned-erasure assumption; redirect subsequent pivot uses to the successor, perform the scheduled injections of B, clear B and finish with G at127. The guarded suffix identity and G d=e831 restore every other output while the successor outputs z_original. All arbitrary public inputs and main actions are separately checked by whole-word forward/adjoint replay.
+
+The candidate adds40 instructions and one public field, giving1498 public fields and61 owned labels,64 lifetimes, peak47. Productive delta is T4+1,T5+1,T9−1; paid delta is P3+1,P5+1,P8−1. Both rank masses remain unchanged. The full17-stage caller applies every change17 times, retaining surplus1424 and zero empty credit. For p=1−κ, the signed native improvement is4^p+8^p−9^p−3^p. Both complete directed engines certify κ=0.003644407895539, gain0.000000140810139 over7155, with the source invoice rejecting the new claim.
+
+The independently derived minimal common grid is1125/F25. The owned census is enforced by counted substitutions in temporary authenticated envelope code; lifecycle validation is retained. Full ordinary, precision, scalar-width, physical, phase, catalogue and fixed-tape obligations are recorded in the verification receipts when complete. No optimality claim follows from a bounded first-positive search.
+
+Five inherited assumptions remain: native_all_columns, owned_erasure, compiler, precision_tape, analytic_recovery. Local verification, hosted scientific replay, maintainer admission, independent human/formal acceptance and a complete multiplication theorem remain distinct.
+
+Apache-2.0; all retained authors remain credited in NOTICE and the archived source closure.
