@@ -26,7 +26,9 @@ Write `e = 2^j t` with `t` odd, `N = 2^n`, `L = 2^l`, and assume `S >= e(6W+1)`.
    automatically the only one in its window. This holds for every window, aligned or not.
 3. **The length threshold cannot be lowered (Theorem 3).** For every `W >= 1` and every
    power of two `L <= 12W` there is a dyadic instance with `S >= e(6W+1)` in which every
-   aligned window of length `L` is bad (`e = N/L`, one hole at offset `L/2`, `M = L/2`).
+   aligned window of length `L` is bad. For `L <= 6W`, this follows from `M <= L`.
+   For `6W+2 <= L <= 12W`, take `N = 8L`, `e = N/L = 8`: each aligned window has one
+   hole at offset `L/2` and `M = L/2`.
    So `L >= 12W+2` is exactly the universal dyadic length condition of #6972's guard.
 4. **The guard does sharpen for particular `e`.** For `e` a power of two in case (III),
    `L >= 6W+2` is necessary and sufficient, half the uniform length. Least dyadic `L`
