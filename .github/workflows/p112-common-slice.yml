@@ -25,11 +25,14 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.12'
+      - name: Configure runner temporary directory
+        run: |
+          mkdir -p "$RUNNER_TEMP/p112-common-slice"
+          printf 'TMPDIR=%s/p112-common-slice\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Install native checker dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends g++ libboost-dev
-          mkdir -p "$TMPDIR"
           g++ --version
           python --version
       - name: Replay the complete slice
