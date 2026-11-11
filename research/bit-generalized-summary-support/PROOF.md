@@ -95,8 +95,26 @@ outside that union have rank nine. Hence no nonzero
 codeword can be supported in the pair and all three
 profiles fail.
 
-The nine-summary profile with ten rank-six collectors and
-one rank-one collector remains open. The two-chart test
-does not include its extra line. This proof also leaves
-smaller paid savings, changed chart spaces, nonmonotone
-transports, and new target contracts outside its exclusion.
+The final profile has ten rank-six collectors and one rank-one
+collector. Cancel eight rank-six collectors and retain any two
+rank-six collectors plus the rank-one collector. The eight
+conditions leave a nonzero codeword. Its support must lie in
+the union of the pair and at most one extra coordinate, since
+each rank-one chart contains at most one original line. A
+repeated pair plus one line covers at most 31 coordinates.
+
+For a distinct pair, let D be the matrix of columns outside
+the pair. The condition requires rank(D)<9 or a column whose
+deletion drops rank. The verifier tracks the input columns in
+each row reduction. Each dependent column yields a relation
+with its own last nonzero index. These relations form a basis
+of the column kernel, so a column lies in some relation exactly
+when it appears in a basis relation. Deleting a column lowers
+rank precisely when it lies in no relation. All 16,110 matrices
+have rank nine and zero such columns. A separate direct codeword
+enumeration over the same pairs also finds zero with uncovered
+weight at most one. This excludes the last profile. The extra
+line is allowed to differ arbitrarily between pairs in the test.
+
+The exclusion leaves smaller paid savings, changed chart spaces,
+nonmonotone transports and new target contracts open.

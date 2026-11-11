@@ -14,16 +14,24 @@ import catalogue
 import weights
 
 
-def gf2_rank(values):
+def projection(values):
+    """Return the rank and number of columns whose deletion lowers it."""
     pivots = {}
-    for value in values:
+    dependencies = 0
+    count = 0
+    for count, value in enumerate(values, 1):
+        support = 1 << (count - 1)
         while value:
             index = value.bit_length() - 1
             if index not in pivots:
-                pivots[index] = value
+                pivots[index] = value, support
                 break
-            value ^= pivots[index]
-    return len(pivots)
+            pivot, provenance = pivots[index]
+            value ^= pivot
+            support ^= provenance
+        else:
+            dependencies |= support
+    return len(pivots), count - dependencies.bit_count()
 
 
 def verify(path):
@@ -63,17 +71,20 @@ def verify(path):
     rows = weights.read_rows(path)
     columns = [sum(((row >> i) & 1) << j for j, row in enumerate(rows)) for i in range(111)]
 
-    def uncovered_rank(mask):
-        return gf2_rank(col for i, col in enumerate(columns) if not (mask >> i) & 1)
+    def uncovered(mask):
+        return projection(col for i, col in enumerate(columns) if not (mask >> i) & 1)
 
-    assert uncovered_rank(0) == 9 and uncovered_rank(rows[0]) < 9
-    pair_ranks = Counter(uncovered_rank(a | b) for a, b in combinations(masks, 2))
-    assert pair_ranks == {9: 16110}
-    assert max(mask.bit_count() for mask in masks) == 30 < weight["d1"]
+    assert uncovered(0) == (9, 0) and uncovered(rows[0])[0] < 9
+    singleton = rows[0] & -rows[0]
+    assert uncovered(rows[0] ^ singleton) == (9, 1)
+    projections = Counter(uncovered(a | b) for a, b in combinations(masks, 2))
+    assert projections == {(9, 0): 16110}
+    assert max(mask.bit_count() for mask in masks) == 30 < weight["d1"] - 1
     return dict(status="PASS_GENERALIZED_BIT_SUMMARY_SUPPORT", profiles=profiles,
                 required_support_by_dimension=distances, weights=weight,
-                rank_six_pair_complement_ranks=pair_ranks,
-                remaining_profile=(6,) * 10 + (1,),
+                rank_six_pair_complement_ranks={"9": projections[(9, 0)]},
+                rank_six_pair_deletion_rank_drops={"0": projections[(9, 0)]},
+                remaining_profiles=[],
                 dependencies={SOURCE: weights.PIN})
 
 
