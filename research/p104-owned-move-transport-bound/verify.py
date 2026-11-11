@@ -11,15 +11,27 @@ INPUTS = ROOT / 'inputs'
 CHECKS = ROOT / 'checks'
 
 
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f'duplicate JSON key: {key}')
+        result[key] = value
+    return result
+
+
 def main():
     if sys.implementation.name != 'cpython' or sys.version_info[:2] != (3, 12) or not __debug__:
         raise SystemExit('Use CPython 3.12 with assertions enabled')
-    pins = json.loads((ROOT / 'INPUTS.json').read_text())
+    pins = json.loads((ROOT / 'INPUTS.json').read_text(), object_pairs_hook=unique_object)
+    paths = [record['path'] for record in pins]
+    if len(set(paths)) != len(paths):
+        raise ValueError('duplicate input receipt path')
+    receipts = json.loads((ROOT / 'RECEIPTS.json').read_text(), object_pairs_hook=unique_object)
     for record in pins:
         data = (INPUTS / record['path']).read_bytes()
         if hashlib.sha256(data).hexdigest() != record['sha256']:
             raise ValueError(f"changed source: {record['path']}")
-    receipts = json.loads((ROOT / 'RECEIPTS.json').read_text())
     peer = INPUTS / 'peer'
     caller = INPUTS / 'caller' / 'CALLER.json'
     interval = INPUTS / 'caller' / 'interval_gate.py'
