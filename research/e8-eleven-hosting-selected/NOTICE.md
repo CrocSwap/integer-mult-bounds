@@ -1,0 +1,3 @@
+Prepared by Rohan Arun with substantial OpenAI Codex assistance: hosting-aware rank147 selection, eleven-stage integration and exact checks. Apache-2.0.
+
+The eleven-stage geometry, emitter, independent audit and elementary row bound are adapted from chafreaky PR445 with disclosed OpenAI Codex assistance, pinned at 40ab91daf2b5e87fc4071dedae1699d5d7e7cecc. Original files and notices remain in upstream445. The rank147 word is from our PR434; credit chafreaky PR443/444/417/439, eumemic PR436/440/441, DaysSky PR442 with Anthropic Claude assistance, icekylinx PR433, retained PR426/389/376/370, PR425/386 and Jacob Sussman contributions, and Henry Grant PR234's row interface. Parent source pins, licenses and assistance disclosures are retained unchanged.

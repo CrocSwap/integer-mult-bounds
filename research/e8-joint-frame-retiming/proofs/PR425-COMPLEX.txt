@@ -1,0 +1,211 @@
+Hamming packets with mutable source and target bases
+Conditional finite extension of the complex E8 supplier
+
+1. What is new
+
+The old r783 word keeps source values fixed and does not read target registers.
+Those are sufficient restrictions on a scalar word, not necessary conditions
+for a common-frame linear program. The new word uses 680 helper registers:
+
+  * source registers themselves carry one branch of a simultaneous signed
+    packet computation;
+  * retired packet registers retain a full source basis, from which the eight
+    central coordinate sums are reconstructed;
+  * 56 pairs of targets carry a first two-output butterfly, with its input
+    basis explicitly compensated at frame zero and in the center decoder;
+  * an exact inverse on all source/helper registers is executed at their
+    common full frame after the last recursive climb.
+
+No recursive work is deleted from the ledger. A helper is counted for its
+entire lifetime, including unused final climbs. All 120 sources and targets
+retain their original line/full and zero/hyperplane endpoint ranks.
+
+The new local histogram is
+  {1:2248, 2:896, 3:168, 4:336, 5:392, 8:24, 9:8}.
+Its rank mass is 9*680 + 240*8 + 72 = 8112. There are 4072 local children.
+There are more local children than in the old r783 word, but substantially
+less helper rank mass; the complete moment, not a count proxy, decides gain.
+
+2. Exact Hamming geometry and signed packet algebra
+
+Use the pinned PR370 table of 120 E8 root lines in Construction-A coordinates:
+eight coordinate lines 2e_i and 112 sign lines on the 14 weight-four Hamming
+blocks. For integer representatives r_s, let G_st = r_s dot r_t / 2.
+The matrix C_st = 1 + G_st mod 2 has binary rank nine. The construction gives
+an explicit orthonormal realization p_s in F_2^9 with
+
+  p_s dot p_t = C_st,  and  p_s dot p_s = 1.
+
+Consequently the nonzero off-diagonal entries of G/2 occur only where a source
+line lies in the target hyperplane. The rank-eight central factorization is
+
+  (G/2)_ts = sum_i r_ti r_si / 4.
+
+For a source Hamming block d, a coordinate pair {i,j} in d, and epsilon=+-1,
+define the signed face packet
+
+  P(d,ij,epsilon) = sum_{s in d, r_si*r_sj=epsilon} r_si x_s.
+
+Each packet has four terms and its binary port span has rank three. Split
+the eight sign lines of a block into its two parity tetrads. Each tetrad pair
+occurs in two face packets with independent signed coefficient rows. The two
+rows are formed simultaneously by two determinant-one shears, rather than
+forming independent one-output sums. The packet factory uses its eight source
+registers and sixteen additional helpers. Its twelve retired registers can
+be oriented to retain a full rank-eight source basis. Exact elimination on
+that stock produces four coordinate sums without allocating more helpers.
+
+This comparison of an individual factory is not a claim that the whole old
+supplier used 48 helpers per block. The relevant complete counts are 783 and
+680, both charged with their full actual profiles.
+
+For two target/source blocks whose intersection is {i,j}, the contribution
+to target t is -r_ti P(d,ij,r_ti*r_tj)/2. The remaining within-block and
+coordinate-line contributions are explicit four-output signed transforms.
+Every one of the 14400 rational decoder entries is rechecked. Adding the
+eight coordinate centers leaves precisely the identity matrix on sources.
+
+The binary transvection x -> x+(x dot 43)*43 is orthogonal because 43 has
+even weight. It maps the constructed port set exactly to the old fixed E8
+port set. All frames and register indices are transported, so the old nine-
+window data routes and their global phase correction apply to exactly the
+same ordered ports, without introducing an unproved new covering geometry.
+
+3. General scalar-interface lemma
+
+Write z=(x,s) for the source and arbitrary dirty helper streams, and y for
+the targets. Permit scalar additions and invertible dyadic scalings between
+registers at the same current label. No target may feed a z register. The
+raw A/center/B word therefore has block form
+
+  z' = U z,
+  y' = V y + J x + K s,
+
+where U and V are invertible, and the retained-center operations are included
+in J and K. The actual word has J=I after its adjusted center scatter. The
+checks compute every coefficient over Q, rather than inferring it from a
+desired sparsity pattern.
+
+At frame zero, before entry adapters or recursive children, execute
+
+  y <- V^{-1} y - V^{-1} K s.
+
+Both y and s have label zero there. The code emits the literal inverse of
+the 56 disjoint two-output target bases and a direct, charged dyadic old-
+response matrix with 13216 additions. There is no uncharged oracle for K.
+It is computed from the explicit scalar word and serialized. All coefficient
+work is cleared immediately after its use.
+
+After the last main gate, finish every z register's climb to the full frame,
+then execute U^{-1} by reversing and inverting the non-target gates. These
+gates are legal at one common full frame, including helper-to-source gates.
+The result is exactly
+
+  (x,s,y) -> (x,s,y+x).
+
+The second orientation is the inverse transpose: negate and transpose every
+addition and invert every scale in the SAME event order. Each retained
+center is implemented by the transposed gather/child/scatter stream. The
+result is (x,s,y) -> (x-y,s,y). Both orientations are replayed on all 920
+independent live columns, including all 680 arbitrary helper columns.
+Missing compensation, missing output preconditioning, missing cleanup and
+the wrong inverse-transpose order are rejected.
+
+Why the scalar argument lifts to exact complex labels: for each binary
+subspace F use the exact canonical representative L(F). A climb from A to B
+acts as L(B)L(A)^{-1}. If two registers share F, a scalar addition commutes
+with their common L(F), as does a scalar scaling. Induction through the
+actual stream therefore gives the block-diagonal conjugation of its scalar
+matrix by the current labels. Center copies explicitly move from full to
+zero, or zero to full in the other orientation. The preconditioner uses
+only label-zero registers, and the z cleanup uses only full-label registers.
+Thus the proof never moves a scalar operation across unequal labels or
+identifies two frames merely because their ranks agree.
+
+Every used canonical frame, nested transition, center direction and endpoint
+adapter is independently lowered by the exact Gaussian Clifford compiler.
+Equalities include global phase. The old restricted gx gate-shape checker
+is not used to admit this new interface; the stronger explicit matrix and
+common-frame checks replace its source-immutability/target-read restrictions.
+This is a written finite algebraic extension, not a new Lean theorem.
+
+4. Complete programs and work lifetimes
+
+Each orientation emits 27537 events, including startup, entry/exit adapters,
+all recursive climbs, eight sequential center children, scalar operations
+and final cleanup. Temporary centers are initialized, used and erased one
+at a time. No center or coefficient work stream survives a live child.
+
+All added coefficients are dyadic. To apply a/2^j, compute |a| times the
+source by binary Horner additions on a cleared private stream, halve j
+times, accumulate with its sign, and clear the private stream. In-place
+scales are signed powers of two. Every such primitive is charged. This
+introduces no new denominator prime. Independent replay bounds the actual
+cancellation-free prefix norms, including coefficient work; a 192-bit local
+payload allowance is retained conservatively.
+
+5. Nine-window composition and finite bill
+
+Use the previously verified m=73 compressed nine-window geometry, four data
+pairs, eight replicas, and the original signed bridges, idle children,
+terminal exchange, terminal translations and full-cover phase correction.
+The source scalar identity and its negative inverse-transpose are exactly
+the two local interfaces consumed by that unchanged geometry.
+
+There are 680 whole-block banks per stage, each containing eight rank-nine
+helper blocks plus one paid rank-one padding child. The live width is
+
+  W = 240*4*8 + 9*680 = 13800.
+
+The conservative physical width is W+680+9+2=14491. The old-response matrix
+uses no persistent tableau, but the old-size reserve is still charged.
+The emitted owner table has 48960 distinct stage/replica/helper assignments.
+The new global profile is
+
+  {1:167976, 2:64512, 3:12096, 4:24192, 5:28224,
+   8:7488, 9:576, 16:3840, 32:3840, 48:3840}.
+
+Its rank deficit is 73*13800 - sum(r*H_r) = 2496. The maximum child is 48,
+and 73^2 > 2*48^2 supplies the same charged two-level halving argument.
+
+The finite bill is recomputed from the new scalar programs, bank owners,
+work stock and adapter counts. It is not asserted unchanged. The local
+primitive bound fits 2^48; the tape router fits 2^30000; the literal envelope
+fits 2^100000; the precision envelope fits 2^210000. The physical row
+coefficient is 15445, below the explicitly inherited external allowance
+20161. Full-cover corrections apply to all 13800 live families.
+
+6. Conditional numerical conclusion and retained assumptions
+
+Two independent rational moment engines, with the inherited 10^-16 bad-
+branch envelope, accept
+
+  b = 1049104978040580 / 10^18 = 0.001049104978040580
+
+and reject the next 10^-18 grid point. With the unchanged bit parameter
+c=0.001057833103534317, three bootstrap steps and all 47 strict outer
+conditions give the prospective finite-assembly value
+
+  kappa = 1048005508028206 / 10^18
+        = 0.001048005508028206, approximately 2^-9.898137985359.
+
+The finite statement is conditional on the same all-size weighted compiler,
+common fine grid, restored-row/base allowance, tape/prime/precision and
+analytic transfer interfaces as the retained nine-stage result. The new
+scalar-interface lemma above and its serialized program are additional
+reviewable material, not an appeal to gx accepting a program outside its
+grammar. No unconditional integer-multiplication theorem is claimed.
+The result is approximately +4.97% over the locally verified retimed bound,
+and remains well short of 2^-9. A fresh extracted-package replay is required
+by this research workflow before publication or final promotion.
+
+Attribution
+
+The root table and the motivation to use Hamming coordinates come from the
+already pinned PR370 bit package (Dylan Crow, with Anthropic Claude assistance).
+The E8 complex label family, original scalar word and gx interfaces are due
+to Jacob Sussman. The retained complex admission, pricing and global analytic
+interfaces are credited in the original package notices and PROOF.txt.
+The mutable-basis packet word, transported geometry, expanded scalar proof,
+new finite program and the present checks were developed in this local
+research session by Zhihao Chen with OpenAI Codex assistance.

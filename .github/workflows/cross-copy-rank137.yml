@@ -1,0 +1,40 @@
+name: Verify rank137 cross-copy composition
+on:
+  pull_request:
+    paths:
+      - 'research/e8-cross-copy-rank137/**'
+      - '.github/workflows/cross-copy-rank137.yml'
+  push:
+    paths:
+      - 'research/e8-cross-copy-rank137/**'
+      - '.github/workflows/cross-copy-rank137.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: sudo apt-get update && sudo apt-get install -y libboost-dev
+      - run: python -m pip install sympy
+      - run: python -B research/e8-cross-copy-rank137/verify.py "$RUNNER_TEMP/cross-copy-rank137"
+        env:
+          PYTHONINTMAXSTRDIGITS: '0'
+          PYTHONDONTWRITEBYTECODE: '1'
+          BOOST_INCLUDE: /usr/include
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rank137-${{ matrix.python-version }}-evidence
+          path: |
+            ${{ runner.temp }}/cross-copy-rank137/*.log
+            ${{ runner.temp }}/cross-copy-rank137/RECEIPT.json
+            ${{ runner.temp }}/cross-copy-rank137/FAILURE.json
+            ${{ runner.temp }}/cross-copy-rank137/RESULT.json
