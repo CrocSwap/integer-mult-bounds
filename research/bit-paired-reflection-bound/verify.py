@@ -70,6 +70,73 @@ def span(vectors):
     return tuple(row for _,row in sorted(echelon(vectors).items()))
 
 
+def cover_control(d, u):
+    def dot(x, y):
+        return sum(a * b for a, b in zip(x, y, strict=True))
+
+    cosine = Q(dot(d, u), dot(d, d))
+    assert dot(d, d) == dot(u, u) and abs(cosine) == Q(1, 2)
+    reflections = ((-1, int(-2 * cosine), 0, 1), (1, 0, int(-2 * cosine), -1))
+    swap = (0, 1, 1, 0)
+    q = 5
+
+    def matmul(a, b):
+        return tuple(sum(a[2 * i + k] * b[2 * k + j] for k in range(2)) % q
+                     for i, j in product(range(2), repeat=2))
+
+    def inverse(a):
+        aa, ab, ba, bb = a
+        factor = pow((aa * bb - ab * ba) % q, -1, q)
+        return tuple(factor * x % q for x in (bb, -ab, -ba, aa))
+
+    def apply(a, x):
+        return tuple(sum(a[2 * i + j] * x[j] for j in range(2)) % q for i in range(2))
+
+    rows = [a for a in product(range(q), repeat=4) if (a[0] * a[3] - a[1] * a[2]) % q]
+    addresses = list(product(range(q), repeat=2))
+    routed = {g: matmul(g, swap) for g in rows}
+    assert set(routed.values()) == set(rows) and all(routed[g] != g for g in rows)
+    assert matmul(swap, matmul(reflections[0], swap)) == tuple(x % q for x in reflections[1])
+    targets = {}
+    changed_by_matcher = 0
+    for g in rows:
+        matrices = [matmul(g, matmul(r, inverse(g))) for r in reflections]
+        gs = routed[g]
+        assert matmul(gs, matmul(reflections[0], inverse(gs))) == matrices[1]
+        for address in addresses:
+            changed_by_matcher += apply(matrices[0], address) != apply(matrices[1], address)
+            for role, matrix in enumerate(matrices):
+                targets[role, g, address] = role, g, apply(matrix, address)
+    assert all(targets[target] == key for key, target in targets.items())
+
+    lower = [key for key, target in targets.items() if key[-1] < target[-1]]
+    lower.sort(key=lambda key: key[-1])
+    upper_column = {targets[key]: i for i, key in enumerate(lower)}
+    assert len(lower) == len(upper_column) == 2 * len(rows) * (q * q - q) // 2
+
+    # The no-child control routes just role zero and mixes role one into it
+    # at the matched row, always keeping the entire ambient address intact.
+    below_diagonal = 0
+    for row, key in enumerate(lower):
+        role, g, z = key
+        source_rows = ((0, routed[g], z), (1, g, z)) if role == 0 else (key,)
+        for source in source_rows:
+            column = upper_column.get(source)
+            if column is not None:
+                assert column < row
+                below_diagonal += 1
+        assert upper_column[targets[key]] == row
+    assert below_diagonal and changed_by_matcher
+
+    # Allowing a true address permutation in H changes every minor pivot.
+    cancelled_by_physical_route = sum(upper_column[targets[key]] == i for i, key in enumerate(lower))
+    assert cancelled_by_physical_route == len(lower)
+    return {"address_prime": q, "cover_rows": len(rows), "difference_addresses_per_row": len(addresses),
+            "input_slots": len(targets), "changed_conjugated_addresses": changed_by_matcher,
+            "triangular_minor_dimension": len(lower), "nonzero_strictly_lower_control_entries": below_diagonal,
+            "minor_pivots_cancelled_by_address_changing_control": cancelled_by_physical_route}
+
+
 def main(bit):
     native = 'retained/inputs/BIT-NATIVE-WORD.json.gz'
     w = json.loads(gzip.decompress(read(bit / native, 'bit/'+native)))
@@ -141,7 +208,24 @@ def main(bit):
         assert rank==[q*(q-1)//2,q*(q-1)//2,(q*q-1)//2]
         assert 2*rank[0] > rank[-1]
         assert 4*Q(q,q+1)**2 > 2
+        for permutation, defect in zip(permutations,rank,strict=True):
+            reflected = {x:points[permutation[j]] for j,x in enumerate(points)}
+            half = pow(2,-1,q)
+            projector = {x:tuple(half*(a-b)%q for a,b in zip(x,y,strict=True))
+                         for x,y in reflected.items()}
+            fixed = 0
+            for x,y in product(points,repeat=2):
+                difference = tuple((a-b)%q for a,b in zip(x,y,strict=True))
+                p = projector[difference]
+                out_left = tuple((a-b)%q for a,b in zip(x,p,strict=True))
+                out_right = tuple((a+b)%q for a,b in zip(y,p,strict=True))
+                assert tuple((a-b)%q for a,b in zip(out_left,out_right,strict=True))==reflected[difference]
+                assert tuple((a+b)%q for a,b in zip(out_left,out_right,strict=True))==tuple(
+                    (a+b)%q for a,b in zip(x,y,strict=True))
+                fixed += out_left==x and out_right==y
+            assert fixed==q*q*(q*q-2*defect)
         controls.append({'address_prime':q,'operand_plane_volume':q*q,'rank_minus_identity':rank,
+                         'split_address_cases':3*q**4,
                          'minimum_bank_volume_ratio':str(Q(2*q,q+1))})
 
     # Replacing the second true operand by an identity field erases its
@@ -160,7 +244,8 @@ def main(bit):
             'first_changed_source_addresses':[encode(reflection(direction)) for direction in first['changed_source'][4:]],
             'first_plane_addresses':[encode(m) for m in ab_plane],
             'common_plane_full_reflection':encode(((Q(-1),Q(0)),(Q(0),Q(-1)))),
-            'finite_controls':controls,'finite_efficiency_controls':28}
+            'finite_controls':controls,'finite_efficiency_controls':28,
+            'cover_route_minor_control':cover_control(*first['changed_source'][4:])}
 
 
 if __name__ == '__main__':
