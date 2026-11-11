@@ -26,11 +26,9 @@ e1, e2, e3, e5, e6, e7, w = (1, 0, 0, 0, -1, 0, 0, 0).
 ## Theorem
 
 On this slice, `β_{Q_a}` has matrix `diag(1, 1, 1, -1, -1, -1, 0)` and rank 6.
-`β_{Q_b}` has rank 2. Each form is nonzero on exactly 12 of the 63 roots.
-The 135-by-12 frame-indicator matrix of either support has rank 11, and
-deleting any one of its 12 columns leaves rank 11. These supports, evaluation
-lists, quadratic ranks and frame rank are the two `representative_*`,
-`quadratic_rank` and `restricted_frame_rank` fields of
+`β_{Q_b}` has rank 2. The omission statement is separate and uses one exact
+elimination, recorded below. These supports, evaluation lists and quadratic
+ranks are the two `representative_*` and `quadratic_rank` fields of
 `research/e7-bitsliced-exhaustion/source/RESULT.json`.
 
 ## Polarization
@@ -70,20 +68,23 @@ vector with a zero in position `j`. Every kernel vector is a multiple of the
 given one, and that coordinate is nonzero, so no such dependence exists.
 The remaining `n - 1` columns are independent.
 
-The verifier sums `Q_a` and `Q_b` on all 135 frames and gets 0. Zeros off
-the 12-root support do not contribute, so the support-values vector lies in
-the kernel of the indicator matrix. Dividing by 8 and by 4 clears those
-values to
+The verifier sums `Q_a` and `Q_b` on all 135 frames and gets 0. That sum is
+an exhaustive check of this frame list, not a hand identity for a general
+root system. Zeros off the 12-root support do not contribute, so the
+support-values vector lies in the kernel of the indicator matrix. Dividing
+by 8 and by 4 clears those values to
 
 ```text
 (-1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1)
 (1, -1, 1, -1, -1, -1, -1, -1, 1, 1, 1, 1)
 ```
 
-Exact elimination shows each kernel is one-dimensional and each indicator
-matrix has rank 11, so these are bases of the kernels. Every coordinate is
-nonzero. The lemma gives rank 11 after every single deletion. The same
-verifier also row-reduces each of the 24 deleted matrices directly.
+Exact rational elimination, in `verify.py`, shows that each indicator matrix
+has rank 11 and a one-dimensional kernel equal to the displayed vector.
+Those two facts are a finite certificate for these two matrices. They are
+not expanded by hand. Every displayed coordinate is nonzero, so the lemma
+gives rank 11 after every single deletion. The verifier also row-reduces
+each of the 24 deleted matrices directly.
 
 ## What this does not prove
 
