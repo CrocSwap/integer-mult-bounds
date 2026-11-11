@@ -1,8 +1,25 @@
 # CI verification
 
-## Current selected-family replay: #6030
+## Current selected-family replay: #7000 with #7001
 
 The [selected record](../certificates/selected-result.json) binds conditional
+κ = 0.00363005817 to the [application review](research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md),
+[validation receipts](research/pr-intake-evidence/pr7000-application/VALIDATION.json),
+and [explicit source closure](../certificates/frontier7000-source.json).
+`make frontier7000-verify` authenticates that closure and runs the complete
+isolated selected replay serially. The admission review combines eleven retained
+exact-source executions with seven fresh application, scalar and native-catalogue
+executions. Consult its receipts for exact commands, source heads and limits;
+the #6030 and #5599 checkpoints below retain their historical replay details.
+
+The five inherited framework assumptions remain. Neither the full uniform word
+nor a complete rounded multiplier is materialized. A source/metadata check is
+not an operator replay or a formal theorem proof. Routine research submissions
+do not need to rerun this selected-family replay.
+
+## Historical selected-family replay: #6030
+
+The [historical checkpoint](../certificates/checkpoints/frontier6030.json) binds conditional
 κ = 0.003125804 to the [proof review](research/pr-intake-evidence/pr6030-audit/PROOF-REVIEW.md),
 [validation receipts](research/pr-intake-evidence/pr6030-audit/VALIDATION.json),
 and [explicit source closure](../certificates/frontier6030-source.json).
