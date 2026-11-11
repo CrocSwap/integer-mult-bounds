@@ -69,18 +69,17 @@ rank(pi_core P_-) = q + rank(B12).
 ```
 
 The outside blocks factor through these maps. For any matrices in the gap,
-and either half order,
 
 ```text
-rank(N) <= q + rank(B21 of P_f's sign),
-rank(P) <= q + rank(B12 of P_s's sign).
+rank(N) <= rank(pi_core P_f),
+rank(P) <= rank(pi_core P_s).
 ```
 
-In particular, if `P_f = P_+` and `rank(B21) < q`, then no choice and no
-number of internal matrices can make the next-leaf block have rank `2q`.
-The symmetric statement holds for `B12` and the previous-leaf block. Both
-caps are statements about the image of a projector. They do not use
-`P_s Z P_f = 0`.
+If `P_f = P_+`, the next-leaf cap is `q + rank(B21)` and the previous-leaf
+cap is `q + rank(B12)`. If `P_f = P_-`, the two caps exchange. In
+particular, `B12 = B21 = 0` forces both outside blocks to have rank at most
+`q`, for either half order. No choice and no number of internal matrices
+can raise them to `2q`. These caps do not use `P_s Z P_f = 0`.
 
 ## 3. Complementary copies of the rank-q witness
 
