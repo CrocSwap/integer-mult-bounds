@@ -165,6 +165,8 @@ service or a frozen archive; the two hash-pinned provenance files are listed in
 
 ## Credit
 
+This package was produced by Nick Petalas.
+
 Merged PR #6955 by unpaidmoon supplies the six-source model, the residue set,
 the c=6 centre classification and the description of the c=7 frozen-14 step;
 this package generalizes its c=6 statement and does not replay it. The weight
