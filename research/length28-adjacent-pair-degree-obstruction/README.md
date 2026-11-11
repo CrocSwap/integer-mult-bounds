@@ -107,6 +107,8 @@ proof-kernel review are unclaimed.
 
 ## Credit
 
+This package was produced by Nick Petalas.
+
 Ross Richardson, #943, for the singleton model and the prefix criterion.
 conorholds, #3058, for `f(7) = 24` and the eight-source question. Nick Petalas,
 #5234, for the length-28 floor and the multiplicity profile used as the premise.
