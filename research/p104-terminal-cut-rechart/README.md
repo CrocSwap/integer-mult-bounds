@@ -5,8 +5,9 @@ The exact native operator and both complete directed price engines improve
 `ff79af7a208132e16d51ceca3e1428444894367e` by **0.000000196706982**.
 This is a conditional proposed bound, with the same signed 17-stage caller and
 five framework assumptions. All direct early, full native, full caller and frontier checks passed locally.
-The registered replay against every frozen receipt is in progress; the PR stays
-a draft until that replay passes.
+All four registered commands also passed against unchanged scientific files.
+The replay used two invocations after a sparse-checkout interruption, documented
+fully in [REPLAY.txt](REPLAY.txt) and [REPLAY-INTEGRITY.json](REPLAY-INTEGRITY.json).
 
 The change moves 24 scalar/ownership events and two helper outputs from chart 245
 to chart 127, preserving every normalized scalar event and its order. Rebuilding
@@ -27,7 +28,7 @@ cost 782,522,276 below 10^9, and precision coefficient 2,430. All native owned
 lifetimes, peak, and ascent mass are preserved; the fresh grid is 1,125 / F25.
 
 Run `python3 -I -B research/p104-terminal-cut-rechart/verify_early.py`.
-Once all receipts exist, run
+To reproduce all registered stages, run
 `python3 scripts/research_package.py --package research/p104-terminal-cut-rechart`.
 
 The five inherited assumptions remain `native_all_columns`, `owned_erasure`,
@@ -51,3 +52,9 @@ Retains Clear1nsight's 7274/7244 construction, dillona's 7161 and 7155 lineage,
 Rohan Arun's 7156 and 7113 caller, and all Ali Romman, CubeJerry, ToikY,
 DreamingOfClouds and other inherited notices. See [NOTICE](NOTICE) and the complete
 source archive. The floating search only nominated this exact witness.
+
+The branch also retains the exact upstream [#7257](https://github.com/CrocSwap/integer-mult-bounds/pull/7257)
+navigation/historical-replay prerequisites with original author credit. The six
+navigation tests pass locally. The separate historical audit is left to hosted
+CI because the local partial clone cannot supply its shared-clone objects; it is
+not counted as a local pass. Selected records are unchanged.

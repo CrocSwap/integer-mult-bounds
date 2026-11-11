@@ -34,5 +34,6 @@ crossing is strictly above the claimed value and the old bill rejects that claim
 The new constructor and normalized-equivalence certificate are independent of the
 floating min-cut discovery. The exact parent archive includes all earlier sources,
 receipts and credits. Full source-aware native, physical/caller and frontier checks passed locally;
-the registered replay is pending. None of these author checks constitutes
+all four registered commands also passed against unchanged scientific files,
+with the checkout interruption and resumed commands disclosed in REPLAY.txt. None of these author checks constitutes
 independent review, maintainer selection or theorem acceptance.
