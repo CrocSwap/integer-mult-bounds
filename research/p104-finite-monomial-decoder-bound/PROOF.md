@@ -1,0 +1,51 @@
+# One-input typed MOVE decoder stock on #7244
+
+**NO VERIFIED GAIN.** This is an independently audited stock result on the exact #7244 native word and unchanged #7113 signed caller. Its new scoped decoder family saves **0 per stage and 0 across 17 stages** at the fixed moonshot target κ* = 10018846261809/2500000000000000. The directed raw upper is exactly −1403118352508474100328768149/10^25, approximately **−140.31183525084741**. The complete #7244 claim of κ = 0.003645372367832 has its own separate application replay. This stock result independently reconstructs its 110,553 paid positions and 22,461 productive targets. It does not settle the complete outer claim. [#7244 exact science](https://github.com/CrocSwap/integer-mult-bounds/tree/4156504fa39efb51c550d218a9b94fe69dbce8f6/research/p104-two-cut-funded-split), [#7113 signed caller](https://github.com/CrocSwap/integer-mult-bounds/pull/7113)
+
+## Exact stock and deliberately free outputs
+
+The 6,281 old native MOVEs are partitioned by exact proportional normalized incoming rows on 1,501 arbitrary public inputs. Rows are compared in canonical rational projective form, with signs allowed. The independently replayed scalar state checks original COPY destination zero. Each output chart is put in its exact monomial coset by canonicalizing the binary Pauli subspace (T_F^{-1} Z T_F), where (Z) is the diagonal Pauli subspace. There are 5,189 projective input classes and 978 target cosets. Exactly 898 input classes have multiple target cosets, with 1,990 positions and sizes two, three and four in 719, 164 and 15 classes. All old input rows are nonzero.
+
+Retain the cheapest old child once per eligible input class. Grant every other typed output, route, clock, setup, ownership operation, restoration, precision and tape charge free. The classes are disjoint in original occurrence, so this assigns each of the 1,092 omitted positions once. The removed rank counts from one through six are 540, 252, 132, 91, 71 and 6. With (H_r=r^{1-κ_*}), the directed credit upper is about 2,187.30572 per native invocation and 37,184.19723 across the signed 17 stages. That idealized margin is **+37,043.88539453012**. It grants the typed outputs outright and establishes only that the unconstrained price inventory is ample.
+
+## Fixed two-arm decoder and source availability
+
+For each choice of a retained original paid MOVE from chart F to G, let (x=T_F z) be its one arbitrary complete input and (y=T_G z) its completed output. An omitted target H may decode via (a Mx+b Ny), where M and N are ordinary left monomial adapters and the scalar coefficients are arbitrary. Grant copies and indefinite holding. Keep the old scalar trace and original next-touch deadlines. The retained source can be any single literal resident, on any original owner, in the same source monomial coset with the exact same projective row. Additional source gathers from several independent resident rows, a different old input map, a newly produced earlier source, or multiple monomials on a returned arm change this scope.
+
+At one positive column multiplicity, the quotient (T_H T_F^{-1}) has exactly (2^s) nonzeros per row. Its row support is an affine coset of the span of X components in the pullback of the diagonal Pauli generators. The corresponding retained rank-r quotient has (2^r) nonzeros. A left monomial preserves its row-support direction, and the source arm supplies at most one additional coordinate. For a nonzero target rank s, the only possible cardinality is s=r. For r≥2, changing one point cannot halve support, and one point cannot double support for any positive r. When cardinality is equal, the support direction must also agree because one point cannot simultaneously delete and replace a coordinate. Rank zero may use the source arm alone. Failure at this finite width rules out an all-width decoder of the stated form.
+
+Exhaust all 2,602 ordered retained/omitted choices. No pair passes with the retained MOVE in its original contact epoch. The larger relaxation with any old resident and arbitrary holding appears to pass 1,086 choices in 893 classes and grants margin **+25,340.35897815638** with one retained child per class. All 1,086 cases have rank zero and their earliest apparent source is exactly the omitted MOVE's own returned role, at the next cut. That source would disappear with the payment.
+
+Check availability after suppressing that returned field. For an omitted event d, the role has no old touch until its recorded next mandatory contact. Until that next cut, any earlier observation on the same role through cut d is independent of d, and any observation on a different role is independent of that omitted physical result in the retained tape. Observe every initial and changed state in every role. Allow all these independent observations, including an unlimited copy/holding lifetime and arbitrary ordinary source-coset conversion. Exclude only the deleted output resident after d. None of the 1,086 apparent survivors has an independent qualifying observation by its deadline. The directed saving upper remains zero even with a union over multiple possible retained children. This availability test grants other old paid results even when a concurrent deletion would remove them, so overlap can only reduce feasibility.
+
+The primary source census exhausted 6,281/6,281 MOVEs. The support census exhausted 2,602/2,602 ordered pairs, including all 1,086 independence checks. Neither hit the time cap and neither leaves a pending case. No site, new child or literal candidate was built. The independent audit uses primitive integer projective rows, the separate exact Clifford interpreter and a new forward state and deadline traversal. It reproduces every class and the circular-source obstruction, plus the negative baseline using separate rational price bounds. The cap-one control preserves 6,280 unseen events at their full ideal price and is inconclusive. A changed caller byte is rejected by its SHA-256 pin. Hosted checks were unrun for this scoped experiment.
+
+## Next bounded decision
+
+If retaining this cost lever, add one more ordinary returned-arm monomial while keeping the source independent. Price all 2,602 existing ordered pairs with a three-minute cap before any site. If D is the retained row-support direction and E the target direction, two returned terms can cover at most two affine D cosets. The optional single source point cannot cover the two or more remaining fibers when the quotient image of E has dimension at least two. Thus \(\dim(E/(E\cap D))\leq1\) is a necessary width-one gate. Recompute independent source availability and deduplicate the original paid positions. Stop if the directed upper fails to cover 140.31183525084741 or the budget leaves no bounded next test. Only a positive comparable stock and credible BIT path justify one full signed decoder and ownership proof. This next gate remains unrun.
+
+## Exact-source overlap
+
+The scientific commit is `4156504fa39efb51c550d218a9b94fe69dbce8f6`. The live #7244 head `215f67247f395c0e15f5ea3980f6a3e4aed155af` carries the same scientific package tree `f201bc8b5d1402ca40e7aa419269a58b7724798d`. Both exact public heads identify the same native word and invoice Git blobs. #7244 pays two new exits to admit two causal retirements. The present gate keeps that already constructed paid word and asks whether one retained old result and one genuinely available source arm can serve omitted outputs. [Exact #7244 construction](https://github.com/CrocSwap/integer-mult-bounds/blob/4156504fa39efb51c550d218a9b94fe69dbce8f6/research/p104-two-cut-funded-split/PROOF.md)
+
+#7243 bounds split payloads between different canonical charts over existing paid descents in the older #7161 word. #7245 studies fixed whole-output reconstruction within target monomial cosets on #7161. Here each eligible group has one exact projective input and distinct target cosets on #7244. The key test is whether the apparently usable source still exists when the omitted payment is removed. The exact earlier proofs supply related boundaries and reusable code. [#7243 ordered cut](https://github.com/CrocSwap/integer-mult-bounds/blob/86951dea757a64ff16b7ca76cb21a5b4eea0b791/research/p104-paid-cross-chart-stock/ORDERED-PROOF.md) · [#7245 fixed-output proof](https://github.com/CrocSwap/integer-mult-bounds/blob/f44e016fa4cfaca0fd52f46a19f650c7a878aef2/research/p104-fixed-output-consolidation/PROOF.md)
+
+## Clean replay and credit
+
+Use CPython 3.12 with assertions, tested on 3.12.14. Run from this package directory:
+
+```sh
+python3.12 -I -B replay.py --controls
+```
+
+The command accepts explicit `--inputs` and `--deps` roots and defaults to the bundled exact files. It authenticates all scientific paths, regenerates the complete TYPED and GATE receipts, checks their original byte lengths and SHA-256s, compares the compact [summary](SUMMARY.json), then compares the independent [audit](AUDIT.json) byte for byte. The full row receipts are generated on demand. The optional controls reproduce [CAP-ONE.json](CAP-ONE.json), with all 6,280 unchecked events still granted ideal credit, and forge one of the circular observations as an independent source. The independent scientific audit rejects that forged survivor. [Exact source and helper pins](SOURCES.tsv) · [Replay manifest](REPLAY.sha256)
+
+To retain the full regenerated outputs for inspection, use an isolated directory with the same `inputs/`, `deps/` and three scientific script paths:
+
+```sh
+python3.12 -I -B typed_stock.py . --cap 6281 --seconds 480 > TYPED.json
+python3.12 -I -B decode_gate.py . --seconds 180 > GATE.json
+python3.12 -I -B audit.py .
+```
+
+Clear1nsight #7244 supplied the exact two-cut funded word and scientific receipt, #7161 supplied the prior funded construction, and Rohan Arun #7113 supplied the signed caller. Round 20 and #7245 supplied the exact frame and MOVE inventory and the target monomial criterion. The canonical compiler and independent Clifford interpreter provide separate operator representations. Round 13 supplied the primary directed price decoder and Round 11 the independent directed price enclosure, preserved in #7243. [Original notices](NOTICE) · [#7244 notice](NOTICE-7244) · [Canonical Clifford notice](NOTICE-CLIFFORD). OpenAI Codex and subagents materially assisted.
