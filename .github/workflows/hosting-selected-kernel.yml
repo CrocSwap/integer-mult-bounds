@@ -1,0 +1,19 @@
+name: Verify hosting-selected kernel
+on:
+  pull_request:
+  push:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -B research/e8-hosting-selected-kernel/verify.py "$RUNNER_TEMP/hosting-selected-kernel"
+        env:
+          PYTHONINTMAXSTRDIGITS: '0'
+          PYTHONDONTWRITEBYTECODE: '1'

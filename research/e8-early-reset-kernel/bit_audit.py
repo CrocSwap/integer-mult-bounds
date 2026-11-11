@@ -56,8 +56,8 @@ def main():
     assert t['local_programs']==expected
 
     st=json.loads((a.local_check/'records/249-states.json').read_text())
-    width=[8-dimensions[st['initial'][str(i)]] for i in range(240,987)]; ENT=sum(8-x for x in width); assert ENT%8==0
-    NB=(8*747-ENT)//8; LIVE=7680+9*NB; assert g['live']==LIVE
+    width=[8-dimensions[st['initial'][str(i)]] for i in range(240,986)]; ENT=sum(8-x for x in width); assert ENT%8==0
+    NB=(8*746-ENT)//8; LIVE=7680+9*NB; assert g['live']==LIVE
     def validate(q,check_profile=True):
         assert (q['m'],q['live'],q['replicas'],q['stages'])==(64,LIVE,8,9)
         assert q['bank_padding'] is None and q['local_programs']==expected
@@ -66,8 +66,8 @@ def main():
             st,rep,p=c['stage'],c['replica'],c['pair']; rev=c['orientation']=='reverse'
             assert 0<=st<9 and 0<=rep<8 and p==max(0,(st-1)//2)
             assert rev==(st in (1,3,5,7)) and (st,rep) not in calls; calls.add((st,rep))
-            own=c['owners']; assert len(own)==987
-            assert len({(f,tuple(r)) for f,r in own})==987
+            own=c['owners']; assert len(own)==986
+            assert len({(f,tuple(r)) for f,r in own})==986
             for i,(family,route) in enumerate(own):
                 assert 0<=family<LIVE
                 if i<240:

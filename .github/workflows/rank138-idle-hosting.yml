@@ -1,0 +1,19 @@
+name: Verify rank138 idle-data hosting
+on:
+  pull_request:
+  push:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -B research/e8-rank138-idle-hosting/verify.py "$RUNNER_TEMP/rank138-hosting"
+        env:
+          PYTHONINTMAXSTRDIGITS: '0'
+          PYTHONDONTWRITEBYTECODE: '1'
