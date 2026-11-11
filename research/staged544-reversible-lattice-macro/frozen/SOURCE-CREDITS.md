@@ -1,0 +1,14 @@
+# Source credit and independence
+
+New work: dataisfire with substantial OpenAI Codex assistance, Apache-2.0. No independent human review, fresh third-party AI review or proof-kernel verification is claimed.
+
+The construction extends [PR3682](https://github.com/CrocSwap/integer-mult-bounds/pull/3682), head431e6c6023ef352c41696469de7fb614cd4ded8c. Its retimed word, actual T360 source clock and immutable native/parent framework are retained. The complete new source/receipt snapshot is bound by REPLAY-INPUTS.json. The new ordinary source stage is an explicit pinned record applied after the unchanged predecessor reconstruction.
+
+- [PR3605](https://github.com/CrocSwap/integer-mult-bounds/pull/3605), Ross Richardson, supplies the staged-entrance mechanism, literal cleanup and exact Gaussian residual-check pattern. staged_pair.py is retained; the new544 shear and its proof are separate.
+- [PR3638](https://github.com/CrocSwap/integer-mult-bounds/pull/3638), head d62e1acd7518a231440383f0d0dddf54d6edf8c1, supplies the T360 source-window clock, chronological aggregate model and integral-network/literal construction, with its retained PR3605 and earlier credits. The new inventory, integer incumbent and literal fill are recomputed. No predecessor owner receipt is used as proof of the new fill.
+- [PR3687](https://github.com/CrocSwap/integer-mult-bounds/pull/3687) and [PR3693](https://github.com/CrocSwap/integer-mult-bounds/pull/3693), Sagar Thakrar and roger-sato with their credited AI assistance, supply audit_core.py and the whole-word semantics adapter audit_verify.py. These bytes are retained and reused. They are independent of the current constructor in the stated interpreter scope, not a newly written independent audit or new reviewer approval.
+- The coupled-word source lineage includes PR3133, PR2979, Marius-Paul Dumitrean, dcharb78, Jeremy Kothe and the retained native/owner/block-norm/outer authors. All notices and scientific engines inside the source snapshot remain intact.
+
+owner_audit.py is a standalone standard-library adaptation of the source-window/family/prefix/invoice predicates in PR3638's independent_literal.py. It imports no producer, optimizer or retained owner checker. Its source template, plan and actual native canonical words are authenticated inputs. Three controls mutate actual literal roles and must fail for the intended reason. It shares the credited contract interpretation; it is not evidence of independent human agreement.
+
+The rational finite-price enclosure is retained from the PR3682 sources. New script adapters bind it to the actual finite histogram. Native forward/backward scalar replay, wrapper/phase lowering and all-column warp recipes were freshly run for both new words; unchanged native and parent ancestry is explicitly reused. The separate new544 span(414,51) residual check includes global Gaussian phase.
