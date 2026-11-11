@@ -188,10 +188,10 @@ def endpoint_census(m, max_d, steps=8):
                 A = max(a for a, b in paths)
                 if A >= T:
                     continue
-                barrier = max(g_sign(T, paths, A), g_sign(T, paths, T))
                 for x in grid(A, T, steps)[1:-1]:
-                    if g_sign(T, paths, x) > barrier:
-                        fail("interior win at m={} D={} T={} x={} paths={}"
+                    if (g_diff_sign(T, paths, x, A) > 0
+                            and g_diff_sign(T, paths, x, T) > 0):
+                        fail("interior beats both endpoints at m={} D={} T={} x={} paths={}"
                              .format(m, D, T, x, paths))
                     rows += 1
     return rows
