@@ -167,9 +167,11 @@ Structured copies are in [TASK.json](TASK.json).
 
 1. **True per-row minimum.** What is the minimum charge over all Boolean hosts? The
    explicit hosts of frame 5 (6), frame 12 (9) and frame 7 (10) are below every exact class
-   minimum. First step: enumerate all hosts of degree at most 4 for one small row
-   (2^37 hosts, compiled), or prove a coset-leader lower bound for excluded clique
-   X0 (best known 7). Blocked by the size of the search; no cheap certificate is known.
+   minimum. First step: use exact branch-and-bound on the degree-at-most-4
+   evaluation system for one row, or prove a coset-leader lower bound for excluded
+   clique X0 (best known 7). On the 120-line scope the degree-four system has 163
+   monomial columns and rank 111, leaving 52 free coefficients and 2^52 hosts per
+   row. Direct enumeration is too large; no cheap lower-bound certificate is known.
 2. **Joint thirteen-row bill.** If a shared monomial is charged once, what is the
    smallest union over the rows? First step: take the 8 invariant and 512 cubic hosts
    per row, which are exactly enumerable, and minimise the union of supports by exact
