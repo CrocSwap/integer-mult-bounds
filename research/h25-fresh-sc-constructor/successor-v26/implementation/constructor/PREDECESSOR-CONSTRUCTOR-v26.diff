@@ -1,0 +1,99 @@
+--- PR6588/fresh_sc.py
++++ successor-v26/fresh_sc.py
+@@ -9,6 +9,7 @@
+ import json
+ import os
+ import stat
++import plan_validator
+ 
+ FILE_CAP = 64 * 1024 * 1024
+ TOTAL_CAP = 256 * 1024 * 1024
+@@ -16,12 +17,11 @@
+ MAX_ROWS = 8192
+ MAX_SLOTS = 16384
+ FULL_PROPOSAL_BINDING = {
+-    'manifest_sha256': 'd1241f4c69bea51364463f65086fae5297be8f5e65d6f1c002919cdf2cd7405d',
+-    'compatibility_sha256': 'c45bb20c5d61c86044072d53fc9b9853eeee5d7739287329513e6078b76a979e',
+-    'selection_sha256': '1d1b19a92e610d411ffcc2bd44e1a8272a197d1f7f69bc303fda0090256ba0b9'}
+-FULL_SOURCE_HOLD = ('REQUIRED_OWNER_MODULE_UNRESOLVED:run_controls_v1',)
+-RUNTIME_NAMES = ['proposed-session', 'proposed-export', 'group01',
+-                 'failure_variants', 'producer-output']
++    'manifest_sha256': 'fc9d7289f6d39020984b0fbae2737abda94e657a4d750bcbdfc90cbb0e298062',
++    'compatibility_sha256': 'c93f9fe47cc7575c86cc3ccf2f92b6d213461ce7e28daea39137171fdeaac737',
++    'selection_sha256': 'f84ffd9e494ed669602683f845fa5f2f76cfbe74308ed7631719227eb9f1ddec'}
++FULL_SOURCE_HOLD = ()
++RUNTIME_NAMES = list(plan_validator.RUNTIME_NAMES)
+ CLAIMS = {'runtime_admission': False, 'C07': False, 'full_C05': False,
+           'full_V03': False, 'original_credit': 0}
+ ROW_KEYS = {'occurrence_id', 'logical_name', 'recovered_path',
+@@ -117,6 +117,7 @@
+         self.lineage = None
+         self.creation_lineage = None
+         self.result = None
++        self.full_proposal = None
+ 
+ 
+ def _secondary(owner, error):
+@@ -236,9 +237,39 @@
+         total += len(body)
+         need(total <= TOTAL_CAP, 'aggregate body bytes')
+         files.append((path, body, row['mode'], row['occurrence_id']))
++    if request['subject_kind'] == 'FULL_ORIGINAL_PROPOSAL':
++        need(set(verified_body_pool) == {row['sha256'] for row in rows
++             if row['installed_relative_path'] is not None}, 'exact referenced body-pool hash set')
+     need(not (paths & directories), 'file/directory alias')
+     need(len(directories) + 2 * len(files) + 2 <= MAX_SLOTS, 'FD lineage bound')
+     return files, sorted(directories, key=lambda s: (s.count('/'), s))
++
++
++
++def bind_full_preparation(owner, request, compatibility_raw, selection_raw, mode):
++    """Authenticate ACTUAL records and bind ordinary held-parent proposal DATA.
++
++    Caller reads the files; no file I/O or authority issuance happens here.
++    The constructor checks the held FD's identity before destination acquisition.
++    """
++    need(type(owner) is PreparationOwner and not owner.used[0]
++         and not owner.closed[0] and owner.full_proposal is None, 'fresh full binding owner')
++    need(type(compatibility_raw) is bytes and type(selection_raw) is bytes, 'actual proposal record bytes')
++    need(digest(compatibility_raw) == FULL_PROPOSAL_BINDING['compatibility_sha256']
++         and digest(selection_raw) == FULL_PROPOSAL_BINDING['selection_sha256'], 'actual successor records')
++    compatibility = json.loads(compatibility_raw)
++    selection = json.loads(selection_raw)
++    need(type(compatibility) is dict and compatibility.get('claims') == CLAIMS, 'compatibility non-admission claims')
++    plan_validator.validate_source_plans(selection, request['manifest'])
++    need(mode in ('normal', 'optimized'), 'preparation mode')
++    approved = selection['approved_preparation']
++    need(request['stage_name'] == approved['stage_name'], 'actual stage_name mismatch')
++    need({k: request[k] for k in FULL_PROPOSAL_BINDING} == FULL_PROPOSAL_BINDING,
++         'joined successor binding')
++    owner.full_proposal = {'binding': dict(FULL_PROPOSAL_BINDING), 'mode': mode,
++                           'parent': approved['parents'][mode],
++                           'destination': approved['destinations'][mode],
++                           'stage_name': approved['stage_name']}
+ 
+ 
+ def prepare_full_stage(request, verified_body_pool, preparation_owner):
+@@ -262,7 +293,21 @@
+                    for p in [request['stage_name']] + directories]
+         owner.creation_lineage = created
+         root = owner.fds[0]
+-        need(stat.S_ISDIR(owner.ops.fstat(root).st_mode), 'held parent directory')
++        held = owner.ops.fstat(root)
++        need(stat.S_ISDIR(held.st_mode), 'held parent directory')
++        if request['subject_kind'] == 'FULL_ORIGINAL_PROPOSAL':
++            proposal = owner.full_proposal
++            need(type(proposal) is dict and proposal['binding'] == FULL_PROPOSAL_BINDING,
++                 'full owner requires joined actual-record binding')
++            need(proposal['mode'] in ('normal', 'optimized')
++                 and proposal['parent'] == plan_validator.ROUND + '/validation/preparation-' + proposal['mode']
++                 and proposal['stage_name'] == 'full-stage', 'frozen ordinary owner destination')
++            need(request['stage_name'] == proposal['stage_name']
++                 and proposal['parent'] + '/' + request['stage_name'] == proposal['destination'],
++                 'actual parent/stage_name relationship')
++            named = os.stat(proposal['parent'], follow_symlinks=False)
++            need(stat.S_ISDIR(named.st_mode) and (held.st_dev, held.st_ino) == (named.st_dev, named.st_ino),
++                 'actual held preparation parent mismatch')
+         name = request['stage_name']
+         created[0]['attempted'] = True
+         owner.ops.mkdir(name, 0o700, dir_fd=root)

@@ -1,0 +1,70 @@
+/* TEST FIXTURE ONLY: compile actual production local primitives into a distinct
+ * test module, without activating/inspecting any real dictionary or enabling
+ * production fault hooks. Parent authenticates both included and fixture bytes.
+ */
+#define PyInit__h25_dict_probe PyInit__h25_unused_embedded_probe
+#include "dict_probe_v2.c"
+#undef PyInit__h25_dict_probe
+
+static PyObject *
+bounds_run(PyObject *module, PyObject *unused)
+{
+    (void)module; (void)unused;
+    if (!PyGILState_Check() || Py_Version != (unsigned long)PY_VERSION_HEX) {
+        PyErr_SetString(PyExc_RuntimeError, "Bounds fixture public runtime differs");
+        return NULL;
+    }
+    ProbeState state = {0};
+    uint64_t counter = UINT64_MAX - 1;
+    add_count(&state, &counter, 1);
+    int exact = counter == UINT64_MAX && state.overflow == 0;
+    add_count(&state, &counter, 1);
+    int saturation = counter == UINT64_MAX && state.overflow == 1;
+    add_count(&state, &counter, UINT64_MAX);
+    saturation = saturation && counter == UINT64_MAX && state.overflow == 1;
+    uint32_t used = SHAPE_CAP - 1;
+    int shape = shape_item(&state, &used) == 1 && used == SHAPE_CAP &&
+                shape_item(&state, &used) == 0 && used == SHAPE_CAP &&
+                state.shape_items == 1;
+    /* Actual Python objects for shape checks; no private metadata fabrication. */
+    PyObject *empty = PyTuple_New(0);
+    if (!empty)
+        return NULL;
+    PyObject *query = PyTuple_Pack(2, empty, empty);
+    Py_DECREF(empty);
+    if (!query)
+        return NULL;
+    used = SHAPE_CAP - 3;
+    shape = shape && key_shape(&state, query, &used) == 1 && used == SHAPE_CAP;
+    used = SHAPE_CAP - 1;
+    shape = shape && key_shape(&state, query, &used) == -1 && used == SHAPE_CAP;
+    Py_DECREF(query);
+    int indices = 1;
+    int8_t small[3] = {-1, -2, 127};
+    indices = indices && read_index_bytes((const char *)small, 0, 1) == -1 &&
+              read_index_bytes((const char *)small, 1, 1) == -2 && read_index_bytes((const char *)small, 2, 1) == 127;
+    int16_t medium[3] = {-1, -2, 32767};
+    indices = indices && read_index_bytes((const char *)medium, 0, 2) == -1 &&
+              read_index_bytes((const char *)medium, 1, 2) == -2 && read_index_bytes((const char *)medium, 2, 2) == 32767;
+    int32_t large[3] = {-1, -2, INT32_MAX};
+    indices = indices && read_index_bytes((const char *)large, 0, 4) == -1 &&
+              read_index_bytes((const char *)large, 1, 4) == -2 && read_index_bytes((const char *)large, 2, 4) == INT32_MAX;
+    if (!(exact && saturation && shape && indices)) {
+        PyErr_SetString(PyExc_RuntimeError, "Actual production primitive boundary failed");
+        return NULL;
+    }
+    return Py_BuildValue("(OOOO)", Py_True, Py_True, Py_True, Py_True);
+}
+static PyMethodDef bounds_methods[] = {
+    {"bounds", bounds_run, METH_NOARGS, "Actual production primitive isolated boundaries."},
+    {NULL, NULL, 0, NULL}
+};
+static struct PyModuleDef bounds_module = {
+    PyModuleDef_HEAD_INIT, "_h25_probe_bounds_fixture", "Test-only native boundaries.",
+    -1, bounds_methods, NULL, NULL, NULL, NULL
+};
+PyMODINIT_FUNC
+PyInit__h25_probe_bounds_fixture(void)
+{
+    return PyModule_Create(&bounds_module);
+}

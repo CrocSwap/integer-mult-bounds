@@ -1,0 +1,533 @@
+"""Source-bound construction variants; only the parent imports/runs this file.
+
+Generic calls delegate the literal original add/constructor. A parent-issued,
+one-use private constructor scope enables exact immutable union reuse. Only an
+explicit frozen-caller scope may retire lookup; normal constructors retain it.
+This is the parent's stable-process contract, not a hostile Python sandbox.
+"""
+from __future__ import annotations
+
+import _thread
+import ast
+import builtins
+import copy
+import fractions
+import gc
+import hashlib
+import itertools
+from pathlib import Path
+import signal
+import sys
+from types import CodeType, FunctionType, GetSetDescriptorType, MethodType, ModuleType
+
+SOURCE_SHA256 = "d623617f7c5cb3189580883a8ab30c0bd3832688ae3f1f0c1f881bbbbff8e0c1"
+CALLER_SHA256 = "0da395e67ac04fa213494e71012c1b19b544596d34cdce5a3b172b1fb6af5f1b"
+_TYPE, _OBJECT, _DICT, _LIST, _TUPLE = type, object, dict, list, tuple
+_INT, _STR, _BOOL, _LEN = int, str, bool, len
+_GET, _ITEMS, _CLEAR, _UPDATE = dict.get, dict.items, dict.clear, dict.update
+_OBJGET, _TYPEGET = object.__getattribute__, type.__getattribute__
+_COMPILE, _FUNCTION = compile, FunctionType
+_BUILTINS = builtins.__dict__
+_FRACTION, _COMBINATIONS = fractions.Fraction, itertools.combinations
+_ERROR = RuntimeError
+_BUILTIN_NAMES = ("type", "object", "dict", "list", "tuple", "int", "str", "bool", "len",
+                  "range", "set", "sum", "sorted", "enumerate", "min", "max", "frozenset",
+                  "isinstance", "all", "any", "zip")
+_BUILTIN_RECORD = tuple((name, _BUILTINS[name]) for name in _BUILTIN_NAMES)
+_SOURCE_LOOKUPS = ("len", "range", "set", "sum", "sorted", "enumerate", "min", "frozenset")
+
+
+def _need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def _record(function):
+    _need(_TYPE(function) is FunctionType, "Construction callable is not an exact function")
+    closure = function.__closure__
+    cells = () if closure is None else _TUPLE((cell, cell.cell_contents) for cell in closure)
+    return (function, function.__code__, function.__globals__, function.__builtins__,
+            function.__defaults__, function.__kwdefaults__, closure, cells)
+
+
+def _function_fresh(record):
+    function, code, namespace, effective, defaults, kwdefaults, closure, cells = record
+    if not (function.__code__ is code and function.__globals__ is namespace and
+            function.__builtins__ is effective and function.__defaults__ is defaults and
+            function.__kwdefaults__ is kwdefaults and function.__closure__ is closure):
+        return False
+    for cell, value in cells:
+        try:
+            if cell.cell_contents is not value:
+                return False
+        except ValueError:
+            return False
+    return True
+
+
+def _ordinary_class(cls):
+    if _TYPE(cls) is not _TYPE or _TYPEGET(cls, "__mro__") != (cls, _OBJECT):
+        return False
+    attrs = _TYPEGET(cls, "__dict__")
+    if "__getattr__" in attrs or _TYPEGET(cls, "__getattribute__") is not _OBJECT.__getattribute__:
+        return False
+    if _TYPEGET(cls, "__new__") is not _OBJECT.__new__:
+        return False
+    for name in ("__dict__", "__weakref__"):
+        descriptor = attrs.get(name)
+        if _TYPE(descriptor) is not GetSetDescriptorType or descriptor.__objclass__ is not cls:
+            return False
+    return True
+
+
+def _ordinary_dict(value, cls):
+    if _TYPE(value) is not cls or not _ordinary_class(cls):
+        return None
+    namespace = _OBJGET(value, "__dict__")
+    return namespace if _TYPE(namespace) is _DICT else None
+
+
+def _hooks_clear():
+    # Same bounded hook denial as P1; no general finalizer/security claim.
+    if sys.gettrace() is not None or sys.getprofile() is not None:
+        return False
+    if _TYPE(gc.callbacks) is not _LIST or _LEN(gc.callbacks) != 0 or _thread._count() != 0:
+        return False
+    monitoring = getattr(sys, "monitoring", None)
+    if monitoring is not None:
+        for tool in range(6):
+            if monitoring.get_tool(tool) is not None:
+                return False
+    for number in signal.valid_signals():
+        handler = signal.getsignal(number)
+        if handler is not signal.SIG_DFL and handler is not signal.SIG_IGN and handler is not signal.default_int_handler:
+            return False
+    return True
+
+
+def _code_named(code, name):
+    return next(item for item in code.co_consts if _TYPE(item) is CodeType and item.co_name == name)
+
+
+def _authenticate(function, code, namespace):
+    _need(_TYPE(function) is FunctionType and function.__globals__ is namespace and
+          function.__builtins__ is _BUILTINS and function.__code__ == code and
+          function.__closure__ is None and function.__defaults__ is None and function.__kwdefaults__ is None,
+          "Construction requires the exact original source function")
+
+
+def _captures(function, target):
+    # Only parent phase wrappers may surround our init; never invoke a callable.
+    pending, seen = [function], []
+    while pending:
+        current = pending.pop()
+        if current is target:
+            return True
+        if _TYPE(current) is not FunctionType or any(current is item for item in seen):
+            continue
+        seen.append(current)
+        _need(_LEN(seen) <= 32, "Construction wrapper closure exceeds declared bound")
+        if current.__closure__ is not None:
+            for cell in current.__closure__:
+                try:
+                    child = cell.cell_contents
+                except ValueError:
+                    return False
+                if _TYPE(child) is FunctionType:
+                    pending.append(child)
+    return False
+
+
+def _derive_add(raw, path, namespace):
+    tree = ast.parse(raw, filename=str(path))
+    cls = next(node for node in tree.body if _TYPE(node) is ast.ClassDef and node.name == "ComplexSideCircuit")
+    method = copy.deepcopy(next(node for node in cls.body if _TYPE(node) is ast.FunctionDef and node.name == "add"))
+    matches = []
+    for node in ast.walk(method):
+        if (_TYPE(node) is ast.Call and _TYPE(node.func) is ast.Attribute and node.func.attr == "append"
+                and _TYPE(node.func.value) is ast.Attribute and node.func.value.attr == "support"
+                and _TYPE(node.func.value.value) is ast.Name and node.func.value.value.id == "self"):
+            matches.append(node)
+    _need(_LEN(matches) == 1 and _LEN(matches[0].args) == 1 and not matches[0].keywords,
+          "Construction add derivation anchor changed")
+    old = matches[0].args[0]
+    _need(_TYPE(old) is ast.BinOp and _TYPE(old.op) is ast.BitOr and
+          _TYPE(old.left) is ast.Name and old.left.id == "sa" and
+          _TYPE(old.right) is ast.Name and old.right.id == "sb", "Construction union anchor changed")
+    replacement = ast.Subscript(value=ast.Name(id="key", ctx=ast.Load()), slice=ast.Constant(value=1), ctx=ast.Load())
+    matches[0].args[0] = ast.copy_location(replacement, old)
+    unit = ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[]))
+    compiled = _COMPILE(unit, str(path), "exec", dont_inherit=True, optimize=sys.flags.optimize)
+    result = _FUNCTION(_code_named(compiled, "add"), namespace)
+    return result, hashlib.sha256(ast.dump(unit, include_attributes=True).encode("utf-8")).hexdigest()
+
+
+def bind_construction(module):
+    """Prepare before any CS mutation, after the parent obtains P1's factory.
+
+    Returns add, wrap_constructor, owner, receipt, and exact_add_for_controls.
+    The latter is a domain-specific test entry, never a general caller API.
+    No scientific module is imported or executed by this adapter's import.
+    """
+    _need(_TYPE(module) is ModuleType, "Construction needs an exact source module")
+    namespace = module.__dict__
+    _need(_TYPE(_GET(namespace, "__file__")) is _STR, "Construction source path type differs")
+    path = Path(namespace["__file__"])
+    raw = path.read_bytes()
+    _need(hashlib.sha256(raw).hexdigest() == SOURCE_SHA256, "Construction scientific source differs")
+    _need(_GET(namespace, "__builtins__") is _BUILTINS and _GET(namespace, "Q") is _FRACTION and
+          _GET(namespace, "combinations") is _COMBINATIONS, "Construction source environment differs")
+    for name, value in _BUILTIN_RECORD:
+        _need(_GET(_BUILTINS, name) is value, "Construction builtin identity differs")
+    for name in _SOURCE_LOOKUPS:
+        _need(name not in namespace, "Construction source shadows a builtin")
+    cls = _GET(namespace, "ComplexSideCircuit")
+    _need(_ordinary_class(cls), "Construction class dispatch differs")
+    compiled = _COMPILE(raw, str(path), "exec", dont_inherit=True, optimize=sys.flags.optimize)
+    class_code = _code_named(compiled, "ComplexSideCircuit")
+    original_attrs = _TUPLE(_TYPEGET(cls, "__dict__").items())
+    original_functions = []
+    expected_names = {"__module__", "__doc__", "__dict__", "__weakref__"}
+    for code in class_code.co_consts:
+        if _TYPE(code) is CodeType:
+            function = _TYPEGET(cls, "__dict__").get(code.co_name)
+            _authenticate(function, code, namespace)
+            expected_names.add(code.co_name)
+            original_functions.append(function)
+    _need(set(_TYPEGET(cls, "__dict__")) == expected_names, "Construction class member shape differs")
+    _authenticate(namespace["subsets"], _code_named(compiled, "subsets"), namespace)
+    original_functions.append(namespace["subsets"])
+    source_globals = _TUPLE((name, namespace[name]) for name in ("ComplexSideCircuit", "subsets", "Q", "combinations", "EMPTY", "__builtins__"))
+    original_add = cls.add
+    original_init = cls.__init__
+    exact_add, derivation_sha = _derive_add(raw, path, namespace)
+    original_records = _TUPLE(_record(function) for function in original_functions)
+    # All per-binding mutation stays in these private dictionaries. Snapshot
+    # tuples are immutable and separately anchored; receipts expose neither.
+    state = {"phase": "prepared", "sealed": False, "used": False, "scope": None,
+             "constructing": None, "circuit": None, "admitted": False, "unsupported": False,
+             "retired_circuit": None, "snapshot": None, "snapshot_anchor": None,
+             "class_items": (), "function_records": (), "owner_items": (),
+             "init_wrapper": None, "capture_function": None, "failed": False, "resumed": False}
+    counters = {"scopes_armed": 0, "constructors_admitted": 0, "constructors_fallback": 0,
+                "constructor_failures": 0, "add_entries": 0, "fast_add_calls": 0, "fallback_add_calls": 0,
+                "zero_shortcuts": 0, "union_evaluations": 0, "novel_nodes": 0, "duplicate_hits": 0,
+                "finalizer_attempts": 0, "finalizations": 0, "indexed_nodes": 0,
+                "snapshot_kind_refs": 0, "snapshot_mask_refs": 0, "snapshot_node_refs": 0,
+                "restorations": 0, "retirement_declines": 0}
+    adapter_namespace = globals()
+    adapter_items = _TUPLE(adapter_namespace.items())
+    adapter_records = _TUPLE(_record(value) for _, value in adapter_items if _TYPE(value) is FunctionType)
+
+    def fresh():
+        _need(_TYPE(module) is ModuleType and module.__dict__ is namespace and _ordinary_class(cls),
+              "Construction runtime module/class drift")
+        for name, expected in source_globals:
+            _need(_GET(namespace, name) is expected, "Construction runtime source binding drift: " + name)
+        for name, expected in _BUILTIN_RECORD:
+            _need(_GET(_BUILTINS, name) is expected, "Construction runtime builtin drift: " + name)
+        for name in _SOURCE_LOOKUPS:
+            _need(name not in namespace, "Construction runtime source builtin shadow: " + name)
+        _need(_LEN(adapter_namespace) == _LEN(adapter_items), "Construction adapter namespace drift")
+        for name, expected in adapter_items:
+            _need(_GET(adapter_namespace, name) is expected, "Construction adapter binding drift: " + name)
+        for record in original_records + adapter_records + state["function_records"]:
+            _need(_function_fresh(record), "Construction runtime callable drift")
+        if state["sealed"]:
+            attrs = _TYPEGET(cls, "__dict__")
+            _need(_LEN(attrs) == _LEN(state["class_items"]), "Construction class shape drift")
+            for name, expected in state["class_items"]:
+                _need(attrs.get(name) is expected, "Construction class member drift: " + name)
+            attrs = _TYPEGET(Owner, "__dict__")
+            _need(_LEN(attrs) == _LEN(state["owner_items"]), "Construction owner shape drift")
+            for name, expected in state["owner_items"]:
+                _need(attrs.get(name) is expected, "Construction owner member drift: " + name)
+        if state["snapshot"] is not state["snapshot_anchor"]:
+            raise _ERROR("Construction private snapshot binding drift")
+
+    def retired_record(c):
+        fresh()
+        _need(state["retired_circuit"] is c and state["snapshot"] is not None,
+              "Construction object is not retired")
+        record = state["snapshot"]
+        _need(_TYPE(record) is _TUPLE and _LEN(record) == 5 and record[0] is c,
+              "Construction private snapshot shape drift")
+        _, lookup, kinds, masks, nodes = record
+        current = _ordinary_dict(c, cls)
+        _need(current is not None and _GET(current, "lookup") is lookup and _TYPE(lookup) is _DICT,
+              "Construction retired lookup identity drift")
+        _need(_LEN(lookup) == 0, "Construction retired lookup was mutated")
+        _need(_TYPE(kinds) is _TUPLE and _TYPE(masks) is _TUPLE and _TYPE(nodes) is _TUPLE and
+              _LEN(kinds) == _LEN(masks) == _LEN(nodes) == counters["indexed_nodes"],
+              "Construction private snapshot contents drift")
+        return lookup, kinds, masks, nodes
+
+    def restore(c):
+        if state["retired_circuit"] is not c:
+            return False
+        lookup, kinds, masks, nodes = retired_record(c)
+        # Allocate and verify a complete replacement before touching original
+        # dictionary identity. A failed allocation leaves the empty retired dict
+        # and authoritative snapshots intact; a failed update stops the scope.
+        try:
+            rebuilt = {(kinds[i], masks[i]): nodes[i] for i in range(_LEN(nodes))}
+            _need(_LEN(rebuilt) == _LEN(nodes), "Construction restored key collision")
+            _UPDATE(lookup, rebuilt)
+            _need(_LEN(lookup) == _LEN(nodes), "Construction index restoration incomplete")
+            for i, (key, node) in enumerate(_ITEMS(lookup)):
+                _need(key[0] is kinds[i] and key[1] is masks[i] and node is nodes[i],
+                      "Construction restored ordered entry differs")
+        except BaseException:
+            state["failed"] = True
+            state["phase"] = "failed"
+            raise
+        state["snapshot"] = state["snapshot_anchor"] = None
+        state["retired_circuit"] = None
+        state["phase"] = "resumed"
+        state["resumed"] = True
+        counters["restorations"] += 1
+        return True
+
+    def add(self, a, b, kind):
+        if state["retired_circuit"] is self:
+            restore(self)
+        counters["add_entries"] += 1
+        admitted = state["constructing"] is self and state["admitted"] and not state["unsupported"]
+        if admitted:
+            # Exact-type probes do not invoke user __bool__/__index__/__hash__.
+            # The authenticated fresh constructor owns all existing index keys;
+            # shape alone never admits an arbitrary pre-populated object.
+            if _TYPE(a) is _INT and _TYPE(b) is _INT and _TYPE(kind) is _STR and kind in ("d0", "d2"):
+                if a == 0 or b == 0:
+                    counters["fast_add_calls"] += 1
+                    counters["zero_shortcuts"] += 1
+                    return exact_add(self, a, b, kind)
+                values = _ordinary_dict(self, cls)
+                support = _GET(values, "support") if values is not None else None
+                arguments = _GET(values, "args") if values is not None else None
+                kinds = _GET(values, "kind") if values is not None else None
+                lookup = _GET(values, "lookup") if values is not None else None
+                if (_TYPE(support) is _LIST and _TYPE(arguments) is _LIST and _TYPE(kinds) is _LIST and
+                        _TYPE(lookup) is _DICT and _LEN(support) == _LEN(arguments) == _LEN(kinds) and
+                        0 < a < _LEN(support) and 0 < b < _LEN(support) and
+                        _TYPE(support[a]) is _INT and _TYPE(support[b]) is _INT):
+                    before = _LEN(support)
+                    counters["fast_add_calls"] += 1
+                    result = exact_add(self, a, b, kind)
+                    counters["union_evaluations"] += 1
+                    if _LEN(support) == before:
+                        counters["duplicate_hits"] += 1
+                    else:
+                        counters["novel_nodes"] += 1
+                    return result
+            state["unsupported"] = True
+        counters["fallback_add_calls"] += 1
+        return original_add(self, a, b, kind)
+
+    def finalize(c):
+        counters["finalizer_attempts"] += 1
+        fresh()
+        _need(state["phase"] == "constructed" and state["circuit"] is c and state["constructing"] is None,
+              "Construction finalizer phase or object differs")
+        _need(state["scope"] is not None and state["scope"][2], "Construction retirement was not authorized")
+        _need(not state["unsupported"] and _hooks_clear(), "Construction finalizer domain differs")
+        values = _ordinary_dict(c, cls)
+        _need(values is not None, "Construction finalizer instance differs")
+        support, arguments, kinds, lookup = (_GET(values, name) for name in ("support", "args", "kind", "lookup"))
+        triples, inputs, active = (_GET(values, name) for name in ("triples", "input", "active"))
+        _need(_TYPE(support) is _LIST and _TYPE(arguments) is _LIST and _TYPE(kinds) is _LIST and
+              _TYPE(lookup) is _DICT and _TYPE(triples) is _LIST and _TYPE(inputs) is _DICT and
+              _TYPE(active) is set and _LEN(support) == _LEN(arguments) == _LEN(kinds),
+              "Construction finalizer graph containers differ")
+        first = _LEN(triples) + 1
+        _need(_LEN(support) >= first and _LEN(inputs) == _LEN(triples) and
+              _TYPE(support[0]) is _INT and support[0] == 0 and arguments[0] is None and kinds[0] is None,
+              "Construction finalizer input boundary differs")
+        for node in range(1, first):
+            _need(_TYPE(support[node]) is _INT and arguments[node] is None and
+                  _TYPE(kinds[node]) is _STR and kinds[node] == "in", "Construction finalizer input node differs")
+        _need(_LEN(lookup) == _LEN(support) - first, "Construction complete index count differs")
+        # Validate ordered correspondence before saving references or clearing.
+        # No item list is materialized. Locals holding the last key are deleted.
+        for node, (key, value) in enumerate(_ITEMS(lookup), first):
+            _need(_TYPE(key) is _TUPLE and _LEN(key) == 2 and _TYPE(key[0]) is _STR and
+                  _TYPE(key[1]) is _INT and _TYPE(value) is _INT and value == node,
+                  "Construction ordered index entry differs")
+            args = arguments[node]
+            _need(_TYPE(args) is _TUPLE and _LEN(args) == 2 and _TYPE(args[0]) is _INT and
+                  _TYPE(args[1]) is _INT and 0 < args[0] < node and 0 < args[1] < node and
+                  _TYPE(support[node]) is _INT and _TYPE(kinds[node]) is _STR and
+                  key[0] in ("d0", "d2") and key[0] == kinds[node] and key[1] == support[node],
+                  "Construction complete node/index correspondence differs")
+        if lookup:
+            del key, value, args, node
+        kinds_snapshot = _TUPLE(key[0] for key in lookup)
+        masks_snapshot = _TUPLE(key[1] for key in lookup)
+        nodes_snapshot = _TUPLE(lookup.values())
+        record = (c, lookup, kinds_snapshot, masks_snapshot, nodes_snapshot)
+        state["snapshot"] = state["snapshot_anchor"] = record
+        state["retired_circuit"] = c
+        counters["indexed_nodes"] = _LEN(nodes_snapshot)
+        counters["snapshot_kind_refs"] = _LEN(kinds_snapshot)
+        counters["snapshot_mask_refs"] = _LEN(masks_snapshot)
+        counters["snapshot_node_refs"] = _LEN(nodes_snapshot)
+        _CLEAR(lookup)
+        state["phase"] = "retired"
+        counters["finalizations"] += 1
+
+    def begin(c, args, kwargs):
+        if state["scope"] is None or state["used"]:
+            counters["constructors_fallback"] += 1
+            return False
+        # Admit only exact ordinary source constructors with the declared h.
+        h = args[0] if _LEN(args) == 1 and _LEN(kwargs) == 0 else None
+        instance = _ordinary_dict(c, cls)
+        if _TYPE(h) is not _INT or h != state["scope"][1] or instance is None or _LEN(instance) != 0:
+            counters["constructors_fallback"] += 1
+            return False
+        fresh()
+        if not _hooks_clear():
+            counters["constructors_fallback"] += 1
+            return False
+        _need(state["phase"] == "armed" and state["constructing"] is None,
+              "Construction scope reentry")
+        state["used"] = True
+        state["constructing"] = state["circuit"] = c
+        state["phase"] = "constructing"
+        state["admitted"] = True
+        counters["constructors_admitted"] += 1
+        return True
+
+    def wrap_constructor(inner=None, capture_after_init=None):
+        _need(not state["sealed"] and state["init_wrapper"] is None, "Construction wrapper already finalized")
+        if inner is None:
+            inner = original_init
+        _need(inner is original_init, "Construction wrapper requires the authenticated original constructor")
+        if capture_after_init is not None:
+            _need(_TYPE(capture_after_init) in (FunctionType, MethodType), "Construction capture callback type differs")
+            state["capture_function"] = (capture_after_init.__func__ if _TYPE(capture_after_init) is MethodType
+                                         else capture_after_init)
+        # Parent supplies the actual P1 capture bound method. It must not
+        # introduce scientific work or expose lookup; concrete ordering reviewed.
+        def constructed(self, *args, **kwargs):
+            # A literal reinitialization replaces lookup before its first add.
+            # Restore the old dictionary first, then let the original init own
+            # its replacement and every subsequent construction operation.
+            if state["retired_circuit"] is self:
+                restore(self)
+            token = begin(self, args, kwargs)
+            try:
+                result = inner(self, *args, **kwargs)
+                if capture_after_init is not None:
+                    capture_after_init(self)
+                if token:
+                    state["constructing"] = None
+                    state["phase"] = "constructed"
+                    fresh()
+                    if state["scope"][2] and not state["unsupported"]:
+                        finalize(self)
+                    elif state["scope"][2]:
+                        counters["retirement_declines"] += 1
+                return result
+            except BaseException:
+                if token:
+                    state["constructing"] = None
+                    state["admitted"] = False
+                    state["failed"] = True
+                    state["phase"] = "failed"
+                    counters["constructor_failures"] += 1
+                raise
+        state["init_wrapper"] = constructed
+        return constructed
+
+    def seal():
+        _need(not state["sealed"] and state["phase"] == "prepared", "Construction owner already sealed or active")
+        fresh()
+        attrs = _TYPEGET(cls, "__dict__")
+        _need(set(attrs) == expected_names and attrs.get("add") is add and state["init_wrapper"] is not None and
+              _captures(attrs.get("__init__"), state["init_wrapper"]), "Construction installed wrapper binding differs")
+        for name, value in original_attrs:
+            if name not in ("add", "__init__"):
+                _need(attrs.get(name) is value, "Construction non-adapter method changed: " + name)
+        state["class_items"] = _TUPLE(attrs.items())
+        state["owner_items"] = _TUPLE(_TYPEGET(Owner, "__dict__").items())
+        functions = [exact_add, add, finalize, begin, restore, fresh, retired_record, wrap_constructor,
+                     seal, arm, finish, receipt, state["init_wrapper"]]
+        functions.extend(value for _, value in state["class_items"] if _TYPE(value) is FunctionType)
+        functions.extend(value for _, value in state["owner_items"] if _TYPE(value) is FunctionType)
+        if state["capture_function"] is not None:
+            functions.append(state["capture_function"])
+        state["function_records"] = _TUPLE(_record(function) for function in functions)
+        state["sealed"] = True
+        state["phase"] = "sealed"
+        fresh()
+
+    def arm(kind, h, retire):
+        _need(state["sealed"] and state["phase"] == "sealed" and state["scope"] is None and not state["used"],
+              "Construction scope cannot be reused")
+        _need(_TYPE(h) is _INT and _TYPE(retire) is _BOOL and
+              ((kind == "full-cli" and h == 25 and retire) or (kind == "finite" and h in (8, 9))),
+              "Construction caller scope differs")
+        fresh()
+        state["scope"] = (kind, h, retire)
+        state["phase"] = "armed"
+        counters["scopes_armed"] += 1
+
+    def receipt():
+        result = dict(counters)
+        result.update(schema="h25-construction-v2", source_sha256=SOURCE_SHA256,
+                      caller_sha256=CALLER_SHA256, derivation_sha256=derivation_sha,
+                      phase=state["phase"], scope=None if state["scope"] is None else state["scope"][0],
+                      resumed=state["resumed"], failed=state["failed"], unsupported=state["unsupported"],
+                      immutable_snapshot_refs=3*counters["indexed_nodes"] if state["snapshot"] is not None else 0)
+        return result
+
+    def finish(require_retired=True):
+        fresh()
+        _need(_hooks_clear(), "Construction final caller hooks differ")
+        _need(not state["failed"] and not state["unsupported"] and not state["resumed"],
+              "Construction optimized caller qualification lost")
+        _need(state["constructing"] is None and state["used"] and counters["constructors_admitted"] == 1,
+              "Construction caller did not construct exactly once")
+        if state["scope"] is not None and state["scope"][0] == "full-cli":
+            _need(counters["constructors_fallback"] == 0 and counters["fallback_add_calls"] == 0,
+                  "Construction full caller used an unsupported fallback")
+        if require_retired:
+            _need(state["phase"] == "retired" and counters["finalizations"] == 1 and counters["restorations"] == 0,
+                  "Construction caller did not retain the frozen phase")
+            retired_record(state["circuit"])
+        else:
+            _need(state["phase"] == "constructed", "Construction union-only phase differs")
+        return receipt()
+
+    class Owner:
+        __slots__ = ()
+
+        def seal(self):
+            return seal()
+
+        def arm_cli(self):
+            return arm("full-cli", 25, True)
+
+        def arm_finite(self, h=8, retire=True):
+            return arm("finite", h, retire)
+
+        def finalize(self, circuit):
+            return finalize(circuit)
+
+        def restore_for_add(self, circuit):
+            return restore(circuit)
+
+        def check(self):
+            fresh()
+            if state["retired_circuit"] is not None:
+                retired_record(state["retired_circuit"])
+
+        def finish(self, require_retired=True):
+            return finish(require_retired)
+
+        def receipt(self):
+            return receipt()
+
+    return {"add": add, "wrap_constructor": wrap_constructor, "owner": Owner(), "receipt": receipt,
+            "exact_add_for_controls": exact_add, "original_add": original_add, "original_init": original_init}

@@ -1,0 +1,154 @@
+\section{Exact division and integer square root}
+\label{sec:exact-arithmetic-proof}
+
+Let $n$ be the supplied input width, let $a$ be the nonnegative dividend
+or radicand, and let $b>0$ be the divisor for the division task, with
+the values and output conventions of Corollary~\ref{cor:exact-arithmetic}.
+Here $p\ge1$ denotes an integer target precision for a Newton routine.
+
+\begin{proof}[Proof of Corollary~\ref{cor:exact-arithmetic}]
+We use the classical Newton reductions as presented by
+Brent~\cite[Lemmas 2.1--2.4]{Brent1976}, with their tape costs made
+explicit. Set $B(p)=p(\lg p)^{1-\kappa}$. A linear scan handles a zero
+dividend or radicand and finds the significant bits of a positive input.
+For division write $b=2^h c$, where $0\le h<n$ and $1\le c<2$.
+For square root write $a=2^{2e}c$, where $0\le e<n/2$ and $1\le c<4$.
+Copy the normalized digits most significant first to a tape with a marked
+beginning. This initial scan also records the relevant exponent.
+
+For an integer $t\ge1$, let
+$R_t(z)=2^{-t}\lfloor 2^t z\rfloor$ and put $\delta=2^{-t}$.
+The prefix $c_t=R_t(c)$ has $0\le c-c_t<\delta$.
+Each product below is computed exactly on integer significands and
+then rounded by the indicated $R_t$; additions and shifts are exact
+until a stated rounding. When precision increases, the stored dyadic
+iterate is extended by zero fractional bits.
+
+For the reciprocal iteration $x\leftarrow x(2-cx)$, compute
+\[
+ u=R_t(c_t x),\qquad x^+=R_t\bigl(x(2-u)\bigr).
+\]
+Put $\varepsilon=1-cx$. If $|\varepsilon|\le1/2$, then
+$0<x\le3/2$. Writing $\eta_1=u-c_t x$ and
+$\eta_2=x^+-x(2-u)$ gives $|\eta_i|<\delta$ and
+\[
+ 1-cx^+
+ =\varepsilon^2-c(c-c_t)x^2+cx\eta_1-c\eta_2.
+\]
+Since $cx^2=(1-\varepsilon)^2/c\le9/4$, $cx\le3/2$, and $c<2$,
+\[
+ |1-cx^+|
+ \le\varepsilon^2+\frac{23}{4}\delta
+ <\varepsilon^2+6\delta.                                  \tag{*}
+\]
+The fixed seed $x=5/8$ has $|\varepsilon|\le3/8$ throughout
+$1\le c<2$. One step with $t=6$ therefore gives residual less than
+$9/64+6/64=15/64<1/4$.
+
+For a requested target $p\ge1$, begin with $m=1$ after this warm-up.
+While $m<p$, set $m'=\min\{2m,p\}$ and work at $t=m'+5$ fractional
+bits. If the residual is at most $2^{-m-1}$, then $(*)$ gives
+\[
+ |1-cx^+|
+ \le2^{-2m-2}+6\,2^{-m'-5}
+ \le\frac7{16}\,2^{-m'}<2^{-m'-1}.
+\]
+Set $m=m'$ and continue. The reciprocal routine at target $p$ thus
+returns a dyadic $x$ satisfying
+$|1-cx|\le2^{-p-1}$ and $|x-1/c|\le2^{-p-1}$.
+These errors are measured against the true $c$ at every stage, although
+the prefix $c_t$ changes.
+
+For the root iteration $x\leftarrow(x+c/x)/2$, first suppose
+$1/2\le x\le5/2$. Normalize this stored dyadic exactly as $x=2^j d$,
+where $1\le d<2$ and $j\in\{-1,0,1\}$. The reciprocal routine at
+target $t$ returns $z$ with $|1-dz|\le2^{-t-1}$. Put $v=2^{-j}z$.
+Because $d\ge1$ and $2^{-j}\le2$, we have
+$|v-1/x|\le2^{-t}=\delta$. Compute the quotient and root update by
+\[
+ q_t=R_t(c_t v),\qquad x^+=R_t\bigl((x+q_t)/2\bigr).
+\]
+Here $c_t<4$ and $1/x\le2$, so the quotient has the uniform error
+\[
+ |q_t-c/x|
+ \le\delta+c_t|v-1/x|+\frac{|c_t-c|}{x}
+ \le7\delta.
+\]
+The exact Newton identity gives
+\[
+ |x^+-\sqrt c|
+ \le\frac{(x-\sqrt c)^2}{2x}+\delta+\frac12|q_t-c/x|
+ \le\frac{(x-\sqrt c)^2}{2x}+\frac92\delta.
+\]
+The fixed seed $x=3/2$ has $|x-\sqrt c|\le1/2$. At this seed the
+first term is at most $1/12$, so one step with $t=6$ has error less
+than $1/12+5/64<1/4$. Thereafter the invariant
+$|x-\sqrt c|\le2^{-m-1}$, with $m\ge1$, gives
+$3/4\le x\le9/4$ and hence supplies the denominator bound for the
+next step. Since $1/(2x)\le1$ and $9/2<6$, the same capped doubling
+schedule with five guard bits gives $|x-\sqrt c|\le2^{-p-1}$ at
+target $p$.
+
+These operations use a fixed number of scalar registers. In a reciprocal
+step, $x\le3/2$ and $u\le c_t x\le3/2$ whenever $(*)$ is used. In a
+root step, $x\le5/2$, $v\le2+\delta<3$, and $q_t<12$. A fixed number
+of integer guard bits therefore suffices. At working precision $t$,
+each retained significand has $t+O(1)$ bits, including the fixed
+additional precision of the inner reciprocal, and each exact product
+has $2t+O(1)$ bits. Theorem~\ref{thm:main} applies to the padded
+significands. The streaming conventions give $O(t)$ cost for additions,
+shifts, copying, truncation and head returns.
+
+Each stage starts at the marked beginning of its normalized input, reads
+only the required prefix, and returns over that prefix. If the finite
+input ends first, the remaining fractional bits are zero. A root stage
+forms $d$ once in $O(t)$ time; each stage of its inner reciprocal routine
+likewise reads only its own shorter prefix of $d$. Thus no early stage
+rescans an entire longer input.
+
+For the capped doubling targets $m_j$ ending at $p$,
+$\sum_j(m_j+5)=O(p)$, and monotonicity of $\lg$ gives
+\[
+ \sum_j B(m_j+5)
+ \le(\lg(p+5))^{1-\kappa}\sum_j(m_j+5)
+ =O(B(p)).
+\]
+The fixed warm-up adds constant cost. A reciprocal stage uses two
+products, so the complete reciprocal routine at target $p$ costs
+$O(B(p))$. A root stage of working precision $t$ uses a reciprocal
+at target $t$ and one further product, and hence costs $O(B(t))$.
+The outer precision sum is again $O(B(p))$. The scalar scan costs
+sum to $O(p)$ at both levels.
+
+The outer registers and the reused reciprocal and multiplier tapes form
+one fixed finite tape set with fixed subroutine depth. Marking the ends
+of each call's visited intervals on fixed tracks permits those intervals
+to be cleared and their heads returned in a constant multiple of the
+call's running time. No random-access simulation is used.
+
+Take $P=2n+4$. At this target there are $O((\lg n)^2)$ outer and inner
+stage calls. Their $O(\lg n)$-bit length and precision descriptors incur
+a fixed polynomial in $\lg n$ of total work, hence $O(n)$. Together with
+the initial normalization scan, this accounts for the fixed-tape
+implementation. For division, the reciprocal routine gives
+$|x-1/c|\le2^{-P}$. Form $a2^{-h}x$ by an exact significand product
+and an exact shift of the binary point, retaining its fractional bits.
+Since $a<2^n$,
+\[
+ \left|a2^{-h}x-\frac ab\right|
+ \le a2^{-h}2^{-P}<2^{n-P}<\frac14.
+\]
+Its floor $q_0$ differs from $q=\lfloor a/b\rfloor$ by at most one.
+Compute $r_0=a-bq_0$ exactly. If $r_0<0$, decrement $q_0$ and add $b$;
+if $r_0\ge b$, increment $q_0$ and subtract $b$.
+For square root, an approximation to $\sqrt c$ within $2^{-P}$ becomes
+an approximation to $\sqrt a$ within $2^{e-P}<1/4$ after the exact
+shift by $2^e$. Its floor $s_0$ differs from $\lfloor\sqrt a\rfloor$
+by at most one. Decrement it if $s_0^2>a$, and increment it if
+$(s_0+1)^2\le a$; otherwise retain it. The remainder and square tests
+cover exact quotients and perfect squares. All final significands, trial
+answers and exact test products have $O(n)$ bits; their computation costs
+$O(B(n))$, and output padding is linear. Leading zeroes
+affect neither normalization bound, since $n$ is the supplied input
+length.
+\end{proof}

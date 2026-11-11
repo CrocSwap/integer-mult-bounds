@@ -1,0 +1,208 @@
+/* TEST FIXTURE ONLY. Never linked into the production probe or full caller.
+ * A compliant CPython dictionary watcher: bounded C counters only, no Python
+ * execution, allocation, mapping mutation, argument inspection or error change.
+ * See NOTICE-PSF.md for CPython API/source attribution.
+ */
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+#include <stdint.h>
+
+#if PY_VERSION_HEX != 0x030c03f0
+# error "Watcher fixture requires the authenticated CPython 3.12.3 profile"
+#endif
+#if defined(Py_DEBUG) || defined(Py_TRACE_REFS) || defined(Py_GIL_DISABLED)
+# error "Unsupported fixture profile"
+#endif
+
+typedef struct {
+    PyObject *mapping;
+    int watcher_id;
+    int attached;
+    int overflow;
+    uint64_t events[6];
+} FixtureState;
+
+/* The fixture deliberately permits one active watcher across module instances.
+ * Parent controls retain the module until detach; the free hook also detaches. */
+static FixtureState *active_state = NULL;
+
+static int
+count_event(PyDict_WatchEvent event, PyObject *dict, PyObject *key, PyObject *new_value)
+{
+    (void)dict; (void)key; (void)new_value;
+    FixtureState *state = active_state;
+    if (!state)
+        return 0;
+    unsigned int index;
+    switch (event) {
+        case PyDict_EVENT_ADDED: index = 0; break;
+        case PyDict_EVENT_MODIFIED: index = 1; break;
+        case PyDict_EVENT_DELETED: index = 2; break;
+        case PyDict_EVENT_CLONED: index = 3; break;
+        case PyDict_EVENT_CLEARED: index = 4; break;
+        case PyDict_EVENT_DEALLOCATED: index = 5; break;
+        default: return 0;
+    }
+    if (state->events[index] == UINT64_MAX)
+        state->overflow = 1;
+    else
+        ++state->events[index];
+    return 0;
+}
+
+static FixtureState *
+fixture_state(PyObject *module)
+{
+    if (!PyGILState_Check() || Py_Version != (unsigned long)PY_VERSION_HEX ||
+        PyInterpreterState_GetID(PyThreadState_GetInterpreter(PyThreadState_Get())) != 0) {
+        PyErr_SetString(PyExc_RuntimeError, "Watcher fixture public runtime differs");
+        return NULL;
+    }
+    return (FixtureState *)PyModule_GetState(module);
+}
+
+static PyObject *
+fixture_attach(PyObject *module, PyObject *mapping)
+{
+    FixtureState *state = fixture_state(module);
+    if (!state)
+        return NULL;
+    if (!PyDict_CheckExact(mapping)) {
+        PyErr_SetString(PyExc_TypeError, "Watcher fixture requires exact dict");
+        return NULL;
+    }
+    if (active_state || state->attached || state->mapping) {
+        PyErr_SetString(PyExc_RuntimeError, "Watcher fixture already has an active owner");
+        return NULL;
+    }
+    int watcher_id = PyDict_AddWatcher(count_event);
+    if (watcher_id < 0)
+        return NULL;
+    state->watcher_id = watcher_id;
+    state->mapping = Py_NewRef(mapping);
+    active_state = state;
+    if (PyDict_Watch(watcher_id, mapping) < 0) {
+        /* Preserve original watch error while releasing the unused slot. */
+        PyObject *error = PyErr_GetRaisedException();
+        active_state = NULL;
+        if (PyDict_ClearWatcher(watcher_id) < 0)
+            PyErr_Clear();
+        state->watcher_id = -1;
+        Py_CLEAR(state->mapping);
+        PyErr_SetRaisedException(error);
+        return NULL;
+    }
+    state->attached = 1;
+    Py_RETURN_NONE;
+}
+
+static int
+detach_state(FixtureState *state)
+{
+    if (!state->attached)
+        return 0;
+    if (PyDict_Unwatch(state->watcher_id, state->mapping) < 0)
+        return -1;
+    if (PyDict_ClearWatcher(state->watcher_id) < 0)
+        return -1;
+    state->attached = 0;
+    state->watcher_id = -1;
+    if (active_state == state)
+        active_state = NULL;
+    Py_CLEAR(state->mapping);
+    return 0;
+}
+
+static PyObject *
+fixture_detach(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    FixtureState *state = fixture_state(module);
+    if (!state || detach_state(state) < 0)
+        return NULL;
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+fixture_counts(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    FixtureState *state = fixture_state(module);
+    if (!state)
+        return NULL;
+    return Py_BuildValue("{s:K,s:K,s:K,s:K,s:K,s:K,s:i,s:i}",
+        "added", (unsigned long long)state->events[0],
+        "modified", (unsigned long long)state->events[1],
+        "deleted", (unsigned long long)state->events[2],
+        "cloned", (unsigned long long)state->events[3],
+        "cleared", (unsigned long long)state->events[4],
+        "deallocated", (unsigned long long)state->events[5],
+        "overflow", state->overflow, "attached", state->attached);
+}
+
+static PyObject *
+fixture_profile(PyObject *module, PyObject *unused)
+{
+    (void)unused;
+    if (!fixture_state(module))
+        return NULL;
+    return Py_BuildValue("(iii)", 3, PY_VERSION_HEX, (int)sizeof(void *));
+}
+
+static void
+fixture_free(void *module)
+{
+    FixtureState *state = (FixtureState *)PyModule_GetState((PyObject *)module);
+    if (!state)
+        return;
+    PyObject *error = PyErr_GetRaisedException();
+    if (state->attached) {
+        if (PyDict_Unwatch(state->watcher_id, state->mapping) < 0)
+            PyErr_Clear();
+        if (PyDict_ClearWatcher(state->watcher_id) < 0)
+            PyErr_Clear();
+    }
+    if (active_state == state)
+        active_state = NULL;
+    state->attached = 0;
+    state->watcher_id = -1;
+    Py_CLEAR(state->mapping);
+    PyErr_SetRaisedException(error);
+}
+
+static int
+fixture_exec(PyObject *module)
+{
+    FixtureState *state = fixture_state(module);
+    if (!state)
+        return -1;
+    state->watcher_id = -1;
+    return 0;
+}
+
+static PyMethodDef fixture_methods[] = {
+    {"attach", fixture_attach, METH_O, "Attach one compliant C counter watcher."},
+    {"counts", fixture_counts, METH_NOARGS, "Read bounded watcher event counters."},
+    {"detach", fixture_detach, METH_NOARGS, "Detach watcher before releasing mapping."},
+    {"profile", fixture_profile, METH_NOARGS, "Public test-only build profile."},
+    {NULL, NULL, 0, NULL}
+};
+static PyModuleDef_Slot fixture_slots[] = {
+    {Py_mod_exec, fixture_exec},
+    {Py_mod_multiple_interpreters, Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED},
+    {0, NULL}
+};
+static struct PyModuleDef fixture_module = {
+    PyModuleDef_HEAD_INIT,
+    "_h25_probe_watch_fixture",
+    "Test-only allocation-free dictionary watcher counter.",
+    sizeof(FixtureState),
+    fixture_methods,
+    fixture_slots,
+    NULL, NULL, fixture_free
+};
+PyMODINIT_FUNC
+PyInit__h25_probe_watch_fixture(void)
+{
+    return PyModuleDef_Init(&fixture_module);
+}

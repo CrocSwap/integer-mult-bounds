@@ -1,0 +1,196 @@
+"""Predeclared source-only process controls; future parent guarded queue only.
+
+One case per fresh guarded process. Expected timeout/limit/nonzero/startup failures
+write an observation and re-raise, so the parent must terminate and join the whole
+outer process group before assessing final raw files. No C compiler is invoked.
+"""
+import argparse
+import json
+import os
+from pathlib import Path
+import resource
+import subprocess
+import sys
+import threading
+
+import cold_build_evidence as helper
+
+CASES = ('normal', 'nonzero', 'timeout', 'oversized', 'startup', 'single_thread',
+         'child_limit_and_group', 'closure_identity')
+NORMAL_OUT = b'normal stdout\x00\xff\n'
+NORMAL_ERR = b'normal stderr\x00\xfe\n'
+NONZERO_OUT = b'nonzero stdout retained\n'
+NONZERO_ERR = b'nonzero stderr retained\n'
+TIMEOUT_OUT = b'timeout stdout prefix retained\n'
+TIMEOUT_ERR = b'timeout stderr prefix retained\n'
+
+
+def need(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
+def bounded_read(path, limit):
+    with Path(path).open('rb') as stream:
+        raw = stream.read(limit + 1)
+    need(len(raw) <= limit, 'Control read exceeded its declared evidence bound')
+    return raw
+
+
+def expected_rejection(operation):
+    try:
+        operation()
+    except RuntimeError as error:
+        return {'type': type(error).__name__, 'message': str(error)}
+    raise RuntimeError('Mutated captured child-limit closure was accepted')
+
+
+def closure_identity_case():
+    callback, captured, original = helper._limit_callback()
+    helper._check_limit_callback(callback, captured)
+    records = []
+    cell = callback.__closure__[0]
+    old = cell.cell_contents
+    cell.cell_contents = tuple(list(old))  # equal values, different tuple identity
+    try:
+        records.append(expected_rejection(lambda: helper._check_limit_callback(callback, captured)))
+    finally:
+        cell.cell_contents = old
+    old_defaults = callback.__defaults__
+    callback.__defaults__ = ()
+    try:
+        records.append(expected_rejection(lambda: helper._check_limit_callback(callback, captured)))
+    finally:
+        callback.__defaults__ = old_defaults
+    old_code = callback.__code__
+    callback.__code__ = old_code.replace(co_name='changed_child_limit_callback')
+    try:
+        records.append(expected_rejection(lambda: helper._check_limit_callback(callback, captured)))
+    finally:
+        callback.__code__ = old_code
+    helper._check_limit_callback(callback, captured)
+    need(resource.getrlimit(resource.RLIMIT_FSIZE) == original, 'Closure controls changed parent limits')
+    return {'status': 'CLOSURE_SOURCE_CONTROLS_OBSERVED', 'rejections': records,
+            'child_processes_started': 0, 'file_limits_changed': False,
+            'parent_final_review_required': True}
+
+
+def command_for(case, output):
+    scripts = {
+        'normal': "import os;os.write(1,b'normal stdout\\x00\\xff\\n');os.write(2,b'normal stderr\\x00\\xfe\\n')",
+        'nonzero': "import os,sys;os.write(1,b'nonzero stdout retained\\n');os.write(2,b'nonzero stderr retained\\n');sys.exit(7)",
+        'timeout': "import os,time;os.write(1,b'timeout stdout prefix retained\\n');os.write(2,b'timeout stderr prefix retained\\n');time.sleep(60)",
+        'oversized': "import os;data=b'O'*(2*1024*1024+65536);offset=0\nwhile offset<len(data):\n offset+=os.write(1,data[offset:])\n",
+        'single_thread': "raise SystemExit('This command must not start under the thread rejection control')",
+        'child_limit_and_group': "import json,os,resource;print(json.dumps({'limits':list(resource.getrlimit(resource.RLIMIT_FSIZE)),'group':os.getpgrp()}))",
+    }
+    if case == 'startup':
+        return [str(output / 'deliberately-absent-executable')]
+    need(sys.executable == '/usr/bin/python3.12', 'Control requires the pinned CPython executable')
+    return [sys.executable, '-S', '-s', '-P', '-B', '-c', scripts[case]]
+
+
+def run_case(case, output):
+    need(case in CASES, 'Undeclared cold-build evidence control')
+    output = Path(output)
+    need(output.is_absolute() and not output.exists(), 'Fresh absolute per-case output required')
+    output.mkdir()
+    if case == 'closure_identity':
+        result = closure_identity_case()
+        (output / 'control-observation.json').write_text(json.dumps(result, sort_keys=True, indent=2) + '\n')
+        return result
+    command = command_for(case, output)
+    original_limits = resource.getrlimit(resource.RLIMIT_FSIZE)
+    original_group = os.getpgrp()
+    event = worker = None
+    if case == 'single_thread':
+        event = threading.Event()
+        worker = threading.Thread(target=event.wait, args=(10,), daemon=False)
+        worker.start()
+    try:
+        try:
+            result = helper.run(command, output, 'control', 1 if case == 'timeout' else 3,
+                                {'purpose': 'bounded-process-control', 'case': case, 'C_compilation': False})
+        finally:
+            if worker is not None:
+                event.set()
+                worker.join(timeout=2)
+                need(not worker.is_alive(), 'Control worker thread did not join')
+    except BaseException as primary:
+        attempt = json.loads(bounded_read(output / 'control.attempt.json', helper.RECEIPT_BYTES))
+        expected_status = {'nonzero': 'NONZERO_EXIT', 'timeout': 'TIMEOUT', 'oversized': 'LOG_LIMIT',
+                           'startup': 'STARTUP_FAILURE', 'single_thread': 'PRELAUNCH_REJECTION'}
+        need(case in expected_status and attempt['status'] == expected_status[case],
+             'Cold-build failure status differs from declared control')
+        need(attempt['failure_log_hashes_final'] is False and
+             attempt['descendant_termination_joined'] is False and
+             all(row.get('complete_file_sha256') is None for row in attempt['logs'].values()),
+             'Failed compiler logs incorrectly claimed finality')
+        if case == 'nonzero':
+            need(type(primary) is subprocess.CalledProcessError and primary.returncode == 7 and
+                 attempt['returncode'] == 7 and attempt['direct_child_reaped'] is True,
+                 'Actual nonzero exit code was not retained')
+            need(bounded_read(output / 'control.stdout.raw', 1024) == NONZERO_OUT and
+                 bounded_read(output / 'control.stderr.raw', 1024) == NONZERO_ERR,
+                 'Nonzero output bytes were not retained')
+        elif case == 'timeout':
+            need(type(primary) is subprocess.TimeoutExpired and attempt['returncode'] is None and
+                 attempt['direct_child_reaped'] is False,
+                 'Timeout invented an exit code or completed wait')
+            need(bounded_read(output / 'control.stdout.raw', 1024) == TIMEOUT_OUT and
+                 bounded_read(output / 'control.stderr.raw', 1024) == TIMEOUT_ERR,
+                 'Timeout raw prefixes were lost')
+        elif case == 'oversized':
+            need(type(primary) is helper.ColdBuildOutputLimit and
+                 attempt['logs']['stdout']['prefix_bytes_hashed'] == helper.OPERATIONAL_LOG_BYTES and
+                 attempt['logs']['stdout']['bytes_before'] > helper.OPERATIONAL_LOG_BYTES,
+                 'Oversized output was not bounded and rejected')
+        elif case == 'startup':
+            need(type(primary) is FileNotFoundError and attempt['spawn_entered'] is True and
+                 attempt['spawn_returned'] is False and attempt['returncode'] is None,
+                 'Startup failure was conflated with a completed child')
+        elif case == 'single_thread':
+            need(type(primary) is RuntimeError and attempt['spawn_entered'] is False and
+                 'exactly one live process task' in str(primary),
+                 'Multiple-task process reached Popen')
+        need(resource.getrlimit(resource.RLIMIT_FSIZE) == original_limits and os.getpgrp() == original_group,
+             'Failed control changed parent file limit or group')
+        observation = {'schema': 'h25-cold-build-evidence-control-v1', 'case': case,
+                       'status': 'EXPECTED_FAILURE_OBSERVED_PENDING_OUTER_TERMINATION',
+                       'parent_final_review_required': True, 'failure_hashes_final': False,
+                       'outer_group_must_be_terminated_and_joined': True,
+                       'attempt': attempt, 'C_compilation': False}
+        (output / 'control-observation.json').write_text(json.dumps(observation, sort_keys=True, indent=2) + '\n')
+        raise
+    need(case in ('normal', 'child_limit_and_group') and
+         result['status'] == 'EXIT0_LOGS_STABLE_PENDING_SOURCE_CUSTODY' and
+         result['returncode'] == 0 and result['direct_child_reaped'] is True,
+         'Unexpected successful control result')
+    need(result['single_thread_before_spawn']['task_count'] == 1 and
+         resource.getrlimit(resource.RLIMIT_FSIZE) == original_limits and os.getpgrp() == original_group,
+         'Successful control changed parent file limit/group or skipped actual one-task census')
+    if case == 'normal':
+        need(bounded_read(output / 'control.stdout.raw', 1024) == NORMAL_OUT and
+             bounded_read(output / 'control.stderr.raw', 1024) == NORMAL_ERR,
+             'Normal raw byte stream changed')
+    else:
+        child = json.loads(bounded_read(output / 'control.stdout.raw', 1024))
+        need(child == {'limits': [helper.CHILD_FILE_BYTES, helper.CHILD_FILE_BYTES], 'group': original_group},
+             'Actual compiler-child file limit or inherited process group differs')
+    observation = {'schema': 'h25-cold-build-evidence-control-v1', 'case': case,
+                   'status': 'SUCCESS_PATH_OBSERVED_PENDING_PARENT_REVIEW',
+                   'attempt': result, 'parent_final_review_required': True, 'C_compilation': False}
+    (output / 'control-observation.json').write_text(json.dumps(observation, sort_keys=True, indent=2) + '\n')
+    return observation
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--case', choices=CASES, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    run_case(args.case, args.output)
+
+
+if __name__ == '__main__':
+    main()
