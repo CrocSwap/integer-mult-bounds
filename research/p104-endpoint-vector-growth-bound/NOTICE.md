@@ -1,0 +1,1 @@
+Contributed under the repository's Apache-2.0 license. Exact source lineage and predecessor credits are in README.md and PROVENANCE.json. OpenAI Codex and subagents materially assisted proof, implementation, independent verification and packaging.
