@@ -1,0 +1,21 @@
+# Exact obstruction to a same-mask square
+
+## Literal scope and first gate
+
+Each of nine pairs has two even Type B singleton idles on the same role r and body stage j. There are nine distinct stages. Keep every other operation unchanged and replace the pair by the square of the same action on r at the earlier original clock. The exact price considers one retained paid rank-eight child and the case in which the square is ordinary.
+
+In the normalized signed caller let `P=e_r e_rᵀ`, `D=I+(b_j−1)P` and let M be the unchanged chronological interval strictly between the idles. With both original calls the block is `D M D`. With the earlier square it is `M D²`. The surrounding factors are invertible on the retained Type B representation. Over the formal Laurent field the two blocks agree only if `D M=M D`, which implies `P M=M P`. The latter requires both the off-axis part of `M e_r` and that of `e_rᵀ M` to vanish.
+
+The forward exact rational replay maintains the prefix matrix and the columns of its inverse. At each original idle it records `F⁻¹ e_r` and `e_rᵀ F`. These give the conjugated projector. At q=+1 and all bodies one, the prefix at the later clock equals M times the earlier prefix. Equality of the two projectors is therefore equivalent to the stated commutation. All nine projector pairs differ at coordinate (0,0). The independent replay walks each interval directly on both a basis column and a reverse covector. Every one has both a nonzero row and nonzero column off the role axis. Both original endpoint checks cover all 36 arbitrary-input basis columns.
+
+## A physical character counterexample
+
+The literal interval census verifies that no operation between the two idles contains its own shared stage j. Each J contributes only its designated stage body. Each B idle has a positive mask with one occurrence per selected stage, and the signed idle's exponent −1 applies only to the central q. The other B operations involve no body factor. Thus each target-body degree, including inverse degree, is exactly zero in its interval. The unit-body interval matrix M remains exact when the same stage takes physical eigenvalue −1, with q=+1 and all other bodies +1.
+
+In the retained physical layout, the central direction and the 17 eight-axis stage bodies act on disjoint slots after the audited routes. The one-axis primitive C has eigenvectors (1,1) and (1,−1), of eigenvalues 1 and i respectively. Choose two i eigenvectors inside the target body's tensor factors and eigenvalue +1 on the other factors, including the central direction. This produces a legitimate common eigencharacter at every positive width. The chosen tensors have integral entries and can be scaled to the admitted common grid. The exact stage route fixes the central direction and every exterior spectator. [#7113 physical application](https://github.com/CrocSwap/integer-mult-bounds/blob/07a76c5e2738882c0cb322278e56f6cae3c9885d/research/signed-caller-8x9/APPLICATION.md) · [Exact route and chart binding](https://github.com/CrocSwap/integer-mult-bounds/blob/07a76c5e2738882c0cb322278e56f6cae3c9885d/research/signed-caller-8x9/replay/supplier7112/short-caller/upstream_application.py)
+
+On that character each old idle is the sign `R=I−2P`. The proposed square is `R²=I`. The old block is RMR and the new one M. For an off-axis entry `M[i,r]≠0`, the old-minus-square entry is `−2 M[i,r]`. The first pair at clocks 4646 and 4660 uses stage 17 and has `M[1,0]=1/3`, giving −2/3. All nine exact nonzero differences are in the physical receipt. The unchanged surrounding factors specialize to invertible rational operations, so they cannot erase this difference. This witness does not require formal independence of body powers.
+
+For a nonempty simultaneous subset of the nine fixed-clock replacements, select any one of its stages for eigenvalue −1 and assign +1 to the other stages. Since the stages are distinct, each other edited pair and its proposed square are identities on that character. The selected pair retains its nonzero physical witness. Thus no nonempty subset is compatible in the stated model.
+
+The proof closes the fixed-clock same-role square. It leaves changed surrounding contacts, new multi-role operators, and separately charged provider contracts open. No literal changed candidate or full altered supplier replay was needed.
