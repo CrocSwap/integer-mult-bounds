@@ -23,8 +23,9 @@ native coefficients are reduced only after the engines verify unit
 denominators for their respective primes, 65521 and 65537. Each
 nonzero modular determinant implies a nonzero rational determinant.
 Both engines reconstruct the same public and owned occupancy and
-verify 16 original and 16 continuation exclusions. No suffix or
-rational pairing is necessary for those 32 direct prefix exclusions.
+verify 16 original, 16 continuation and 13 residual exclusions.
+No suffix or rational pairing is necessary for these 45 direct
+prefix exclusions.
 
 ## Transfer through an unchanged bank
 
@@ -53,7 +54,14 @@ Their selection takes the widest previously unresolved public bank
 first within each chart, round-robin across the five charts, with
 the earliest cut breaking ties. Thus the two bounded stages exclude
 16 + 9 + 16 + 11 = 52 of 65 keys. The exact remaining 13 singleton
-keys were outside the second support cap. No κ improvement follows
+keys were outside the second support cap. They consist of nine
+one-role banks and four two-role banks, with no owned roles. A
+separately frozen 13-case replay exhausts them in each prime
+field under the same 25-second limit. Both engines independently
+verify nonzero full-row-rank prefix minors on all 13. The original
+65521 minor column choices also give nonzero determinants when
+recomputed at 65537 on each key. The final receipt certifies
+65 of 65 keys, with zero unresolved. No κ improvement follows
 from these exclusions and no signed physical candidate was built.
 
 ## Directed complete cost

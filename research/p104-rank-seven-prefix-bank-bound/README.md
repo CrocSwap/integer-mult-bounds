@@ -10,11 +10,12 @@ head `07a76c5e2738882c0cb322278e56f6cae3c9885d`.
 The proposed fixed-paid change splits one of five rank-seven productive
 targets into 3+4 or 4+3 at an existing intermediate chart. Exhaustive
 geometry finds 65 occupied rank-six bank keys on five charts and zero
-eligible rank-five keys. Two exact prime-field engines agree on 32
+eligible rank-five keys. Two exact prime-field engines agree on 45
 direct exterior-prefix exclusions. Independent literal continuity
-replay transfers those exclusions to 20 additional keys, for **52
-excluded and 13 unresolved**. All unresolved keys are singletons in
-the proved equivalence partition. [Exact key receipt](receipts/RECONCILED.json).
+replay transfers 32 of those certificates to 20 additional keys.
+The original two selections excluded 52 keys. A third selection closes
+the exact 13 remaining singleton keys at both primes, for **all 65
+excluded and zero unresolved**. [Final key receipt](receipts/CLOSED.json).
 
 The fixed paid bill has 110,519 positions across 17 signed caller
 copies. The relaxed directed upper is 0.294636248924991 raw units
@@ -32,25 +33,25 @@ python3.12 -I -B research/p104-rank-seven-prefix-bank-bound/replay.py
 
 The replay authenticates the native word and the inherited helper
 census, rebuilds the directed price and full geometry, checks both
-primes for the two frozen 16-key sets, and reconstructs all 60 adjacent
-links in both directions. It rejects altered price and word inputs
-and reproduces the exact 65-key disposition. Use `--out fresh-directory`
-to retain all ten receipts. The standard-library replay needs no Git
+primes for the two frozen 16-key sets and the exact 13-key residual,
+and reconstructs all 60 adjacent links in both directions. It rejects
+altered price, word and residual selection inputs. Use
+`--out fresh-directory` to retain the ten predecessor receipts and
+the four new residual and closure receipts. The standard-library replay needs no Git
 metadata, network, external root or prior temporary state.
 [Source provenance](PROVENANCE.json) · [Path-keyed pins](LOCAL-PINS.json) ·
-[Receipt hashes](receipts/SHA256.json) · [Cohort preflight](COHORT.md).
+[Predecessor receipt hashes](receipts/SHA256.json) ·
+[Residual receipt hashes](receipts/R109-SHA256.json) · [Cohort preflight](COHORT.md).
 
 ## Open next questions
 
-Test exactly the 13 unresolved keys from the reconciliation in one
-25-second two-sided modular pass. If both sides drop rank, choose at
-most four exact rational pairing tests under a 35-second cap and
-preserve any remaining keys. A pair that survives still requires
-signed arbitrary-input forward and adjoint action, ownership,
-restoration, compiler, precision and tape checks, complete repricing
-and independent caller and outer replay. The package tested the
-fixed public bank and the existing chart catalogue on the pinned
-word.
+Could a different chart or a changed paid itinerary supply a new
+eligible public bank? Start by specifying one exact change and
+pricing its complete bill before a support test. The fixed public
+bank, existing catalogue and pinned word in this package are
+exhausted. A different mechanism would still need signed
+arbitrary-input forward and adjoint action, ownership, restoration,
+compiler, precision, tape and independent caller and outer replay.
 
 ## Credit
 

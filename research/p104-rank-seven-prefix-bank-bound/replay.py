@@ -131,6 +131,76 @@ def reconcile(geometry,old,old_second,alias,reverse,selection,modular,second):
     return dict(head=HEAD,counts=counts,original=65,excluded=52,unresolved=13,rows=rows)
 
 
+
+def close_residual(previous,selection,primary,second):
+    chosen={tuple(r["key"]):r for r in selection["selected"]}
+    first={tuple(r["key"]):r for r in primary["results"]}
+    other={tuple(r["key"]):r for r in second["rows"]}
+    pending={tuple(r["key"]) for r in previous["rows"] if r["disposition"]=="unresolved after cap"}
+    assert len(chosen)==len(pending)==13 and pending==chosen.keys()==first.keys()==other.keys()
+    assert not selection["unselected"] and not primary["unselected"] and not second["remaining"]
+    assert primary["prime"]==65521 and second["prime"]==65537 and second["agreement"]
+    assert primary["prefix_events"]==second["progress"]["events"]==76466
+    assert second["original_minor_axes_nonzero"]==13
+    for key in chosen:
+        a,b,c=chosen[key],first[key],other[key]
+        assert not a["owned"] and not a["aliases"] and c["chart_rank"]==6
+        assert all(a[field]==b[field]==c[field] for field in ("public","owned","pivots"))
+        assert b["status"]=="prefix exclusion" and c["disposition"]=="excluded"
+        assert b["prefix"]["determinant"] and c["independent_minor"]["determinant"]
+    rows=[]
+    for row in previous["rows"]:
+        if tuple(row["key"]) in pending:
+            row=dict(row,disposition="residual direct minor",witness=row["key"])
+        rows.append(row)
+    counts=Counter(r["disposition"] for r in rows)
+    assert counts=={"original direct minor":16,"original minor via alias":9,
+                    "continuation direct minor":16,"continuation minor via alias":11,
+                    "residual direct minor":13}
+    return dict(head=HEAD,counts=counts,original=65,excluded=65,unresolved=0,rows=rows)
+
+
+def replay_residual(scratch,r102,ind,prior,produced):
+    expected=decode((ROOT/"receipts/R109-SHA256.json").read_bytes())
+    r109=scratch/"r109"
+    for target in ("inputs","lead","round102-input/inputs","round102-input/lead","independent/inputs"):
+        (r109/target).mkdir(parents=True)
+    for rel in ("lead/PRICE.json","inputs/7334-WORD.json.gz","inputs/exterior_rank56.py","inputs/reverse_engine.py"):
+        copyfile(r102/rel,r109/"round102-input"/rel)
+    for filename,target in (("freeze.py","lead/freeze.py"),("modular_support.py","modular_support.py"),
+                            ("prefix_second_prime.py","independent/prefix_second_prime.py"),
+                            ("sweep.py","independent/inputs/sweep.py")):
+        copyfile(ROOT/"engines/r109"/filename,r109/target)
+    for filename in ("PRICE.json","GEOMETRY.json","7334-WORD.json.gz","second_prime.py"):
+        copyfile(ind/"inputs"/filename,r109/"independent/inputs"/filename)
+    for name in ("SELECTION.json","MODULAR.json"):
+        copyfile(scratch/name,r109/"inputs"/f"R105-{name}")
+        copyfile(scratch/name,r109/"independent/inputs"/f"R105-{name}")
+
+    def record(name,response,target=None):
+        raw=response.stdout
+        assert digest(raw)==expected[name],("changed residual receipt",name)
+        produced[name]=raw
+        if target is not None:
+            target.write_bytes(raw)
+        return decode(raw)
+
+    chosen=record("R109-SELECTION.json",command(r109/"lead/freeze.py"),r109/"SELECTION.json")
+    mod=record("R109-MODULAR.json",command(r109/"modular_support.py"),r109/"MODULAR.json")
+    for name in ("SELECTION.json","MODULAR.json"):
+        copyfile(r109/name,r109/"independent/inputs"/name)
+    second=record("R109-SECOND.json",command(r109/"independent/prefix_second_prime.py"))
+    closed=close_residual(prior,chosen,mod,second)
+    raw=(dumps(closed,indent=2,sort_keys=True)+"\n").encode()
+    assert raw==(ROOT/"receipts/CLOSED.json").read_bytes()
+    produced["CLOSED.json"]=raw
+
+    selection=r109/"independent/inputs/SELECTION.json"
+    selection.write_bytes(selection.read_bytes()+b"\n")
+    rejection=command(r109/"independent/prefix_second_prime.py",check=False)
+    assert rejection.returncode==1 and not rejection.stdout
+    assert b"changed dependency: inputs/SELECTION.json" in rejection.stderr
+
 def replay(scratch,out):
     authenticate()
     expected = decode((ROOT / "receipts/SHA256.json").read_bytes())
@@ -170,6 +240,7 @@ def replay(scratch,out):
     assert raw == (ROOT/"receipts/RECONCILED.json").read_bytes()
     assert set(produced) == set(expected)
     produced["RECONCILED.json"] = raw
+    replay_residual(scratch,r102,ind,summary,produced)
 
     for victim,script,args in (
         (ind/"inputs/PRICE.json",ind/"verify.py",("alias",)),
@@ -186,13 +257,13 @@ def replay(scratch,out):
         out.mkdir(parents=True)
         for name,content in produced.items():
             (out / relative(name)).write_bytes(content)
-    print("PASS_RANK_SEVEN_PREFIX_BANK_BOUND original=65 direct=32 transfers=20 excluded=52 unresolved=13")
+    print("PASS_RANK_SEVEN_PREFIX_BANK_BOUND original=65 direct=45 transfers=20 excluded=65 unresolved=0")
 
 
 def main():
     assert sys.version_info[:2] == (3,12) and __debug__
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument("--out",type=Path,help="new directory for the ten regenerated receipts")
+    parser.add_argument("--out",type=Path,help="new directory for the fourteen regenerated receipts")
     args = parser.parse_args()
     with TemporaryDirectory() as directory:
         replay(Path(directory),args.out)
