@@ -1,0 +1,7 @@
+# Verification
+
+The two exact R198 predecessor receipts are included byte-for-byte. Their public replay derives both row sets from the authenticated native word. The current replay checks the exact compressed and decoded word hashes, all eight literal owned MOVE keys and ranks, equality of both row sets, and the initial chart assignment of each row entry. It regenerates all exact prices and span receipts.
+
+The lead uses rational echelon on the eight exterior rows and computes the first nonzero residual of every profitable case. The independent engine instead constructs and directly evaluates a separating input for every admitted case. Both are capped at 30 seconds and cover the full 247-case price scope, with 64 admitted span tests. The wrapper compares both price paths and both support results, then checks the full eight-row determinant through a separate integer expansion.
+
+The wrapper mutates a real original-input coefficient of the first exact predecessor row in a disposable copy. The independent replay rejects the corrupt file. The original exact span controls include a known member and a known nonmember. All dependency keys are unique paths relative to the package root. The only adaptation in the independent engine and its stored receipt is the shared relative filename of the forward predecessor receipt. See [provenance](PROVENANCE.json) for exact sources and SHA-256 pins. No network or prior temporary state is needed.
