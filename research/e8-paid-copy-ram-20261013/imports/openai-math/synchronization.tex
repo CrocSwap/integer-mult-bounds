@@ -1,0 +1,85 @@
+\section{Synchronizing tensor factors in linear array work}
+\label{sec:synchronization}
+
+This section turns the tensor-power algorithm and the local compiler into a transform on a product of small coordinate sets. The indexing estimate is as important as the scalar estimate: scanning all the axes anew at each array entry would lose the saving.
+
+\subsection{A linear-time traversal rule}
+
+For radices $r_1,\ldots,r_\ell\ge2$, let $R=\prod_jr_j$. We order coordinates by mixed-radix tuples, with the first digit most significant. A recursive traversal of the digit tuples visits fewer than $2R$ nodes, since
+\begin{equation}\label{eq:prefix-nodes}
+ \sum_{j=0}^{\ell}\prod_{i=1}^{j}r_i
+ \le R\sum_{j=0}^{\ell}2^{j-\ell}<2R.
+\end{equation}
+Any state updated in a fixed number of operations per prefix extension can therefore be computed for all coordinates in $O(R)$ time. A depth-first traversal uses a stack; it does not copy the whole prefix at every extension.
+
+For example, a tensor monomial maps each local digit $a_j$ to $\pi_j(a_j)$ and multiplies by a scalar $c_j(a_j)$. Extend the original and permuted mixed-radix addresses by the usual multiply-and-add rule, and extend a running coefficient by multiplication by $c_j(a_j)$. At a leaf, move and scale one entry. Equation~\eqref{eq:prefix-nodes} gives $O(R)$ operations, including the scalar products.
+
+\subsection{Packing sectors}
+
+A layer of disjoint copies of $C$ on an axis partitions its coordinates into ordered pairs and unused singletons. Choose any order of these blocks. For a selected block on axis $j$, let
+\[
+ q_j\in\{1,2\},\qquad
+ p_j=\text{the number of coordinates in preceding blocks},
+\]
+and let $t_j\in\{0,\ldots,q_j-1\}$ denote position within that block. These local tables are part of the compiled layer. The actual axis digit, denoted $a_j$, need not be consecutive in the original coordinate order.
+
+A \emph{sector} chooses one block on each axis. It has width $Q=\prod_jq_j=2^k$, where $k$ is the number of chosen pairs. Order sectors lexicographically by their block choices, and each sector internally by its $t_j$ digits. Put $\tau_j=\prod_{i>j}r_i$.
+
+\begin{samepage}
+\begin{lemma}\label{lem:sector-address}
+The start of the selected sector in the packed array is
+\begin{equation}\label{eq:sector-start}
+ S=\sum_{j=1}^{\ell}\left(\prod_{i<j}q_i\right)p_j\tau_j.
+\end{equation}
+The packing permutation, its inverse, and the list of sector starts, widths, and pair counts can all be generated in $O(R)$ operations after the local tables and suffix products have been prepared.
+\end{lemma}
+\end{samepage}
+\begin{proof}
+Classify the earlier sectors by the first axis $j$ at which their block choice differs. The preceding chosen blocks contribute width $\prod_{i<j}q_i$, the earlier blocks at axis $j$ have total width $p_j$, and all later axes have total width $\tau_j$. These disjoint classes give~\eqref{eq:sector-start}.
+
+During digit traversal maintain four states: a sector start $S$, a prefix width $Q$, a within-sector offset $o$, and an original address $I$. Initially they are $0,1,0,0$. On extending by the actual local digit $a_j$, whose table supplies $p_j,q_j,t_j$, update
+\begin{equation}\label{eq:sector-updates}
+ \begin{split}
+ S&\leftarrow S+Qp_j\tau_j,\qquad Q\leftarrow Qq_j,\\
+ o&\leftarrow oq_j+t_j,\qquad I\leftarrow Ir_j+a_j.
+ \end{split}
+\end{equation}
+At the leaf, the packed address is $S+o$. This proves the cost of packing and unpacking by~\eqref{eq:prefix-nodes}.
+
+To enumerate calls, traverse block choices instead of digits, maintaining $S,Q$, and the number of pairs. If axis $j$ has $b_j$ blocks, then $b_j\le r_j$. Thus the number of block prefixes at every depth is bounded by the number of digit prefixes at that depth, and their total is also $O(R)$. This argument includes axes with only one block. Each leaf supplies one contiguous sector, with no additional scan through its axes.
+\end{proof}
+
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=.92\linewidth]{figures/sectors.pdf}
+\caption{Two axes, each partitioned into a pair and a singleton. A simultaneous pair layer becomes four independent tensor-power calls. The original pair coordinates can be nonconsecutive; the local tables and~\eqref{eq:sector-updates} perform the reordering in linear time.}
+\label{fig:sectors}
+\end{figure}
+
+\subsection{The synchronized transform}
+
+\begin{samepage}
+\begin{proposition}\label{prop:tensor-fourier}
+Let $\ell\ge1$ and $r_1,\ldots,r_\ell\ge2$ be integers, and suppose
+the required specified roots are given. Put $R=\prod_jr_j$ and
+$r_{\max}=\max_jr_j$. The map $\bigotimes_jF_{r_j}$ is computable in
+\begin{equation}\label{eq:tensor-fourier}
+ O\!\left(R(\ell+1)^\theta(1+\log r_{\max})^4\right)
+   +\poly(\ell,r_{\max},\log(R+2))
+\end{equation}
+operations, including compilation, scalar preparation, and array work. The polynomial and the implicit constant are absolute.
+\end{proposition}
+\end{samepage}
+\begin{proof}
+Use Proposition~\ref{loc:compiler} on every axis. Its words can be refined and padded to a common sequence of $O((1+\log r_{\max})^4)$ slot types: a monomial slot or a slot of disjoint copies of $C$ and singleton identities. Padding a pair slot means using only singleton blocks on that axis.
+
+At each slot take the tensor product across axes. These slots multiply to the desired tensor transform because
+\begin{equation}\label{eq:tensor-multiply}
+ (\bigotimes_j A_j)(\bigotimes_j B_j)=\bigotimes_j(A_jB_j).
+\end{equation}
+In particular, a local word's correctness on arbitrary inputs suffices. Another axis may change coordinates during intermediate slots; one does not require it to preserve the local word's borrowed coordinates throughout that word.
+
+Tensor monomials cost $O(R)$ by the prefix traversal. A tensor pair slot decomposes into the sectors of Lemma~\ref{lem:sector-address}. Its width-$2^k$ sector carries precisely $C^{\otimes k}$. Theorem~\ref{net:tensor-bound} bounds its cost, including invocation and movement, by $O(2^k(k+1)^\theta)$. As $k\le\ell$ and the sector widths sum to $R$, their total cost is $O(R(\ell+1)^\theta)$. Packing, unpacking, and discovering even the width-one sectors cost another $O(R)$. This proves the first term of~\eqref{eq:tensor-fourier}.
+
+The local compilers use polynomial work in their widths. Suffix products, local block tables, and the other integer preparation use polynomial work in $\ell,r_{\max},\log(R+2)$. All running scalar products have been charged in the traversal, so the polynomial term describes local preparation only.
+\end{proof}
