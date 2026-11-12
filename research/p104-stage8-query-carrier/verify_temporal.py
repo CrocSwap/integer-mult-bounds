@@ -203,6 +203,25 @@ def required_minor(receipt, determinant):
             "determinant": "-32", "scope": "q=-1 minus q=+1 at unit bodies"}
 
 
+def check_paid_egress(word):
+    """Independently check full-state input separators for the late exits."""
+    moves = [(i, e[1]) for i, e in enumerate(word["program"])
+             if i >= 43929 and e[0] == "MOVE" and e[2:4] == [128,127]]
+    assert moves == [(45889,819),(46545,870),(49263,48),(49350,100)]
+    witness = json.loads((HERE / "EGRESS-DUALS.json").read_bytes())
+    assert [(row["clock"], row["carrier"]) for row in witness] == moves
+    for case, (clock, role) in zip(witness, moves, strict=True):
+        delta = {int(j):Q(v) for j,v in case["unit_witness"].items()}
+        assert all(0 <= j < word["public"] and j not in PORT for j in delta)
+        assert case["scope"] == "full live state"
+        _, after, guards = forward(word["program"][:clock+1], (), delta, {})
+        assert not guards and after == {role:1}
+        next_event = word["program"][clock+1]
+        operands = next_event[1:3] if next_event[0] in ("ADD","COPY") else next_event[1:2]
+        assert role in operands and next_event[-1] == 127
+    return len(witness)
+
+
 def main():
     old = json.loads(read_pinned("RESULT.json"))
     read_pinned("verify.py")
@@ -278,6 +297,7 @@ def main():
     del bad[removed]
     _, weakened, _ = forward(program, (), bad, {clock:(role,Q(1))})
     assert weakened != control and removed not in PORT
+    check_paid_egress(word)
     return {"source_hashes":PINS,"carriers":routes,
             "readout_banks":[{"chart":c,"observations":len(rows[c]),
                               "rank_original":reduce_rows(rows[c],n,False)[0],
@@ -302,6 +322,6 @@ if __name__ == "__main__":
         print(result,end="")
     elif not sys.argv[1:]:
         assert (HERE/"TEMPORAL-RESULT.json").read_text() == result, "receipt changed"
-        print("PASS 466 timed observations, two return obstructions, and coframed entrance restoration")
+        print("PASS 466 timed observations, two return obstructions, coframed entrance restoration, and four late exit witnesses")
     else:
         raise SystemExit("usage: verify_temporal.py [--emit]")

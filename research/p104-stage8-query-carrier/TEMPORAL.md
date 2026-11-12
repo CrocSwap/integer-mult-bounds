@@ -103,6 +103,34 @@ QUERYs use the whole two-child allowance before ancillary work. This
 closes this reuse route. A genuinely coupled phase provider or new
 inter-chart transport is a different contract.
 
+## Already-paid late exits
+
+The retained native word has four exits from chart 128 to chart 127 after
+the late readout at clock 43929. Each exit has an original chart-127
+contact at the very next event. Even granting that the exit phase is
+the desired one, an immediate dirty-carrier loan fails at all four.
+
+| MOVE clock | Existing owner | Next contact |
+| ---: | ---: | --- |
+| 45889 | 819 | ADD into 852 |
+| 46545 | 870 | ADD into 837 |
+| 49263 | 48 | SCALE of 48 |
+| 49350 | 100 | SCALE of 100 |
+
+For each clock, [EGRESS-DUALS.json](EGRESS-DUALS.json) gives an original
+non-port-0 input variation whose entire live native state immediately
+after the MOVE is one unit on the exiting field and zero everywhere
+else. These are full-state witnesses, stronger than the chart-127
+bank condition. They were obtained by reversing the normalized
+elementary operations, allowing the erased owned values as rational
+unknowns and imposing the zero births, COPY equalities and zero
+port-0 input conditions. The checker replays each supplied input
+forward, verifies the pre-COPY guard, and requires the exact unit state.
+An immediate post-MOVE readout that preserves the arbitrary old inputs
+therefore cannot distinguish a new signal from the existing carrier
+value. Using a prior reference or a changed route is a separate
+physical condition.
+
 ## Replay and provenance
 
 ```sh
