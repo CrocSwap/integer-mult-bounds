@@ -1,0 +1,5 @@
+# Verification
+
+Both engines are limited to 20 seconds. The lead reuses the pinned #7402 event evaluator and checks 36 columns at each of the two physical body signs. The independent engine reads the signed #7113 source, checks the exact Gaussian eigenvalue witnesses, and evaluates 36 reverse rows at both signs. It reconstructs the forced host in each of the three deletion cases using inverse chronological action and checks exact recomposition. The no-deletion control reproduces the exact old host. The wrapper also rejects a changed mask at clock 4660 in both engines.
+
+The exact old endpoint displacement rank is four. The retirement capacities are three for either singleton and two for deleting both. Each forced map has exactly two nonzero entries outside the two-role host after subtracting identity, with the witness entries recorded in `receipts/INDEPENDENT.json`. Both engines reproduce the same directed price intervals. No case remains unresolved within this fixed host class. A new physical provider, complete supplier verification and recurrence were outside the experiment.
