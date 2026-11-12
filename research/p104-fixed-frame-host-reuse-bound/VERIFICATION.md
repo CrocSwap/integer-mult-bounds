@@ -1,0 +1,5 @@
+# Fixed-frame replay evidence
+
+Two exact literal implementations use standard-library CPython 3.12 with assertions. The lead reapplies each negative-sign prefix to basis vectors and uses rational row reduction. The independent implementation updates literal prefix rows and inverse columns and evaluates annihilator equations with integer fraction-free elimination. Both reconstruct the same rank-19 residual, check all 16 retained hosts, and recover exact local and gathered factor directions. The per-engine cap is 30 seconds. No other body profile or source tape is tested.
+
+The bundled inputs match exact public #7439 Git blobs, including both R209 target receipts and the inherited price proof. Negative controls remove an old hosted image axis, add a covector component which violates the old mate's cross condition, corrupt the pinned target bytes, and widen the simultaneous image rank claim. All controls reject. The fixed-prefix and unit-body hypotheses are essential to the exclusion. Full physical verification would require an actual positive-priced candidate.
