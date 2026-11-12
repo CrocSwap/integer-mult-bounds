@@ -1,0 +1,3 @@
+The lead runner completed in 2.79 seconds under a 60-second cap. The separate reverse-inventory and direct-cut replay completed in 4.17 seconds under a 60-second cap and a fixed 1,014-case sample. It used 215,955 shortest augmenting paths. The package wrapper compares both complete per-plane tables and exact seed order. It authenticates the single compressed word and all runner and receipt inputs by relative path, and both engines check the uncompressed payload. The independent runner also checks a positive three-chart test and the zero result when a required upper chart is fixed.
+
+No extra planes, alternate operator alphabets, endpoint changes or physical rewrites were tested. A zero upper is a result for this relaxation and sample only.
