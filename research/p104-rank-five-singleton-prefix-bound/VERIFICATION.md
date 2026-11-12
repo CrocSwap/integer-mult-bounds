@@ -1,0 +1,5 @@
+# Verification
+
+The registered replay requires standard-library CPython 3.12. It uses immutable path-keyed inputs and rebuilds a private scratch tree. It checks the exact compressed word SHA-256 and canonical payload SHA-256. The regenerated price authenticates the previous Git source manifests and all derived predecessor receipt hashes. The exact backward rational and independent 65537 forward engines both exhaust their 14 keys under their 25-second science caps. No literal suffix gate, changed native supplier, full candidate compiler or all-size replay ran because the prefix gate excludes every candidate.
+
+Historical unit pairing, planted kernel, signed nonzero minor, exact direct impulse, unequal proportional pairing, nonproportional pairing, nonunit denominator and owned COPY/adjoint controls are checked. The replay rejects changes to the #7375 second-prime receipt, frozen metadata and compressed native word. `receipts/SHA256.json` binds all four regenerated outputs. `PROVENANCE.json` supplies exact source references and `LOCAL-PINS.json` authenticates the closure.
