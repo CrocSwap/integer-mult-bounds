@@ -1,0 +1,9 @@
+# Verification receipts
+
+Both original scoped runs completed locally under CPython 3.12 with assertions. The forward rational replay visited all 33 cuts. The independent final backward replay took 0.29 seconds and produced all 69 exact rows, ranks and covectors. Its relocated rerun took 0.19 seconds and matched the final receipt byte for byte. An initial independent invocation failed before support because it omitted the result accumulator; the corrected invocation exhausted the exact same frozen keys. No candidate build, changed-native replay, or selected historical replay was triggered.
+
+The package freezes the complete quote and both exact support receipts by SHA-256 over their JSON payloads. The runner regenerates them and recomputes all separation evaluations. It also checks planted multi-source and signed owned COPY fixtures, changed donor and exact dependent-bank cases, and rejects both a changed price byte and a changed compressed native word before their respective use. The comparator's separate four-stage complete local admission and exact hosted checks passed. [Exact #7334 workflow](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/43114736518)
+
+The package is a clean replay of the 33-cut necessary support screen. The official committed export, publication commit transport and hosted checks for this contribution are separate.
+
+The original lead replay took 3.39 seconds. The package direct replay passed in 3.99 seconds. The local registered replay passed in 7.65 seconds and the staged Git-free replay in 7.07 seconds when those two checks ran concurrently. Their output includes the exact comparison over all 33 keys, donor banks and ranks. The archived Git-free copy emitted all four receipt files byte for byte. The frozen predecessor geometry, price, independent admission and price readback match the four published Git blobs on exact #7354.
