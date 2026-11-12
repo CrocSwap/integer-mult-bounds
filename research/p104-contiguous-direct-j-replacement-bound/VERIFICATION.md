@@ -1,0 +1,7 @@
+# Verification
+
+The wrapper regenerates the original literal price census and graph in a disposable directory and compares both receipts exactly. The sole compressed input is the pinned public #7334 word. Both its gzip and decoded payload hashes are checked. The exact #7113 caller and signed Gaussian child source are authenticated by path. The wrapper checks the physical binary Walsh eigenvectors against the source matrix, rejects duplicate dependency keys, and checks a corrupted actual J1 host role in an isolated input copy.
+
+The first-three lead directly evaluates forward columns and checks the inverse at both signs. Its independent engine computes and certifies the exact determinant −64. Both cover 36 basis columns per sign over clocks 43–268, with 20-second caps. The full census compares the lead's exact relative prefix calculation against the independent direct sparse row method, both capped at 60 seconds and 153 windows. It compares every endpoint, rank, retained-query count, price interval and uniform upper. The engines use the same immutable caller and the standard library.
+
+Original first-three runners took 0.03s each. Original full lead and independent runs took 4.15s and 0.25s. No cap was hit and no case remained unresolved. No scientific solver depends on prior temporary files. The ordinary stock and physical adapter obligations for changed premises remain open. Exact inputs and scope lineage are in [PROVENANCE.json](PROVENANCE.json).
