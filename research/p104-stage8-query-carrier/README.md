@@ -14,6 +14,11 @@ arbitrary input columns and all four phases with formal body variables. The
 retiming keeps the paid profile fixed. The paired QUERY demotion still needs
 a changed physical provider.
 
+The [timed-readout follow-up](TEMPORAL.md) also checks the full seven-chart
+bank, two terminal restoration obstructions, and a coframed entrance
+compensation. The compensation restores all original returns and is
+equivalent to an ordinary Y-input ADD.
+
 ## Exact setting
 
 Use port 0 in Rohan Arun's [#7113 signed caller][caller] with the
