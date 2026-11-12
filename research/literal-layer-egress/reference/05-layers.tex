@@ -1,0 +1,996 @@
+\section{Fast simultaneous synthetic butterfly layers}
+\label{sec:fast-butterfly-layers}
+
+We now apply the complex network to a common butterfly layer on several
+axes. The array has complete address set
+\[
+ [P]\times[2^K]^D\times[S],\qquad 1\le D\le d,
+\]
+with $P,S\ge1$, in lexicographic order. Its $D$ consecutive $K$-bit
+chunks each select the bit at one common offset $0\le\rho<K$, counted
+from the least significant
+end. Each address carries a polynomial record with $r$ complex
+coefficients, initially in the unit disk on the grid
+$2^{-p}\mathbb Z[i]$, with $\Theta(p)$ bits per real or imaginary
+component. The intended operation is the tensor product
+of $H_0(u,v)=((u+v)/2,(u-v)/2)$ on the $D$ selected bits, acting
+coefficientwise and preserving all other address fields.
+
+The parameters will satisfy
+\[
+ d=\Theta(p^\epsilon),\qquad K=\lfloor d^c\rfloor,
+ \qquad r=2^{\Theta(p/d)},\qquad c>0,\quad 0<\epsilon<1.
+\]
+The exponents and comparison constants are fixed, and we impose their
+further restrictions in Proposition~\ref{prop:simultaneous-layer}.
+Two consequences explain the layout. The polynomial length $r$ grows
+faster than every fixed power of $p$, so a scan of a record pays for
+polynomial work on its address. Also $K/\log p\to\infty$, which will
+make the exceptional set in a packed change of address bits small enough
+to repair by sorting. We will obtain cost $O(Vd^{\lambda'})$, with
+$\lambda'<1$ and $V$ the logical bit volume, whereas separate butterfly
+factors would require $D$ whole-array passes.
+
+We first construct tensor products of the auxiliary two-point kernel
+$C$ from Proposition~\ref{prop:complex-motif-interface}. Its phase
+frames express a $C$ tensor product using smaller groups of
+selected bits, separated by binary changes of basis. We implement those
+changes by moving whole address chunks. Splitting complete rows among
+the network's wire roles then reduces the volume of each recursive
+call. Finally, we bound the intermediate dyadic values and convert the
+completed $C$ layer to the normalized $H_0$ layer. The entire layer is
+evaluated exactly before one final truncation.
+
+\subsection{Phase frames for a simultaneous butterfly layer}
+\label{subsec:phase-frames}
+
+Hold the unselected address bits fixed and regard the stored complex
+values on one wire role as a function of the selected bits.  The phase
+identities below express an edge's residual operator as a product of
+two-point kernels on selected directions.
+
+Put
+\[
+ H_0=\frac12\begin{pmatrix}1&1\\1&-1\end{pmatrix},\qquad
+ H=\sqrt2 H_0,\qquad \mathsf S=\operatorname{diag}(1,i),\qquad
+ Z=\operatorname{diag}(1,-1).
+\]
+For the bit-flip matrix $X=\bigl(\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\bigr)$,
+define
+\begin{equation}\label{eq:phase-C}
+ C=H\mathsf SH=aI+bX,\qquad a=\frac{1+i}{2},\quad b=\frac{1-i}{2}.
+\end{equation}
+Direct multiplication gives
+\begin{equation}\label{eq:phase-basic-identities}
+ H_0=b\mathsf SC\mathsf S,\qquad C^2=X,\qquad C^4=I,\qquad
+ C^{-1}=bI+aX=-iZCZ.
+\end{equation}
+In particular, $C=iZC^{-1}Z$.  These identities use only Gaussian dyadic
+coefficients.  The Hadamard matrices in the definition of
+$\mathcal C_U$ are used to prove identities; they need not be executed
+by the machine.
+
+Consider an edge from label $U_-$ to label $U_+$, and choose an
+orthonormal basis $v_1,\ldots,v_{\rho_{\rm edge}}$ of its residual.
+Proposition~\ref{prop:complex-motif-interface} gives the frame change
+\[
+ \mathcal C_{U_+}\mathcal C_{U_-}^{-1}
+ =\prod_{j=1}^{\rho_{\rm edge}}(aI+bX_{v_j})^{\epsilon_j},
+ \qquad \epsilon_j\in\{1,-1\}.
+\]
+Here $(X_vf)(x)=f(x+v)$, and we write $C_v=aI+bX_v$.
+The number of directional kernels is precisely
+$\rho_{\rm edge}$, including on decreasing edges. The next step puts those directions
+into coordinate positions without performing a general transpose.
+
+\paragraph{Implementing an arbitrary residual basis.}
+For $M\in\operatorname{GL}(m,\mathbb F_2)$, let $\mathcal P_M$ be the
+address permutation that moves the value at $x$ to $Mx$.  Thus
+$(\mathcal P_Mf)(x)=f(M^{-1}x)$, and
+\begin{equation}\label{eq:phase-conjugation}
+ \mathcal P_MX_v\mathcal P_M^{-1}=X_{Mv}.
+\end{equation}
+Extend $v_1,\ldots,v_{\rho_{\rm edge}}$ to a basis of $\mathbb F_2^m$ and take these vectors as
+the first $\rho_{\rm edge}$ columns of $M$.  The displayed edge identity
+then becomes
+\begin{equation}\label{eq:phase-edge-coordinate}
+ \mathcal C_{U_+}\mathcal C_{U_-}^{-1}
+ =\mathcal P_M\left(\prod_{j=1}^{\rho_{\rm edge}}C_{e_j}^{\epsilon_j}\right)
+   \mathcal P_M^{-1},
+\end{equation}
+where $e_j$ is the $j$th standard basis vector.  The matrix $M$ need not
+preserve the dot product: equation~\eqref{eq:phase-conjugation} only
+uses its invertibility.
+
+For the array layout used below, take a group of $e=mf$ consecutive
+axis chunks and divide it into $m$ consecutive slots of $f$ chunks,
+numbered in physical order.
+Number the chunks within each slot by $j=0,\ldots,f-1$, starting at
+its least significant end.  Write $x_{h,j}$ for the selected bit in
+chunk $j$ of slot $h$, where $1\le h\le m$.  Column $j$ is the vector
+$(x_{1,j},\ldots,x_{m,j})$.  A frame on this group is the tensor
+product of the same phase frame
+$\mathcal C_U$ of Proposition~\ref{prop:complex-motif-interface}
+on these $f$ columns.
+
+To implement \eqref{eq:phase-edge-coordinate} on the group, first apply
+$\mathcal P_M^{-1}$ separately to each column.  For each
+$1\le h\le\rho_{\rm edge}$, apply $(C^{\epsilon_h})^{\otimes f}$ to the
+$f$ bits $x_{h,0},\ldots,x_{h,f-1}$.  This is one child operation
+on the $f$ axes in slot $h$.  Finally apply $\mathcal P_M$ to every
+column.  A negative directional kernel still requires only one
+forward child, because
+\begin{equation}\label{eq:phase-inverse-child}
+ (C^{-1})^{\otimes f}
+ =(-i)^f Z^{\otimes f}C^{\otimes f}Z^{\otimes f}.
+\end{equation}
+The rightmost phase is applied first.  All inverse wrappers are address
+signs and constant fourth-root phases, so they add no recursive calls.
+
+Gaussian elimination expresses any $M\in\operatorname{GL}(m,\mathbb F_2)$
+as a product of at most $m(m-1)+3m$ elementary row additions: one clears
+at most $m-1$ other entries per pivot, and each row swap is three row
+additions.  Reversing the elimination gives the required product since
+each row addition is an involution.  The number is a constant because
+$m$ is fixed.  Adding row $h'$ to row $h$ in every column applies
+$x_{h,j}\leftarrow x_{h,j}\mathbin\oplus x_{h',j}$ for every
+$0\le j<f$.  Thus one row addition changes corresponding selected
+positions in two whole slots.  The packed address operation proved
+below performs all of these XORs together.
+
+\paragraph{The exact recursive contract.}
+Apply the finite network with these column frames to a group of
+$e=mf$ selected axes.  Summing its residual dimensions gives exactly
+$s_{\rm c}$ child calls, each on the $f=e/m$ axes of one slot.
+The source and sink $Z_{a,f}$ signs, together with the scalar
+$i^{27f}$ at each affected sink, turn every endpoint kernel into a
+forward one.  Negating the prescribed physical bank
+and undoing its exchange returns each result to its original role.
+Proposition~\ref{prop:complex-motif-interface} therefore gives
+$C^{\otimes e}$ on every role, including roles whose initial scratch
+values were arbitrary.  Formula~\eqref{eq:phase-inverse-child} supplies
+each inverse child from one forward call, and none of the corrections
+adds a child.  The remaining operations are a fixed number of binary
+row additions and coefficientwise scalar operations.
+
+\paragraph{Returning to normalized butterflies.}
+For an address $x$ in a full layer, write $x_1,\ldots,x_D$ for its
+selected bits.
+The diagonal operator $\mathcal S_D$ multiplies the value stored at
+an address by the phase determined by those bits:
+\[
+ (\mathcal S_D z)(x)=i^{x_1+\cdots+x_D}z(x).
+\]
+Here the unselected address bits are unchanged, and the same phase is
+applied to every coefficient stored at that address.  Applying
+\eqref{eq:phase-basic-identities} on all selected coordinates gives
+\begin{equation}\label{eq:phase-butterfly-layer}
+ H_0^{\otimes D}=b^D\mathcal S_D C^{\otimes D}\mathcal S_D.
+\end{equation}
+The scalar is
+\[
+ b^D=(-i/2)^{\lfloor D/2\rfloor}b^{D\bmod2},
+\]
+so it is a binary shift and fourth-root phase, with at most one further
+factor $b$.  All phases, inverse wrappers, and scalar corrections above
+are exact Gaussian dyadic operations.  Thus, once the physical binary
+basis changes and recursive stream layout are supplied, the complete
+parallel butterfly layer is exact up to its prescribed final truncation.
+
+\subsection{Packed changes of selected address bits}
+\label{sec:packed-selected-bits}
+
+We implement a binary row addition on corresponding selected bits in two
+address chunks. A third chunk supplies temporary address bits; its arbitrary
+initial value must be restored. The construction first uses a constant number
+of cyclic shifts of whole chunk ranges, then corrects an explicitly bounded set of
+addresses. The correction depends only on addresses, so the time bound is
+worst-case over all payloads.
+
+We use three previously established streaming operations.
+Lemma~\ref{lem:chunk-swap} exchanges two disjoint address chunks of
+equal width $L$ in $O(VL^\tau)$ time, where $V$ is the current stream
+volume and $0<\tau<1$ is fixed.  The construction in
+Lemma~\ref{lem:ordered-affine-streams} cyclically shifts the complete
+range of a target chunk by an offset determined by preceding fields in
+$O(V)$ time apart from calculating the offsets.  Finally,
+Lemma~\ref{lem:elementary-streams} applies any fixed permutation to the
+two-bit value at two specified address positions in $O(V)$ time.
+Each operation uses a fixed number of one-dimensional
+tapes and restores the order of all spectator fields.
+
+The asymptotic simplification in the following lemma describes a fixed
+family of parameters as \(p\to\infty\), after the exponents and comparison
+constants have been fixed.  The statement that \(R\) exceeds every fixed
+polynomial in \(p\) means that \(R/p^C\to\infty\) for each fixed \(C\).
+Implied constants and eventual cutoffs may depend on the fixed choices
+and on when the family's asserted bounds begin to hold.  In particular,
+each explicit bound is uniform over all of its declared inputs;
+its asymptotic simplification is uniform over the allowed row counts
+and payloads within a fixed family.
+
+\begin{lemma}[Packed selected-bit addition on one rectangle]
+\label{lem:packed-selected-bit-rectangle}
+Let $R\ge1$, $K\ge6$, $f\ge1$, $L=fK$, and $0\le\rho<K$.
+Let $N_0,N_1,N_2,N_3$ be positive integers, and let
+$(\chi_1,\chi_2,\chi_3)$ be a permutation of $(x,y,z)$.
+Consider $R$-bit records in lexicographic order on
+\[
+ [N_0]\times[2^L]_{\chi_1}\times[N_1]\times[2^L]_{\chi_2}
+ \times[N_2]\times[2^L]_{\chi_3}\times[N_3].
+\]
+The subscript names the chunk at that position. The input supplies
+$N_0,\ldots,N_3,R,K,f,\rho$ as a fixed number of canonical binary
+integers, together with the finite permutation of the chunk names, as
+in Section~\ref{sec:streams}. Put
+\[
+ M=2^{3L}\prod_{h=0}^3N_h,\qquad V=MR,\qquad
+ A_{\rm rect}=\lceil\log_2(2V)\rceil.
+\]
+At the selected positions $j_i=\rho+iK$, numbered from the least
+significant bit, one fixed multitape procedure performs
+\[
+ y_{j_i}\longleftarrow y_{j_i}\mathbin\oplus x_{j_i}
+ \quad(0\le i<f).
+\]
+It preserves the spectator coordinates, all other chunk bits, and every
+record payload; in particular, it restores the entire chunk $z$ for
+every initial value.
+With $\delta_{\rm bad}=\min\{1,80(f-1)2^{-K}\}$, its time is
+\begin{equation}
+\label{eq:packed-rectangle-time}
+ O\!\left(V(L^\tau+1)+MA_{\rm rect}^3+
+       \delta_{\rm bad}MA_{\rm rect}(R+A_{\rm rect})\right).
+\end{equation}
+When $A_{\rm rect}=O(p)$, $R$ exceeds every fixed polynomial in $p$,
+$f\le d\le p$, and $K/\log p\to\infty$, this is
+$O(V(L^\tau+1))$, uniformly over the permitted lengths and payloads
+in the fixed family.
+\end{lemma}
+
+\begin{proof}
+We first construct eight rotations that have the required effect away
+from a small set of addresses. We then correct exactly that set.
+For a Boolean control $c$ and arbitrary integers $u,w$, perform the following
+eight operations in the displayed chronological order. Every predicate
+uses the current values of the integers.
+\begin{equation}
+\label{eq:eight-packed-additions}
+\begin{array}{rcl@{\qquad}l}
+u&\leftarrow&u-c[\,w\equiv0\pmod2\,],&(1)\\
+w&\leftarrow&w-c[\,u\equiv0\pmod2\,],&(2)\\
+u&\leftarrow&u+c[\,w\equiv0\pmod2\,],&(3)\\
+w&\leftarrow&w+c[\,u\equiv0\pmod2\,],&(4)\\
+w&\leftarrow&w+c[\,u\equiv1\pmod2\,],&(5)\\
+u&\leftarrow&u+c[\,w\equiv1\pmod2\,],&(6)\\
+w&\leftarrow&w-c[\,u\equiv1\pmod2\,],&(7)\\
+u&\leftarrow&u-c[\,w\equiv1\pmod2\,].&(8)
+\end{array}
+\end{equation}
+If $c=0$, these operations do nothing. If $c=1$, the first four operations
+induce the cycle $(00\ 01\ 10)$ in every square
+\[
+ \{2a,2a+1\}\times\{2b,2b+1\},\qquad a,b\in\mathbb Z,
+\]
+where the corner labels record the parities of $(u,w)$. The last four
+induce $(01\ 10\ 11)$. Applying the first cycle and then the second gives
+$(00\ 10)(01\ 11)$. These facts follow by substituting the four parity
+pairs into the displayed operations; translation by $(2a,2b)$ does not
+change any predicate. Consequently the complete output is
+\begin{equation}
+\label{eq:eight-packed-result}
+ (u',w')=
+ \bigl(u+c(1-2(u\bmod2)),\ w\bigr).
+\end{equation}
+Here $u\bmod2\in\{0,1\}$, also for negative $u$. Thus the parity of $u$
+is flipped precisely when $c=1$, both quotients under division by two are
+preserved, and the arbitrary auxiliary integer $w$ is restored. Each
+coordinate is updated four times by at most one, so its displacement
+from its initial value is at most four, even if an intermediate point
+leaves its starting quotient square. The weaker bound eight will suffice below.
+
+Omit the most significant selected position $j_{f-1}$ temporarily. For
+each $0\le i<f-1$, the bits in positions
+$j_i,\ldots,j_i+K-1$ form a $K$-bit segment. When $f>1$, these segments
+are disjoint, and the highest one ends immediately below $j_{f-1}$.
+Write their initial values in $y$ and $z$ as
+\[
+ u_i=2g_i+a_i,\qquad w_i=2h_i+b_i,
+ \qquad a_i,b_i\in\{0,1\}.
+\]
+The values $g_i,h_i\in\{0,\ldots,2^{K-1}-1\}$ are the guard values. The
+control for this pair of segments is the selected bit $c_i=x_{j_i}$.
+
+Apply each line of \eqref{eq:eight-packed-additions} simultaneously to all
+these segment pairs. Physically, a line updating $y$ by sign $\varepsilon$
+and testing parity $b$ of $z$ is the single cyclic shift
+\begin{equation}
+\label{eq:packed-cyclic-shift}
+ y\longleftarrow y+
+ \varepsilon\sum_{i=0}^{f-2}2^{j_i}
+ [\,x_{j_i}=1\,][\,z_{j_i}=b\,]
+ \pmod{2^L}.
+\end{equation}
+For a line updating $z$, interchange $y$ and $z$ in this formula.
+The shift offset never depends on its target chunk, so each line is a
+bijection of the rectangle. Let $S_0$ be their composition. It fixes
+the spectator coordinates.
+
+Let $\mathcal B$ consist of the addresses for which
+at least one used guard value, in either $y$ or $z$, fails
+\begin{equation}
+\label{eq:packed-guard-interval}
+ 10\le g\le 2^{K-1}-11.
+\end{equation}
+At an address outside $\mathcal B$, each segment initially lies in
+$[20,2^K-21]$. Even displacement eight keeps it inside
+$[0,2^K-1]$. Inductively, each packed addition therefore agrees with all
+the independent segment additions: no segment carries into or borrows
+from the next segment. When $f>1$, the bits below $j_0$ and above the
+highest used segment are untouched as well. By
+\eqref{eq:eight-packed-result}, $S_0$
+then agrees with the ideal permutation $T_0$ that performs the required
+XORs at $j_0,\ldots,j_{f-2}$ and fixes all other address coordinates.
+
+There are exactly twenty excluded values for each guard in
+\eqref{eq:packed-guard-interval}. Since its complete range has
+$2^{K-1}$ values, the union bound over the $2(f-1)$ guards gives
+\begin{equation}
+\label{eq:packed-bad-fraction}
+ |\mathcal B|\le\delta_{\rm bad}M.
+\end{equation}
+Indeed, the complete $y,z$ ranges give the same guard distribution at
+each choice of spectator coordinates. No record value enters this count.
+
+The ideal map $T_0$ preserves all guard values and therefore preserves
+$\mathcal B$. Both $T_0$ and $S_0$ are bijections, and they agree off
+$\mathcal B$. Taking complements in the finite rectangle gives
+\[
+ S_0(\mathcal B^c)=T_0(\mathcal B^c)=\mathcal B^c,
+ \qquad S_0(\mathcal B)=\mathcal B.
+\]
+Thus $T_0S_0^{-1}$ fixes $\mathcal B^c$ and permutes $\mathcal B$.
+It remains to implement the rotations and this correction on tapes.
+
+For one rotation, move its target to the rightmost of the three chunk
+positions if necessary. Let $P^{\rm sw}$ be the product of the record
+field lengths before the earlier exchanged chunk, let $G^{\rm sw}$
+be the product between the exchanged chunks, and let $B^{\rm sw}$ be
+$R$ times the product after the later one. Empty products are one.
+The bit array has exactly the shape
+\[
+ [P^{\rm sw}]\times[2^L]\times[G^{\rm sw}]
+       \times[2^L]\times[B^{\rm sw}].
+\]
+The third chunk lies inside one collapsed spectator interval.
+Pass only $L$ and these three positive canonical lengths to
+Lemma~\ref{lem:chunk-swap}. Each length is at most $V$, so the local
+descriptor has $O(A_{\rm rect})$ bits. The swap costs $O(VL^\tau)$, including
+its own padding and cleanup.
+
+The equal chunk lengths leave the field-length list unchanged by a
+completed swap. Keep the permutation of the logical names $x,y,z$ in
+finite local state. With the target now after its two controls, collapse
+the remaining intervals to obtain
+\[
+ [\Lambda_0]\times[2^L]_{\rm control\,1}\times[\Lambda_1]
+ \times[2^L]_{\rm control\,2}\times[\Lambda_2]
+ \times[2^L]_{\rm target}\times[B_{\rm rot}],
+\]
+where $B_{\rm rot}$ includes the payload and every displayed spectator
+length is positive. Their product with the chunk lengths is $V$.
+Together with $K,f,\rho$ and the finite name permutation, these fixed
+canonical lengths form an $O(A_{\rm rect})$-bit local descriptor. The offset
+routine receives the two current $L$-bit logical control values. A scan
+of at most $f\le L$ selected positions evaluates
+\eqref{eq:packed-cyclic-shift} in $L^{O(1)}$ time, without reading the
+target or spectator values. Lemma~\ref{lem:ordered-affine-streams}
+therefore gives an $O(V)$ rotation: its offset work is absorbed by the
+$2^L$ nonempty target blocks in each fiber. Undo the swap after the
+rotation. The local descriptors and name permutation are updated at
+completed swap boundaries; the primitives use their own descriptors
+inside padded layouts.
+There are at most sixteen swaps and eight rotations in $S_0$.
+
+To implement the correction, scan the stream with a record-rank counter.
+All chunk names are back in their original positions. Dividing the
+current rank through the fixed seven field lengths recovers the three
+chunk values and their mixed-radix record strides. The strides exclude
+the $R$ payload bits. All involved integers have $O(A_{\rm rect})$ bits, so
+schoolbook arithmetic, descriptor copying, and resets take at most
+$O(A_{\rm rect}^3)$ per record. Test membership in $\mathcal B$ and extract just
+those records. For a current exceptional address $q$, compute
+$q'=T_0(S_0^{-1}(q))$ by reversing the eight modular additions with
+negated offsets, then applying the selected XORs directly. Each reversed
+mask uses the current controls of that reversed line. There are at most
+$f\le L\le A_{\rm rect}$ selected positions, so this calculation also fits
+$O(A_{\rm rect}^3)$ time.
+
+If $q_h,q'_h$ are the current and destination values of chunk
+$h\in\{x,y,z\}$ and $\sigma_h$ is its record stride, the fixed
+spectator coordinates give
+\[
+ \operatorname{rank}(q')=\operatorname{rank}(q)+
+       \sum_{h\in\{x,y,z\}}(q'_h-q_h)\sigma_h.
+\]
+The differences are signed. Attach this destination rank, padded to
+$\lceil\log_2M\rceil\le A_{\rm rect}$ bits, to the extracted record, and mark its
+hole on a fixed track of the full stream. Hold the full stream untouched
+while stable binary radix sorting scans only the extracted records and
+keys, least significant key bit first. Since $T_0S_0^{-1}$ permutes
+$\mathcal B$, these keys are distinct and are exactly the ranks of the
+marked holes. One forward full-stream scan reinserts the sorted records.
+This implements $T_0$ everywhere.
+
+Finally apply the two-bit XOR to $x_{j_{f-1}},y_{j_{f-1}}$ by
+Lemma~\ref{lem:elementary-streams}, splitting those chunks at the
+selected positions and collapsing the other intervals. Its descriptor
+again has a fixed number of positive lengths, each at most $V$.
+This costs $O(V)$ and supplies the omitted selected position. When
+$f=1$, $S_0,T_0$ are identities, $\mathcal B$ is empty, and this last
+step is the entire algorithm.
+
+The movement costs $O(V(L^\tau+1))$. A fixed number of full record scans
+costs $O(MA_{\rm rect}^3+V)$, and the at most $A_{\rm rect}$ radix passes cost
+$O(|\mathcal B|A_{\rm rect}(R+A_{\rm rect}))$; skip them when the extracted bank is empty.
+The initial descriptor has a fixed number of canonical integers of
+$O(A_{\rm rect})$ bits, so its preparation is covered by $O(MA_{\rm rect}^3)$.
+All counters, positioning, rewinds, and cleanup are included.
+Equation~\eqref{eq:packed-bad-fraction} proves
+\eqref{eq:packed-rectangle-time} on a fixed number of tapes.
+After division by $V=MR$, its additional terms are bounded by
+$A_{\rm rect}^3/R$ and
+$80(f-1)2^{-K}A_{\rm rect}(1+A_{\rm rect}/R)$. Under the stated family bounds
+the first tends to zero, and the second is
+$O(p^2 2^{-K}(1+A_{\rm rect}/R))=o(1)$. This proves the final assertion.
+\end{proof}
+
+\paragraph{Application to a fixed binary change of basis.}
+An invertible matrix over $\mathbb F_2$ of fixed order $m\ge3$ is a
+product of a fixed number of elementary row additions; a row exchange
+is three such additions.  In one invocation of the finite network on
+$e=mf$ axes, slot $h$ consists of $f$ consecutive $K$-bit axis chunks.
+It therefore has address-bit width $L=fK$, and its selected bits
+$x_{h,j}$ occupy positions $\rho+jK$ for $0\le j<f$.
+To add row $h'$ to row $h$, use slot $h'$ as $x$,
+slot $h$ as $y$, and any third, distinct slot as $z$ in
+Lemma~\ref{lem:packed-selected-bit-rectangle}.  The lemma performs
+$x_{h,j}\leftarrow x_{h,j}\mathbin\oplus x_{h',j}$ for every $j$ in
+one operation and restores the third slot, whatever its initial
+address value.
+
+Under the asymptotic hypotheses in the final assertion of that lemma,
+the complete change of basis and its inverse therefore cost
+$O(V((eK)^\tau+1))$ on a stream of volume $V$.  Here $e$ counts
+axis chunks, while $eK$ counts address bits; the fixed factor $m$
+between $eK$ and the slot width does not affect the bound.  The same
+conclusion holds after the row padding and splitting below, because
+every role stream retains a complete suffix with the same fixed field
+lengths in every row.
+
+\subsection{Batching a common layer on a fixed number of tapes}
+
+We now turn the finite complex network into an algorithm for a whole
+layer.  Throughout this subsection its constants are denoted by
+\(m,W,s\): the network has \(W\) wires, its binary label space has
+dimension \(m\), and the sum of the dimensions of its edge residuals is
+\(s<Wm\).  These are the constants of the complex network; they need not
+equal the constants used to prove the chunk-swap lemma.
+
+Use the complete layout and parameter family specified at the start of
+the section, with fixed rational exponents \(c,\epsilon\) to satisfy
+the recurrence and guard conditions below. Store each polynomial in
+coefficient order with a common width \(w=\Theta(p)\) per real or
+imaginary component, and assume the complete address and its binary
+shape descriptor have length \(O(p)\). Thus an input record has
+\(2rw\) bits. Write \(V\) for the current logical bit volume, excluding
+temporary work streams. We first count the work on \(C^{\otimes D}\)
+assuming one common exact coefficient format of width \(O(p)\); the
+guard calculation below then supplies that format.
+
+\paragraph{An individual selected-bit kernel.}
+Write each input coefficient once in this common exact format and retain it until
+the final truncation.  The input width is \(\Theta(p)\), so the
+initial copy costs \(O(V)\) and the guarded stream has volume \(O(V)\).
+
+To apply one \(C\) kernel, use the split from
+Lemma~\ref{lem:elementary-streams} at the selected address bit.
+Call the two streams \(0\) and \(1\) according to that bit.
+Because that bit has its complete two-element range, the two streams
+have the same remaining address set in the same order.  Their aligned
+record addresses therefore differ only in the selected bit, and their
+coefficients are still ordered by the same polynomial index.  Scan
+each pair of records in that order.  For corresponding complex
+coefficients \(u\) from stream \(0\) and \(v\) from stream \(1\), compute
+\begin{equation}\label{eq:individual-C-pair}
+ C(u,v)=
+ \left(\frac{u+v+i(u-v)}2,\,
+       \frac{u+v-i(u-v)}2\right).
+\end{equation}
+Addition, subtraction and halving use the fixed-point conventions of
+Section~\ref{sec:streams}; multiplication by \(i\) swaps the real
+and imaginary components and changes one sign.  The common guarded
+width makes these operations exact.  The coefficient scan costs
+\(O(rp)\) per pair of records, linear in their guarded bit length
+and including any reversal of bits inside a coefficient.  Write the
+first result to stream \(0\) and the second to stream \(1\), both in
+coefficient order, then merge
+according to the selected bit.  The merge restores the original
+lexicographic address order.  The elementary split and merge include
+their counters and cleanup and cost \(O(V)\); the paired arithmetic
+scan also costs \(O(V)\).  Thus \(e\) individual kernels cost
+\(O(Ve)\) on any stream with these complete ranges and record format.
+
+First consider an internal node containing \(e=m^k\) consecutive
+active chunks, with \(k\ge1\).  Split it into \(m\) consecutive slots,
+each containing \(e/m\) chunks.
+The phase construction supplies one recursive call on a slot for each
+vector in an edge residual basis, hence exactly \(s\) calls in one
+invocation of the network.  If the logical volume entering this node
+is \(V\), binary changes of basis, their inverses, scalar gates,
+endpoint corrections and reassembly of the physical banks cost
+\[
+ O\bigl(V((eK)^\tau+1)\bigr)
+\]
+at this node.  Each slot has \((e/m)K\) address bits, so
+Lemma~\ref{lem:packed-selected-bit-rectangle} gives the stated bound for a row addition.  The
+network and all of its \(m\)-dimensional residual bases are fixed,
+so the total number of row additions is fixed as well.  At the same
+guarded width, the scalar gates cost a constant
+number of scans of the current volume.  Address and descriptor
+work bounded by any fixed polynomial in \(p\) per record is also
+absorbed: its ratio to the record's \(\Theta(rp)\) bits tends to zero.
+
+\paragraph{Where the rows come from.}
+Put
+\[
+ q_0=\lceil\log_2 W\rceil\,
+       \lceil\log_m(2d)\rceil,
+ \qquad k_0=\lceil\log_m d\rceil.
+\]
+If \(D\le q_0\), use individual \(C\) kernels, at cost \(O(V\log d)\).
+Otherwise apply \(C\) individually on the selected bits of the first
+\(q_0\) chunks, in \(O(V\log d)\) time.  These chunks remain a
+complete consecutive address block before all the remaining chunks;
+regard their concatenated bits as one row index.  Its range has
+length \(R_{\rm row}=2^{q_0K}\ge W^{k_0}\), since \(K\ge1\) for sufficiently
+large \(p\) and \(q_0K\ge k_0\log_2W\).  Within each preceding prefix, add
+the same number of zero rows to reach the next multiple of \(W^{k_0}\);
+the volume grows
+by a factor at most two.  At any recursive depth \(j\le k_0\), the
+row count is divisible by \(W^{k_0-j}\).
+
+At a node, write a row index as \(u=Wg+w\), with \(0\le w<W\),
+and send that entire row to physical wire role \(w\), indexed there
+by \(g\).  Every role stream has the same remaining address shape.
+Thus a pointwise gate reads the records with the same \(g\) and the
+same remaining address in its touched roles.  The scalar network
+allows these role values to be arbitrary, so the split supplies its
+scratch roles from existing rows.  Each recursive edge call acts on
+one role stream with volume exactly \(1/W\) of its parent's logical
+volume.
+
+Splitting the row index removes no address within a row. Every row in
+every role stream, including a padded row, retains the complete suffix
+\([2^K]^{D-q_0}\times[S]\) in the same field order and with the same
+lengths; inactive chunks remain complete spectator fields. The row
+counts also remain equal across preceding prefixes, decreasing by
+the same factor \(W\) at each split. The network is invoked only on
+these equal rows: their common suffix gives the aligned role addresses
+and exact \(V/W\) child volumes above. For each packed call, collapse
+the preceding prefix and row index into one field, and collapse the
+spectator intervals around its three slots. This gives the rectangle of
+Lemma~\ref{lem:packed-selected-bit-rectangle}, whose guard count and
+deterministic repair apply to every child.
+
+The \(W\) role streams use a fixed number of tapes.  Before entering a
+child, push the other role streams onto a LIFO work tape, copy the
+active stream to a reserved child input area, and clear or reuse the
+role areas.  On return, copy the result back and pop the parked
+streams, reversing each popped stream when necessary to restore its
+order.  The stack head is at its top at every call boundary.  Pushing,
+popping, copying, resetting and clearing at this node cost its own
+volume times a fixed constant; no step traverses an ancestor's parked
+data.  The call descriptor and program counter use a separate stack.
+The number of child calls is the fixed integer \(s\), so these costs
+are included in the node overhead above.  The fixed-tape chunk-swap
+subroutine has its own fixed work areas, reused on every call.
+
+For each packed call, padding has increased the row count by at most
+a factor two and row splitting can only decrease it.  Its active
+address still has \(O(p)\) bits. The four collapsed spectator lengths
+therefore have \(O(p)\)-bit descriptions. Its record-width parameter
+describes a polynomial of \(\Theta(rp)\) bits and has
+\(O(\log(rp))=O(p)\) bits as well. These lengths, together with
+\(K,f,\rho\) and the finite chunk-name permutation, are precisely the
+local descriptor required by
+Lemma~\ref{lem:packed-selected-bit-rectangle}. Both the record count
+and record width have \(O(p)\)-bit lengths, so its bound uses
+\(A_{\rm rect}=\lceil\log_2(2V)\rceil=O(p)\). A selected-position
+mask has at most \(DK=O(p)\) bits.
+
+The binary descriptions of all growing shape parameters have
+polynomial length in \(p\).  Each nonempty child stream still contains
+a complete length-\(r\) polynomial record.  Its volume therefore
+absorbs polynomial descriptor setup at that node, as well as
+polynomial address work per record.  Even if every node is counted
+separately, there are only \(d^{O(1)}\) nodes: the branching factor
+\(s\) is fixed and the depth is at most
+\(\lceil\log_m d\rceil\).  Any additional fixed power of \(p\)
+from this count is still dominated by \(r\).
+
+Every completed network invocation applies \(C^{\otimes e}\)
+separately to each input row.  Its selected bits lie in the
+remaining chunks, disjoint from the bits used by the earlier
+preprocessing.  On the genuine rows, those two completed operations
+therefore commute.
+Each padded zero row is again zero when an invocation finishes, so the
+added rows can be deleted after the invocations on the remaining chunks
+have completed. Intermediate scratch values may be arbitrary.
+
+\paragraph{Unrolling the recurrence.}
+Fix \(\beta=1/2\), and choose real exponents satisfying
+\[
+ 0<\tau<1,\qquad
+ \max\{0,\log_m(s/W)\}\le\sigma<1,
+ \qquad \max\{\tau,\sigma\}<\lambda<1,
+ \qquad \tau(1+c/\beta)<\lambda.
+\]
+The exponents can all be chosen rational, with a strict upper bound
+in the condition on \(\sigma\).  Stop recursion when
+\(e<d^\beta\) and apply the \(e\) \(C\) kernels individually.  If
+\(F(e)\) denotes time divided by the current logical stream volume,
+then
+\[
+ F(e)\le (s/W)F(e/m)+O((eK)^\tau+1),
+ \qquad F(e)=O(e)\quad(e<d^\beta).
+\]
+Indeed, the \(s\) child calls are executed on streams of volume
+\(V/W\), so their total cost is \(s(V/W)F(e/m)\).  Dividing by
+the current volume \(V\) gives the factor \(s/W\).
+At an internal node \(e\ge d^\beta\), hence
+\(K\le d^c\le e^{c/\beta}\).  The overhead is therefore
+\(O(e^{\tau(1+c/\beta)}+1)=O(e^\lambda)\).
+Put \(a=s/W\).  Since \(a\le m^\sigma<m^\lambda\), the internal
+costs sum to at most
+\[
+ C e^\lambda\sum_{j\ge0}(a/m^\lambda)^j=O(e^\lambda).
+\]
+If the leaves after \(j\) levels contain \(u=e/m^j<d^\beta\)
+active chunks each, their combined normalized
+contribution is at most
+\[
+ O(a^ju)\le O(e^\sigma u^{1-\sigma})
+          \le O(e^\sigma d^{\beta(1-\sigma)}).
+\]
+The first inequality uses
+\(a^j\le m^{j\sigma}=(e/u)^\sigma\).  It also covers \(a<1\)
+by taking \(\sigma\ge0\).
+
+Write \(D-q_0=\sum_j a_jm^j\) in base \(m\), with \(0\le a_j<m\).
+Partition the remaining chunks into \(a_j\) consecutive pieces
+containing \(m^j\) chunks for each \(j\).
+There are at most \((m-1)(1+\lfloor\log_m d\rfloor)\) pieces.
+Adding their costs and the row preprocessing gives
+\[
+ O\!\left(\log(2d)
+    \bigl[d^\lambda+d^{\sigma+\beta(1-\sigma)}+1\bigr]\right)
+   =O(d^{\lambda'})
+\]
+for any fixed
+\[
+ \max\{\lambda,\sigma+\beta(1-\sigma)\}<\lambda'<1.
+\]
+The case \(D\le q_0\), in which preprocessing would consume all
+active chunks, was handled by individual kernels.  Thus all constants
+and all tape counts are independent of \(p,d,r\) and the input data.
+
+\subsection{An explicit guard-width bound}
+
+The accelerated network is evaluated exactly until an entire
+normalized butterfly layer is complete.  Its intermediate operators
+need not be contractions.  We now give explicit constants that bound
+denominator and magnitude growth within one layer.
+
+For the complex network, let
+\[
+ E=64(W+m+1)^3,\qquad B=s+E,
+ \qquad \nu=\min\{j\ge1:m^j\ge B\},
+\]
+and set
+\[
+ C_1=\max\{20,\nu+3\},\qquad C_0=128mB^2,
+ \qquad \Delta=\lceil C_0d^{C_1}\rceil.
+\]
+For the stated \(h=100\) construction, the complex network has
+\[
+\begin{split}
+ m&=1{,}000{,}000,\\
+ W&=1{,}873{,}807{,}244{,}643{,}542{,}670{,}000,\\
+ s&=1{,}873{,}807{,}244{,}636{,}671{,}267{,}308{,}000{,}000.
+\end{split}
+\]
+These values give \(m^{10}<B<m^{11}\), hence \(\nu=11\) and
+\(C_1=20\).  In fact the bound below needs only exponent fourteen;
+the choice twenty leaves an explicit additional margin.
+
+We measure arithmetic dependency depth using complex additions,
+subtractions, halvings, sign changes and multiplication by \(i\).
+For a group of \(e\) axes, let \(A(e)\) bound the number of these
+operations on any chain from an input coefficient to an intermediate
+coefficient in its recursive \(C\)-layer.  A chain follows an operand
+into a later arithmetic result.  Work on other coefficients or records
+that do not feed this value lies on other chains, even though the
+fixed-tape machine executes that work sequentially.  To obtain a
+conservative bound, we concatenate all scalar gates and all recursive
+edge calls within one network invocation.
+
+The scalar schedule \eqref{eq:motif-schedule} touches a data wire
+at most four times in each of the three stages.  A scratch wire belongs
+to one invocation and is touched at most four times there.  Thus every
+physical wire occurs in at most twelve scalar gates, and there are
+at most \(12W\) gates.  A gate has at most \(W\) inputs and outputs
+and coefficients in \(\{0,\pm1,\pm1/2\}\).  One output is a sum of
+at most \(W\) terms, each requiring at most one halving and one
+addition or subtraction.  Evaluating all outputs from saved inputs
+therefore takes at most \(2W^2\) elementary operations.
+
+For an inverse child, each \(Z^{\otimes f}\) is one sign chosen by
+the parity of the selected address bits, and the scalar fourth-root
+phase takes at most one sign change and one multiplication by \(i\).
+This gives at most \(4s\) operations for the child corrections.
+The source, sink and bank corrections take at most \(4W+4\) more.
+Calculating the address parities and phase exponents is address or descriptor
+work, not arithmetic on coefficients.  Since \(s<Wm\), the total
+\(24W^3+4s+4W+4\) is less than
+\(E=64(W+m+1)^3\).  Binary address permutations add no coefficient
+arithmetic at their interfaces.
+
+The paired evaluation in \eqref{eq:individual-C-pair} uses at most
+eight elementary operations: form the sum and difference, multiply
+the difference by \(i\), then form the two half-sums.  We may therefore use
+\[
+ A(e)\le sA(e/m)+E
+ \quad\hbox{at an internal node},\qquad A(e)\le8e
+ \quad\hbox{at a leaf}.
+\]
+The depth estimate concatenates the \(s\) calls, so it uses \(s\).
+The factor \(1/W\) in the earlier time recurrence accounted for
+their smaller stream volumes.
+
+There are at most \(k\le\lceil\log_m d\rceil\) internal levels.
+For any bound \(x\ge1\), \(sx+E\le(s+E)x=Bx\).
+Starting with \(8e\le8d\le8dB\) at a leaf and applying this
+inequality through the levels gives the first bound below.
+For the second, use \(B\le m^\nu\) and
+\[
+ B^{k+1}\le B^{\log_m d+2}
+          =B^2d^{\log_m B}\le B^2d^\nu.
+\]
+Thus
+\[
+ A(e)\le 8dB^{k+1}\le8B^2d^{\nu+1}.
+\]
+For the sufficiently large sizes under consideration, the earlier
+piece count is at most \(md\).  Concatenating their depths contributes
+at most \(8mB^2d^{\nu+2}\).  In either preprocessing branch, at most
+\(d\) individual kernels are used, contributing at most \(8d\).
+Splitting rows, padding, copying and removing padding add no
+coefficient arithmetic.
+
+Each of the two outer diagonals applies a fourth-root phase and costs
+at most two elementary phase operations.  Put
+\(t=\lfloor D/2\rfloor\).  Since \(b^2=-i/2\), the scalar \(b^D\)
+is \((-i)^t2^{-t}b^{D\bmod2}\).  Its phase costs at most two
+operations, and the possible factor \(b\) is computed as
+\((z-iz)/2\) in three operations.  The shift by \(t\) consumes
+\(t\) fractional bits, so we charge it \(t\) units of denominator
+growth even though one tape scan performs the shift.  Charging these
+same units to magnitude growth gives a common upper bound for both:
+\[
+\begin{aligned}
+ 8mB^2d^{\nu+2}+8d+t+9
+ &\le 8mB^2d^{\nu+2}+18d\\
+ &\le 26mB^2d^{\nu+2}\\
+ &<128mB^2d^{\nu+3}\le C_0d^{C_1}.
+\end{aligned}
+\]
+Here \(d\ge1\), \(mB^2\ge1\), and \(C_1\ge\nu+3\).
+
+To see how this count controls numerical size, start with disk-valued
+coefficients in \(2^{-p}\mathbb Z[i]\).  A value at depth \(\ell\)
+lies in \(2^{-(p+\ell)}\mathbb Z[i]\) and has modulus at most
+\(2^\ell\).  This follows by induction: addition or subtraction
+can at most double the maximum modulus of its operands; halving adds
+at most one denominator bit; and signs and multiplication by \(i\)
+preserve both bounds.  The charge of \(t\) for the final shift is
+the same as \(t\) successive halvings.  Thus reserving \(p+\Delta\)
+fractional bits and \(\Delta+3\) integer and sign bits per real
+component represents every intermediate coefficient exactly and
+prevents overflow.  Shifts consume the reserved fractional zeros
+and discard no bits.
+
+An address-swap subroutine may temporarily hold XOR combinations of
+the fixed-width encoding bits.  These strings are not used as
+coefficients during the swap.  It returns an exact permutation of
+the encodings before coefficient arithmetic resumes, so these
+internal bit operations cause no numerical rounding or denominator
+growth.
+
+Choose \(\epsilon C_1<1\).  Since \(d=\Theta(p^\epsilon)\),
+\(\Delta=o(p)\), and the full coefficient width is \(O(p)\), as
+required in the time analysis.  Addition, signed shifts, copying and
+phase changes consequently take \(O(p)\) bit operations per
+coefficient.
+
+\begin{proposition}[Simultaneous normalized butterfly layer]
+\label{prop:simultaneous-layer}
+Fix
+\[
+ \tau=\sigma=1-2^{-50},\qquad \beta=\frac12,\qquad C_1=20.
+\]
+Let $c,\epsilon,\lambda,\lambda'$ be fixed positive rational numbers
+satisfying
+\[
+ \max\{\tau,\sigma\}<\lambda<1,\qquad
+ \tau(1+c/\beta)<\lambda,\qquad
+ \max\{\lambda,\sigma+\beta(1-\sigma)\}<\lambda'<1,
+ \qquad \epsilon C_1<1.
+\]
+Fix positive constants $a_d\le b_d$ and $a_r\le b_r$, and fix
+positive constants $C_M,C_{\rm desc},C_w$ with $C_w>1$.
+For these fixed choices
+there are a cutoff $p_0$, one fixed finite-alphabet multitape procedure,
+and an implicit time constant with the following guarantee. The cutoff
+and time constant may depend on the fixed rational parameters
+and these constants. For every choice of positive integers $p,d,r$
+with $p\ge p_0$ and
+\[
+ a_dp^\epsilon\le d\le b_dp^\epsilon,\qquad
+ 2^{a_rp/d}\le r\le 2^{b_rp/d},
+\]
+put $K=\lfloor d^c\rfloor$, and let $1\le D\le d$, $P,S\ge1$, and
+$0\le\rho<K$ be integers. Let $w\ge1$ be an integer component width.
+The input supplies on a descriptor tape
+the self-delimiting header
+\[
+ \mathcal E=
+ \Gamma(p)\Gamma(d)\Gamma(r)\Gamma(D)\Gamma(P)\Gamma(S)
+ \Gamma(K)\Gamma(\rho+1)\Gamma(w),
+\]
+using the integer code from
+\eqref{eq:integer-descriptor-code}. Assume that this header
+is valid with the stated values and that the accompanying array is
+in lexicographic order on the complete address set
+\[
+ [P]\times[2^K]^D\times[S],
+ \qquad M=PS\,2^{KD},
+\]
+with the following record format. For every address
+$x\in[P]\times[2^K]^D\times[S]$, write its record as
+\[
+ z(x)=\sum_{j=0}^{r-1}z_{x,j}y^j,
+\]
+stored in coefficient order. For every $x$ and $0\le j<r$, assume
+$\lvert z_{x,j}\rvert\le1$ and
+$\Re z_{x,j},\Im z_{x,j}\in2^{-p}\mathbb Z$.
+Each component is $2^{-p}$ times a signed $w$-bit two's-complement
+integer, written most significant bit first; the real component
+precedes the imaginary component. Require the pointwise bounds
+\[
+ \log_2(2M)\le C_Mp,\qquad
+ |\mathcal E|\le C_{\rm desc}p,\qquad
+ p+2\le w\le C_wp,
+\]
+where $|\mathcal E|$ is the header's bit length. The condition
+$w\ge p+2$ allows every permitted disk-grid component, including
+$-1$ and $1$. The logical bit volume is $V=2Mrw=\Theta(Mrp)$.
+
+On each of the $D$ consecutive $K$-bit address chunks, select bit
+$\rho$, numbered from the least significant bit, and let
+$\mathcal H$ be the tensor product of
+\[
+ H_0=\frac12\begin{pmatrix}1&1\\1&-1\end{pmatrix}
+\]
+on those selected bits. It acts coefficientwise and fixes every
+unselected address bit and both spectator fields. Let $Q_p$ truncate
+the real and imaginary parts of every coefficient toward zero to
+$2^{-p}\mathbb Z$.
+
+The procedure returns $Q_p(\mathcal H z)$ in the same array,
+coefficient order, and component format in $O(Vd^{\lambda'})$ time,
+uniformly over all these
+choices of $p,d,r,D,P,S,\rho,w$ and $z$. Every returned coefficient belongs
+to the complex unit disk, and, in the maximum coefficient norm,
+\[
+ \|Q_p(\mathcal H z)-\mathcal H z\|_\infty
+       <\sqrt2\,2^{-p}.
+\]
+The procedure evaluates the entire layer exactly before this final
+truncation. Put
+\[
+ C_0=128m\bigl(s_{\rm c}+64(W_{\rm c}+m+1)^3\bigr)^2,
+\]
+where $m,W_{\rm c},s_{\rm c}$ are the fixed constants of
+Proposition~\ref{prop:complex-motif-interface}. The procedure uses
+at most $p+\lceil C_0d^{C_1}\rceil$ fractional bits and
+$\lceil C_0d^{C_1}\rceil+3$ integer and sign bits per real component
+internally; these widths are $O(p)$. The time includes address changes,
+deterministic repair, row padding and its removal, and fixed-tape
+workspace cleanup. Its tape count is fixed, and its time constant is
+independent of the allowed array lengths and coefficient values.
+\end{proposition}
+
+\begin{proof}
+The procedure reads the current parameters and component width from
+$\mathcal E$. Parsing this header and forming the initial collapsed
+descriptors take polynomial time in $p$, already charged in the
+descriptor work above.
+The phase-frame construction reduces a group of $e$ selected bits to
+$s_{\rm c}$ children on $e/m$ selected bits.  The row split gives
+each child $1/W_{\rm c}$ of the parent's logical volume. The packed
+selected-bit procedure supplies the binary basis changes. We verify
+that its cost is uniform over the displayed bands for $d,r$.
+Put $\Delta=\lceil C_0d^{C_1}\rceil$. Since $d\le b_dp^\epsilon$
+and $\epsilon C_1<1$, a common cutoff gives $\Delta\le p$. The guarded
+record width is then
+$R_{\rm g}=2r(p+2\Delta+3)\le12rp$; also $R_{\rm g}\ge2rp$.
+Padding at most doubles the original record count $M$, and row splitting
+only decreases it. Thus a packed child with $M_{\rm child}$ records has
+the following value $A_*$ of its rectangular width parameter:
+\[
+\begin{split}
+ A_*
+ &=\lceil\log_2(2M_{\rm child}R_{\rm g})\rceil\\
+ &\le\lceil\log_2(4MR_{\rm g})\rceil\le C_Ap,
+ \qquad C_A=C_M+b_r+7.
+\end{split}
+\]
+The last inequality uses $\log_2(2M)\le C_Mp$,
+$\log_2r\le b_rp/d\le b_rp$, and $\log_2p\le p$.
+
+Uniformly for large $p$, the bands give $f\le d\le p$ and
+\[
+ K\ge\tfrac12a_d^c p^{\epsilon c},\qquad
+ r\ge2^{(a_r/b_d)p^{1-\epsilon}}.
+\]
+The first inequality follows from $K=\lfloor d^c\rfloor$ once
+$d^c\ge2$. In particular, $K\ge6$ and $K/\log p\to\infty$, while
+$r$ dominates every fixed polynomial. Substituting the common bound
+$A_*\le C_Ap$ into the two additional normalized
+terms in \eqref{eq:packed-rectangle-time} gives
+\[
+\begin{aligned}
+ \frac{A_*^3}{R_{\rm g}}
+ &\le\frac{C_A^3p^2}{2r},\\
+ 80(f-1)2^{-K}A_*\left(1+\frac{A_*}{R_{\rm g}}\right)
+ &\le80C_Ap^2 2^{-K}\left(1+\frac{C_A}{2r}\right).
+\end{aligned}
+\]
+Both bounds tend to zero uniformly over all current allowed $d,r$.
+Thus Lemma~\ref{lem:packed-selected-bit-rectangle} has the required
+$O(M_{\rm child}R_{\rm g}(L^\tau+1))$ cost for every packed call,
+with one common time constant.
+The row construction and the recurrence analysis
+above give total time $O(Vd^{\lambda'})$ on fixed tapes, including
+all padded and auxiliary streams. Equation~\eqref{eq:phase-butterfly-layer}
+converts the resulting exact $C$-layer to $\mathcal H$.
+
+The guard-width calculation above bounds both denominator and magnitude
+growth by $\lceil C_0d^{C_1}\rceil$. Since $d\le b_dp^\epsilon$ and
+$\epsilon C_1<1$, this is $o(p)$ uniformly over the allowed $d$, so
+every intermediate coefficient is represented exactly with
+the stated $O(p)$ width. The initial scan removes or adds only
+redundant leading sign bits and appends the reserved fractional zeros
+to put each supplied component in this guarded format. To truncate
+toward zero at the end, shift its absolute numerator right by the
+number of added fractional bits, restore its sign, and write the
+result in $w$ bits. These scans cost $O(V)$.
+Finally, every row of $\mathcal H$ has
+absolute row sum one. Thus $\mathcal H$ maps disk arrays to disk
+arrays, and componentwise truncation preserves that disk and has
+error less than $\sqrt2\,2^{-p}$: truncation cannot increase the
+absolute value of either component, and changes each by less than
+$2^{-p}$. The truncated numerators have magnitude at most $2^p$,
+so the supplied component width can hold them.
+\end{proof}
