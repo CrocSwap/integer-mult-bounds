@@ -1,0 +1,7 @@
+# Verification receipts
+
+The registered and Git-free replays use CPython 3.12.14 with assertions. The same four deterministic receipt hashes are pinned in `receipts/SHA256.json`. All six keys and both engines' exact determinants were reconstructed. The local direct replay exited 0 in 0.35 seconds, the staged Git-free export in 0.34 seconds, and the registered runner in 0.81 seconds. The registered run validated the exact base catalogue and selected-record metadata. The modified caller control returned nonzero before decoding and emitted no receipt.
+
+The bounded original lead and independent scientific runners exited zero in 0.05 and 0.04 seconds. The independent engine's four predecessor endpoint controls and signed toy controls passed. The price was separately reproduced from a relocated closure. Its initial port-count check was corrected to count the 96 distinct entries in the sealed port list. The frozen price and both exact source receipts were preserved during packaging.
+
+Comparator [#7334](https://github.com/CrocSwap/integer-mult-bounds/pull/7334) completed all four independent local stages. Its [exact-head hosted run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/43114736518) passed all three jobs at the recorded frontier refresh. The present contribution's committed-byte, executable-mode, source-history and hosted checks await its final submission commit. The Git-free check here used a staged tar, while the official committed export requires that commit.
