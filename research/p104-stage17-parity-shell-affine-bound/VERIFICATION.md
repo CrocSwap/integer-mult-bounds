@@ -1,0 +1,5 @@
+# Verification
+
+The test covers the exact two stage-17 idles, two dirty lanes and all 512 width-one lane/address pairs, with a 20-second cap per engine. The lead checks complementary idempotents, residue counts, a constructive affine basis and both directed price intervals. The independent engine rebuilds the literal 13-event rational window and the physical P, checks the signed forward and adjoint binary gate, evaluates its exact tensor and parity residual on every width-one address, and computes the affine rank by GF(2) elimination. Both agree on 240 active addresses and affine rank nine. Discarding one lane lowers the independent control rank to eight. Restricting the residue to weight two lowers the lead control rank to eight.
+
+The clean wrapper regenerates the deterministic receipts, verifies the predecessor Git blob and SHA256 bindings, rejects duplicate JSON keys and rejects an altered stage mask at clock 4646 in both engines. The all-width result uses the constructive unit-direction proof rather than a width sweep. Scope is exhausted for this one affine-chart family. Multiple or non-affine routes and a physical compiler replay remain open.
