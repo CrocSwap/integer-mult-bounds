@@ -1,0 +1,7 @@
+# Verification
+
+The verification covers all 630 unordered Type A root pairs at one cut. Each signed propagation uses the full 36-dimensional basis with exact rational arithmetic. The forward engine computes a rank-one seam witness with independently reversed inverse events. The reverse engine rebuilds both prefix matrices from covectors and solves the signed commutator relation. Three deterministic JSON receipts give exact pins, per-case decisions and witnesses. The clean wrapper compares both case lists, the 0/9 control, and the physical sign check. It rejects a corrupted caller byte in all five engines. The reverse covector also confirms that omitting the required final output swap breaks the unit-body endpoint.
+
+The family engines each have a 30-second cap and the one-pair reverse control has a 20-second cap. The one-cut scope is exhausted with zero unresolved profitable cases. The 570 nonprofitable cases need no signed-phase test. No physical seam lowering, combined invoice, complete new supplier or outer application was built or run. The receipts therefore certify a scoped exclusion and do not update the complete bound.
+
+Two further deterministic receipts independently refine the signed comparison to the same four invariant classes. The exact gross interval is [0,0] and both engines stop before any assignment search. A directed three-cycle control survives refinement while a single swap fails. Both permutation engines have 60-second and 20,000-assignment caps, with zero assignments used.
