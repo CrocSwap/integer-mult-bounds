@@ -1,0 +1,15 @@
+# Exact fixed-paid endpoint exchange obstruction
+
+Let i be a public helper in the exact 3→127 cohort and j be public helper 1481. Their original productive endpoints are 3→127 and 745→245. The charts form a strict chain by exact binary spans, with dimensions 0, 3, 8 and 9. The crossed endpoints 3→245 and 745→127 therefore have ranks 8 and 6. This preserves both positive productive fields and total rank. At one common chart, relabel both roles throughout the suffix and exchange their final labels. The two physical paid paths retain their original clock, rank, and chart map. Any compiler binding, ownership, precision, routing or tape change on a support survivor would still need complete verification.
+
+Let F be the normalized prefix and S the normalized suffix observations, including all public outputs and future COPY zero guards. Let E = SF be the original arbitrary-input endpoint. The admitted public helper outputs reproduce their corresponding normalized independent inputs, with all other public outputs independent of these helper coordinates. Let P transpose i,j and let d = e_i − e_j. Then (P−I)E is the rank-one map −ddᵀ on the public pair and zero in every guard row.
+
+For the bare suffix rename the changed map is P S P F with the public-output transposition applied after S. With an arbitrary cocharted two-role basis L inserted at the cut it is P S P L F, taking the identity action of output P on COPY guards. Equality to E therefore requires
+```text
+S (P L − I) F = (P − I) E.
+```
+The operator P L−I has support on the two chosen roles. Every row of its composed response belongs to the rowspace of the two live prefix rows. Thus the normalized helper difference dᵀ must belong to that two-row span for any basis, even granting arbitrary rational coefficients and ignoring its synthesis cost. For L = I, the exact stronger identity also requires reciprocal nonzero prefix and suffix factors along d. The package first performs that narrower bare test and then the general prefix test.
+
+The exact separator is the arbitrary original input x1454 = 1 and x1481 = −2, with all other input coordinates zero. Both live bank rows evaluate zero at every tested cut, while dᵀ evaluates +2. This is sufficient to exclude the entire two-role basis family without testing suffixes. Each contiguous range has one exact coframe and no event incident on either selected role between its first and last pre-event cut. Consequently its prefix bank is constant. The continuation checks 5,080 raw cuts directly and the independent reverse verification checks every range.
+
+Across all 17 native copies this edit has ΔP = 0 and ΔT5 = −17, ΔT6 = +17, ΔT8 = +17, ΔT9 = −17. There are 110,519 paid positions and 22,461 productive positions with signed rank surplus 1,424. Directed exact arithmetic gives a gross upper below 0.026750025281436337 raw at the incumbent crossing. At most one pair is compatible because every pair shares role 1481. Even one additional raw paid rank-one position defeats the optimistic change. At the fixed moonshot target the complete margin upper is below −139.7375598591330167. No edit survives exact support and κ is unchanged.
