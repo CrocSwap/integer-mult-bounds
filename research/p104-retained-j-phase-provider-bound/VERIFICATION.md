@@ -1,0 +1,7 @@
+# Verification receipts
+
+The direct CPython 3.12.14 arithmetic replay completed in 0.08 seconds. A relocated copy of the original provider closure reproduced the exact CONTRACT.json in 0.05 seconds. The package replay additionally checks the public Git blob identities, exact independent comparator admission receipt, caller-byte mutation and all frozen output bytes. The literal checker validates all 36 Type A target exponents, 17 ordered J shapes and four QUERY clocks. A changed target q exponent fails its semantic check, and exact two-bit signed residue fixtures provide a separate arithmetic control.
+
+The independent exact-head #7334 complete replay had previously passed its early, native, caller and frontier stages. Its [hosted exact-head run](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/43114736518) passed all three jobs. The present scoped package reads sealed native receipts and does not decode a native word, enumerate new host sites, rerun full historical verification, or claim an admitted enlarged carrier. Publication still needs final committed source and mode checks, the official committed Git-free export and hosted checks.
+
+The local registered package replay passed in 0.57 seconds. The standalone package replay passed in 0.15 seconds, and the staged Git-free export passed in 0.14 seconds. Both mutation controls passed. The exact #7113 commit directory entries and #7334 committed receipt blobs matched the packaged SHA-256 pins and Git blob IDs. The exact #7341 published receipt map names the bundled predecessor-price hash.
