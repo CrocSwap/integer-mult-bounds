@@ -1,0 +1,5 @@
+# Verification record
+
+The independent R170 replay authenticates the native word, counts all 6,279 native paid moves and 1,101 helper targets, and reconstructs the complete signed caller invoice. It derives exact rational q=±1 matrices for one pinned J contact. Initial and moved runs passed in 0.37s and 0.31s under the 15s cap. The lead price independently agrees on the complete one-port and eight-port relaxed margins.
+
+R171 verifies all 34 eight-axis body incidences and the complete negative tariff in the lead replay, 0.12s. A distinct computation checks the nine helper-rank bins and reproduces the exact directed old-crossing interval, 0.19s. Each runner exited zero. The upper applies by the algebra in PROOF.md at every positive κ below one, with the exact price scope as stated there. A clean replay authenticates the original inputs by unambiguous paths, rebuilds all four receipt bytes and verifies the original signature and corrupted-source control. Full signed/native, rounding, compiler and outer checks for an edited word were skipped because no candidate survived either scoped mechanism.
