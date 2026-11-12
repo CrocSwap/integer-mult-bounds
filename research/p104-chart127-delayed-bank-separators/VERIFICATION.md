@@ -1,0 +1,5 @@
+The two bounded exact row solves completed in 4.77 and 5.00 seconds, each under its 30-second cap. The independent literal scalar runs completed in 0.20 and 0.24 seconds under separate 20-second caps. They authenticated both compressed and uncompressed hashes, verified literal clocks and ownership along the prefix, checked strict frame nesting, and enumerated each full chart bank. No other key was tested.
+
+Each lead rational row was evaluated on the separating and deliberately corrupted probes. All 715 donor comparisons and both sources agreed with the independent literal evaluator for each probe type. The compact receipts pin the original full row results by SHA-256. The public replay verifies the scalar certificate directly from the word and compares all exact values with the frozen receipts.
+
+Removing x16 from the first probe leaves its source at 1 but makes 90 donors nonzero. Removing x1 from the second leaves its source at 1 but makes 65 donors nonzero. Both changed probes therefore fail the separation test. The wrapper regenerates both directed price intervals from the pinned crossing interval and checks their joint upper bound.
