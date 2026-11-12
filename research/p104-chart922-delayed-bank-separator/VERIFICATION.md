@@ -1,0 +1,3 @@
+The lead rational row solve finished in 3.19 seconds under a 30-second cap. A separate literal scalar replay passed in 0.15 seconds under a 20-second cap using the authenticated local word. Its first I/O attempt on a durable replica hit the time limit before any scientific step. The retained word passed both exact SHA-256 checks.
+
+The scalar replay checks charts, ownership markers and the literal operand chronology along the prefix. Its mutated probe drops `x1`, making the old source zero and donor 779 equal −2. The wrapper independently evaluates both probes on the frozen rational-row receipt and regenerates the full directed quote interval. No other cut was tested.

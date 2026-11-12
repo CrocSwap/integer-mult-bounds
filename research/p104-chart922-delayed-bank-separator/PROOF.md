@@ -1,0 +1,7 @@
+# Fixed chart-922 correction
+
+All clocks are zero-based in the #7334 literal word. Target role 185 moves from chart 401 to 1062 at clock 41944. At 41946 it adds `−1/2` times the old source role 82. At 43419 it moves from chart 1062 to 922. There is no other operand contact with role 185 between the first MOVE and the latest cut at 43421. The entrant role 7 moves to chart 922 at 43420, and the next event reads it in an ADD to role 185.
+
+The tested rewrite would merge the two target MOVEs and synthesize the missing pre-41946 source by rational scalar work on the other live chart-922 fields at cut 43421, keeping the surrounding paid work fixed. Those fields are exactly roles 7, 587, 779, 949 and 960. With all public input coordinates zero except `x1=x2=x311=1`, every one of those five fields evaluates to zero and the old source evaluates to 1. Every linear combination of the available donor rows vanishes on this input. Therefore no combination equals the missing source functional, and multiplying by the old nonzero ADD coefficient does not alter the obstruction.
+
+The nested frame dimensions are 2, 5 and 7. Even granting the proposed direct quotient, the relaxed invoice gain is only `17*(H(3)+H(2)-H(5))`, with `H(r)=r^(1−κ)`. The outward-rounded interval lies between 0.20766650 and 0.20766651 raw on the pinned #7334 crossing interval. A new paid rank-one position costs 1 and defeats the relaxed quote. The exact span failure already rules out the scoped rewrite before native work.
