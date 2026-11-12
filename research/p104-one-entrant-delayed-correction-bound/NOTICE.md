@@ -1,0 +1,1 @@
+The exact native word and caller derive from #7334 and #7113. #7434 supplies the inventory, historical fixed-ADD chronology and first exact controls. #7436 supplies historical separators and their independent replays. See README.md and PROVENANCE.json for exact credits. OpenAI Codex and subagents materially assisted this package.
