@@ -1,0 +1,9 @@
+# Verification
+
+The direct replay passed on CPython 3.12 with assertions, using only the standard library. It rebuilds the exact preprice and literal geometry, regenerates 17 path-keyed receipts byte-for-byte, compares both modular and both rational engines, and checks that the exclusion and unresolved sets partition the 326 frozen keys. The [receipt manifest](receipts/SHA256.json) and [remaining keys](receipts/UNRESOLVED.json) are compact. Pass `--output` to retain every regenerated result, including the exact signed sparse matrices, kernel generators and pairing forms.
+
+Round 96 screened its first 16 representatives and four rational drops. Round 97's 310-case primary and independent modular stages each exhausted their scope under 25 seconds, taking 1.56 and 1.86 seconds. The four exact keys in the Round 97 primary took 4.97 seconds. The independent two batches took 0.14 and 0.13 seconds and shared the four-key cap. No exact-selected key remains unresolved. The other 29 dual drops have no rational disposition.
+
+The wrapper runs a signed owned COPY/CLEAR control, a determinant sign control, a planted rank-drop control, a nonunit denominator control and positive and negative exact pairing controls. It rejects altered selection, remaining-key and word bytes. Each negative control requires exit code 1 and no result receipt.
+
+The comparator's four independent local stages are recorded in [the exact admission](https://github.com/CrocSwap/integer-mult-bounds/blob/349996445176e934ffb3c76813adcd230ca8f783/research/p104-compensated-fusion-readout-bound/inputs/ADMITTED.json). Its [exact-head hosted replay](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/43114736518) passed. The contribution itself uses the registered focused replay. No changed signed supplier or complete outer replay was run because the exact support stage produced no admissible candidate.
