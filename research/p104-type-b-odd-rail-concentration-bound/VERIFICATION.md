@@ -1,0 +1,7 @@
+# Verification
+
+The lead walks all 4,783 exact caller events, authenticates both paid slots and physical Gaussian eigenvectors, evaluates the four dirty-lane/sign columns, and computes a directed rational price interval. The independent engine extracts the literal C constant through Python's AST and checks its two Walsh vectors separately. It performs its own exact contact walk, uses the signed exponents at the exact caller clocks, and reconstructs the actual complete paid histogram from #7334. Both check the determinant and complete raw price bound, with a 20-second cap per engine and four basis/sign columns. Both pass and no scoped column remains unresolved.
+
+The wrapper authenticates all path-keyed inputs and predecessor manifests, rejects duplicate JSON keys, regenerates the two receipts, and checks complete agreement. It changes the actual mask at clock 1339 from stage 8 to stage 9 in a disposable input copy. The real independent replay rejects the corrupted caller. The lead additionally checks rank-one determinant controls.
+
+The checked-in independent copy resolves the shared caller filename and reads signed exponents directly from the authenticated tape. The original independent receipt and the packaged receipt agree on every mathematical field. Only the caller's relative pin key changed. The package is self-contained with POSIX CPython 3.12 and its standard library. Exact public pins and source credits are in [PROVENANCE.json](PROVENANCE.json).
