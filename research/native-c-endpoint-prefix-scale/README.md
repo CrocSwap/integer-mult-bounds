@@ -1,7 +1,8 @@
 # Sharp integral-prefix scale for the positive native C tensor
 
-This scoped written proof with exact finite corroboration was produced by
-Nick Petalas. Apache-2.0. No new kappa or selected-frontier change is claimed.
+This contribution was produced by Nick Petalas. Apache-2.0.
+Claim type: scoped written proof with exact finite corroboration.
+No new kappa or selected-frontier change is claimed.
 
 For `C=[[1+i,1-i],[1-i,1+i]]/2`, suppose both x and `C^(tensor f) x`
 are Gaussian-integer arrays. The least common binary input scale making
