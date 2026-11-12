@@ -1,0 +1,7 @@
+# Verification and caps
+
+From a clean POSIX checkout run the one CPython 3.12 command in README.md. `PINS.txt` authenticates every engine, input and frozen output by relative path and rejects duplicate or unlisted closure paths. The exact #7334 compressed and decompressed word hashes and source commit are in PROVENANCE.json. The #7113 source manifest independently binds the two exact Gaussian implementations. The runner byte-compares the regenerated JSON outputs for both rounds and both engines.
+
+Each engine had one selected pair and a 30-second runner cap. At CPython 3.12.14 the independent R212 and R213 runs exited 0 in 0.17s and 0.11s. R212 uses the normalized signed tableau plus absolute phase and an independent Gaussian-integer column evaluator. The dropped-C mutation changes the zero basis column. Its square is independently witnessed by the nonzero off-diagonal entry −i at row 504, column 0. The exact normalized recipe, source and target frame, count of 512 columns, rank five and spectral counts are pinned in the receipts.
+
+R213 checks all one-slice columns in both methods, then the exact f=4 entry bound, monomial trace bound and residue counts for ranks 1–6. No 2N-square matrix is materialized. The proof in PROOF.md establishes the universal rank statements from these identities. The wrapper checks the exact dimension gap and the gross price endpoints without floating point. The corresponding dirty-input native, tape, precision and all-size recurrence checks were unrun because no candidate survived this scope.
