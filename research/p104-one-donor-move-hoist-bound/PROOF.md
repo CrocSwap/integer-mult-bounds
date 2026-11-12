@@ -1,0 +1,25 @@
+# Geometry, normalized support and directed accounting
+
+## Exact domain
+
+Use the 76,466-event #7334 literal word, with 1,501 public roles and 68 owned fields. Normalize values in each chart using the source word's MOVE interpretation. MOVE changes the chart representation and preserves the normalized row. ADD, COPY and SCALE act on the normalized row with the exact stored rational coefficient. INIT and CLEAR reset the owned role. COPY requires a fresh zero owned destination.
+
+Consider one paid owned ascent A→B at event t. A candidate donor is already live in its own current chart L, differs from the owner, and has as its first later operand contact an existing MOVE L→B. B must be the identical literal chart ID. L is arbitrary. Nearest contact includes both ADD and COPY operands and every unary operation, including lifetime events. This is the only MOVE allowed to commute before t. The donor is unchanged in normalized coordinates at t and it can supply a row at B. All eligible donors in the frozen word happen to be public roles.
+
+The reverse census rewinds from the exact final charts to the exact initial charts and validates each literal chart and ownership transition. The proper GF(2) subspace relation distinguishes ascents from descents. The census also reconstructs all 47 old destination banks using the #7387 lead receipt and the extra live zero roles found by its independent check. The 23 ascents yield 15 empty eligible-donor sets and 13 eligible pairs at eight other sites. The old owner has immediate next contact in every case. The declared replacement contract requires its old normalized row at the fixed cut. An observationally equivalent suffix that permits a different intermediate owner row is outside this domain.
+
+## Necessary support and exact exclusions
+
+For a single signed copy, the new value must be plus or minus the donor row. Eight predecessor rational inputs give 13 counterexamples for each sign. On two other deterministic integer inputs, all 13 owner/donor pairs have nonzero 2×2 determinant modulo 65,521. The coefficient replay inverts every encountered denominator in that field. Reduction commutes with the rational word and cannot turn a zero determinant into a nonzero one. This additionally excludes any rational scalar multiple.
+
+For the augmented family, the old owner row must lie in the rational span of the shifted donor and all old live roles in B other than the owner. The exact backward engine emits nine missing-coordinate exclusions and four exact rank exclusions. An independent full-source forward engine starts with one basis vector per public input, replays 45,648 literal events through the final tested cut, and reconstructs all exact owner and donor rows. It independently derives the old bank from liveness, checks the eight pinned old owner rows and verifies 13 exact covectors. Each covector gives zero on every augmented donor and a nonzero rational value on the owner.
+
+These are counterexamples for the stated arbitrary-input interface. Two simultaneous donor moves, newly created donors, later owner reconstruction, changes to the fixed suffix, chart aliases and a redesign of the ownership contract remain open.
+
+## Pricing before support
+
+The preflight preserves the hoisted donor's paid call and provisionally removes one rank-r owned ascent across the 17 signed native invocations. It allows no extra paid children. The relaxed signed invoice therefore removes 17 paid rank-r positions while leaving productive targets fixed. The directed price records the exact complete residual at its pinned probe for each original rank, with rank surplus changing from 1,424 to 1,424 + 17r. Those positive residuals are conditional on actually deleting the operation.
+
+The R176 upper ordinary allowance is 782,817,804 source units. It charges one replacement lifetime, six conservative route/map slots per native invocation, INIT/CLEAR and one signed copy. The R177 version permits up to 28 ADD/COPY coefficients, with 24-bit numerators, magnitude at most 65,534, denominator dividing 37,748,736,000 and the native smooth-alphabet requirement. Its provisional ordinary allowance is 782,979,372 source units, including six route/map slots at 1,000 each, four INIT/CLEAR units and at most 28 writes at 340 each for each of 17 invocations. Both are below the one-billion source-unit cap. This is a preliminary accounting bound, with physical route availability, chronology, restoration, canonical grid, precision, tape, compiler and full caller verification still required if support passes.
+
+Eight distinct owner sites carry rank counts {1: 4, 2: 3, 4: 1}. Counting a deletion once per site even with several eligible donors, the eligible relaxation is at most 238 weighted-rank units for exponent s in (0, 1]. Compatibility and added costs can only reduce it. The broad 23-ascent relaxation in the directed price receipt is looser. Exact support eliminates every permitted one-hoist edit, so verified paid savings and Δκ are both zero.
