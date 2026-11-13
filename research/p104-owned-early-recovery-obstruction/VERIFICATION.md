@@ -1,0 +1,5 @@
+# Verification
+
+The two engines authenticate the exact compressed and expanded #7481 word. The primary engine uses reverse reconstruction of the old linear rows and sparse forward propagation of the extra input. The independent engine advances a dense exact forward matrix on a common integer grid and reconstructs both outward ADD source facts. Both solve the same one-role, one-cut case with exact rationals, each under 30 seconds. The original sparse and dense runners exited 0 in 1.02 and 5.72 seconds respectively on POSIX CPython 3.12.
+
+The package command checks exact path-keyed input and receipt hashes, replays both independent engines and checks the shared separator against every available row and the three obstructed targets. Controls corrupt one source byte, remove the nonzero extra coordinate from the separator, and introduce duplicate JSON keys. The command also recomputes the directed early credit upper from the retained tariff. There is no full candidate replay because the sole case is infeasible before construction.
