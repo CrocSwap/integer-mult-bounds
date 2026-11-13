@@ -1,26 +1,37 @@
-# Earlier destination-cache exclusion at every source-reconstructible MOVE
+# Earlier destination-cache exclusion for every owned MOVE and 18 public cuts
 
-On the exact #7481 P104 native, **none of the 49 MOVEs whose value can be
-reconstructed from the other live source-coframe rows can obtain that value
-from the cumulative span of all strictly earlier destination-coframe rows**.
-The source screen covers all 6,279 MOVEs: 18 public and 31 owned cuts survive
-the source condition; all 49 fail the more generous destination-history test.
+On the exact #7481 P104 native, **all 47 owned MOVEs fail cumulative strictly
+earlier destination-coframe span membership**, without a live-source premise.
+The same obstruction holds at all 18 public MOVEs whose value is reconstructible
+from other live source-coframe rows. These are **65 distinct cuts**. All 1,501
+public inputs remain independent and arbitrary.
 
-The history span pools observations from different earlier times, so a failure
-also excludes every actual single earlier bank and its scalar linear cache.
-No simultaneous availability or physical cache construction is inferred from
-a hypothetical span hit. This is an exact fixed-source obstruction with
-arbitrary independent public inputs in the retained normalized-row model.
-**No new kappa**, full supplier admission or unconditional theorem is claimed.
+The complete source screen covers all 6,279 MOVEs. Its 18 public and 31 owned
+survivors fail the earlier-history test. A separately checked temporal extension
+covers the remaining 16 owned cuts, and also shows that those 16 lack a strictly
+later source-coframe provider. The other 31 owned cuts correctly pass the later
+source test, supplying genuine positive controls.
+
+A cumulative history includes observations from different times. Its failure
+excludes every ordinary linear cache built from that unchanged native history,
+even with arbitrarily many zero-initialized cache fields, free storage, free
+ordinary scalar operations and deferred source cleanup. No extra incoming
+transport, external stock or changed input promise is allowed in this scope.
+**No new kappa**, source implementation or supplier admission is claimed.
 
 ## Evidence and reproduction
 
-A rational relation kernel supplies the complete source-bank census. Two
-separate exact-rational source/history implementations then agree on all
-49 strict-before decisions, source witnesses and history ranks. The histories
-cover 40 destination subspaces and have 1,465 independent generators. Every
-one of the 76,475 instructions is replayed. No floating rank tolerance or
-random input test is used.
+A complete rational relation kernel supplies the live-source census. Two exact
+history implementations agree at all 49 source-reconstructible cuts, reconstruct
+their witnesses and compare per-cut history ranks. The original screen covers
+40 destination subspaces and 1,465 independent generators.
+
+The temporal extension adds an author high-pivot rational replay of the 16
+remaining owned cuts and a separate low-pivot exact replay of all 47 owned cuts.
+The latter independently enumerates GF(2) frame spans, checks all 16 target rows,
+both temporal decisions and both history ranks, and finds exactly the expected
+31 genuine later-source witnesses. It uses 32 past and 32 future coframe classes.
+All 76,475 native instructions are replayed. No floating rank decision is used.
 
 ```sh
 python3 -I -W error -B research/p104-earlier-destination-cache-bound/verify.py
@@ -29,48 +40,44 @@ python3 scripts/research_package.py --package research/p104-earlier-destination-
 ```
 
 Expected status: `PASS_P104_EARLIER_DESTINATION_CACHE_EXCLUSION`.
-Each run uses the standard library and bundled word, takes approximately a
-minute in the reviewed environment and emits a compact receipt. It does not
-write package files or require Git/network access. Full row histories are
-regenerated in memory rather than committed as large logs.
+The standard-library replay uses bundled exact source bytes, regenerates histories
+in memory and writes only a compact stdout receipt. It needs no Git or network.
+`VALIDATION.json` records the executed normal/optimized and portability checks.
 
-Controls compare the relation predicate against independent direct nullspaces
-on seven synthetic states, 44 donor queries and 19 witnesses. The independent
-history engine recognizes existing members and, at each failed cut, recognizes
-the target after deliberately inserting the otherwise unavailable arrival.
-Thus it tests both membership outcomes and the strict-before requirement.
-All three source readers reject mutated bytes. Checks remain active under
-optimized Python. `VALIDATION.json` records the final executed checks.
+Controls include seven independent synthetic nullspaces, 44 direct donor queries,
+19 exact witnesses, existing history members, deliberately inserted arrivals at
+all 47 owned cuts, and the 31 genuine later-source members. All five source readers
+reject changed bytes; every check remains active under optimized Python.
 
-## Pins and predecessor scopes
+## Pins, novelty and limits
 
 Canonical base: `e54523517d0f03e58352e647c403a5af3e525a57`.
-Exact #7481 source: `89eaa9d8cae37c1540de98f2d29a3abaabb96a2b`.
+Exact unselected #7481 head: `89eaa9d8cae37c1540de98f2d29a3abaabb96a2b`.
 Native SHA256: `acee323696b18914bd863d55341f92112b48d3d1dc1443c276efb6c396fcc0a9`.
-The source is unselected. Original paths, blobs and byte hashes are in
-`SOURCES.json`; the original notice is retained byte-for-byte.
+The original paths, Git blobs and hashes are in `SOURCES.json`; the source NOTICE
+is retained byte-for-byte.
 
-#7308 examines live destination banks at all 47 owned MOVE clocks on #7277.
-#6069 treats an older #6030 word: 4,033 leaking injection classes, including
+#7308 checks live destination banks at all 47 owned MOVE clocks on #7277.
+#6069 treats the older #6030 word: 4,033 leaking injection classes, including
 dynamic affine closure; 764 incoming-only intervals; and five private rank-four
-query output seams. This package credits those distinct results and adds the
-complete 49-cut cumulative-history screen on the later exact source. It does
-not claim that earlier work lacked dynamic or historical reasoning in general.
+query output seams. This package adds the complete later-word cumulative-history
+screen and the owned temporal extension. It does not claim earlier research lacked
+dynamic or historical reasoning generally. `PROOF.md` gives the exact arguments.
 
 ## Open next questions
 
-Changed owned lifetimes, later source providers, imported stock, multi-chart
-caches or changed earlier operations alter the premises. Any proposed bypass
-needs actual simultaneous coframed provider cuts, arbitrary-input equivalence,
-zero erasure, complete ownership lifetimes and a full signed cost calculation.
-The present theorem grants costs free only to exclude the stated mechanism;
-it does not authorize those other constructions or rule them out. All five
-foundational assumptions remain.
+Can helper input restrictions or correlations create a destination provider after
+fully charging lost productive targets and all new boundaries? Can imported stock
+or changed earlier native operations do so with a favorable complete bill? Those
+changes alter the tested history or arbitrary-input space. Their preparation,
+transport, zero cleanup, ownership, exact precision and full caller costs remain
+separate obligations. Deferred source cleanup alone cannot remove the missing
+destination provider for any of the 47 owned cuts. All five foundations remain.
 
 ## Credit
 
-Prepared for Jerry Chen / @CubeJerry with substantial OpenAI assistance in
-research, separate implementations, adversarial review and packaging. Retain
-the #7481 native/caller lineage, ToikY's #7308, Jonathan Capalbo's #6069 and the
-original notices. Independent here denotes algorithmic cross-checking, not
-human or formal-kernel acceptance. Apache-2.0; see LICENSE and NOTICE-ADDENDUM.
+Prepared for Jerry Chen / @CubeJerry with substantial OpenAI assistance in research,
+separate exact implementations, adversarial review and packaging. Retain the #7481
+native/caller lineage, ToikY #7308, Jonathan Capalbo #6069 and original notices.
+Independence means algorithmic cross-checking, not human or formal-kernel acceptance.
+Apache-2.0; see LICENSE and NOTICE-ADDENDUM.
