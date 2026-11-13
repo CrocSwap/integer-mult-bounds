@@ -43,6 +43,8 @@ def main():
     temporal_author = load('cache_temporal_author', 'temporal_author.py')
     temporal_exact = load('cache_temporal_exact', 'temporal_exact.py')
     main_probes = load('cache_main_probes', 'main_probes.py')
+    all_author = load('cache_all_history_author', 'all_history_author.py')
+    all_independent = load('cache_all_history_independent', 'all_history_independent.py')
 
     # All parsers must reject changed source bytes before scientific work.
     changed = bytearray(raw)
@@ -57,6 +59,8 @@ def main():
             ('temporal_author', lambda: temporal_author.run(source=bad, prior=None)),
             ('temporal_exact', lambda: temporal_exact.run(source=bad, author=None, kernel=None)),
             ('main_probes', lambda: main_probes.run(source=bad)),
+            ('all_history_author', lambda: all_author.run(source=bad)),
+            ('all_history_independent', lambda: all_independent.verify(bad)),
         ]:
             caught = False
             try:
@@ -110,9 +114,26 @@ def main():
 
     probe_result = main_probes.run()
     need(probe_result['cuts'] == 33, '33 main-only history certificates')
+    all_a = all_author.run(WORD)
+    all_b = all_independent.verify(WORD, max_seconds=120)
+    all_controls = all_independent.controls()
+    need(all_a['unrestricted']['rational_nonmembership_certified'] ==
+         all_b['MOVE_arrivals'] == 6279, 'all original history innovations agree')
+    need(all_a['maximal_neutral']['rational_nonmembership_certified'] ==
+         all_b['nonzero_projected_MOVEs'] == 6207, 'all projected nonzero innovations agree')
+    need(all_a['unrestricted']['final_total_history_rank'] ==
+         all_b['original_total_row_rank'] == 7780, 'unrestricted complete generator rank')
+    need(all_a['maximal_neutral']['final_total_history_rank'] ==
+         all_b['max_neutral_nonzero_row_rank'] == 7636, 'projected complete generator rank')
+    for key in ('neutral_helpers', 'zero_MOVE_events', 'neutral_target_histogram', 'neutral_paid_histogram'):
+        need(all_a[key] == all_b[key], 'fresh independently derived neutral source data: '+key)
+    compact_b = {k:v for k,v in all_b.items()
+                 if k not in ('records', 'seconds', 'replay_seconds', 'primary_input_only')}
+    compact_b['full_per_coframe_certificates_sha256'] = hashlib.sha256(
+        json.dumps(all_b['records'], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     receipt = dict(
         status='PASS_P104_EARLIER_DESTINATION_CACHE_EXCLUSION',
-        source_mutation_rejected_by_six_engines=True,
+        source_mutation_rejected_by_eight_engines=True,
         source_sha256=WORD_SHA256,
         notice_sha256=NOTICE_SHA256,
         instructions=len(word['program']),
@@ -136,6 +157,10 @@ def main():
             past_subspaces=temporal_b['past_subspaces'],
             future_subspaces=temporal_b['future_subspaces']),
         union_earlier_destination_exclusions=65,
+        all_original_earlier_destination_exclusions=6279,
+        all_history_and_neutral_subsets=dict(author=all_a, independent=compact_b,
+            independent_controls=all_controls,
+            all_subsets='Every subset of the 72 derived neutral helpers, by the written unit-extension proof.'),
         main_only_history_separators=probe_result,
         history_engines='exact Fraction streaming filter and independent direct Fraction replay agree at all 49 strict-before cuts',
         prefilter_controls=controls,

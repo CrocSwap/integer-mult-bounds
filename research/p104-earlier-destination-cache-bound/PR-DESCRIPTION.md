@@ -1,4 +1,16 @@
-## Exact scoped result
+## Complete all-transfer and neutral-subset extension
+
+Every one of the **6,279 original MOVEs** in the exact #7481 native is outside its strictly earlier destination-coframe history when the 1,501 original inputs are arbitrary. This includes all public and owned cuts, with no live-source reconstruction premise. The complete coframe observation matrices have **7,780 independent rows across 979 coframes**.
+
+The result also holds after **every subset of 72 neutral helper inputs is set to zero**. Exactly one MOVE and one initial observation vanish per chosen helper; every remaining MOVE is still an innovation. Saved whole-MOVE prices cancel the corresponding original helper target debits pointwise. The universal subset conclusion follows from a written distinct-coordinate-unit extension lemma; it is not inferred from a finite subset search. The earlier 65-cut diagnostic and 33 main-only certificates below remain complementary evidence.
+
+Two fresh source interpretations use different algorithms: chronological row elimination at prime 1,000,003 and exact rational final matrices with sparse column elimination at prime 1,000,033. Modular rank equals each entire literal generator count, yielding a nonzero rational minor; modular nonmembership alone is explicitly rejected. The second engine checks 575,804 rational entries and 46 distinct denominators. Both derive the neutral helpers from the source independently.
+
+Controls include source-byte rejection in eight engines, 6,279 strict-before/after-arrival queries, seven independent rank/unit failure controls and 126 small row/column cross-checks. The nonunit example `history=x+y, target=x` rejects the false inference from maximal zeroing alone. Normal, optimized and read-only Git-free export results are in `VALIDATION.json`; use the registered reproduction command below.
+
+Original instructions, coframes and whole target fields are fixed. New imported information, changed paid-carrier histories, nonneutral helper promises, main-dependent encodings, partial outputs, finite-grid digit decoders and new decoded target types remain outside the theorem. A free public zero reframe is not an existing admitted opcode; zero-MOVE credit is only an optimistic upper bound. **No new kappa**, physical supplier, recurrence, selected certificate or discharged foundational assumption is claimed. The next useful obligation is fully priced preparation and owner return for a nonneutral public-cache promise, or an explicitly changed earlier carrier supplying new information.
+
+## Retained owned-cut and main-only results
 
 Exclude earlier destination-cache reconstruction at **every one of the 47 owned
 MOVEs** in the exact #7481 native, and at **all 18 public cuts with a live source
