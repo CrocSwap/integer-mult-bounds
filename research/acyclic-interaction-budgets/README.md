@@ -79,7 +79,8 @@ prefix/noise contract come from ywz65's
 [PR2701](https://github.com/CrocSwap/integer-mult-bounds/pull/2701), head
 `c21f5a50b9f4682ff9d4fe622d3d4e81c3cc86fb`. Ali Romman's PR5288,
 head `cd33c723408bb98875211ee3145582c507881f29`, supplies the distinct
-square-zero shear product comparison. Classical nilpotent inverse formulas,+symmetric polynomials and directed-path expansions retain their mathematical
+square-zero shear product comparison. Classical nilpotent inverse formulas,
+symmetric polynomials and directed-path expansions retain their mathematical
 credit. No general literature-priority claim is made for those methods.
 
 The new step is the pair of sharp common-depth budgets, their attaining
@@ -147,8 +148,8 @@ optimized Python. No subprocess, network access or persistent write occurs.
 Power of Ten rule 3 deviation: CPython dynamically allocates rational numbers
 and containers. The dimensions, step counts, bit heights and serial fixture
 domains bound live data. The pair inventory has 27 matrices and tests one pair
-at a time. An attaining fixture holds two lists of at most 32 matrices. Internal runtime
-allocation is not instrumented. Receipt reads are limited to seven regular
+at a time. An attaining fixture holds two lists of at most 32 matrices.
+Internal runtime allocation is not instrumented. Receipt reads are limited to seven regular
 files, each at most 128 KiB. A fixed-allocation implementation would be needed
 before using this checker as an embedded runtime service.
 
