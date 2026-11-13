@@ -1,0 +1,11 @@
+# The fixed receiver needs two new directions
+
+In the exact #7481 native word, role 749 makes a public rank-three move from chart 3 to chart 260 at event 32222. Owned role 1541 later moves from chart 599 to chart 260 at event 35152 with rank two. The proposed replacement removes those arrivals and gives one scalar a rank-one route from 3 to 599 and a rank-two route from 599 to 260. It retains the available receiver rows at the old cut. Grant the incoming scalar any linear form in the original inputs, regardless of how it would be produced.
+
+The receiver bank immediately before event 35152 consists of roles 226, 988, 990, 1345, 1393, 1506 and 1514. Let its rational row space be \(U\). The required old output rows are roles 749 and 1540 immediately before ADD35155. The two exact methods compute \(\dim U=6\) and \(\dim(U+\langle r_{749},r_{1540}\rangle)=8\).
+
+For a direct witness, set all old input coordinates to zero except \(x_{749}=1\). Every receiver row evaluates to zero and the two targets evaluate to \((1,0)\). Set all coordinates to zero except \(x_{270}=-3/4\) and \(x_{317}=1\). The receiver rows again vanish and the targets evaluate to \((0,3/4)\). The target classes therefore span two dimensions modulo \(U\). One scalar can raise the receiver dimension by at most one, even with free arbitrary rational linear encoding and correction. The two outputs cannot both be restored in this model.
+
+The independent forward replay also records a separate source obstruction. The unchanged chart-599 donors 1343, 1344, 1346 and 1347 plus the early role-749 row have rank five. The input \(x_{230}=-1/4,x_{749}=1\), with all other coordinates zero, vanishes on all five and gives one on the required old role 749. This concerns the direct source recovery and is independent of the more permissive receiver argument.
+
+With the exact signed 17-copy caller, the hypothetical paid change is +17 rank one and −17 rank three. The productive positions remain fixed. Directed evaluation at the exact incumbent bracket bounds the gross \(17(H_3(C)-H_1(C))\), where \(H_r(C)=r^{1-C}\), strictly between 33 and 34 raw units before repairs. The obstruction holds before charging repairs, routing, phase, ownership, precision or tape changes. Another existing-path repair or a different cut is outside this test.
