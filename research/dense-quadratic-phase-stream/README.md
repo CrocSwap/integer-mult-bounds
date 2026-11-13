@@ -95,12 +95,6 @@ canonical main e54523517d0f03e58352e647c403a5af3e525a57. No predecessor
 construction is used as the new main step. The exact card is retained in
 TASK.json and explicitly changes scope to this algebraic side result.
 
-The engineering playbook was Autonomous local run. Build the Lever led to
-the retained stream and direct executable oracle. Prove It Works led to
-complete finite coefficient checks and the explicit last-yield return
-control. Foundational Thinking led to triangular immutable input and a
-separate mutable linear cofactor vector.
-
 ## Implementation bounds
 
 All functions are below 60 physical lines. Production loops have explicit
@@ -111,11 +105,10 @@ Exceptions propagate; normal and optimized executions enforce the same
 contracts. Direct file reads cover seven small package files and at most
 three source documents bounded by one MiB apiece.
 
-Power of Ten rule 3 has a managed-runtime deviation: Python allocates tuples,
-integers and lists during execution. Validated dimension, bounded stack and
+Python allocates tuples, integers and lists during execution. Validated
+dimension, bounded stack and
 the explicit event cap bound live state; the reference cannot accept an
 unbounded input. A fixed-buffer runtime would be needed before claiming
-allocation-free operation. Rule 9 uses standard generator and SHA256 object
-dispatch with fixed visible targets. Warning-strict normal/optimized runs
-and in-memory compilation supply diagnostics; ruff, mypy and pyright were
-unavailable. No global analyzer configuration is changed.
+allocation-free operation. Standard generator and SHA256 object dispatch
+have fixed visible targets. Warning-strict normal/optimized execution and
+in-memory compilation supply diagnostics.
