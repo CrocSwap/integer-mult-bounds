@@ -1,0 +1,9 @@
+# Verification
+
+The focused forward and independent reverse checks verify the exact pre3058 cut and both sector minors, with 30-second caps. The forward run completed in 0.40 seconds and the independent reverse run in 0.98 seconds wall time. Both exited zero. The focused receipt gives the exact rational gross.
+
+The two full discovery sweeps each had a 30-second cap. The forward scan used a nonzero anchor minor in each sector and cut. It ran 4,883 explicit residual tests per sector and exhausted all 4,784 cuts in 12.45 seconds wall time. The independent reverse scan reconstructed the literal columns from their final signed diagonal. It verified every forward minor against those coefficients and independently computed the Gram determinant after removal of every present admissible class, 50,899 per sector. All residual ranks were two. It recovered both original input columns and finished in 18.06 seconds wall time. Both discovery sweeps exited zero with no surviving or unresolved keys.
+
+`receipts/EXPECTED.json` records the exact 30-second discovery forward journal SHA-256, cap-bearing records and residual counts. Registered replay raises the full sweep caps to 120 seconds and normalizes the forward header and footer back to the discovery values before comparison. The 4.3 MB journal is regenerated, then authenticated and passed to the independent reverse replay. The reverse comparison omits only elapsed time and its execution cap. The two mathematical transcript hashes are retained.
+
+Controls exercise rank-one and rank-two examples, signed inverse events, exact Gaussian minors, rejection of duplicate keys, changed caller bytes and a missing journal line. Direct and registered replay, exact committed bytes and modes, source history, read-only Git-free export replay and all 27 local onboarding tests passed. Hosted verification is separate.

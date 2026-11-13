@@ -1,0 +1,1 @@
+Apache-2.0. The literal caller and application retain their #7113 and #7481 source lineages. The unchanged Gaussian-Laurent arithmetic engine is carried from exact #7398, following the #7316 Laurent convention. See PROVENANCE.json for precise source paths and credit. OpenAI Codex and subagents materially assisted proof, implementation, independent replay and packaging.
