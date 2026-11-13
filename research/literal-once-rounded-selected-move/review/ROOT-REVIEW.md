@@ -1,0 +1,17 @@
+# Root review of the once-rounded selected MOVE
+
+**Verdict:** the scoped local theorem is supported by the written argument, source binding, independent physical execution, and separate numerical review. It does not discharge a global selected assumption or improve kappa.
+
+The reviewed source-specific operator is selected event 24472, with the exact retained absolute phases. All 82,813 core instructions were checked against an independent relocation formula. The wrapper builds its own width and scale guides, never expands the cutoff value, and pays for the complete enlarged field. The numerator bound covers four signed inputs at radius 2^(W-2), so the frozen W+2 arithmetic rows fit; the next-prefix denominator gives exact parity. Signed-minimum input is admitted after widening.
+
+The rounding implementation uses a stationary read to remember the high-prefix sign. It rounds the entire retained prefix before testing redundant sign bits, including the legal -5/2 -> -2 boundary at w=2. The first discarded bit implements nearest-up for both signs. Actual outputs stay far enough from the n-bit endpoints that the modulo increment cannot create a false result. Public DATA is written only after every output fits. Failure retirement is outside scope.
+
+The complete wrapper allowances dominate its actual local scans: Gamma prefixes grow geometrically; count products never exceed the component count; repeated doublings and unary floor-halving have geometric total length; each ingress/rounding component has O(W) scans and bounded carry; all trace returns and erasures are included. E_W <= E+2V_W turns the frozen core's bound into the displayed 2^26(f V_W+E+1) total. Every historical interval remains charged; 4096(V_W+E+1) is a conservative increment rather than a reset of K_entry.
+
+The separate sparse CPU uses distinct signed origins and opaque sentinels and executes only read/write/unit-move/goto/halt instructions. A new complete f=1 packet includes the original most-negative integer and 208 nonintegral final components. It takes 25,467,658 transitions and exactly 4096 final public writes, with no earlier writes. All 54 heads and private guards/bodies restore. Complete listed fitting-z converter domains, twenty late true-overflow cases, all signed ingress words in the listed widths, and six huge-cutoff headers also pass. These finite tests validate the implementation; the all-f theorem relies on the written loop and arithmetic invariants. The head-window receipt is not a measurement of unknown opaque backing or complete prior K_entry.
+
+The arithmetic oracle is separate exact integer forward-address code; it shares the retained factorization. The independent source-frame equality was already verified for the unchanged core and is not claimed newly independent here. SOURCE-BINDING.json matches all 24 helper/proof inputs against previously remote-verified predecessor trees or the exact earlier proof retrieval. No inherited source was edited.
+
+The selected #7000 application requires an exact layer before its final truncation. This new once-rounded primitive cannot replace arbitrary interior services there without another accumulated-error/caller proof. Packed entry, ownership presentation, cutoff admission, complete all-operator implementation, accelerated recursion, selected caller placement, and the other foundational assumptions remain open.
+
+Prepared for @CubeJerry with substantial OpenAI assistance. Root review is an independent AI execution/reasoning check, not human approval or proof-kernel certification.
