@@ -1,0 +1,13 @@
+# Historical increment and fixed-bank separation
+
+The pinned word moves public role 1261 from chart 3 to 509 at MOVE38490 and from 509 to 770 at MOVE39433. The frames are strictly nested, with the two MOVE ranks both three. Their middle contact ADD38491 subtracts 1261's then-current value from public1191. Later ADD39469 adds 1261's then-current value to the same recipient, now in chart 246. The proposed fusion omits both old ADDs and tests restoration of their combined normalized increment just before ADD39469. The earlier result in #7494 tests relocation of the first old ADD with the original peer history fixed.
+
+In normalized coordinates, between the two old contacts role 1261 gains half of role 1145 at ADD39435, gains half of the historical role 910 at ADD39438, and loses half of the then-current role 1145 at ADD39468. Role 1145 loses the historical role 953 at ADD39441. Thus the target increment t is one half of the historical role 910 row at pre39438 plus one half of the historical role 953 row at pre39441. The exact reverse engine also verifies this identity by subtracting the two old role 1261 rows directly.
+
+The fixed donor bank at pre39469 consists of roles 1145, 1192, 1261, 1443, 1485, 1486 and 1487. Its exact rank is seven. On input x894=2 and all others zero, the seven rows vanish while t=1. No additive combination of those rows can repair the edit with the old recipient self coefficient one. The separate normalized forward verifier reproduces the historical observations and confirms that the original role 1191 after ADD39469 is zero while the edited role 1191 before any correction is −1.
+
+Any single-recipient linear correction with unchanged donors has the form α times the edited recipient plus a bank combination. On the same probe its output is −α, and matching the old result would force α=0. An invertible sequence of coframed ADDs from those donors and nonzero SCALEs on only the recipient has nonzero self coefficient. The probe therefore excludes this larger invertible single-recipient model as well. It leaves joint writable-bank changes, changed source timing and other paid routes or deadlines open.
+
+## Directed price
+
+Across 17 signed #7113 calls, the hypothetical paid delta is −34 rank-three and +17 rank-six, with productive counts fixed. The gross interval evaluates 17 × (2·3^(1−κ) − 6^(1−κ)) at the pinned #7481 crossing. The exact rational bounds are in `receipts/LEAD.json`. One extra rank-one child per call costs 17 raw, more than the gross. No physical lowering, signed adjoint, complete ownership, compiler, precision, tape or all-size candidate gate was reached.
