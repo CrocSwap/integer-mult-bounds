@@ -125,6 +125,10 @@ def run():
         right = {tuple(t["events"]): t["subset_ranks_Q_binary_order"]
                  for t in other["components"]}
         need(left == right, "every independent exact subset rank agrees")
+    graph = load("graph_verify").run()
+    need(graph['valid_run']['rows'] == 468 and
+         graph['valid_run']['dependent_subsets'] == 31,
+         'global original-coordinate helper relation funding')
     return {"status": "PASS_HELPER_COORDINATE_AND_SUBSPACE_FUNDING_NO_GAIN",
             "native_calls": calls, "rational": b, "independent_modular": a,
             "complete_invoice": {"productive_fields": sum(target.values()),
@@ -137,6 +141,8 @@ def run():
             "independent_rational_subspace": {k: v for k, v in exact_subspace.items()
                                               if k != "summaries"},
             "all_612_independent_subset_ranks_match": True,
+            "global_original_coordinate_relations": graph,
+            "global_relation_kappa_interval": "0<=kappa<=1/4",
             "kappa_status": "No new kappa; exact fixed-word complete-moment obstruction"}
 
 

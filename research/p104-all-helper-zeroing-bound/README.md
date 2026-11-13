@@ -1,6 +1,6 @@
-# Complete funding bounds for coordinate and correlated helper zeroing
+# Global funding bounds for helper restrictions with fixed native operations
 
-Two source-scoped theorems exclude a complete signed-moment gain on the exact
+Three source-scoped theorems exclude a complete signed-moment gain on the exact
 #7481 native when its operations and paid ranks are retained and only
 identically zero MOVEs are omitted. All new basis conversion, zero transfers,
 storage, ownership and ordinary work is optimistically free.
@@ -9,12 +9,19 @@ storage, ownership and ordinary work is optimistically free.
 | --- | --- | --- |
 | Any subset of the 1,101 original helper coordinates set to zero | `0 <= kappa <= 1/2` | 468 MOVEs charged to 467 lost helper targets |
 | Arbitrary scalar linear input subspaces, independently inside every group with matching entrance AND exit frames | `0 <= kappa <= 1/100` | 430 row components and 612 exact subset inequalities |
+| Any helper-input relation surjective onto a retained subset of original helper coordinates, independently of mains; correlations may cross boundary groups | `0 <= kappa <= 1/4` | Rank 463, five exact relations, 442 singleton row spaces and four dependent blocks; 31 dependent-subset funding inequalities |
 
 Main inputs remain arbitrary and independent. The second theorem includes
 correlations within a compatible helper group; it does not allow correlations
 between groups, address-dependent operators or correlations with main inputs.
 The proof debits every lost productive direction before reporting paid savings.
 **No new kappa or unconditional multiplication theorem is claimed.**
+
+The third theorem permits nonlinear or operator-valued helper preparations when
+the retained original inputs remain jointly arbitrary. It charges each demoted
+original helper target. It does not assign old target prices to new decoded
+productive coordinates. `GRAPH-PROOF.md` gives the exact surjectivity and whole-
+array argument; all preparation and cleanup remain optimistically free.
 
 ## Why the certificate covers all choices
 
@@ -36,6 +43,17 @@ checks the component direct sums and proves rank lower bounds using nonzero
 minors. Modular zeros are never promoted to rational zeros. The price envelope
 uses the integer comparison `9*1000^100 < 1023^100`, so no floating point or
 sampled kappa grid appears in the proof.
+
+For the global theorem, a new independent rational interpreter reconstructs
+all 468 helper-only rows. Exact dependencies and a nonzero minor modulo
+1,000,003 give rank 463. Their row spaces decompose into 442 singletons and
+blocks of 11, 5, 5 and 5 rows. All 2,140 local subsets are checked; only 31 are
+dependent. Independent prefix ranks give their minimum linear basis prices,
+and every one satisfies `6*price >= 11*paid_rank_sum`. The exact inequality
+`9*6^4 < 11^4` extends this to every power price in the quarter interval.
+A block Laplace expansion combines the bounds despite overlapping helper
+columns. The proof covers all helper restrictions in the stated class, not
+just the enumerated subsets or sampled preparations.
 
 ## Complete caller and source pins
 
@@ -73,18 +91,20 @@ Executed final checks are recorded in `VALIDATION.json`.
 #7307 studied unchanged-owned-word zero-input and direct-CLEAR predicates.
 Here the helper input space changes, lost targets are charged, and the
 certificates cover all coordinate subsets and all matching-boundary scalar
-subspaces. The source, #7113 signed caller and all predecessor work retain
-their credit. Neither result permits new frame choices, changed scalar
-contacts, altered main inputs, cross-group correlations, target splitting or
+subspaces. The global original-coordinate result further permits cross-group
+correlations through the verified rank condition and overlapping-column
+composition proof. The source, #7113 signed caller and all predecessor work retain
+their credit. These results do not permit new frame choices, changed scalar
+contacts, altered main inputs, target splitting or
 new productive boundaries. All five foundational assumptions and whole-job
 accounting conventions remain inherited. Neutral restrictions may still enable
 a different source or change finite ordinary constants.
 
 ## Open next questions
 
-Can a restriction combine with changed scalar contacts and frame choices to
-improve the full bill? Can cross-group constraints or a different productive
-interface avoid the rank funding? Those questions require a new exact source,
+Can a restriction combine with changed scalar contacts, cache deletions of
+nonzero MOVEs or frame choices to improve the full bill? Can a different
+productive interface avoid the rank funding? Those questions require a new exact source,
 complete target debits and a physically valid caller; this package does not
 supply them or rule them out.
 
