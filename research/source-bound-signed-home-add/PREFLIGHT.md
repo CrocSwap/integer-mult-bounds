@@ -3,7 +3,7 @@
 The early verdict communicated before construction was: proceed with a small
 typed ±1 service, not a generic-arithmetic novelty or complete-lifetime claim.
 The exact five source contacts were already extracted at bank1526. Their
-binary packet/header producer and rank2 inverse MOVE remain missing inputs.
+binary packet/header producer and rank2 owned MOVE remain missing inputs.
 
 Feasible fixed graph: compare/skip Gamma1–4/6 by a unary prefix-length guide;
 decode the fifth Gamma width to unary with doubling, in O(E+w), because the

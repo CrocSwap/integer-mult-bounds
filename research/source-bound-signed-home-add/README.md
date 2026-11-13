@@ -9,7 +9,7 @@ actual selected source-contact binding.
 
 The four SUBs are selected #7000 events28041,28129,28135,28139, target1526,
 sources1349/728/729/730 at chart601. Event28159 is ADD1526→1515 at chart470.
-The separate rank2 inverse MOVE28141 is retained as an open dependency.
+The separate rank2 owned MOVE28141 is retained as an open dependency.
 SOURCE-CONTACTS.json pins the compact extraction and original archive hashes.
 
 Standalone cost is at most4096(F+1), with historical increment at most8(F+2).
@@ -69,7 +69,7 @@ source generation, precision/stock and analytic recovery remain open. No new
 
 1. Supply the actual typed-zero producer and equal-F transport for bank1526;
    the actual source opportunity is documented in the retained format gate.
-2. Install the different rank2 inverse MOVE28141 under a proved field ABI.
+2. Install the different rank2 owned MOVE28141 under a proved field ABI.
 3. Extend coefficient scope only with its full rounding/division/cancellation
    and lifecycle bill; this package does not replace #6990/#7268's rational work.
 

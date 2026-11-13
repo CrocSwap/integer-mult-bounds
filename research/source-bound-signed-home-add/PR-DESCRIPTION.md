@@ -61,7 +61,7 @@ human or formal-kernel acceptance claim.
 
 The contract supplies valid matching geometry, common grid and actual frame,
 physically distinct operands, and live typed packets. Raw-zero initialization,
-actual source/view production, equal-F transport, rank-two inverse MOVE28141
+actual source/view production, equal-F transport, rank-two owned MOVE28141
 and complete bank/caller admission remain open. The identity fixtures enter
 with owned packets already reserved; they do not construct full compiler
 SourceRow/OwnedBank addresses or establish selected productive width. No

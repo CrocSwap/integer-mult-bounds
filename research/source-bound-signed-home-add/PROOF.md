@@ -166,13 +166,13 @@ its residue-control graph. The present delta is the exact ±1 scientific
 six-Gamma/packed-B1 ABI and the five actual selected contacts, not new generic
 arithmetic, a faster version of those packages or arbitrary rational ADD.
 
-The owned INIT/typed producer, equal-F view transport, rank2 inverse MOVE at
+The owned INIT/typed producer, equal-F view transport, rank2 owned MOVE at
 28141 and the complete bank lifetime remain open. No full source word,
 precision/stock admission, selected supplier, analytic recovery or κ theorem
 is claimed. All five framework assumptions remain.
 
 Open next questions: supply the actual bank1526 formatted-zero producer and
-equal-F view proof; or instantiate the different rank2 inverse MOVE under the
+equal-F view proof; or instantiate the different rank2 owned MOVE under the
 same field contract. Neither is replaced by a synthetic XOR or an identity.
 
 

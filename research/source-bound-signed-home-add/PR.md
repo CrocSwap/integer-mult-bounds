@@ -34,7 +34,7 @@ graph identical. No owned field receives productive credit.
 
 The contract supplies matching valid geometry, common grid/current complete
 frame and live typed fields. Raw zero initialization, actual view/equal-F
-production, rank2 inverse MOVE28141 and complete lifetime/caller admission
+production, rank2 owned MOVE28141 and complete lifetime/caller admission
 remain open. On admitted matching pairs only true final signed-component
 overflow rejects, before any HOME scatter; rejection cleanup/retry is unclaimed.
 
