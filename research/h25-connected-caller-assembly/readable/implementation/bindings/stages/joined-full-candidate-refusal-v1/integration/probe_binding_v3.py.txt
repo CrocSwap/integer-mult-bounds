@@ -1,0 +1,506 @@
+"""Source-bound loading and ownership for the fresh dictionary probe, revision 3.
+
+No candidate/native import occurs merely by importing this provider. The caller
+must execute these exact reviewed bytes in a fresh module and supply its expected
+compiler-output digest. Private ABI access begins only after load authentication.
+"""
+# The source-bound pristine root injects exact native aliases and its registered
+# capability before executing these bytes. There are no imports in this module.
+_PROFILE_SHA256 = "ad0ec2aea01b83f97bdeafd9e9208360127fee870d024d353879b5ed99237109"
+_PROFILE_BASENAME = "RUNTIME-PROFILE.json"
+_NATIVE_NAME = "_h25_dict_probe"
+_NATIVE_NAMES = ("inspect", "check", "profile", "counters", "_activate", "_deactivate")
+_EXPECTED_PROFILE = (2, 0x030C03F0, 8, 8, 8, 48, 32, 40, 32, 24, 8, 5, 31, 4096, 262144)
+_MAX_BINARY = 16 * 1024 * 1024
+_MISSING = object()
+_OWNERS = {}
+_RUNTIME_FILES = (
+    ('/proc/self/exe', 'e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f', 8020928),
+    ('/usr/include/python3.12/Python.h', '729ef157f6026e6e1b3104593f87dddc597c3b83b60c7c2965878c62a56c6f7d', 2854),
+    ('/usr/include/python3.12/abstract.h', '8f0b27427f4e16b4295b2ab1a7bb499bf86748fafbd1959e220c506ed59f774f', 32616),
+    ('/usr/include/python3.12/bltinmodule.h', '1b5101b4b85409fd910032713906800bbb83580503036469c2a60ac8e80b8f72', 264),
+    ('/usr/include/python3.12/boolobject.h', '84289d5b1a1b7ed6c547f4f081fba70e90a9d60dfa2d2b3155c33cdd2af41340', 1136),
+    ('/usr/include/python3.12/bytearrayobject.h', '0e93963caf43a057fb293ae5183d1b8bb45c9f57926ce8308f67a0f452843e85', 1466),
+    ('/usr/include/python3.12/bytesobject.h', 'de8551db9323e7dc463717a624f2d35dacd17cdf0c7a7f6299128dd06348cf30', 2619),
+    ('/usr/include/python3.12/ceval.h', '9531cce1b80e804d46a9ef31bd22605f54d0ae0609dc3470946a4d8d4270af3a', 6267),
+    ('/usr/include/python3.12/codecs.h', '0ca3c6e55e7ff62872b47aeeb7379d784b03ebfc61bbd029b67485fe783baac5', 7071),
+    ('/usr/include/python3.12/compile.h', '1f10c818b29007e6a4446505a1140dd77ca6618ad81e87b502f4e22f4b274406', 448),
+    ('/usr/include/python3.12/complexobject.h', '9356805a24503256cd8914d7b7700357e01f471c211f9241c81981d89d6c3af8', 728),
+    ('/usr/include/python3.12/cpython/abstract.h', '07d8b3b9c7db77e30adef4c4d9c7a4453b8eb1f48341ed5394bd5eebe239c9fd', 7870),
+    ('/usr/include/python3.12/cpython/bytearrayobject.h', 'ae5e099856657f3b8606701df312866eaa88992f6cfd9f8567456e1588efceb1', 1163),
+    ('/usr/include/python3.12/cpython/bytesobject.h', '5ba5010b9aa79f401196740da7c653590f5f4eec6b4f33e99de5412a969fcc8a', 4660),
+    ('/usr/include/python3.12/cpython/cellobject.h', '844f06178bbce2e9377a46ccc80e2aae85a73750932576a6cc4de934cc508cea', 1076),
+    ('/usr/include/python3.12/cpython/ceval.h', 'b08c549971f1006e681267dd8a88481353ce4bd89b9d859f81b72cf9bf867895', 1650),
+    ('/usr/include/python3.12/cpython/classobject.h', 'b38a0ecdebeae2a4d28dfe8a5f2833f676d38be9561ca4bdfdf5087bbe2f9332', 2245),
+    ('/usr/include/python3.12/cpython/code.h', 'cb01a969c69fec0fc0c58fe6e674d392282b96639e2523d3e69100c771ed0bbd', 16188),
+    ('/usr/include/python3.12/cpython/compile.h', '32d7397c6fa5478feb2a4101641fca6dba3ac77abe4deed5c0f713a6cd6564f5', 2660),
+    ('/usr/include/python3.12/cpython/complexobject.h', 'a4c110008e4d791a4577ce6ebee33bc512ec3e3db918bd2c296f00dd79379fcb', 1248),
+    ('/usr/include/python3.12/cpython/context.h', '9e34d54a789cbf0d78d5ebb126e8384342c08dd81d944d10e3d8f0de0bbba10a', 1965),
+    ('/usr/include/python3.12/cpython/descrobject.h', 'a1ee0124142fe91204d0c5e85169b55341b2167111a1447e3a8ed50f9bd5a12f', 1642),
+    ('/usr/include/python3.12/cpython/dictobject.h', '5ac16d73f22038b12bd06904cf02a14bbdd723234d1d899354f1a041e8659505', 4686),
+    ('/usr/include/python3.12/cpython/fileobject.h', '16ab872cbe2bb3351ce3090873440903b1460c1d68aed483c70c31edc4140ba2', 818),
+    ('/usr/include/python3.12/cpython/fileutils.h', 'd7a2f703c6fba2efabd0b1cc916ad36074363a27a000987cfad17e21f04d44f1', 232),
+    ('/usr/include/python3.12/cpython/floatobject.h', 'f1c53f5b87f221db66004b836aa2fc9462aa46c2fbe46b417a8ddc803ce2f585', 900),
+    ('/usr/include/python3.12/cpython/frameobject.h', 'e1421b58c6a25efb56f423a749c313e3f5392f58cc0c7f4f09b0412217a4a734', 1108),
+    ('/usr/include/python3.12/cpython/funcobject.h', '744cd5bc453de548ec454f1fb26e58efa581f3a51dee2b09872cb45bc3a5f981', 7150),
+    ('/usr/include/python3.12/cpython/genobject.h', '24f9bd2f19341dc73c7deebca17117ea3a94fd89865c0c6548e1bf5882f51d95', 3316),
+    ('/usr/include/python3.12/cpython/import.h', 'f3a6cb7ea774d2ffcb64c834dffaf008e8f9f3f10b23600d5522d82176cb241c', 1623),
+    ('/usr/include/python3.12/cpython/initconfig.h', '86e3b9d1de6f310415912e2cdfdc276e311c026ec7fdf6190893f6313cd860a3', 7820),
+    ('/usr/include/python3.12/cpython/interpreteridobject.h', '8fc79784d556245d7b7f382063ef3797e3aebd0a6b375a95027dd63a5dfa30b6', 387),
+    ('/usr/include/python3.12/cpython/listobject.h', '0ccca44b405add7a8c19d7a5e7701e06ab904cce5c430016b50f7968aef296fe', 1633),
+    ('/usr/include/python3.12/cpython/longintrepr.h', 'e2acf37f668089278081539473eeedc8537b848fcd2eb91f53172701c014b9c3', 4889),
+    ('/usr/include/python3.12/cpython/longobject.h', 'b443782d6b69a2cfd141ac13ac8b7a8d69e47bfdae9df984de4991b2d248b8b8', 4679),
+    ('/usr/include/python3.12/cpython/memoryobject.h', '62f414f21611a31f453af7c8326b309aad8f79166087a951844921c50cc84dc7', 2272),
+    ('/usr/include/python3.12/cpython/methodobject.h', '5beb9f3b68ac72efe403a1b0a3fbbb14a5606a49a2840b9c7e9ff243d82d79b9', 2276),
+    ('/usr/include/python3.12/cpython/modsupport.h', 'a8d08132874d9d642ade82e62e87a510577b7bd4ab0685a90b044cc3b005232d', 4336),
+    ('/usr/include/python3.12/cpython/object.h', 'f412fd84202ef228e6bf239c9a5a408b8d8623481a15452f8f3331dfc6342134', 21212),
+    ('/usr/include/python3.12/cpython/objimpl.h', 'd99f0cff4297590a49f6616dbf1b04a06c745bed0a280ae35acc56fb3c47f2f3', 3316),
+    ('/usr/include/python3.12/cpython/odictobject.h', '97dc6296e890463fc6994247e885df65cd4024dc1b05facfdc984c37d646b919', 1311),
+    ('/usr/include/python3.12/cpython/picklebufobject.h', '7040fb48462296c903f2f0d24d2b54e0de63cf7512dcf8d3048a0cadf7d94fd0', 848),
+    ('/usr/include/python3.12/cpython/pthread_stubs.h', '0f3108e0430ee937098c86352d2ced6e3ec7f5cb5bc7e06eebee58cf779fcd89', 3505),
+    ('/usr/include/python3.12/cpython/pyctype.h', '10b5ccbc210fd2832e9c34849a3952e8db75f0016add89188358b1da6a8f3dbb', 1387),
+    ('/usr/include/python3.12/cpython/pydebug.h', '83d72e867b4fc9ac87efdfcb41c3d30ec20fa239fe6a74d1b85aa92e1f8d9506', 1413),
+    ('/usr/include/python3.12/cpython/pyerrors.h', '1f5070d787263e3aa8845dc90b38aaeb0945be83ef2ba993a40b4af926daacad', 4276),
+    ('/usr/include/python3.12/cpython/pyfpe.h', 'ea7bfa7d891a0b5372d8b40a57d1b466b7824296e5c3f8d50b1a7cde084429b7', 444),
+    ('/usr/include/python3.12/cpython/pyframe.h', '0c7ea17874b967892de6f6623aa426d5eaf267a56e6bbb84b3fefa40e59ec1b8', 1479),
+    ('/usr/include/python3.12/cpython/pylifecycle.h', '02505815b8bc3e33fe31a11f4f7f960826aa1dce2c4cee6d62d2a0394470c9bf', 3423),
+    ('/usr/include/python3.12/cpython/pymem.h', '8a3795a9350b10548e8ad6d37dad69be2abd3870a751e67faa32a19a090608db', 3379),
+    ('/usr/include/python3.12/cpython/pystate.h', '11494795dd1d6945fbf8036af5ccf247463e94d405a760924a1c78f78ebfc4ec', 17228),
+    ('/usr/include/python3.12/cpython/pythonrun.h', '3290ea064e7450aaf43320a5fcac22d9b36acfab43d1d2c3381ade4b726ced8f', 4903),
+    ('/usr/include/python3.12/cpython/pythread.h', '7239113064e41ba5a678b665af17bee1f878d51076f6d82f89d5d52151ebf573', 1426),
+    ('/usr/include/python3.12/cpython/pytime.h', '64b70f16b9e6845e0378f2f9108952731ca5bd43b33609781dccd5af70d60204', 12375),
+    ('/usr/include/python3.12/cpython/setobject.h', 'c965bf093325e20c319af5183a8e5723d4d0b373cb6d1b8781df8c1e588963c0', 2146),
+    ('/usr/include/python3.12/cpython/sysmodule.h', 'd4936db24692cccadb19c11accda260787f95e5658f88cfc752d9a49344ee051', 489),
+    ('/usr/include/python3.12/cpython/traceback.h', '7898a3c168973e1119fb3b57f144be627c1468082ab0b91d001dd876dd1dbcb6', 444),
+    ('/usr/include/python3.12/cpython/tupleobject.h', '301c0720038f50d8e9087b38cf1392524abf9e28262b677d841fc1a7e172c3f3', 1377),
+    ('/usr/include/python3.12/cpython/unicodeobject.h', 'edfa102633ee0e3cc42652a36912b568ae0cea8bb72360cc97876f170504209c', 35296),
+    ('/usr/include/python3.12/cpython/warnings.h', 'b758a2e42b0c497ea811464f579603d14fc30b50bd6ebe064d8d2a7df7e2bd76', 564),
+    ('/usr/include/python3.12/cpython/weakrefobject.h', 'be0ab05169da7efcd13aba0ddc58604a80328d4e60349df6d4efdd1bf363e1a2', 2032),
+    ('/usr/include/python3.12/datetime.h', 'f3d8192cada0f490a67233e615e5974f062501b2876147118ddb042ee4a7f988', 9769),
+    ('/usr/include/python3.12/descrobject.h', '2956a488f4c4c61341e361dac949cfa4a217e0fbd0097892513b02363c9570a7', 3080),
+    ('/usr/include/python3.12/dictobject.h', '08f92e2a4421d3e81fa0fa1b60cbe97f2d69897226368481b0ffc41eeb202356', 3860),
+    ('/usr/include/python3.12/dynamic_annotations.h', '3e4366f7d082835049730358d277a5ad7a60e16d1601f5622f0a045a37c152ac', 22471),
+    ('/usr/include/python3.12/enumobject.h', '2244fe250db9995068fe74dce0e23fd70c12b03fd94751d98b773be8f64896b6', 253),
+    ('/usr/include/python3.12/errcode.h', 'e09ffcbb80580103d52992eb5fd8fd01b9930fda5e8f3874bfb9ee7aa2fe99fa', 1779),
+    ('/usr/include/python3.12/exports.h', 'd02e9937f747660b218062bcdab504b706cad264b4df993f749d9118f2f7b65c', 1267),
+    ('/usr/include/python3.12/fileobject.h', '133e57cf705cbdaa79a0c115b27e748cc24dedb51ea17b441ff65d05df28a674', 1650),
+    ('/usr/include/python3.12/fileutils.h', '51ae1c2ca70a8005206f653121d1ba3247f59421c96399739845d687980e9b01', 507),
+    ('/usr/include/python3.12/floatobject.h', '2da72b48fa342e53f72848d468c3c11a9d5b62922f2bd71c286331f54f2364a1', 1532),
+    ('/usr/include/python3.12/frameobject.h', '969cd93065ce79b81bbc67a65d31b742e23f30bf79d6e44a306963d552ed0c35', 336),
+    ('/usr/include/python3.12/genericaliasobject.h', '0e53a0b18c114be68eccea9ffd1dd577e204b1f0ada4d3aedc8e7ee0c80fc7f8', 334),
+    ('/usr/include/python3.12/import.h', '4113e1b6afa760c3decce2bb765835adda19861394974cfe301e1ccb482e2b94', 3033),
+    ('/usr/include/python3.12/internal/pycore_abstract.h', '75ecd34cdcd06fc64fcfa550f66975d755619e7cf06fdae8ecbe2de6ec49ce39', 611),
+    ('/usr/include/python3.12/internal/pycore_asdl.h', 'b29dace0f84849c4a24bc3745523a36911cd192bad7ec6fb48aba8facff51d3e', 3035),
+    ('/usr/include/python3.12/internal/pycore_ast.h', '064b6778fa758fb2580fb8770f77dd0d1eb19323df0e345373788c75754910cf', 31288),
+    ('/usr/include/python3.12/internal/pycore_ast_state.h', '1d76a7b5207c653a86dec97aab5ba1fcc5c75e94333662792a692cb68e5b26c6', 6749),
+    ('/usr/include/python3.12/internal/pycore_atexit.h', '8c5c88b8452894cf8a5f243ceb9021060f0fe8f5689cbc3e705c19c5edc0798a', 1149),
+    ('/usr/include/python3.12/internal/pycore_atomic.h', '95e7118e799ad3faafc8e58a29b2d1f1a4bb94e1aac3273e042f379f8e12d4e6', 16979),
+    ('/usr/include/python3.12/internal/pycore_atomic_funcs.h', '9d5cfa13ad863a0cc1b0ab06861c1f8cfbdc7d730b9c4603e5777a608263d399', 2438),
+    ('/usr/include/python3.12/internal/pycore_bitutils.h', '86628b9cbefe4ff000e1190cd36f37b70a2dad6a4e9231cc2466a84579cc2139', 6062),
+    ('/usr/include/python3.12/internal/pycore_blocks_output_buffer.h', '03fed5054d0d78e3711e73995e484fefb81495c063a5b9ef555c0395d7fc1ebc', 8688),
+    ('/usr/include/python3.12/internal/pycore_bytes_methods.h', '1534326dbf027e9bb472be5ccf8b82fab48f3282cc7f6a61629b801fc80afc00', 3384),
+    ('/usr/include/python3.12/internal/pycore_bytesobject.h', 'd3ecf25cf0f0e9815ac24f496e5ccbbf8d57a10e570da81e84f2b5f6e95b59b8', 1339),
+    ('/usr/include/python3.12/internal/pycore_call.h', '5e780aed2dc991455a0e528fc7baca8df61d2e4bec4e137d7e788668b5750ec5', 3920),
+    ('/usr/include/python3.12/internal/pycore_ceval.h', '1af22b50c9ececfc4c3a5f37ecb70cc1c0eefad5a2656e6e22fc088cae54e226', 5265),
+    ('/usr/include/python3.12/internal/pycore_ceval_state.h', 'f29e3d6dcac96b0067a17845df8483013230805db10c6f3c5ecd02b9134640e7', 2744),
+    ('/usr/include/python3.12/internal/pycore_code.h', '48e78dd1a12e6afa6e54e26f8e7c4f56e20689b84189d503507c7f6c36819092', 15835),
+    ('/usr/include/python3.12/internal/pycore_compile.h', '4d386629f5e0ea801a01122833f11363cf9f1584aef6e9692ffd0b95eda37cbc', 3453),
+    ('/usr/include/python3.12/internal/pycore_condvar.h', '89a5d9c366c2e1c312e1ace5067d184380242c944deb698b6a4f53b51abd5826', 2839),
+    ('/usr/include/python3.12/internal/pycore_context.h', '974d6bafbe0164d60dd1bc4f09b5eac9bcc9e2d9066924ba2a2ba6d502f115b5', 1301),
+    ('/usr/include/python3.12/internal/pycore_descrobject.h', 'd9be424b5c2d109b51338016acab6132f299c0640fc069fb0e1d48575089574e', 499),
+    ('/usr/include/python3.12/internal/pycore_dict.h', '4d51e7184d50a5f8785a1cbdc9f6eb36b86201158ae6e3527884ce2b5dd504bf', 6384),
+    ('/usr/include/python3.12/internal/pycore_dict_state.h', '5a15c2bb4020ce4a1d7a4c651e0f98b4becd910f89cd7c4089c80a0419ec4f1c', 1095),
+    ('/usr/include/python3.12/internal/pycore_dtoa.h', 'a67261c7187a02a6d2ef7fef8207acb85ce5906f4ee970f4f06822f695f489ad', 1626),
+    ('/usr/include/python3.12/internal/pycore_emscripten_signal.h', '1acd47a1c09e365be8c7fa51db31307021cc2e471471fc199e26f317df58c4b8', 562),
+    ('/usr/include/python3.12/internal/pycore_exceptions.h', '4590af737d53afcbd7d559434190d2d8ff4f5cd0e923837721aea5ebb000ef68', 842),
+    ('/usr/include/python3.12/internal/pycore_faulthandler.h', '6444dce1924eae011d27385183ad1a5de6908501cedce2e1531abd834c68cae7', 2220),
+    ('/usr/include/python3.12/internal/pycore_fileutils.h', 'ea9cac693c87dc049f199cecd2844592ee08d0283dc0b059c4caab517932af73', 7910),
+    ('/usr/include/python3.12/internal/pycore_fileutils_windows.h', '9e976ea0f3457c8b40db0a3b2cfea9e9684737f75282400ec0040ae0df1e6385', 2724),
+    ('/usr/include/python3.12/internal/pycore_floatobject.h', '021fef24c4b7e7390c793af7ccf12ddd94b1871e27d26997b37eb3093d5380b5', 1578),
+    ('/usr/include/python3.12/internal/pycore_flowgraph.h', 'c58cdc30ce8c853404f55881813ec69d6dbf921f2769ec9e289b5155b7a349db', 4630),
+    ('/usr/include/python3.12/internal/pycore_format.h', '253cc77e6d11ba20d297813e064650fa965b3653f150bd85f805b94db5f3a98d', 480),
+    ('/usr/include/python3.12/internal/pycore_frame.h', '97c7e2722af4c30c240b8b3c867a54b2fe49a4207d2e566c6a19a9d190fd0f8a', 9256),
+    ('/usr/include/python3.12/internal/pycore_function.h', '8fad970bd3f31347aed72b92acd17270dbb6ec5333ab5ed6fe43dc9cf2527841', 611),
+    ('/usr/include/python3.12/internal/pycore_gc.h', 'd0349a94dafb16ec4c05ba5a94d3b9e6cec53fe7b5e0d74216ea31996546f9a3', 7658),
+    ('/usr/include/python3.12/internal/pycore_genobject.h', 'a940f41da1e8d9d12c9c438ea0b4f24e72abc494447bcecd9423b76f54e3402a', 1186),
+    ('/usr/include/python3.12/internal/pycore_getopt.h', 'e93393067b66b557b0300e05c10ee904d4be54cadfb214c5328a9225ad199452', 490),
+    ('/usr/include/python3.12/internal/pycore_gil.h', 'cf455aacd5651e5b43547ebe69bb324eab84238d92665df53c1df32434bd0d9b', 1565),
+    ('/usr/include/python3.12/internal/pycore_global_objects.h', 'ce857a319514b1682eb054bf4a017974b0bf211092819b25f23e877a228090df', 3035),
+    ('/usr/include/python3.12/internal/pycore_global_objects_fini_generated.h', '79fd2e366a02d8b39181f7466a32af1b1c69ec5566bf301b3d9943c552cf9206', 116175),
+    ('/usr/include/python3.12/internal/pycore_global_strings.h', '7991d72ba2c0d8c4cc58575bc29a53fb2a61a89f03335e60320df097d58f1adb', 25665),
+    ('/usr/include/python3.12/internal/pycore_hamt.h', '074b31c2f5701cac43d8dc3e4ede40b2befc6dddfcaa2862cfc8f76234c30ae8', 3742),
+    ('/usr/include/python3.12/internal/pycore_hashtable.h', '690488a7e50ad743e1bb685702fbcfac866ace89d2417a247c1171afdc222261', 4286),
+    ('/usr/include/python3.12/internal/pycore_import.h', 'e5b179692f05707e7fb182b908ed46f9a75f4a751b20501a74de2a440c387e1d', 6358),
+    ('/usr/include/python3.12/internal/pycore_initconfig.h', 'caf13e2c290ae8375636d0e1f3b1851a90396b3747da650d058c282b8743b558', 5706),
+    ('/usr/include/python3.12/internal/pycore_instruments.h', 'dcdb0593cfa908c036d6661f1a776db48642c0fedd243da88161f45ff3c3e3fa', 2998),
+    ('/usr/include/python3.12/internal/pycore_interp.h', '23f5d7884f9e0b212fe79879bbcdc5a2c23c22283db38cadbac6f108bf0f1b75', 9086),
+    ('/usr/include/python3.12/internal/pycore_intrinsics.h', 'e6d6d1eae51b508196615094a4c17189e9822eacb5c0e94102e78aa7136dd9a8', 1397),
+    ('/usr/include/python3.12/internal/pycore_list.h', '470a62bb98b383b85ec738a6577424e6cdd51ae235f4e5ea06c5afdedb6e1652', 1980),
+    ('/usr/include/python3.12/internal/pycore_long.h', '84c0c7bd7ba0c2fbbfb106561e32328e478d8350afe756af6a4862c95d921a06', 7805),
+    ('/usr/include/python3.12/internal/pycore_memoryobject.h', 'c845bb546019ed9999403018740ee5b26f83f8d888c5288895897cb2bd1b5eec', 383),
+    ('/usr/include/python3.12/internal/pycore_moduleobject.h', '55a8f42968545a349d8e0b43cd1822b22ae2cf9fa0fb098c6bb843e7af76e165', 1192),
+    ('/usr/include/python3.12/internal/pycore_namespace.h', '466fe0e3f48e954d8bfe9e0c73fc9378cf79ca37710778ba6698e1c365304956', 392),
+    ('/usr/include/python3.12/internal/pycore_object.h', 'ce41bd5e4720ffe713fd4f36798c92ec23ca966799805a0e2d4607dfc1d9dc2e', 14429),
+    ('/usr/include/python3.12/internal/pycore_object_state.h', '3f8950c793e7121629508d4472c6b020f51d9eb583e317383b67da7f931c03ee', 737),
+    ('/usr/include/python3.12/internal/pycore_obmalloc.h', 'd8738004c5dbb5520f401919ed55181a48a9e64a3b51930309fc99fb9d219576', 27284),
+    ('/usr/include/python3.12/internal/pycore_obmalloc_init.h', '33853ff5ffac15a8622ff6920ff2bd0bf83d1df7ea6d1563916d05992b3203fb', 2085),
+    ('/usr/include/python3.12/internal/pycore_opcode.h', '432e30c6145dff72096325d17192d0eff9895b367d4590f782e2d8b9d5f78cd6', 20081),
+    ('/usr/include/python3.12/internal/pycore_opcode_utils.h', '98dfb250812d554278dedee98a2e9cb05b2583b22d2af8ba1aeda6b130a21b40', 2686),
+    ('/usr/include/python3.12/internal/pycore_parser.h', '91189a016020eb7de0b1ab8ae38145dbec6b561ae5c75cea15980cb76255ba5b', 1358),
+    ('/usr/include/python3.12/internal/pycore_pathconfig.h', 'ff96c74aae60eba62bec8c6d52f34471caf07792186bc16d76e7a783f61aa0ed', 606),
+    ('/usr/include/python3.12/internal/pycore_pyarena.h', 'd4f4e513bae78ff985f51ca48fb7d1a4d57055c59393a1eb661e55e6ec3ba61f', 2733),
+    ('/usr/include/python3.12/internal/pycore_pyerrors.h', '6668d80af8838faf87ff2e37a536c2586e1588d1b23a08f04992c58f6c0630a3', 2783),
+    ('/usr/include/python3.12/internal/pycore_pyhash.h', '7c631d06afad90fa9c2ddc8dc04b7c2855ee5aa6e7ece0b22d0a966a702abf73', 709),
+    ('/usr/include/python3.12/internal/pycore_pylifecycle.h', 'f6a91e690b8e5d3dca52dcdff63d36a6ad9ad85b7ee1edfc14215cc0483059fa', 3365),
+    ('/usr/include/python3.12/internal/pycore_pymath.h', '6dd3ea0f9a84bfa3a2eb0a2b7fa1af1dc8aadad3e74305e13f194a1586815376', 8600),
+    ('/usr/include/python3.12/internal/pycore_pymem.h', 'ad0b35bbf5e665e90223499f8954bfcf36448b1634d54501b0c84d08680323ca', 3040),
+    ('/usr/include/python3.12/internal/pycore_pymem_init.h', '82a1418ee1867e5e9a2717e8a1acfec2e2ff3ef07225e30be7c8cd8f6e29a7ba', 2654),
+    ('/usr/include/python3.12/internal/pycore_pystate.h', 'c06823811bf5dd3d84f40d6a087452da5915e3ad277afef2202c9e86e833ce00', 4982),
+    ('/usr/include/python3.12/internal/pycore_pythread.h', 'ba04eed4d18d6110982cc58800fda11f3899c61fed644ff9e52a4adedb7b750a', 2075),
+    ('/usr/include/python3.12/internal/pycore_range.h', '824c5023a85a9c1c2dd50fecf442d12c7b2966e0e71a2d291f6f17f7fd8c29bc', 346),
+    ('/usr/include/python3.12/internal/pycore_runtime.h', 'd47fe4de4c245e2f90ce73792337565cae6ce95d8e2cd08bcda43ec92832b1ac', 8429),
+    ('/usr/include/python3.12/internal/pycore_runtime_init.h', '60d97c6edbd7eaf3841ce88d3f33794b4c3dfead870914f021e1425e11670321', 6087),
+    ('/usr/include/python3.12/internal/pycore_runtime_init_generated.h', '0c209438a3b41fbbfaffc76669325328d074be692d96c99eea255366689e4055', 46045),
+    ('/usr/include/python3.12/internal/pycore_signal.h', '186835a8702a10bb1f3f63185d50874f24885716707717f620d3ffd0a2039679', 2611),
+    ('/usr/include/python3.12/internal/pycore_sliceobject.h', 'e8b9ba794081a75bf73f0eb64089a766b5bd04b076d4368a14a83ff43ce909be', 414),
+    ('/usr/include/python3.12/internal/pycore_strhex.h', '45783d1137fc33a8d9e457692227e8395a93b27c76205f50ad7bd8f00fe7aefb', 937),
+    ('/usr/include/python3.12/internal/pycore_structseq.h', 'e1c1be3681fec8c1146d5a084869c1bbabcbe68223382cdab8536c8b88958891', 923),
+    ('/usr/include/python3.12/internal/pycore_symtable.h', '2f532ac82c3415dbc048f35451760a8203a67ca513b85e220fc38f5c10655db5', 6852),
+    ('/usr/include/python3.12/internal/pycore_sysmodule.h', '2c22c3f98c917dee3d954957f36713e2ddd96a27b076e05f7360c629f37e983d', 734),
+    ('/usr/include/python3.12/internal/pycore_time.h', '6838118a537e71edaf76290da15cbf2da19499df1ee4e30b15f35bb4b9257b70', 388),
+    ('/usr/include/python3.12/internal/pycore_token.h', '91c75ef718b8e8be2383fdcea502c1e63ebfa6d681afd45672e379ea7e5d3668', 3050),
+    ('/usr/include/python3.12/internal/pycore_traceback.h', '3f9dfb009dc161f2d979f5af76d660611264b5d0b1b4adeeae10d30ee0999ede', 3501),
+    ('/usr/include/python3.12/internal/pycore_tracemalloc.h', '61ac9b846ae579c667d20034c9c4004a07ab3ff039848ddeeec8d9c39ff1331a', 3075),
+    ('/usr/include/python3.12/internal/pycore_tuple.h', 'de5677ac0809abf2744ebdd94768b6974e75ea62cc2cee44c4f433e2b818f953', 2197),
+    ('/usr/include/python3.12/internal/pycore_typeobject.h', '9af7c474e699753e6830949962176eab1f2e3ffa9616a24ab395001fc75db90b', 4669),
+    ('/usr/include/python3.12/internal/pycore_typevarobject.h', 'b925204918e577bfb667a64f5f56e410cba0bc518207ed8535d1fcf1bdd6ab00', 763),
+    ('/usr/include/python3.12/internal/pycore_ucnhash.h', '6d9077e875703e5db7daf293a6c7ea3d43d1ee84dec137a950f17a26e9348eb5', 898),
+    ('/usr/include/python3.12/internal/pycore_unicodeobject.h', '916e12522af51502be463a9e722e1e5017827e1d8da62ac68a03887185c1c278', 1966),
+    ('/usr/include/python3.12/internal/pycore_unicodeobject_generated.h', '40f9a9c1b38fff0c3b512dd518c8df9a34493775b3c2ffe14f5e854dc4660e06', 91455),
+    ('/usr/include/python3.12/internal/pycore_unionobject.h', 'f1c5bbdf5660e54872ff1555c179cf6c80f8e04cac41e974b7964e21f82be18c', 682),
+    ('/usr/include/python3.12/internal/pycore_warnings.h', '3229b207245cb9442f09991df7084c8e4cb87cb073a14a2d520bd92634371fcb', 740),
+    ('/usr/include/python3.12/interpreteridobject.h', 'b497c869333bdf1f79a580a36e9a0ed64fee226daa1d2d45bdfe16c01e52d73c', 333),
+    ('/usr/include/python3.12/intrcheck.h', '696fe17618c579a8cbaad9b86175f60d43ea0b9e8aaaa1d65ad256d53dc163c1', 772),
+    ('/usr/include/python3.12/iterobject.h', '6b16711d2bb6cee55e4288f84142d592eebf07321e32998a5abe2c06deeb77b0', 597),
+    ('/usr/include/python3.12/listobject.h', 'f4cad9a1f48d27a9a7f56702ab0fe785013eb336ea919197600d86a6e54fa5bf', 1782),
+    ('/usr/include/python3.12/longobject.h', '0567b258763af5e6cb0ecba02135b41b012425a673d4da8c87db1333ac638901', 3739),
+    ('/usr/include/python3.12/marshal.h', 'd7f5760ef6496776cee99aca5491789f6ab261a78b156b5758538ea15e1827e5', 827),
+    ('/usr/include/python3.12/memoryobject.h', 'efb734845a1366d77f6351cbb954c08681d4acfe6a53e41e82dd45fa881e0090', 1081),
+    ('/usr/include/python3.12/methodobject.h', '059e19bd8d418c8bf1481e301340f989317ba7b56de94729a19aae26fee3da62', 5076),
+    ('/usr/include/python3.12/modsupport.h', '064d1440d862d08f296c1cbe868e417af12b34f770be515461211f5beade04ff', 6515),
+    ('/usr/include/python3.12/moduleobject.h', '5eb48f5d99322d7912a5c6f2b3a974e283c7a6045f79a503d7e09f3ac15b42ec', 3559),
+    ('/usr/include/python3.12/object.h', '68b97095c521fcb3fab7193e166870b0c040c8f19ac50efb42088364862503a7', 37155),
+    ('/usr/include/python3.12/objimpl.h', '8828a8db3e9f14b5ca2d59b1d8c05f6bf54fae26736ae039b7420c886142dba2', 9238),
+    ('/usr/include/python3.12/opcode.h', '4e8c6eee859813845b3a9dfe9e08ca4cc607a7f884048f5a6cebef6bdcc5d33d', 12808),
+    ('/usr/include/python3.12/osdefs.h', '8372e9c507949a88ed3cad5fd0a830190d60a1655e9a3f59ef4d0832c06a041c', 737),
+    ('/usr/include/python3.12/osmodule.h', 'c013935b48f48ca8ce249a4d482c55e3fb6f1cfe786c5a32a57969bb74a779d9', 291),
+    ('/usr/include/python3.12/patchlevel.h', 'f2f4800f05108bef77f6164484aba437b86b81e34744cbb5378f7bb2ccc69414', 1299),
+    ('/usr/include/python3.12/py_curses.h', '1aa826cacb9f07611155906d711403a7675ce573d61c888786178bb574dc3087', 2473),
+    ('/usr/include/python3.12/pybuffer.h', 'c95edd830772e922f60f976ac0d98470b48a443ba198b0866a4096003c0740a4', 5282),
+    ('/usr/include/python3.12/pycapsule.h', '6929a47483ea5bb1a7b9b490a876b21beefed11061c94b2963b2608b7f542728', 1727),
+    ('/usr/include/python3.12/pyconfig.h', 'dcda0cfa3f4971db195817881c58025db6c76f19ae45f26d3dda0a43001253e8', 4661),
+    ('/usr/include/python3.12/pydtrace.h', '7ac591e56e12936a32e3b0b85dae803f8f00bdc91abe01799ca2e4ce69548555', 2404),
+    ('/usr/include/python3.12/pyerrors.h', '59bf06c7ba877ec76d09a41aac75e385a2723545388b105864f48f295e2524e0', 13017),
+    ('/usr/include/python3.12/pyexpat.h', '24eb6f486b4eec69bcd84ec6cc17833040095aabba7a0c4ebe491bb5de02879e', 2572),
+    ('/usr/include/python3.12/pyframe.h', '58513e7017805ee5c49a329a552f72a6be6d88ce2bcfa344f5130582fa75ecb6', 551),
+    ('/usr/include/python3.12/pyhash.h', 'a6ea755ff42ec955feaf49b1d234a5c2935899309ea59925d1d30f3e62fed67d', 4154),
+    ('/usr/include/python3.12/pylifecycle.h', 'd313c5f3fe805606061ea78982ca5d5a9f09e687210c8b0fbcb50db596106691', 2249),
+    ('/usr/include/python3.12/pymacconfig.h', '5dcd4fa505975be42c35a4707ab7cb5b6ddf2e896bb8fbb8c1fd9047e5183a3d', 2810),
+    ('/usr/include/python3.12/pymacro.h', '30af4b1a8deb972e716f24d32985b79deadb7f638d0b576a46214962ac4055fa', 6318),
+    ('/usr/include/python3.12/pymath.h', 'eeea8396e1acd271ba83a568ba572ead47493e492ce998756fe1256bf917b3f9', 1688),
+    ('/usr/include/python3.12/pymem.h', '54a5315d7861e989c5099f168d946f5a421337efcd5d44896201016e92a81348', 3914),
+    ('/usr/include/python3.12/pyport.h', 'fb25010bf4b52df6157e29bb4c0bbdc4797b417df0346c7258294f501667ec5e', 25516),
+    ('/usr/include/python3.12/pystate.h', '065426aaa5fada90d61a17757fbc2e8ce3fb9cc203992990c4ca3cee7f9f80be', 4635),
+    ('/usr/include/python3.12/pystats.h', 'b93db83e29f09ff06b15bf39a21e53de82858ba92cbf48332d1ada1ac028d6f8', 2741),
+    ('/usr/include/python3.12/pystrcmp.h', 'f401d8338fb6ecf5f12768ee95cd09c262f880b2ee522ca344b890dbdcde4c88', 436),
+    ('/usr/include/python3.12/pystrtod.h', '8c8e9d1d279216f1c08f0aedac5de49a9b8852a3f838f21e298300e969474ef4', 1557),
+    ('/usr/include/python3.12/pythonrun.h', '4749ef95e910632a1d04b912c4f1d615c9d10567cbaf52a2ab2c68c7c3a38d94', 1313),
+    ('/usr/include/python3.12/pythread.h', 'cd063073710988ea21b54588473542e5f3b2be06f637dc5a028aefd5a7949144', 4875),
+    ('/usr/include/python3.12/pytypedefs.h', '26d09a78c44998e8c0a74ed2d14e5346e4b922892eb79288049b7ac5b6a1e751', 851),
+    ('/usr/include/python3.12/rangeobject.h', '36547ab5862e82b09cbed7b786a4cfc86af1dec5a3778c50825bb266c9a6aec9', 630),
+    ('/usr/include/python3.12/setobject.h', '7ff1b984647598b19ff593b0fa40d44cf5d7bc37d386dd9fac059e560f4a31ca', 1557),
+    ('/usr/include/python3.12/sliceobject.h', '527719b92e4fa9d5b371c30bc87bc0304ec20099b18c446ad1aa49fd61e5e387', 2518),
+    ('/usr/include/python3.12/structmember.h', '9d4c39dee96e228f60cc8a6960b9e7049875ddbee15541a75629c07777916342', 1645),
+    ('/usr/include/python3.12/structseq.h', '067f8663a922eb142a3fd12ff18eaa756553bef8a68eaa863f80419dbb8d1ffe', 1398),
+    ('/usr/include/python3.12/sysmodule.h', '09b6f415d4054fee4eb8375a94a724e102bc9a40633d16a437960671b1a9a1b4', 1729),
+    ('/usr/include/python3.12/traceback.h', 'ea59d511687f7f8643c7b8b0996e26f2c92bcc954639c6f98d08f6564b61d06d', 585),
+    ('/usr/include/python3.12/tracemalloc.h', '296084c2140af69ee39e672feab2027411c7b0397a5719aa513802cd6a849d93', 2192),
+    ('/usr/include/python3.12/tupleobject.h', 'd8de8d64e4b5c466c3bdd04f5664f0eba64a9198b30b5a29409d74a5b5f1def7', 1615),
+    ('/usr/include/python3.12/typeslots.h', '77fe4a71f5e5974c40fd3485d3c9aeb8b7ccf33969cd26feb58c64eda5f86f1d', 2342),
+    ('/usr/include/python3.12/unicodeobject.h', '5cc1350da2b00f5187065004a1f5d66764e86a0f20f8faba7d0eadf913297d93', 35164),
+    ('/usr/include/python3.12/warnings.h', '18fde34b12247460de805fc259ea7f14305fce4779d244c0a7bdc7c73b8f6b51', 1129),
+    ('/usr/include/python3.12/weakrefobject.h', '031b4bc091cf442b4305f7c5ac9713f32101a5e40617f3cb56c632cb7b15fb5b', 1234),
+    ('/usr/include/x86_64-linux-gnu/python3.12/pyconfig.h', '23931f53bc7ee512c6bd3162828747494eaa5e21f23dd63b31170ec1adfbe65e', 55858),
+)
+
+
+def _need(condition, message):
+    if not condition:
+        raise _ERROR(message)
+
+
+def _fingerprint(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _hash_regular(path, limit, materialize):
+    """Bounded hashing; /proc/self/exe is the one intentional kernel symlink."""
+    _need(_TYPE(path) is _STR and path.startswith("/"), "Probe path must be absolute exact str")
+    descriptor = None
+    try:
+        descriptor = _OPEN(path, _PROC_FLAGS if path == "/proc/self/exe" else _FLAGS)
+        before = _FSTAT(descriptor)
+        _need((before.st_mode & 0o170000) == 0o100000 and 0 <= before.st_size <= limit,
+              "Probe authentication file type/size differs")
+        digest, count, parts = _SHA256(), 0, []
+        while True:
+            block = _READ(descriptor, min(1024 * 1024, limit + 1 - count))
+            if not block:
+                break
+            count += _LEN(block)
+            _need(count <= limit, "Probe authentication file grew beyond bound")
+            digest.update(block)
+            if materialize:
+                parts.append(block)
+        after = _FSTAT(descriptor)
+        _need(_fingerprint(before) == _fingerprint(after) and count == before.st_size,
+              "Probe authentication file changed during read")
+        return digest.hexdigest(), count, _fingerprint(after), b"".join(parts) if materialize else None
+    except _OSERROR as error:
+        raise _ERROR("Probe authentication file could not be read: " + path) from error
+    finally:
+        if descriptor is not None:
+            _CLOSE(descriptor)
+
+
+def _profile_files():
+    namespace = _GLOBALS()
+    _ROOT_VALIDATE(_BOOTSTRAP_CAPABILITY, namespace)
+    source_path = namespace.get("__file__")
+    _need(_TYPE(source_path) is _STR and source_path.startswith("/"),
+          "Probe provider requires its authenticated absolute __file__")
+    path = source_path.rsplit("/", 1)[0] + "/" + _PROFILE_BASENAME
+    digest, count, fingerprint, raw = _hash_regular(path, 65536, False)
+    _need(digest == _PROFILE_SHA256, "Probe runtime profile source differs")
+    # These immutable triples are source-bound byte-for-byte to that profile.
+    # No JSON decoder or mutable cached decoded profile participates in admission.
+    return _RUNTIME_FILES + ((path, digest, count),)
+
+
+def _audit_files(files):
+    for path, expected, size in files:
+        digest, count, _, _ = _hash_regular(path, max(size, 1), False)
+        _need(digest == expected and count == size, "Probe runtime/header/binary custody differs: " + path)
+
+
+def _code_names(code):
+    names = set(code.co_names)
+    for constant in code.co_consts:
+        if _TYPE(constant) is CodeType:
+            names.update(_code_names(constant))
+    return names
+
+
+def _function_record(function):
+    namespace, builtins_owner = function.__globals__, function.__builtins__
+    closure = function.__closure__
+    cells = () if closure is None else _TUPLE((cell, cell.cell_contents) for cell in closure)
+    defaults, keywords = function.__defaults__, function.__kwdefaults__
+    keyword_items = () if keywords is None else _TUPLE(keywords.items())
+    lookups = []
+    for name in _code_names(function.__code__):
+        lookups.append((name, namespace.get(name, _MISSING), builtins_owner.get(name, _MISSING)))
+    return (function, function.__code__, namespace, builtins_owner, defaults, keywords,
+            keyword_items, closure, cells, _TUPLE(lookups))
+
+
+def _function_fresh(record, observations):
+    function, code, namespace, builtins_owner, defaults, keywords, keyword_items, closure, cells, lookups = record
+    field, length, get_id, cell_info = observations[:4]
+    if not (_TYPE(function) is FunctionType and
+            field(function, '__code__') == _ID(code) and
+            field(function, '__globals__') == _ID(namespace) and
+            field(function, '__builtins__') == _ID(builtins_owner) and
+            field(function, '__defaults__') == _ID(defaults) and
+            field(function, '__kwdefaults__') == _ID(keywords) and
+            field(function, '__closure__') == _ID(closure)):
+        return False
+    if keywords is not None:
+        if length(keywords) != _LEN(keyword_items):
+            return False
+        for name, value in keyword_items:
+            if get_id(keywords, name, _MISSING) != _ID(value):
+                return False
+    for cell, expected in cells:
+        present, observed_id = cell_info(cell)
+        if not present or observed_id != _ID(expected):
+            return False
+    for name, global_value, builtin_value in lookups:
+        if (get_id(namespace, name, _MISSING) != _ID(global_value) or
+                get_id(builtins_owner, name, _MISSING) != _ID(builtin_value)):
+            return False
+    return True
+
+
+def _make_guard(native, entries):
+    namespace = _GLOBALS()
+    namespace_items = _TUPLE(namespace.items())
+    class_proxy = ProbeBinding.__dict__
+    class_items = _TUPLE(class_proxy.items())
+    functions = []
+    for _, value in namespace_items + class_items:
+        if _TYPE(value) in (staticmethod, classmethod):
+            value = value.__func__
+        if _TYPE(value) is FunctionType and value not in functions:
+            functions.append(value)
+    records = _TUPLE(_function_record(function) for function in functions)
+    native_namespace = native.__dict__
+    native_items = _TUPLE(native_namespace.items())
+    class_object, class_mro = ProbeBinding, ProbeBinding.__mro__
+    fresh, error, type0, len0, id0 = _function_fresh, _ERROR, _TYPE, _LEN, _ID
+    module_type, builtin_type = ModuleType, BuiltinFunctionType
+    native_check = entries[1]
+    new_scope = _MAKE_METADATA_SCOPE
+    def guard():
+        # This remains a separate fresh root/provider invocation. Its scope is
+        # disposed on return; none of its actual observations is borrowed here.
+        _ROOT_VALIDATE(_BOOTSTRAP_CAPABILITY, namespace)
+        observations = new_scope()
+        try:
+            field, length, get_id = observations[:3]
+            if length(namespace) != len0(namespace_items):
+                raise error('Probe provider namespace changed')
+            for name, value in namespace_items:
+                if get_id(namespace, name, _MISSING) != id0(value):
+                    raise error('Probe provider global changed: ' + name)
+            if field(class_object, '__mro__') != id0(class_mro) or length(class_proxy) != len0(class_items):
+                raise error('Probe binding class changed')
+            for name, value in class_items:
+                if get_id(class_proxy, name, _MISSING) != id0(value):
+                    raise error('Probe binding class member changed: ' + name)
+            for record in records:
+                if not fresh(record, observations):
+                    raise error('Probe provider function calling environment changed')
+            if (type0(native) is not module_type or
+                    field(native, '__dict__') != id0(native_namespace) or
+                    length(native_namespace) != len0(native_items)):
+                raise error('Probe native module changed')
+            for name, value in native_items:
+                if get_id(native_namespace, name, _MISSING) != id0(value):
+                    raise error('Probe native module member changed: ' + name)
+            for function in entries:
+                if type0(function) is not builtin_type or field(function, '__self__') != id0(native):
+                    raise error('Probe native entry owner changed')
+        finally:
+            observations[6]()
+        # Native ABI check and ensuing inspect occur after all observations have
+        # been discarded. Both native obligations remain literally present.
+        native_check()
+    return guard
+
+
+def _state(binding):
+    _need(_TYPE(binding) is ProbeBinding, "Probe binding class differs")
+    state = _OWNERS.get(_ID(binding))
+    _need(state is not None and state[0] is binding, "Probe binding is closed or was not authenticated")
+    return state
+
+
+class ProbeBinding:
+    __slots__ = ()
+
+    def __new__(cls):
+        raise _ERROR("ProbeBinding must be created by authenticated load_probe")
+
+    def check(self):
+        _state(self)[3]()
+
+    def inspect(self, mapping, key):
+        state = _state(self)
+        state[3]()
+        result = state[2][0](mapping, key)
+        _need(result is True or result is NotImplemented, "Probe returned non-metadata result")
+        return result
+
+    def counters(self):
+        state = _state(self)
+        state[3]()
+        result = state[2][3]()
+        _need(_TYPE(result) is _DICT, "Probe counters type differs")
+        return result
+
+    def close(self):
+        state = _state(self)
+        try:
+            state[3]()
+            _audit_files(state[4])
+        finally:
+            # Original captured entry is used even if the public module drifted.
+            try:
+                state[2][5]()
+            finally:
+                del _OWNERS[_ID(self)]
+
+
+def validate_binding(binding):
+    """Exact registered ownership and fresh runtime/provider check; no inspection."""
+    _state(binding)[3]()
+    return None
+
+
+
+def preflight_runtime():
+    """Fresh public file/profile check before any scientific/native build."""
+    _ROOT_VALIDATE(_BOOTSTRAP_CAPABILITY, _GLOBALS())
+    files = _profile_files()
+    _audit_files(files)
+    return {"schema": "h25-public-runtime-preflight-v2", "authenticated_files": _LEN(files),
+            "native_private_access": False, "cached_admission": False}
+
+
+def load_probe(extension_path, expected_extension_sha256):
+    """Authenticate actual runtime/header/binary bytes, then load and activate."""
+    _ROOT_VALIDATE(_BOOTSTRAP_CAPABILITY, _GLOBALS())
+    _need(_TYPE(extension_path) is _STR and extension_path.startswith("/"),
+          "Probe extension path must be an absolute exact str")
+    _need(_TYPE(expected_extension_sha256) is _STR and _LEN(expected_extension_sha256) == 64 and
+          all(character in "0123456789abcdef" for character in expected_extension_sha256),
+          "Probe requires an independently expected lowercase SHA256")
+    files = _profile_files()
+    _audit_files(files)  # actual /proc/self/exe and complete pinned headers first
+    before_hash, binary_size, before_identity, _ = _hash_regular(extension_path, _MAX_BINARY, False)
+    _need(before_hash == expected_extension_sha256, "Probe extension bytes differ before load")
+    _ROOT_VALIDATE(_BOOTSTRAP_CAPABILITY, _GLOBALS())
+    native = _ROOT_CREATE(_BOOTSTRAP_CAPABILITY, extension_path)
+    _need(_TYPE(native) is ModuleType, "Probe loader did not return an exact module")
+    _ROOT_EXEC(_BOOTSTRAP_CAPABILITY, native)
+    _ROOT_VALIDATE(_BOOTSTRAP_CAPABILITY, _GLOBALS())
+    after_hash, after_size, after_identity, _ = _hash_regular(extension_path, _MAX_BINARY, False)
+    _need((after_hash, after_size, after_identity) == (before_hash, binary_size, before_identity),
+          "Probe extension changed across loading")
+    namespace = native.__dict__
+    _need(namespace.get("__name__") == _NATIVE_NAME and namespace.get("__file__") == extension_path,
+          "Probe loaded module origin differs")
+    entries = _TUPLE(namespace.get(name) for name in _NATIVE_NAMES)
+    for name, entry in zip(_NATIVE_NAMES, entries):
+        _need(_TYPE(entry) is BuiltinFunctionType and entry.__self__ is native and entry.__name__ == name,
+              "Probe native entry is not an owned builtin: " + name)
+    public_profile = entries[2]()
+    _need(_TYPE(public_profile) is _TUPLE and
+          all(_TYPE(value) is _INT for value in public_profile) and public_profile == _EXPECTED_PROFILE,
+          "Probe compiled/public ABI profile differs")
+    _ROOT_VALIDATE(_BOOTSTRAP_CAPABILITY, _GLOBALS())
+    _ROOT_ACTIVATE(_BOOTSTRAP_CAPABILITY, entries[4])  # final root guard precedes activation
+    binding = None
+    try:
+        binding = _OBJECT.__new__(ProbeBinding)
+        guard = _make_guard(native, entries)
+        owner_files = files + ((extension_path, expected_extension_sha256, binary_size),)
+        _OWNERS[_ID(binding)] = (binding, native, entries, guard, owner_files)
+        guard()
+    except BaseException:
+        entries[5]()
+        if binding is not None:
+            _OWNERS.pop(_ID(binding), None)
+        raise
+    return binding

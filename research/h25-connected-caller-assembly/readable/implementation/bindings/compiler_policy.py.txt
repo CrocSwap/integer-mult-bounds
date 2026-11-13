@@ -1,0 +1,549 @@
+"""Finite compiler consequence interpreter for the genuine parent association.
+
+This module grants no authority and performs no I/O or target work on import.
+The original T1 supplies the selected native/configured subject. The authenticated
+parent obtains current objects and complete reports from its actual supervisor.
+A matching package or plausible report prefix is never a substitute for either.
+"""
+import ast
+import hashlib
+import json
+import re
+import shlex
+import struct
+
+MAX_REPORT = 1048576
+MAX_ARGV = 512
+MAX_ARG = 8192
+MAX_INPUTS = 512
+HARD_AS = 268435456
+GCC_PIN = ('1b99826121ae6682a634e5efe09bd3e3df58ce58e0b28f849114ab5b89139c26', 1023032)
+G = '/usr/lib/gcc/'
+M = 'x86_64-linux-gnu/13/'
+T = G + M + '../../../../x86_64-linux-gnu/lib/'
+LOOKUPS = (G + M + 'specs', T + M + 'specs', T + 'specs', G + 'x86_64-linux-gnu/specs')
+ENVIRONMENT = {'PATH':'/usr/bin:/bin','PYTHONHASHSEED':'0','LANG':'C.UTF-8',
+               'LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1'}
+COMMON = ('-shared','-fPIC','-O3','-std=c11','-Wall','-Wextra','-Werror')
+SOURCES = {'metadata': ('integration/native_packet.py', 'prepare'),
+           'backend': ('baseline/engine/native_backend.py', 'build_native'),
+           'encoder': ('integration/adapters.py', 'build_encoder')}
+METADATA = (('production','dict_probe_v2.c','_h25_dict_probe'),
+            ('watcher','probe_watcher_fixture.c','_h25_probe_watch_fixture'),
+            ('bounds','probe_bounds_fixture_v2.c','_h25_probe_bounds_fixture'))
+SUBJECT_KEYS = {'schema','native_subject_reference','currentness_interval_reference',
+                'configured_driver','images','input_files','configured_files','families',
+                'source_proofs'}
+FAMILY_KEYS = {'family_id','original_command_source_pin','source_root','output_root',
+               'cc_configured','extension_suffix','include','ld_emulation'}
+
+
+class CompilerPolicyError(RuntimeError):
+    pass
+
+
+def need(value, message):
+    if value is not True:
+        raise CompilerPolicyError(message)
+
+
+def canonical(value):
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True,
+                      allow_nan=False) + '\n').encode('ascii')
+    need(len(raw) <= 8388608, 'finite compiler evidence serialization')
+    return raw
+
+
+def digest(value):
+    return hashlib.sha256(canonical(value)).hexdigest()
+
+
+def pin(value):
+    need(type(value) is dict and set(value) == {'path','sha256','bytes','mode'}, 'exact compiler source/image pin')
+    path(value['path'])
+    need(type(value['sha256']) is str and re.fullmatch('[0-9a-f]{64}',value['sha256']) is not None,
+         'compiler pin SHA256')
+    need(type(value['bytes']) is int and 0 < value['bytes'] <= 536870912 and
+         type(value['mode']) is int and 0 <= value['mode'] <= 0o7777, 'compiler pin size/mode')
+    return value
+
+
+def path(value):
+    need(type(value) is str and value.startswith('/') and len(value) <= 4096 and '\x00' not in value
+         and all(part not in ('.','..','') for part in value.split('/')[1:]), 'canonical compiler subject path')
+    return value
+
+
+def validate_subject(subject):
+    need(type(subject) is dict and set(subject) == SUBJECT_KEYS and
+         subject['schema'] == 'compiler-subject-v1', 'versioned finite native compiler subject')
+    for key in ('native_subject_reference','currentness_interval_reference'):
+        pin(subject[key])
+    configured = subject['configured_driver']
+    need(type(configured) is dict and set(configured) == {'target','version','standard_exec_prefix',
+         'standard_machine_suffix','p_tmpdir','hard_as_bytes'}, 'complete configured prefix/format frame')
+    need(configured == {'target':'x86_64-linux-gnu','version':'13.3.0','standard_exec_prefix':G,
+         'standard_machine_suffix':M,'p_tmpdir':'/tmp','hard_as_bytes':HARD_AS},
+         'only the source-proved native configured frame is interpreted')
+    for key in ('images','input_files','configured_files'):
+        values = subject[key]
+        need(type(values) is list and len(values) <= MAX_INPUTS and
+             (key != 'images' or 1 <= len(values) <= 48), 'finite compiler object closure')
+        seen = set()
+        for value in values:
+            pin(value)
+            need(value['path'] not in seen, 'unique compiler closure path')
+            seen.add(value['path'])
+    images = {row['path']:row for row in subject['images']}
+    driver = images.get('/usr/bin/x86_64-linux-gnu-gcc-13')
+    need(driver is not None and (driver['sha256'],driver['bytes']) == GCC_PIN,
+         'exact original GCC image; source/package identity alone is insufficient')
+    for required in ('/usr/libexec/gcc/x86_64-linux-gnu/13/cc1',
+                     '/usr/libexec/gcc/x86_64-linux-gnu/13/collect2',
+                     '/usr/libexec/gcc/x86_64-linux-gnu/13/liblto_plugin.so',
+                     '/usr/bin/x86_64-linux-gnu-as','/usr/bin/x86_64-linux-gnu-ld.bfd'):
+        need(required in images, 'complete selected compiler/helper/plugin image closure: '+required)
+    families = subject['families']
+    need(type(families) is list and len(families) == 3 and
+         [v['family_id'] for v in families] == ['metadata','backend','encoder'], 'three independent original compiler origins')
+    for family in families:
+        need(type(family) is dict and set(family) == FAMILY_KEYS, 'exact independent compiler family binding')
+        pin(family['original_command_source_pin'])
+        for key in ('source_root','output_root','include'):
+            path(family[key])
+        need(family['original_command_source_pin']['path'] == family['source_root']+'/'+SOURCES[family['family_id']][0],
+             'original owning source path, not common command substituted for three origins')
+        need(type(family['cc_configured']) is str and 0 < len(family['cc_configured']) <= 8192,
+             'actual independently selected configured CC text')
+        need(family['extension_suffix'] == '.cpython-312-x86_64-linux-gnu.so' and
+             family['include'] == '/usr/include/python3.12' and family['ld_emulation'] == 'elf_x86_64',
+             'selected unchanged Python/native ELF interface')
+    proofs = subject['source_proofs']
+    need(type(proofs) is dict and set(proofs) == {'configured_build','gcc_driver','binutils_patches',
+         'non_lto_inputs','internal_shared_script','native_primitive_frame'}, 'explicit finite original T1 source proof inputs')
+    for value in proofs.values():
+        pin(value)
+    return subject
+
+
+def literal_assignment(raw, name):
+    tree = ast.parse(raw, mode='exec')
+    matches = []
+    for node in tree.body:
+        if isinstance(node,ast.Assign) and any(isinstance(v,ast.Name) and v.id == name for v in node.targets):
+            matches.append(ast.literal_eval(node.value))
+    need(len(matches) == 1, 'unique unchanged literal source assignment '+name)
+    return matches[0]
+
+
+def derive_commands(family, source_raw, cc_text, include, suffix):
+    """Reevaluate each owning origin independently; no original module import."""
+    key = family['family_id']
+    need(hashlib.sha256(source_raw).hexdigest() == family['original_command_source_pin']['sha256'] and
+         len(source_raw) == family['original_command_source_pin']['bytes'], 'actual original command source bytes')
+    tree = ast.parse(source_raw, mode='exec')
+    functions = [v for v in tree.body if isinstance(v,ast.FunctionDef) and v.name == SOURCES[key][1]]
+    need(len(functions) == 1, 'exact original command owning function')
+    # Literal source hash authenticates the full expression, not this AST name.
+    need(include == family['include'] and suffix == family['extension_suffix'], 'original independently queried sysconfig interface')
+    root, out = family['source_root'], family['output_root']
+    if key == 'metadata':
+        build = literal_assignment(source_raw, 'BUILD_CONTRACT')
+        need(tuple(build['compiler']) == ('/usr/bin/x86_64-linux-gnu-gcc-13',) and
+             build['include'] == include and build['extension_suffix'] == suffix and
+             literal_assignment(source_raw,'_SOURCES') == METADATA, 'unchanged metadata compiler/source contract')
+        cc = list(build['compiler'])
+        need(family['cc_configured'] == '/usr/bin/x86_64-linux-gnu-gcc-13', 'metadata CC binding is its original literal')
+        rows = [(role,root+'/areas/cache-validity/probe-native/'+filename,
+                 out+'/cold-native-metadata/'+module+suffix) for role,filename,module in METADATA]
+    else:
+        need(type(cc_text) is str and cc_text == family['cc_configured'], 'this independent sysconfig CC origin')
+        cc = shlex.split(cc_text or 'cc')
+        if key == 'backend':
+            rows = [('plan',root+'/baseline/engine/native_gf2.c',out+'/cold-build/_packed_gf2'+suffix)]
+        else:
+            rows = [('plan',root+'/priorities/trace-encoding/trace_encoder.c',out+'/trace-cold-build/_trace_encoding'+suffix)]
+    need(cc and len(cc) <= 2, 'bounded actual CC prefix')
+    need(cc[0] in ('cc','gcc','x86_64-linux-gnu-gcc','x86_64-linux-gnu-gcc-13',
+         '/usr/bin/cc','/usr/bin/gcc','/usr/bin/x86_64-linux-gnu-gcc','/usr/bin/x86_64-linux-gnu-gcc-13'),
+         'only independently resolved original GCC image names')
+    need(all(v in ('-pthread',) for v in cc[1:]), 'no unanalysed CC-injected option or response file')
+    return tuple({'role':role,'argv':cc+list(COMMON)+['-I'+include,src,'-o',target],
+                  'source':src,'output':target} for role,src,target in rows)
+
+
+def gcc_quote(value):
+    need(type(value) is str and len(value) <= MAX_ARG and '\x00' not in value and '\n' not in value,
+         'finite GCC diagnostic argument')
+    if value and re.fullmatch('[A-Za-z0-9_/.-]+',value):
+        return value
+    return '"'+''.join('\\'+c if c in '"\\$' else c for c in value)+'"'
+
+
+def parse_command(line):
+    """Exact inverse of gcc.cc execute's -### quoting; never a shell parser."""
+    need(type(line) is str and line.startswith(' ') and len(line) <= MAX_REPORT, 'GCC command line envelope')
+    args, index = [], 0
+    while index < len(line):
+        need(line[index] == ' ', 'single emitted argument separator')
+        index += 1
+        start = index
+        if index < len(line) and line[index] == '"':
+            index += 1
+            value = []
+            while index < len(line) and line[index] != '"':
+                if line[index] == '\\':
+                    index += 1
+                    need(index < len(line) and line[index] in '"\\$', 'only GCC emitted escapes')
+                value.append(line[index]); index += 1
+            need(index < len(line), 'complete GCC quoted argument')
+            index += 1; value = ''.join(value)
+        else:
+            while index < len(line) and line[index] != ' ':
+                index += 1
+            value = line[start:index]
+        need(gcc_quote(value) == line[start:index], 'canonical actual GCC argument quoting')
+        args.append(value)
+        need(len(args) <= MAX_ARGV, 'finite planned argv')
+    need(args and all(v != '|' for v in args), 'no unanalysed piped helper plan')
+    return tuple(args)
+
+
+def report_bytes(result, request):
+    need(type(result) is dict and set(result) == {'schema','request_sha256','stdout','stderr','observer'} and
+         result['schema'] == 'compiler-property-result-v1' and result['request_sha256'] == digest(request),
+         'same genuine property request/result')
+    for key in ('stdout','stderr'):
+        need(type(result[key]) is bytes and len(result[key]) <= MAX_REPORT, 'complete bounded raw property stream')
+    observer = result['observer']
+    need(type(observer) is dict and observer.get('protocol') == 'QUALIFIED' and
+         observer.get('request_sha256') == result['request_sha256'], 'owning observer terminal bound to exact request')
+    # The bound method is the authority boundary; these raw pins independently
+    # join native snapshots, concurrent drain and final parent readback.
+    for key in ('stdout','stderr'):
+        raw = result[key]
+        item = observer.get(key)
+        need(type(item) is dict and item.get('bytes') == len(raw) and
+             item.get('sha256') == hashlib.sha256(raw).hexdigest(), 'native terminal / actual raw readback join')
+    need(observer.get('hard_as_bytes') == HARD_AS and observer.get('parent_wait') == 0 and
+         observer.get('guardian_retired') is True and observer.get('domain_retired') is True,
+         'actual observer parent wait, guardian/domain retirement and formatter AS bound')
+    terminal = observer.get('terminal')
+    need(type(terminal) is dict and terminal.get('schema') == 'native-property-observation-v1',
+         'actual native syscall observer terminal')
+    for key, expected in (('protocol_phase',8),('exec_events',1),('exit_event_seen',1),
+          ('terminal_wait_seen',1),('terminal_exit_entries',1),('exit_code',0),('term_signal',0),('eof_mask',3),
+          ('live_tasks',0),('cleanup_uncertain',0),('journal_entries',0),('journal_overflow',0)):
+        need(type(terminal.get(key)) is int and terminal[key] == expected,
+             'complete native observer protocol field '+key)
+    need(type(terminal.get('early_errors')) is list and terminal['early_errors'] == [],
+         'no pre-journal native error was suppressed')
+    for stream in ('stdout','stderr'):
+        count = len(result[stream])
+        need(all(type(terminal.get(stage+'_'+stream+'_bytes')) is int and
+                 terminal[stage+'_'+stream+'_bytes'] == count
+                 for stage in ('snapshot','drained','retained','readback')),
+             'native stopped writes / drain / retained / readback byte equality')
+    need(terminal.get('write_entries') == terminal.get('write_exits') and
+         terminal.get('syscall_entries') == terminal.get('syscall_exits'),
+         'complete actual syscall entry/exit pairing')
+    return result['stdout'], result['stderr']
+
+
+def parse_specs(raw):
+    text = raw.decode('ascii','strict')
+    need(text.endswith('\n\n') and '\x00' not in text, 'complete builtin specs report')
+    specs = {}
+    for part in text.split('\n\n'):
+        if not part:
+            continue
+        head, sep, body = part.partition('\n')
+        need(sep and head.startswith('*') and head.endswith(':') and
+             re.fullmatch('[A-Za-z0-9_]+',head[1:-1]) is not None and head[1:-1] not in specs,
+             'unique complete builtin spec entry')
+        specs[head[1:-1]] = body
+    need({'asm','asm_final','cpp','cc1','cc1plus','link','lib','libgcc','startfile','endfile','link_command'} <= set(specs),
+         'complete selected builtin spec roles')
+    return {'entries':len(specs),'sha256':hashlib.sha256(raw).hexdigest(),
+            'self_spec':specs.get('self_spec'),'link_command':specs['link_command']}
+
+
+def parse_search(raw):
+    lines = raw.decode('ascii','strict').splitlines()
+    need(len(lines) == 3, 'complete three-field reached search report')
+    result = {}
+    for label,line in zip(('install','programs','libraries'),lines):
+        prefix = label+': '+('' if label == 'install' else '=')
+        need(line.startswith(prefix), 'actual GCC search serialization')
+        values = [line[len(prefix):]] if label == 'install' else line[len(prefix):].split(':')
+        need(values and len(values) <= 128 and all(v.startswith('/') and len(v) <= 4096 and '\x00' not in v for v in values),
+             'finite literal reached prefixes (not normalized or inferred present)')
+        result[label] = values
+    return result
+
+
+def parse_multilib(raw):
+    rows = raw.decode('ascii','strict').splitlines()
+    need(1 <= len(rows) <= 16 and '.;' in rows, 'complete finite multilib map with native default')
+    result = []
+    for row in rows:
+        directory, separator, flags = row.partition(';')
+        need(separator and re.fullmatch('[A-Za-z0-9_./-]+',directory) is not None and
+             re.fullmatch('(@[A-Za-z0-9_=-]+)*',flags) is not None, 'bounded multilib serialization')
+        result.append((directory,flags))
+    need(len(set(result)) == len(result), 'unique multilib alternatives')
+    return result
+
+
+def parse_plan(raw, images, original, temporary_directory):
+    text = raw.decode('utf-8','strict')
+    need('\x00' not in text and text.endswith('\n') and '-freport-bug' not in text,
+         'complete selected GCC planned command / reporting-option frame')
+    program_paths = [line[len('COMPILER_PATH='):] for line in text.splitlines() if line.startswith('COMPILER_PATH=')]
+    library_paths = [line[len('LIBRARY_PATH='):] for line in text.splitlines() if line.startswith('LIBRARY_PATH=')]
+    need(len(program_paths) == len(library_paths) == 1, 'actual collect2 rebuilt environment retained')
+    program_paths,library_paths = program_paths[0].split(':'),library_paths[0].split(':')
+    need(all(v.startswith('/') and len(v) <= 4096 for v in program_paths+library_paths),
+         'complete literal rebuilt compiler/library prefixes')
+    commands = [parse_command(line) for line in text.splitlines() if line.startswith(' ')]
+    need(len(commands) == 3, 'exact cc1/as/collect2 native C shared plan')
+    by_path = {row['path']:row for row in images}
+    roles = ('cc1','as','collect2')
+    helper = {'cc1':'/usr/libexec/gcc/x86_64-linux-gnu/13/cc1',
+              'as':'/usr/bin/x86_64-linux-gnu-as',
+              'collect2':'/usr/libexec/gcc/x86_64-linux-gnu/13/collect2'}
+    temps, inputs, plugins = set(), [], []
+    dangerous = ('@','-specs','--specs','-fplugin','-flto','-foffload','--error-handling-script',
+                 '--dynamic-linker','-dynamic-linker','--copy-dt-needed','--no-allow-shlib-undefined',
+                 '--out-implib','--dependency-file','--Map','-Map','--oformat','--script','-T')
+    for role, argv in zip(roles,commands):
+        need(argv[0].startswith('/') and (argv[0].endswith('/'+role) or (role == 'as' and argv[0].endswith('/x86_64-linux-gnu-as'))), 'actual pinned '+role+' identity')
+        for arg in argv[1:]:
+            if arg.startswith('-plugin-opt='):
+                option = arg[len('-plugin-opt='):]
+                need(option in ('/usr/libexec/gcc/x86_64-linux-gnu/13/lto-wrapper', '-pass-through=-lgcc', '-pass-through=-lgcc_s', '-pass-through=-lc') or
+                     re.fullmatch(r'-fresolution='+re.escape(temporary_directory)+r'/cc[A-Za-z0-9]+\.res',option) is not None,
+                     'only source-proved non-LTO plugin data options')
+                continue
+            need(not any(arg.startswith(v) for v in dangerous), 'unanalysed compiler/helper effect edge: '+arg)
+            if arg.startswith(temporary_directory+'/'):
+                need(re.fullmatch(re.escape(temporary_directory)+r'/cc[A-Za-z0-9]+\.(s|o)',arg) is not None,
+                     'only source-proved driver temporary fields may be renamed')
+                temps.add(arg)
+            elif arg.startswith('/') and not arg.startswith('/usr/'):
+                need(arg in (original['source'],original['output']), 'unanalysed absolute helper input/output')
+        if role == 'cc1':
+            need(original['source'] in argv and '-fPIC' in argv and '-O3' in argv and '-std=c11' in argv,
+                 'actual source and unchanged C compile options')
+        if role == 'as':
+            need(any(v.endswith('.s') and v in temps for v in argv), 'assembler consumes declared compiler temporary')
+        if role == 'collect2':
+            need('-shared' in argv and '-o' in argv and argv[argv.index('-o')+1] == original['output'],
+                 'unchanged shared-link output branch')
+            for index,arg in enumerate(argv):
+                if arg == '-plugin':
+                    need(index+1 < len(argv), 'complete explicit plugin argument')
+                    plugins.append(argv[index+1])
+                if arg.startswith('/usr/') and (arg.endswith(('.o','.a','.so')) or '.so.' in arg):
+                    inputs.append(arg)
+            need(len(plugins) == 1 and plugins[0].endswith('/liblto_plugin.so'),
+                 'nonempty exact registered BFD plugin list')
+            need('-m' in argv and argv[argv.index('-m')+1] == 'elf_x86_64', 'native linker emulation')
+    need(bool(temps) and len(plugins) == 1, 'complete temporary/plugin derivation')
+    return {'helper_argv':[list(v) for v in commands],'temporary_fields':sorted(temps),
+            'explicit_plugins':plugins,'direct_inputs':inputs,
+            'compiler_path':program_paths,'library_path':library_paths,
+            'complete_stderr_sha256':hashlib.sha256(raw).hexdigest()}
+
+
+def parse_script(raw, emulation):
+    text = raw.decode('ascii','strict')
+    need(len(raw) <= MAX_REPORT and '\x00' not in text and '%' not in text, 'literal internal script formatter domain')
+    marker = '='*50
+    pieces = text.split(marker)
+    need(len(pieces) == 3 and pieces[2].strip() == '' and 'using internal linker script:' in pieces[0],
+         'complete builtin shared script, no external fread branch')
+    script = pieces[1].strip()
+    need('OUTPUT_FORMAT("elf64-x86-64"' in script and 'OUTPUT_ARCH(i386:x86-64)' in script,
+         'native selected generated script')
+    need(not re.search(r'\b(INPUT|GROUP|INCLUDE|STARTUP|OUTPUT|TARGET)\s*\(',script),
+         'no injected script input/output/foreign-format edge')
+    search = re.findall(r'SEARCH_DIR\("([^"\n]+)"\)',script)
+    need(search and len(search) <= 64 and all(v.startswith(('=/','/')) for v in search),
+         'actual bounded Ubuntu multiarch generated search paths')
+    return {'emulation':emulation,'sha256':hashlib.sha256(raw).hexdigest(),
+            'script_sha256':hashlib.sha256(script.encode('ascii')).hexdigest(),'search_directories':search}
+
+
+def input_kind(raw):
+    """Reject LTO/offload ELF sections and unsupported containers before use."""
+    if raw.startswith(b'\x7fELF'):
+        need(len(raw) >= 64 and raw[4:7] == b'\x02\x01\x01', 'native ELF64LE input')
+        etype,machine = struct.unpack_from('<HH',raw,16)
+        need(etype in (1,2,3) and machine == 62, 'native x86_64 ELF input')
+        shoff = struct.unpack_from('<Q',raw,40)[0]
+        ents,count,names = struct.unpack_from('<HHH',raw,58)
+        need(ents == 64 and 0 < count <= 4096 and names < count and shoff+count*ents <= len(raw), 'complete bounded section table')
+        noff,nsize = struct.unpack_from('<QQ',raw,shoff+names*64+24)
+        need(noff+nsize <= len(raw) and nsize <= MAX_REPORT, 'complete bounded ELF section names')
+        strings = raw[noff:noff+nsize]
+        for index in range(count):
+            name = struct.unpack_from('<I',raw,shoff+index*64)[0]
+            need(name < len(strings) and b'\x00' in strings[name:], 'complete section name')
+            section = strings[name:strings.index(b'\x00',name)]
+            need(not section.startswith((b'.gnu.lto_',b'.gnu.offload_',b'.nv_',b'.llvm')), 'unanalysed LTO/offload input')
+        return 'elf64-x86-64'
+    if raw.startswith(b'!<arch>\n'):
+        offset, count = 8, 0
+        while offset < len(raw):
+            need(offset+60 <= len(raw) and raw[offset+58:offset+60] == b'`\n', 'complete archive member')
+            size_text = raw[offset+48:offset+58].strip()
+            need(size_text.isdigit(), 'archive decimal member size')
+            size = int(size_text); body = offset+60
+            need(body+size <= len(raw), 'complete archive body')
+            name = raw[offset:offset+16].strip()
+            if name not in (b'/',b'//',b'/SYM64/'):
+                need(raw[body:body+size].startswith(b'\x7fELF'), 'ordinary nonthin native archive member only')
+                input_kind(raw[body:body+size])
+            offset = body+size+(size&1); count += 1
+            need(count <= 16384, 'bounded full archive member closure')
+        need(offset == len(raw), 'archive terminal boundary')
+        return 'archive-native'
+    text = raw.decode('ascii','strict')
+    need(len(raw) <= MAX_REPORT and '\x00' not in text and
+         not re.search(r'\b(INCLUDE|OUTPUT|SEARCH_DIR|STARTUP)\b',text) and
+         re.search(r'\b(GROUP|INPUT)\s*\(',text) is not None, 'finite ordinary pinned library script')
+    return 'library-script'
+
+
+def link_inputs(plan, script):
+    """Interpret the finite shared-link input/search state in actual argv order."""
+    argv = plan['helper_argv'][2]
+    directories = []
+    requirements = []
+    static = False
+    stack = []
+    consume = {'-o','-m','-plugin'}
+    index = 1
+    while index < len(argv):
+        arg = argv[index]
+        if arg == '-z':
+            need(index+1 < len(argv) and argv[index+1] in ('relro','now','noexecstack'), 'selected ordinary linker protection option')
+            index += 2; continue
+        if arg in consume:
+            need(index+1 < len(argv), 'complete linker option operand')
+            index += 2; continue
+        if arg == '-L':
+            need(index+1 < len(argv), 'complete library search operand')
+            directories.append(argv[index+1]); index += 2; continue
+        if arg.startswith('-L'):
+            directories.append(arg[2:])
+        elif arg == '-Bstatic':
+            static = True
+        elif arg == '-Bdynamic':
+            static = False
+        elif arg == '--push-state':
+            stack.append(static)
+        elif arg == '--pop-state':
+            need(len(stack) > 0, 'matched linker state stack')
+            static = stack.pop()
+        elif arg.startswith('-l'):
+            name = arg[2:]
+            need(re.fullmatch('[A-Za-z0-9_+.-]+',name) is not None, 'finite ordinary library name')
+            requirements.append({'library':name,'static':static})
+        elif arg.startswith('/') and arg not in plan['temporary_fields']:
+            requirements.append({'literal':arg})
+        elif arg.startswith('-plugin-opt=') or arg in ('--build-id','--eh-frame-hdr','--hash-style=gnu',
+                '--as-needed','--no-as-needed','-shared','--enable-new-dtags','--no-add-needed'):
+            pass
+        elif arg in plan['temporary_fields']:
+            pass
+        else:
+            need(False, 'unanalysed collect2/linker option: '+arg)
+        index += 1
+    need(not stack, 'complete linker state restoration')
+    for value in script['search_directories']:
+        directory = value[1:] if value.startswith('=') else value
+        if directory not in directories:
+            directories.append(directory)
+    need(0 < len(directories) <= 64 and all(v.startswith('/') and len(v) <= 4096 for v in directories),
+         'complete finite configured library prefix relation')
+    return directories, requirements
+
+
+def library_script_inputs(raw):
+    text = re.sub(r'/\*.*?\*/',' ',raw.decode('ascii','strict'),flags=re.S)
+    text = re.sub(r'^\s*OUTPUT_FORMAT\s*\(\s*elf64-x86-64\s*\)\s*','',text)
+    words = re.findall(r'AS_NEEDED|GROUP|INPUT|\(|\)|[^\s()]+',text)
+    need(words and words[0] in ('GROUP','INPUT'), 'finite library script entry')
+    depth, result = 0, []
+    for word in words:
+        if word in ('GROUP','INPUT','AS_NEEDED'):
+            continue
+        if word == '(':
+            depth += 1; need(depth <= 4, 'finite library script depth'); continue
+        if word == ')':
+            depth -= 1; need(depth >= 0, 'balanced library script'); continue
+        need(depth > 0 and (word.startswith('/') or re.fullmatch('-l[A-Za-z0-9_+.-]+',word) is not None or
+             re.fullmatch(r'lib[A-Za-z0-9_+.-]+\.(so(\.[0-9.]+)?|a)',word) is not None), 'ordinary library script input only')
+        result.append(word)
+    need(depth == 0 and 0 < len(result) <= 32, 'complete finite library script')
+    return result
+
+
+def current_frame(record):
+    return {'partition':record['partition'],'objects':record.get('configured_objects'),
+        'original_fallback':record.get('original_fallback'),
+        'lookups':record.get('literal_lookup_observations'),
+        'families':[{key:family[key] for key in ('family_id','original_command_source_pin','original_argv',
+            'original_phase_environment','configured_driver_subject','cc_alias_lookup',
+            'currentness_interval_reference')} for family in record['families']]}
+
+
+def configured_frame(raw, subject):
+    """Interpret a finite configured subject associated by genuine original T1.
+
+    This record is not an approval. Its exact source members and selected native
+    association remain inputs to original T1; every referenced file is reread.
+    """
+    def pairs(items):
+        result = {}
+        for key,value in items:
+            need(key not in result, 'unique configured-frame field')
+            result[key] = value
+        return result
+    need(type(raw) is bytes and 0 < len(raw) <= MAX_REPORT, 'bounded complete configured frame bytes')
+    value = json.loads(raw.decode('ascii','strict'),object_pairs_hook=pairs,
+        parse_constant=lambda unused: (_ for _ in ()).throw(CompilerPolicyError('nonfinite frame')))
+    need(type(value) is dict and set(value) == {'schema','source_members','constants','include_prefixes',
+         'preinclude_files','header_files','macro_defaults'} and value['schema'] == 'compiler-configured-frame-v1',
+         'complete typed original T1 configured compiler frame')
+    constants = {'DEFAULT_LINKER':None,'REAL_LD_FILE_NAME':None,'PLUGIN_LD_SUFFIX':'ld',
+        'CROSS_DIRECTORY_STRUCTURE':0,'USE_COLLECT2':0,'DO_COLLECT_EXPORT_LIST':0,
+        'ENABLE_DEFAULT_PIE':1,'HAVE_LTO_PLUGIN':2,'flag_report_bug':0}
+    need(type(value['constants']) is dict and set(value['constants']) == set(constants) and
+         all(type(value['constants'][key]) is type(expected) and value['constants'][key] == expected
+             for key,expected in constants.items()), 'exact reached configured collect2/PIE/plugin/ICE branch')
+    known = {row['path']:row for row in subject['configured_files']}
+    need(type(value['source_members']) is list and 1 <= len(value['source_members']) <= 64 and
+         all(pin(row) == known.get(row['path']) for row in value['source_members']),
+         'actual exact configured source/header members, not package-name inference')
+    prefixes = value['include_prefixes']
+    need(type(prefixes) is list and 1 <= len(prefixes) <= 32 and len(set(prefixes)) == len(prefixes) and
+         all(type(v) is str and v.startswith('/') and len(v) <= 4096 and '\x00' not in v for v in prefixes),
+         'finite actual native C include-prefix chain')
+    inputs = {row['path']:row for row in subject['input_files']}
+    for key in ('preinclude_files','header_files'):
+        rows = value[key]
+        need(type(rows) is list and len(rows) <= 256 and all(pin(row) == inputs.get(row['path']) for row in rows),
+             'exact original T1 preinclude/header closure')
+    need({row['path'] for row in value['header_files']} == {p for p in inputs if p.endswith('.h')},
+         'complete selected header inventory retained, no omitted pinned header')
+    need(any(v['path'].endswith('/stdc-predef.h') for v in value['preinclude_files']),
+         'selected glibc c_preinclude producer remains represented')
+    macros = value['macro_defaults']
+    need(type(macros) is dict and 1 <= len(macros) <= 1024 and
+         all(type(k) is str and re.fullmatch('[A-Za-z_][A-Za-z0-9_]*',k) is not None and
+             type(v) is str and len(v) <= 8192 and '\x00' not in v for k,v in macros.items()),
+         'finite configured C macro defaults remain explicit DATA')
+    return value

@@ -1,0 +1,393 @@
+"""Pure constructor for original externally issued financial binding DATA.
+
+This is the missing static-to-runtime assembly, not a grant/opening generator.
+The original caller supplies real reviewed pins; G later publishes fresh START
+and exact pending/manual records. No None-filled predecessor binding is ready.
+The returned templates omit future runtime START and never hash themselves.
+"""
+import hashlib
+import json
+from pathlib import Path
+
+W = Path('/home/d3lerium/.codex/.chatgpt-projects/g-p-6ad5817fd84881918865926b6fd51453')
+R = W / 'outputs/connected-caller-assembly-20261107T2053Z/repair-v3'
+H = W / 'outputs/h25-data-handling-20261028'
+ADMIN = R / 'runtime/admin/IndependentPrefixDATAComposedV1'
+NAME = 'IndependentPrefixDATAComposedV1'
+ROLE_ENTRY = {'M':'pre_m','CAPTURE':'capture_bootstrap','PUBLISHER':'publisher_bootstrap','CONTROLLER':'controller_bootstrap'}
+PIN_FIELDS = ('plan_pin','admission_pin','operating_TCB_pin','clock_profile_pin',
+              'actor_profile_pin','source_policy_pin','resource_policy_pin','current_profile_pin',
+              'selected_packet_pin','whole_body_bill_pin','complete_work_review_pin','derived_role_profile_pin')
+
+
+def need(ok, reason):
+    if ok is not True:
+        raise ValueError(reason)
+
+
+def exact(value, fields):
+    need(type(value) is dict and all(type(k) is str for k in value) and set(value) == set(fields),
+         'exact original constructor fields')
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and all(c in '0123456789abcdef' for c in value),
+         'exact SHA256')
+
+
+def pin(value):
+    exact(value, ('path','bytes','sha256','mode'))
+    need(type(value['path']) is str and Path(value['path']).is_absolute() and
+         type(value['bytes']) is int and 0 < value['bytes'] <= 8 * 1024 * 1024 and
+         type(value['mode']) is int and value['mode'] == 0o444, 'real immutable original pin')
+    digest(value['sha256'])
+
+
+def plain(value, depth=0, nodes=None):
+    if nodes is None:
+        nodes = [0]
+    nodes[0] += 1
+    need(depth <= 24 and nodes[0] <= 65536, 'bounded original constructor DATA')
+    if type(value) is dict:
+        need(len(value) <= 512 and all(type(k) is str and len(k) <= 512 for k in value), 'exact DATA keys')
+        for item in value.values():
+            plain(item,depth+1,nodes)
+    elif type(value) is list:
+        need(len(value) <= 8192, 'DATA list cap')
+        for item in value:
+            plain(item,depth+1,nodes)
+    elif type(value) is str:
+        need(len(value) <= 16384, 'DATA text cap')
+    else:
+        need(value is None or type(value) in (bool,int), 'exact JSON scalars only')
+
+
+def copy(value):
+    # Called only after original F plain-data validation by the actual caller.
+    return json.loads(json.dumps(value, allow_nan=False))
+
+
+def entry_argv(role, source_pins):
+    key = ROLE_ENTRY[role]
+    args = [source_pins[key]['path'], '--source-sha256','@SOURCE_' + key + '_SHA256@',
+            '--loader-sha256','@LOADER_SHA256@','--loader-bytes','@LOADER_BYTES@',
+            '--manifest-sha256','@MANIFEST_SHA256@','--manifest-bytes','@MANIFEST_BYTES@',
+            '--contracts-sha256','@CONTRACTS_SHA256@','--contracts-bytes','@CONTRACTS_BYTES@']
+    if role in ('M','CAPTURE'):
+        args.extend(('--grant-sha256','@ORIGINAL_ACTUAL_GRANT_SHA256@' if role == 'M' else '@CAPTURE_ACTUAL_GRANT_SHA256@'))
+    if role == 'CONTROLLER':
+        args.extend(('--handoff-path',str(H/'control/fresh-metered-round-v1/_handoff-intents'/ (NAME+'.json')),
+                     '--plan',str(H/'control'/(NAME+'-PLAN.json')),
+                     '--admission',str(H/'control'/(NAME+'-ADMISSION.json'))))
+    return args
+
+
+def canonical_digest(value):
+    return hashlib.sha256((json.dumps(value,sort_keys=True,separators=(',',':'),
+        ensure_ascii=True,allow_nan=False)+'\n').encode('ascii')).hexdigest()
+
+
+def current_image_pin(value):
+    exact(value, ('path','bytes','sha256','mode'))
+    need(type(value['path']) is str and Path(value['path']).is_absolute() and
+         '..' not in Path(value['path']).parts and type(value['bytes']) is int and
+         0 < value['bytes'] <= 536870912 and type(value['mode']) is int and
+         0 <= value['mode'] <= 0o7777, 'genuine selected current ordinary-image pin DATA')
+    digest(value['sha256'])
+
+
+def compiler_subject_data(value):
+    """Validate finite binding DATA, without issuing the original native T1."""
+    plain(value)
+    exact(value, ('schema','native_subject_reference','currentness_interval_reference',
+                  'configured_driver','images','input_files','configured_files','families','source_proofs'))
+    need(value['schema'] == 'compiler-subject-v1', 'versioned configured compiler subject')
+    for key in ('native_subject_reference','currentness_interval_reference'):
+        pin(value[key])
+    exact(value['configured_driver'], ('target','version','standard_exec_prefix',
+          'standard_machine_suffix','p_tmpdir','hard_as_bytes'))
+    need(value['configured_driver'] == {'target':'x86_64-linux-gnu','version':'13.3.0',
+          'standard_exec_prefix':'/usr/lib/gcc/','standard_machine_suffix':'x86_64-linux-gnu/13/',
+          'p_tmpdir':'/tmp','hard_as_bytes':268435456}, 'exact source-proved configured frame')
+    paths = set()
+    for key in ('images','input_files','configured_files'):
+        need(type(value[key]) is list and len(value[key]) <= 512 and
+             (key != 'images' or 1 <= len(value[key]) <= 48), 'finite configured object category')
+        for row in value[key]:
+            current_image_pin(row)
+            need(row['path'] not in paths, 'one selected pin per actual compiler object')
+            paths.add(row['path'])
+    families = value['families']
+    need(type(families) is list and len(families) == 3 and
+         [row['family_id'] for row in families] == ['metadata','backend','encoder'],
+         'three independently evaluated original command families')
+    for row in families:
+        exact(row, ('family_id','original_command_source_pin','source_root','output_root',
+                    'cc_configured','extension_suffix','include','ld_emulation'))
+        pin(row['original_command_source_pin'])
+        for key in ('source_root','output_root','include'):
+            need(type(row[key]) is str and Path(row[key]).is_absolute() and
+                 '..' not in Path(row[key]).parts, 'literal canonical compiler family path')
+        need(type(row['cc_configured']) is str and 0 < len(row['cc_configured']) <= 8192 and
+             row['extension_suffix'] == '.cpython-312-x86_64-linux-gnu.so' and
+             row['include'] == '/usr/include/python3.12' and row['ld_emulation'] == 'elf_x86_64',
+             'selected original compiler/Python/ELF interface')
+    exact(value['source_proofs'], ('configured_build','gcc_driver','binutils_patches',
+          'non_lto_inputs','internal_shared_script','native_primitive_frame'))
+    for row in value['source_proofs'].values():
+        pin(row)
+    return copy(value)
+
+
+def property_query_data(value, source_pins, operating_profiles, compiler_subject):
+    plain(value)
+    exact(value, ('schema','observer_pin','observer_source_pin','program_pins',
+                  'source_tuple_sha256','profile_sha256'))
+    need(value['schema'] == 'joined-property-query-profile-v1' and
+         value['source_tuple_sha256'] == canonical_digest(source_pins) and
+         value['profile_sha256'] == canonical_digest(operating_profiles),
+         'property queries bind the same frozen leaves and profiles')
+    pin(value['observer_source_pin'])
+    need(value['observer_source_pin'] == source_pins['property_query_source'],
+         'actual selected observer C source')
+    current_image_pin(value['observer_pin'])
+    need(value['observer_pin']['path'] == str(R/'runtime/native/property_query_observer'),
+         'fixed selected native property observer')
+    need(type(value['program_pins']) is list and 1 <= len(value['program_pins']) <= 16,
+         'finite actual report programs')
+    images = {row['path']:row for row in compiler_subject['images']}
+    paths = set()
+    for row in value['program_pins']:
+        current_image_pin(row)
+        need(row['path'] not in paths and images.get(row['path']) == row and
+             row['mode'] & 0o111 != 0 and row['mode'] & 0o022 == 0,
+             'actual executable report programs belong to the original native subject')
+        paths.add(row['path'])
+    need({'/usr/bin/x86_64-linux-gnu-gcc-13','/usr/bin/x86_64-linux-gnu-ld.bfd'} <= paths,
+         'actual GCC driver and BFD linker property origins')
+    return copy(value)
+
+
+def derived_environment(source_pins, operating_profiles, joined_native_subject, joined_native_dependencies,
+                        compiler_subject, query_profile):
+    """Derive the finite actual consumer map; accepts no arbitrary Q selection.
+
+    Current image pins come only from the separately authenticated original
+    parent/profile subject. This constructor neither obtains them nor issues
+    current qualification. The genuine observer later opens every actual object.
+    """
+    plain(operating_profiles); plain(joined_native_subject); plain(joined_native_dependencies)
+    compiler_subject = compiler_subject_data(compiler_subject)
+    query_profile = property_query_data(query_profile,source_pins,operating_profiles,compiler_subject)
+    exact(operating_profiles, ('OS','clock','commands','cpython','effects','filesystem','native'))
+    for key,value in operating_profiles.items():
+        pin(value)
+        need(value['path'] == str(R/'implementation/bindings/profiles'/(key+'.json')),
+             'same seven selected operating-profile source roles')
+    exact(joined_native_subject, ('schema','entry_path','entry_sha256','entry_bytes',
+                                 'time_path','time_sha256','time_bytes','source_sha256'))
+    need(joined_native_subject['schema'] == 'joined-native-entry-profile-v1' and
+         joined_native_subject['entry_path'] == str(R/'runtime/native/science_view_entry') and
+         joined_native_subject['time_path'] == '/usr/bin/time' and
+         joined_native_subject['source_sha256'] == source_pins['science_view_source']['sha256'],
+         'same genuine original current entry/time/source subject')
+    images = []
+    for key in ('entry','time'):
+        digest(joined_native_subject[key+'_sha256'])
+        need(type(joined_native_subject[key+'_bytes']) is int and
+             0 < joined_native_subject[key+'_bytes'] <= 16777216,
+             'actual associated current image bytes, no placeholder')
+        # These two ordinary current images are authenticated by the original
+        # loader with actual modes later; this map requires their selected mode.
+    need(type(joined_native_dependencies) is list and 10 <= len(joined_native_dependencies) <= 48,
+         'actual entry/time and complete original native loader closure pins')
+    paths = set()
+    for value in joined_native_dependencies:
+        current_image_pin(value)
+        need(value['path'] not in paths, 'unique original selected native image')
+        paths.add(value['path']); images.append(copy(value))
+    by_path = {value['path']:value for value in images}
+    for key in ('entry','time'):
+        value = by_path[joined_native_subject[key+'_path']]
+        need(value['bytes'] == joined_native_subject[key+'_bytes'] and
+             value['sha256'] == joined_native_subject[key+'_sha256'],
+             'same entry/time actual image pins and native subject')
+    # These eight names are literal original full-driver native consumers, not
+    # an inferred or caller-selected substitute for its independent TCB check.
+    native_paths = ('/usr/bin/python3.12',
+        '/usr/lib/python3.12/lib-dynload/_hashlib.cpython-312-x86_64-linux-gnu.so',
+        '/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2',
+        '/usr/lib/x86_64-linux-gnu/libc.so.6','/usr/lib/x86_64-linux-gnu/libcrypto.so.3',
+        '/usr/lib/x86_64-linux-gnu/libexpat.so.1.9.1','/usr/lib/x86_64-linux-gnu/libm.so.6',
+        '/usr/lib/x86_64-linux-gnu/libz.so.1.3')
+    need(all(path in by_path for path in native_paths),
+         'every original native/loader consumer remains in the current association map')
+    stages = [('normal','joined-full-candidate-v1'),('optimized','joined-full-candidate-refusal-v1')]
+    origins = [{'id':'full-source-'+mode,'path':str(R/'implementation/bindings/stages'/stage),
+                'kind':'tree','pin':None,'consumers':['copytree','copystat','fixture','custody']}
+               for mode,stage in stages]
+    # Registry creates the retained source and fresh case/runner/artifact dirs
+    # below this original creation ancestor. None may carry a hidden default
+    # ACL into a new certificate/compiler/scientific object without a Q proof.
+    parents = [{'id':'retained-creation-ancestor','path':str(R/'runtime/completed-source'),
+                'kind':'directory','pin':None,'consumers':['create','custody']}]
+    executables = [{'id':'native-image-'+str(index),'path':value['path'],'kind':'file','pin':value,
+                    'consumers':['exec','load','custody'] if value['path'].startswith('/usr/bin/') or
+                        value['path'] == joined_native_subject['entry_path'] else ['load','custody']}
+                   for index,value in enumerate(sorted(images,key=lambda row:row['path']))]
+    retained = {'id':'complete-attempt-union','path':str(R/'runtime/completed-source'/NAME),
+                'kind':'tree','pin':None,'consumers':['retention','custody']}
+    objects = [row['id'] for row in origins+parents+executables+[retained]]
+    need(len(objects) <= 64, 'complete source-derived finite original object union')
+    cases = [
+        {'id':NAME+'N','kind':'positive','objects':objects,'effect':'EMPTY_ATTRIBUTE_POSITIVE',
+         'fixture':None,'original_consumer':'scientific_driver._epoch_sc4_full_entry -> original full CLI -> original retention',
+         'original_refusal':None},
+        {'id':NAME+'O','kind':'negative','objects':objects,'effect':'OPTIMIZED_ENTRY_REFUSAL',
+         'fixture':None,'original_consumer':'scientific_driver._epoch_sc4_full_entry',
+         'original_refusal':'SC4 fixed assertion-on fresh candidate full invocation required'},
+    ]
+    return {'schema':'environment-selection-v2','source_tuple_sha256':canonical_digest(source_pins),
+            'profile_sha256':canonical_digest(operating_profiles),'source_origins':origins,
+            'creation_parents':parents,'executables':executables,'negative_fixtures':[],
+            'retained_root':retained,'cases':cases,
+            'compiler_subject':compiler_subject,'query_profile':query_profile}
+
+
+def construct(manifest_pin, source_pins, original, *, joined_native_subject, joined_native_dependencies,
+              operating_profiles, compiler_subject, query_profile):
+    """Return non-authoritative final role DATA from genuine original inputs.
+
+    The actual caller must separately authenticate original pins, funding and
+    command admission. A/F reread and assess under their own actual EX later.
+    These checks never replace those readers or original grant validation.
+    """
+    plain(manifest_pin); plain(source_pins); plain(original)
+    pin(manifest_pin)
+    # These are actual immutable source selections, never installed-image or
+    # current-environment authority. The full controller independently rereads
+    # both exact stage/command inverses and the separately issued original plan.
+    for key, relative in (('full_receiver','source/full_result_receiver.py'),
+                          ('bounded_relay','source/bounded_relay.py'),
+                          ('common_runner','source/run_guarded_v3.py'),
+                          ('waiting_entry','source/candidate_entry.py'),
+                          ('environment_association','bindings/environment_association.py')):
+        pin(source_pins[key])
+        need(source_pins[key]['path'] == str(R/'implementation'/relative),
+             'complete joined owning source role, not the finite DATA predecessor')
+    need(manifest_pin['path'] == str(R/'implementation/bindings/SOURCE-MANIFEST-v2.json'),
+         'fixed detached leaf source manifest')
+    need(source_pins['runner'] == source_pins['common_runner'],
+         'one exact common runner selection for caller and bootstrap')
+    exact(original, ('schema','candidate_document_pin','request','approved_opening',
+                     'expected_head_pin','phase','cleanup_reservation_ns','complete_delivery_scope_sha256',
+                     'pins','retention','outer_actor','capture_actual_grant_pin','original_actual_grant_pin'))
+    need(original['schema'] == 's03-original-issued-role-inputs-v1', 'genuine original input schema')
+    pin(original['candidate_document_pin']); pin(original['capture_actual_grant_pin']); pin(original['original_actual_grant_pin'])
+    digest(original['complete_delivery_scope_sha256'])
+    request = original['request']
+    exact(request, ('schema','round_id','label','command_sha256','body_reservation_ns',
+                    'policy_sha256','phase_release_sha256'))
+    need(request['schema'] == 'fresh-round-request-v1' and request['round_id'] == 'fresh-metered-round-v1' and
+         request['label'] == NAME and request['command_sha256'] == original['candidate_document_pin']['sha256'] and
+         type(request['body_reservation_ns']) is int and 0 < request['body_reservation_ns'] <= 180_000_000_000,
+         'exact original FULL_SIX enclosing request; no new cheaper identity')
+    need(type(original['cleanup_reservation_ns']) is int and
+         0 < original['cleanup_reservation_ns'] < request['body_reservation_ns'], 'original positive cleanup reservation')
+    exact(original['pins'], PIN_FIELDS)
+    for value in original['pins'].values():
+        pin(value)
+    need(compiler_subject['native_subject_reference'] == original['pins']['operating_TCB_pin'] and
+         compiler_subject['currentness_interval_reference'] == original['pins']['current_profile_pin'],
+         'compiler subject and interval belong to the same original issued operating contract')
+    need(request['policy_sha256'] == original['pins']['resource_policy_pin']['sha256'],
+         'same original policy reservation')
+    need(original['phase'] in ('INITIAL','FULL') and
+         ((original['phase'] == 'INITIAL' and request['phase_release_sha256'] is None) or
+          (original['phase'] == 'FULL' and type(request['phase_release_sha256']) is str)),
+         'original separately issued phase release')
+    exact(original['approved_opening'], ('schema','opening_pin','adoption_pin','funding_source_sha256'))
+    need(original['approved_opening']['funding_source_sha256'] == source_pins['F']['sha256'],
+         'actual original F opening source binding')
+    # The original HEAD is mode0600. It is evidence DATA, never financial EX.
+    exact(original['expected_head_pin'], ('path','bytes','sha256','mode'))
+    need(original['expected_head_pin']['mode'] == 0o600, 'original current head mode')
+    environment = derived_environment(source_pins,operating_profiles,joined_native_subject,
+                                      joined_native_dependencies,compiler_subject,query_profile)
+    roles = {}
+    for role in ROLE_ENTRY:
+        cfg = {'schema':'fresh-composed-source-private-binding-v1','role':role,
+               'name':NAME,'phase':original['phase'],
+               'candidate_document_sha256':request['command_sha256'],'request':copy(request),
+               'approved_opening':copy(original['approved_opening']),
+               'expected_head_pin':copy(original['expected_head_pin']),
+               'handoff_path':str(H/'control/fresh-metered-round-v1/_handoff-intents'/(NAME+'.json')),
+               'cleanup_reservation_ns':original['cleanup_reservation_ns'],
+               'body_reservation_ns':request['body_reservation_ns'],
+               'administrative_policy':'startup-and-final-publication-two-second-administrative-debit-v1',
+               'administrative_debit_ns':2_000_000_000,
+               'complete_delivery_scope_sha256':original['complete_delivery_scope_sha256']}
+        cfg.update(copy(original['pins']))
+        if role == 'CONTROLLER':
+            cfg['environment_association'] = copy(environment)
+            cfg['native_entry_profile'] = copy(joined_native_subject)
+            cfg['property_query_profile'] = copy(environment['query_profile'])
+        cfg['publisher_argv'] = ['/usr/bin/python3.12','-S','-s','-P','-B'] + entry_argv('PUBLISHER',source_pins)
+        cfg['controller_argv'] = ['/usr/bin/python3.12','-S','-s','-P','-B'] + entry_argv('CONTROLLER',source_pins)
+        # Runtime manual_entry and source_pins are inserted only by the fixed
+        # actual loader after native G START/readback and kernel registration.
+        selected_argv = entry_argv(role,source_pins)
+        selected_argv = [original['capture_actual_grant_pin']['sha256'] if value == '@CAPTURE_ACTUAL_GRANT_SHA256@' else original['original_actual_grant_pin']['sha256'] if value == '@ORIGINAL_ACTUAL_GRANT_SHA256@' else value for value in selected_argv]
+        roles[role] = {'actor_contract':cfg,'entry_argv':selected_argv,
+            'retention':copy(original['retention']),
+            'runtime_paths':{'admin_root':str(ADMIN),
+                'grant_path':str(R/('control/CAPTURE-ACTUAL-GRANT.json' if role == 'CAPTURE' else 'control/ORIGINAL-FULL-SIX-GRANT.json')),
+                'accounting_path':str(ADMIN/'C2/ACCOUNTING.json'),
+                'capture_argv':['/usr/bin/python3.12','-S','-s','-P','-B'] + [original['capture_actual_grant_pin']['sha256'] if value == '@CAPTURE_ACTUAL_GRANT_SHA256@' else value for value in entry_argv('CAPTURE',source_pins)],
+                'outer_actor':copy(original['outer_actor'])}}
+    return {'schema':'s03-joined-role-contracts-v1','source_manifest_sha256':manifest_pin['sha256'],
+            'roles':roles,'source_only':True,'execution_permission':False}
+
+
+def guardian_config(manifest, manifest_pin, contracts, contracts_pin, manual, delegation_path, domain_name):
+    """Final acyclic fixed native configuration; ordinary non-authority DATA.
+
+    This final layer may reference actual already issued original grants and
+    contracts. Nothing earlier embeds its future config hash. The original
+    actual caller authenticates/pins this exact config in native argv later.
+    """
+    plain(manifest); plain(manifest_pin); plain(contracts); plain(contracts_pin); plain(manual)
+    pin(manifest_pin); pin(contracts_pin)
+    need(contracts['schema'] == 's03-joined-role-contracts-v1' and
+         contracts['source_manifest_sha256'] == manifest_pin['sha256'], 'same detached exact source selection')
+    exact(manual, ('request','closed_state_pin','registration_pin','registration_checks'))
+    need(manual['request'] == contracts['roles']['M']['actor_contract']['request'], 'same original issued request')
+    for name in ('closed_state_pin','registration_pin'):
+        # Original accepted closed state may be private0600; it is not rewritten.
+        exact(manual[name], ('path','bytes','sha256','mode'))
+        need(manual[name]['mode'] in (0o444,0o600), 'original accepted metadata mode unchanged')
+    need(type(delegation_path) is str and Path(delegation_path).is_absolute() and
+         '..' not in Path(delegation_path).parts, 'separately selected existing native delegation path')
+    need(type(domain_name) is str and domain_name == NAME, 'fixed own attempt native domain name')
+    sources = manifest['source_pins']
+    tokens = {'@CONTRACTS_SHA256@':contracts_pin['sha256'], '@CONTRACTS_BYTES@':str(contracts_pin['bytes']),
+              '@MANIFEST_SHA256@':manifest_pin['sha256'], '@MANIFEST_BYTES@':str(manifest_pin['bytes']),
+              '@LOADER_SHA256@':sources['private_loader']['sha256'],
+              '@LOADER_BYTES@':str(sources['private_loader']['bytes'])}
+    for name, row in sources.items():
+        tokens['@SOURCE_' + name + '_SHA256@'] = row['sha256']
+        tokens['@SOURCE_' + name + '_BYTES@'] = str(row['bytes'])
+    role_argv = {}
+    for role, native_role in (('M','M'),('CAPTURE','K'),('PUBLISHER','P'),('CONTROLLER','C2')):
+        role_argv[native_role] = ['/usr/bin/python3.12','-S','-s','-P','-B'] + [
+            tokens.get(value,value) for value in contracts['roles'][role]['entry_argv']]
+        need(not any(value.startswith('@') for value in role_argv[native_role]), 'no unresolved fixed native entry argv')
+    return {'schema':'s03-guardian-config-v1','attempt_id':NAME,'evidence_root':str(ADMIN/'G'),
+        'admin_root':str(ADMIN),'delegation_path':delegation_path,'domain_name':domain_name,
+        'pre_m_pin':copy(sources['pre_m']),'inner_meter_pin':copy(sources['inner_meter']),
+        'outer_actor':copy(contracts['roles']['M']['runtime_paths']['outer_actor']),
+        'manual_entry':copy(manual),'candidate_document_sha256':manual['request']['command_sha256'],
+        'role_source_pins':{role:copy(sources[key]) for role,key in
+            (('M','inner_meter'),('K','capture'),('P','publisher'),('C2','C'),('Root','runner'),
+             ('B','fork_borrower'),('Fee','fee'),('PropertyQuery','property_query_source'))},
+        'role_argv':role_argv}

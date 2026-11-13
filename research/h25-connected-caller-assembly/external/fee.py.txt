@@ -1,0 +1,283 @@
+"""SOURCE ONLY: bounded retained DATA projection inside the same enclosing body.
+No old ledger, residual subtraction, prepaid unknown duration or actual CLOSE.
+The real outer endpoint occurs after this helper and its native wait/cleanup;
+its final physical publication remains OPEN_NOT_ZERO under separate policy."""
+import argparse
+from decimal import Decimal, localcontext
+import hashlib
+import json
+import os
+import stat
+import sys
+
+INPUTS = ('CONTROLLER.json', 'CAPTURE-DIAGNOSTIC.json', 'TARGET-STDOUT.raw', 'TARGET-STDERR.raw')
+CAPS = (4_194_304, 65_536, 2_097_152, 2_097_152)
+ADMIN_POLICY = 'startup-and-final-publication-two-second-administrative-debit-v1'
+ADMIN_DEBIT_NS = 2_000_000_000
+OUTPUT = 'PROVISIONAL-RETAINED.json'
+MAX_OUTPUT = 65_536
+MAX_ROWS = 1024
+
+
+def need(value, message):
+    if value is not True:
+        raise ValueError(message)
+
+
+def exact(value, keys):
+    need(type(value) is dict and all(type(k) is str for k in value), 'native string-key metadata')
+    need(set(value) == set(keys), 'exact metadata fields')
+
+
+def digest(value):
+    need(type(value) is str and len(value) == 64 and
+         all(c in '0123456789abcdef' for c in value), 'exact digest')
+    return value
+
+
+def pairs(rows):
+    result = {}
+    for key, value in rows:
+        need(type(key) is str and key not in result, 'duplicate metadata key')
+        result[key] = value
+    return result
+
+
+def reject_constant(value):
+    raise ValueError('nonfinite metadata number')
+
+
+def document(raw):
+    value = json.loads(raw.decode('utf-8'), object_pairs_hook=pairs,
+                       parse_float=Decimal, parse_constant=reject_constant)
+    budget = [0]
+    def walk(item, depth):
+        budget[0] += 1
+        need(depth <= 32 and budget[0] <= 200_000, 'bounded metadata graph')
+        kind = type(item)
+        if item is None or kind is bool:
+            return
+        if kind is int:
+            need(-(1 << 128) < item < (1 << 128), 'metadata integer bound')
+        elif kind is Decimal:
+            need(item.is_finite() and abs(item) <= Decimal('1000000000') and
+                 len(item.as_tuple().digits) <= 40 and
+                 -30 <= item.as_tuple().exponent <= 30, 'metadata decimal bound')
+        elif kind is str:
+            need(len(item) <= 8192, 'metadata text bound')
+        elif kind is list:
+            need(len(item) <= 4096, 'metadata list bound')
+            for child in item:
+                walk(child, depth + 1)
+        elif kind is dict:
+            need(len(item) <= 4096 and all(type(k) is str and len(k) <= 8192 for k in item),
+                 'metadata dictionary bound')
+            for child in item.values():
+                walk(child, depth + 1)
+        else:
+            raise ValueError('metadata native domain')
+    walk(value, 0)
+    return value
+
+
+def seconds(value):
+    need(type(value) in (int, Decimal), 'exact numeric seconds; bool excluded')
+    result = Decimal(value)
+    need(result.is_finite() and Decimal(0) <= result <= Decimal('1000000000'), 'nonnegative seconds')
+    return result
+
+
+def money_text(value):
+    # Exact decimal arithmetic on retained numeric spellings, never binary float.
+    return format(value, 'f')
+
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
+            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def read_known(directory_fd, name, expected, cap, slot):
+    exact(expected, ('bytes', 'sha256'))
+    need(type(expected['bytes']) is int and 0 <= expected['bytes'] <= cap, 'input size')
+    digest(expected['sha256'])
+    try:
+        slot[0] = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                          dir_fd=directory_fd)
+        before = os.fstat(slot[0])
+        need(stat.S_ISREG(before.st_mode) and before.st_uid == os.geteuid() and
+             before.st_nlink == 1 and stat.S_IMODE(before.st_mode) == 0o400 and
+             before.st_size == expected['bytes'], 'sealed private regular input')
+        chunks, count = [], 0
+        while True:
+            need(count <= cap, 'retained input byte cap')
+            block = os.read(slot[0], min(65_536, cap + 1 - count))
+            if not block:
+                break
+            count += len(block)
+            chunks.append(block)
+        raw = b''.join(chunks)
+        need(len(raw) == expected['bytes'] and hashlib.sha256(raw).hexdigest() == expected['sha256'] and
+             identity(before) == identity(os.fstat(slot[0])) and
+             identity(before) == identity(os.stat(name, dir_fd=directory_fd, follow_symlinks=False)),
+             'retained input pin/current identity differs')
+        return raw
+    except BaseException as primary:
+        slot[1] = primary
+        raise
+    finally:
+        if slot[0] is not None and slot[3] is False:
+            slot[3] = True
+            try:
+                os.close(slot[0])
+            except BaseException as secondary:
+                slot[2] = secondary
+                if slot[1] is None:
+                    raise
+
+
+def cost_map(value):
+    need(type(value) is dict and len(value) <= MAX_ROWS and
+         all(type(k) is str and 0 < len(k) <= 256 for k in value), 'finite retained cost map')
+    return {key: seconds(amount) for key, amount in value.items()}
+
+
+def build(accounting, usage, input_pins, invocation, admission):
+    """Retained projection only: current enclosing outer body has not ended.
+
+    No five-second prepaid amount, nested subtraction, residual clamp, old
+    ledger frontier, reconstructed CPU or actual CLOSE is produced here.
+    """
+    need(type(accounting) is dict and accounting.get('schema') == 'fresh-composed-controller-observation-v1' and
+         accounting.get('all_costs_settled') is False,'exact retained controller observation, not whole-body receipt')
+    need(type(accounting.get('status')) is str and len(accounting['status']) <= 64,
+         'source-fixed controller status observation')
+    exact(usage, ('schema','name','candidate_document_sha256','native_target_returncode',
+        'target_wait_returned','capture_local_start_ns','target_local_observed_ns',
+        'body_reservation_ns','administrative_policy','administrative_debit_ns',
+        'nested_windows_additive','whole_outer_body_elapsed_ns','physical_final_publication','all_costs_settled'))
+    need(usage['schema'] == 'fresh-composed-capture-retained-diagnostic-v1' and usage['name'] == invocation and
+         usage['target_wait_returned'] is True and type(usage['native_target_returncode']) is int and
+         usage['native_target_returncode'] == 0 and usage['nested_windows_additive'] is False and
+         usage['whole_outer_body_elapsed_ns'] is None and usage['all_costs_settled'] is False and
+         usage['physical_final_publication'] == 'OPEN_NOT_ZERO','genuine source-bound partial diagnostic only')
+    for key in ('capture_local_start_ns','target_local_observed_ns','body_reservation_ns','administrative_debit_ns'):
+        need(type(usage[key]) is int and 0 <= usage[key] < (1 << 63),'exact bounded integer nanoseconds')
+    need(usage['target_local_observed_ns'] >= usage['capture_local_start_ns'] and
+         0 < usage['body_reservation_ns'] <= 180_000_000_000 and
+         usage['administrative_debit_ns'] == ADMIN_DEBIT_NS and usage['administrative_policy'] == ADMIN_POLICY,
+         'same selected reservation and separate administrative convention')
+    digest(usage['candidate_document_sha256']); digest(admission)
+    return {'schema':'fresh-composed-provisional-retained-DATA-v1','invocation_id':invocation,
+        'candidate_document_sha256':usage['candidate_document_sha256'],
+        'command_admission_sha256':admission,'input_pins':input_pins,
+        'controller_status_observation':accounting.get('status'),
+        'controller_metadata_is_not_native_or_body_authority':True,
+        'capture_local_diagnostic_ns':usage['target_local_observed_ns']-usage['capture_local_start_ns'],
+        'nested_windows_additive':False,'additional_residual_charge_ns':None,
+        'whole_outer_body_begin_ns':None,'whole_outer_body_end_ns':None,'whole_outer_body_elapsed_ns':None,
+        'whole_outer_CPU_RSS_and_native_exit':None,'body_complete_while_fee_is_running':False,
+        'administrative_policy':ADMIN_POLICY,'administrative_debit_ns':ADMIN_DEBIT_NS,
+        'administrative_debit_is_measured_runtime_or_physical_bound':False,
+        'fee_is_nested_in_same_outer_body_not_additional_admin_charge':True,
+        'physical_final_publication':'OPEN_NOT_ZERO','all_costs_settled':False,
+        'requires_genuine_outer_wait_cleanup_endpoints_and_independent_review':True,
+        'actual_descendant_forest_memory_CPU_cleanup_still_required':True,
+        'no_original_ledger_source_RAW_or_history_reopened':True,
+        'no_formal_receipt_CLOSE_or_execution_grant':True,'grants_execution':False,'gain':False}
+
+
+
+
+
+
+
+
+def main():
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument('--retained', required=True)
+    parser.add_argument('--input-pins', required=True)
+    parser.add_argument('--invocation', required=True)
+    parser.add_argument('--command-admission-sha256', required=True)
+    args = parser.parse_args()
+    need(type(args.invocation) is str and 1 <= len(args.invocation) <= 64 and
+         all(c.isascii() and (c.isalnum() or c == '-') for c in args.invocation), 'literal invocation')
+    digest(args.command_admission_sha256)
+    need(len(args.input_pins) <= 2048, 'input pins argument cap')
+    pins = document(args.input_pins.encode('utf-8'))
+    exact(pins, INPUTS)
+    need(os.path.isabs(args.retained) and os.path.normpath(args.retained) == args.retained,
+         'canonical selected retained directory')
+    # Runtime caller selects a fresh private directory outside ALL original domains.
+    # Source/command review must bind its exact path and no concurrent writers.
+    directory = [None, None, None, False]
+    inputs = [[None, None, None, False] for unused in INPUTS]
+    output = [None, None, None, False]
+    try:
+        directory[0] = os.open(args.retained, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        info = os.fstat(directory[0])
+        need(info.st_uid == os.geteuid() and stat.S_IMODE(info.st_mode) == 0o700,
+             'genuine selected private retained directory')
+        raw = [read_known(directory[0], name, pins[name], cap, slot)
+               for name, cap, slot in zip(INPUTS, CAPS, inputs)]
+        accounting = document(raw[0])
+        # Preserve the entire diagnostic pin; only a complete one-line JSON record
+        # is interpreted. This is nested DATA, never GNU residual pricing.
+        need(raw[1].endswith(b'\n') and raw[1].count(b'\n') == 1, 'complete single capture diagnostic line')
+        usage = document(raw[1])
+        receipt = build(accounting, usage, pins, args.invocation, args.command_admission_sha256)
+        encoded = (json.dumps(receipt, sort_keys=True, separators=(',', ':'), ensure_ascii=True) + '\n').encode('ascii')
+        need(len(encoded) <= MAX_OUTPUT, 'final candidate receipt bound')
+        # Existing FD slots and their exception roots were reserved before opens.
+        output[0] = os.open(OUTPUT, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                            0o600, dir_fd=directory[0])
+        created = os.fstat(output[0])
+        need(stat.S_ISREG(created.st_mode) and created.st_uid == os.geteuid() and
+             created.st_nlink == 1 and created.st_size == 0 and
+             stat.S_IMODE(created.st_mode) == 0o600, 'exclusive private output')
+        offset = 0
+        while offset < len(encoded):
+            n = os.write(output[0], encoded[offset:offset + 65_536])
+            need(type(n) is int and 0 < n <= len(encoded) - offset, 'progressing receipt write')
+            offset += n
+        os.fsync(output[0])
+        os.lseek(output[0], 0, os.SEEK_SET)
+        observed = bytearray()
+        while len(observed) <= MAX_OUTPUT:
+            block = os.read(output[0], min(65_536, MAX_OUTPUT + 1 - len(observed)))
+            if not block:
+                break
+            observed.extend(block)
+        need(bytes(observed) == encoded, 'complete own receipt readback')
+        os.fchmod(output[0], 0o400)
+        os.fsync(output[0])
+        sealed = os.fstat(output[0])
+        need((sealed.st_dev, sealed.st_ino) == (created.st_dev, created.st_ino) and
+             sealed.st_size == len(encoded) and stat.S_IMODE(sealed.st_mode) == 0o400 and
+             sealed.st_uid == os.geteuid() and sealed.st_nlink == 1 and
+             identity(sealed) == identity(os.stat(OUTPUT, dir_fd=directory[0], follow_symlinks=False)),
+             'sealed output current inode binding')
+        os.fsync(directory[0])
+    except BaseException as primary:
+        # Do not repair/retry/delete a partial receipt or create a replacement fee.
+        output[1] = primary
+        raise
+    finally:
+        # Each known slot is consumed once. Native unknown acquisitions/close or
+        # async/allocation uncertainty require real parent teardown, never JSON.
+        for slot in (output, directory):
+            if slot[0] is not None and slot[3] is False:
+                slot[3] = True
+                try:
+                    os.close(slot[0])
+                except BaseException as secondary:
+                    slot[2] = secondary
+                    if output[1] is None:
+                        output[1] = secondary
+        if output[1] is not None and sys.exception() is None:
+            raise output[1]
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
