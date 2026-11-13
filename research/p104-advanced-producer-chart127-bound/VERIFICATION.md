@@ -1,0 +1,5 @@
+# Verification
+
+The original exact rational solver reached the 669-row bank and capped at 30 seconds with one unresolved key. Its receipt is preserved verbatim in `receipts/INITIAL-CAP.json`. The fixed-scope integer continuation derives and verifies the separator, exact source chronology and directed gross. An independently implemented literal forward engine authenticates that receipt, checks the entire edited bank and both outward responses, and verifies the same owner version at the old and new producer clocks. The continuation and independent runs exited zero in 6.79 and 0.17 seconds wall time. Each scientific process has a 30-second cap.
+
+The replay authenticates all scientific inputs by stable package-relative path and compares both scientific receipts. It excludes measured elapsed time from the forward comparison. Controls reject duplicate JSON keys, changed source bytes and an altered old outward response. Direct and registered replay, exact committed bytes and modes, source history, official read-only Git-free export replay, and all 27 local onboarding tests passed. Hosted checks are separate.
