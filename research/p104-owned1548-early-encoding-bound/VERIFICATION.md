@@ -1,0 +1,5 @@
+# Verification
+
+The lead reconstructs the two original carrier rows, historical owned1548 operand and fixed read-only bank and obtains three exact probes. A separate normalized forward program checks both the old and a literal α=β=1 diagnostic chronology on those probes. It verifies the historical and first-use responses, 74 original and edited ownership guards, COPY and MOVE guards, and the edited peak 51. The rank argument in the proof uses the old row responses and covers every α and β. Both scientific processes exited zero within their 30-second caps. Their recorded wall times were 0.15 and 0.70 seconds.
+
+The wrapper authenticates package-relative inputs, reconstructs the twelve-role contact trace, compares both science receipts without measured forward elapsed time, and independently evaluates the 3×3 determinant. Controls reject duplicate JSON keys, changed native bytes and a corrupted determinant. Direct and registered replay, exact committed bytes and modes, source history, official read-only Git-free export replay and all 27 local onboarding tests passed. Hosted checks are separate.
