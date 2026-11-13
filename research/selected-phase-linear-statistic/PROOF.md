@@ -47,7 +47,9 @@ output bits always suffice. That is a different observation contract.
 
 ## Contraction
 
-For Boolean bits, the classical identity
+This contraction is inherited from #7426's PROOF.md, Section 1, which
+explicitly proves q(x)=1-(sum_S x_i mod 2)+2*x_7. We recall it to fix the
+phase convention. For Boolean bits, the classical identity
 
     XOR_i x_i = sum_i x_i - 2 sum_(i<k) x_i x_k (mod 4)
 
@@ -104,8 +106,9 @@ for every positive f, including arbitrary binary-linear mixing of columns.
 
 ## Scope and inherited work
 
-The source-specific contraction, complete tensor period subgroup and sharp
-linear-observation rank are the contribution. Parity expansion and the
+The complete tensor period subgroup and sharp linear-observation rank are
+the contribution. The one-column contraction is credited to #7426.
+Parity expansion and the
 quotient-by-periods principle are classical. Their general principles are
 not claimed as new. The phase recipe, native source binding and physical
 implementation belong to CubeJerry #7426, retaining Ali Romman #5375 and

@@ -7,8 +7,8 @@ rank **f+1**, even when observations mix columns arbitrarily.
 
 CubeJerry / Jerry Chen's [#7426](https://github.com/CrocSwap/integer-mult-bounds/pull/7426)
 supplies the nine-coordinate recipe. Its fifteen quadratic pairs form the
-clique on S={0,1,2,3,5,6}. The classical parity identity contracts the recipe
-to
+clique on S={0,1,2,3,5,6}. That predecessor's PROOF.md, Section 1, already
+proves the following contraction using the classical parity identity:
 
     q(x) = 1 + 3 XOR_(i in S) x_i + 2 x_7 (mod 4).
 
@@ -17,10 +17,10 @@ b of all coordinate-7 bits. The complete absolute phase exponent is
 
     Q_f(x) = f + 3 sum_j r_j + 2b (mod 4).
 
-This removes all fifteen pair terms from each column's description and saves
-f-1 observation bits compared with retaining the two natural parities per
-column. It does not assert that #7426 allocates 2f physical bits to them.
-The new lower bound follows from the complete translation-period subgroup,
+The inherited contraction removes the fifteen pair terms. The new joint
+statistic saves f-1 observation bits compared with retaining the two natural
+parities per column. It does not assert that #7426 allocates 2f physical bits
+to them. The new lower bound follows from the complete translation-period subgroup,
 of dimension 8f-1. Any affine-linear statistic determining the phase must
 have its kernel inside that subgroup. [PROOF.md](PROOF.md) proves this for
 all f; finite checks corroborate the stated source-specific identities.
@@ -79,8 +79,9 @@ DreamingOfClouds, Ali Romman, Cinna Davis, zxv, unpaidmoon, icekylinx and earlie
 native/Gaussian contributors. Dennys / antunishdPursuit #6500 also records the
 classical parity expansion for a different phase-contact family. Parity
 expansion and quotienting by translation periods are credited methods. The
-contribution is this recipe's contraction and its sharp tensor information
-bound, rather than a new general identity or a source audit. Apache-2.0.
+contribution is the complete tensor period subgroup and sharp information
+bound. The one-column contraction belongs to #7426, rather than this result.
+No new general identity or source audit is claimed. Apache-2.0.
 
 Base main is `e54523517d0f03e58352e647c403a5af3e525a57`, priority revision 8.
 The catalogue assessment predates selected #7000; its frozen bytes remain
@@ -91,7 +92,9 @@ Live PR bodies, recent account work, current claims, local reservations,
 merged searches and main README searches were checked. Search absence does
 not certify novelty; arbitrary code diffs and unpublished work remain outside
 coverage. The [advance claim](https://github.com/CrocSwap/integer-mult-bounds/discussions/1166#discussioncomment-19591467)
-states the same mathematical scope.
+states the proposed f+1 bound. A progress clarification credits the
+one-column contraction already present in the predecessor's full proof;
+the delivered original result is only the new tensor information theorem.
 
 Physical acquisition, decoder work, dirty restoration, layout, owner return,
 precision, historical backing and the complete recursive invoice are unpriced.
