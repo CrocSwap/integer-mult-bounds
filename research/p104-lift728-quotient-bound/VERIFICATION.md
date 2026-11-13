@@ -1,0 +1,5 @@
+# Verification
+
+The exact reverse runner reconstructs the bank and both target directions, derives the two probes using sparse integer elimination, and rederives the directed price. The independent normalized forward runner checks all 827 rows on both probes, the required targets, the unrepaired receiver, and chart, ownership and COPY guards. Both scientific runners exited zero within their 30-second caps. The recorded wall times were 8.23 and 0.27 seconds.
+
+The wrapper authenticates stable package-relative paths, compares both regenerated receipts and omits elapsed time from the independent comparison. It checks the quotient determinant and the first probe's old and edited responses needed for the joint invertible repair proof. Controls reject duplicate JSON keys, changed source bytes and a corrupted determinant. Direct and registered replay, exact committed bytes and modes, source history, official read-only Git-free export replay and all 27 local onboarding tests passed. Hosted checks are separate.
