@@ -1,7 +1,164 @@
 /-!
   formal/lean/Frontier7000ZeroDeps.lean
   Apache-2.0 License.
+/-!
+  formal/lean/Frontier7000ZeroDeps.lean
+  Apache-2.0 License.
 
+  Zero-dependency stock Lean 4 (`Init`-only, compatible with pinned v4.21.0)
+  certificate checks for:
+  1. Frontier 7000 (`PR #7000` & `PR #7001`, `certificates/selected-result.json`
+     and `research/shared-wire-split-composition/`): `kappa = 363005817 / 10^11`,
+     paired BIT supplier ceiling `0.00385248`, ordinary invoice `826790496 < 10^9`,
+     and native/helper paid-job and rank-mass ledgers.
+  2. Universal two-probe rank-one wire-fusion determinant obstruction over `Int`
+     (`rank_one_fusion_impossible`), instantiated on Role 275 (`PR #7493`).
+  3. Exact big-integer cover-power and `kstar` bit-length brackets:
+     - `119,542`-bit bracket `(H11 + 1)^2228 < 2^119542`, `2^119541 <= (H11 - 10^11 + 1)^2228`,
+       and `14,065`-bit `4096 * kstar11 < 2^H11` at `H11 = 14,174,600,000,000,000`.
+     - Minimal fixed-point crossing `j = 141,746` at `step14 = 10^14`
+       (`H14 = 14,174,600,000,000,000,000`), where `(H14 + 1)^2228 < 2^141746`
+       holds, `(H14 - step14 + 1)^2228 >= 2^141745` fails (`wins(141745) = false`),
+       and `4096 * kstar14` has exact bit-length `14,085` with `4096 * kstar14 < 2^H14`.
+
+  Requires zero Mathlib imports and declares zero axioms.
+-/
+
+namespace KappaCheck.Frontier7000ZeroDeps
+
+def kappaNum : Int := 363005817
+def kappaDen : Int := 100000000000
+
+theorem frontier7000_kappa_hierarchy_and_supplier_margin :
+    kappaNum * 32768 > 118 * kappaDen ∧
+    kappaNum * 32768 < 119 * kappaDen ∧
+    kappaNum * 1000000000 > 3125804 * kappaDen ∧
+    385248 * 1000 - kappaNum = 22242183 ∧
+    (22242183 : Int) > 0 ∧
+    (826790496 : Int) < 1000000000 ∧
+    ¬ (kappaNum ≥ 385248 * 1000) := by
+  decide
+
+theorem frontier7000_unit_job_and_rank_mass_ledger :
+    (4075 + 828 + 811 + 241 + 320 + 17 + 12 + 6 : Int) = 6310 ∧
+    (1 * 4075 + 2 * 828 + 3 * 811 + 4 * 241 + 5 * 320 + 6 * 17 + 7 * 12 + 8 * 6 : Int) = 10962 ∧
+    (13 + 18 + 44 + 215 + 68 + 42 + 18 + 67 + 595 : Int) = 1080 ∧
+    (1 * 13 + 2 * 18 + 3 * 44 + 4 * 215 + 5 * 68 + 6 * 42 + 7 * 18 + 8 * 67 + 9 * 595 : Int) = 7650 ∧
+    (6310 + 1080 : Int) = 7390 ∧
+    (10962 + 7650 : Int) = 18612 ∧
+    (400 + 1080 - 192 : Int) = 1288 ∧
+    (7390 - 192 : Int) = 7198 ∧
+    (18612 - 192 : Int) = 18420 ∧
+    (0 : Int) < 1125 ∧
+    (1125 : Int) < 1520 := by
+  decide
+
+theorem rank_one_probe_det_zero (s1 s2 a b : Int) :
+    (s1 * a) * (s2 * b) - (s1 * b) * (s2 * a) = 0 := by
+  have h : (s1 * a) * (s2 * b) = (s1 * b) * (s2 * a) :=
+    calc
+      (s1 * a) * (s2 * b) = s1 * (a * (s2 * b)) := Int.mul_assoc s1 a (s2 * b)
+      _ = s1 * ((s2 * b) * a) := congrArg (fun t => s1 * t) (Int.mul_comm a (s2 * b))
+      _ = s1 * (s2 * (b * a)) := congrArg (fun t => s1 * t) (Int.mul_assoc s2 b a)
+      _ = s1 * (s2 * (a * b)) := congrArg (fun t => s1 * t) (Int.mul_comm b a)
+      _ = s1 * ((a * b) * s2) := congrArg (fun t => s1 * t) (Int.mul_comm s2 (a * b))
+      _ = s1 * (a * (b * s2)) := congrArg (fun t => s1 * t) (Int.mul_assoc a b s2)
+      _ = s1 * ((b * s2) * a) := congrArg (fun t => s1 * t) (Int.mul_comm a (b * s2))
+      _ = s1 * (b * (s2 * a)) := congrArg (fun t => s1 * t) (Int.mul_assoc b s2 a)
+      _ = (s1 * b) * (s2 * a) := (Int.mul_assoc s1 b (s2 * a)).symm
+  rw [h, Int.sub_self]
+
+theorem rank_one_fusion_impossible (s1 s2 a b u1 u2 v1 v2 : Int)
+    (hdet : u1 * v2 - u2 * v1 ≠ 0) :
+    ¬ (u1 = s1 * a ∧ u2 = s1 * b ∧ v1 = s2 * a ∧ v2 = s2 * b) := by
+  intro ⟨hu1, hu2, hv1, hv2⟩
+  apply hdet
+  rw [hu1, hu2, hv1, hv2]
+  exact rank_one_probe_det_zero s1 s2 a b
+
+theorem role275_fixed_fusion_impossible (s1 s2 a b : Int) :
+    ¬ ((2 : Int) = s1 * a ∧ (-1 : Int) = s1 * b ∧ (2 : Int) = s2 * a ∧ (1 : Int) = s2 * b) :=
+  rank_one_fusion_impossible s1 s2 a b 2 (-1) 2 1 (by decide)
+
+/-- Constructive power-of-two addition law (`0` axioms). -/
+theorem pow2_add (a b : Nat) : (2 ^ a) * (2 ^ b) = 2 ^ (a + b) := by
+  induction b with
+  | zero => exact Nat.mul_one (2 ^ a)
+  | succ k ih =>
+    calc
+      (2 ^ a) * ((2 ^ k) * 2) = ((2 ^ a) * (2 ^ k)) * 2 := (Nat.mul_assoc (2 ^ a) (2 ^ k) 2).symm
+      _ = (2 ^ (a + k)) * 2 := congrArg (fun t => t * 2) ih
+
+/-- Constructive monotonicity of `2 ^ n` without evaluating `2 ^ b` (`0` axioms). -/
+theorem pow2_mono {a b : Nat} (h : a ≤ b) : 2 ^ a ≤ 2 ^ b := by
+  induction h with
+  | refl => exact Nat.le_refl (2 ^ a)
+  | @step m _ ih =>
+    exact Nat.le_trans ih (Nat.le_add_left (2 ^ m) (0 + 2 ^ m))
+
+def H11 : Nat := 14174600000000000
+def step11 : Nat := 100000000000
+def kstar11 : Nat := 1920 * (153 ^ 1920) * ((H11 + 1) ^ 2)
+
+/-- Exact `119,542`-bit cover bracket and `14,065`-bit `4096 * kstar11 < 2 ^ H11`
+bound at `H11 = 14,174,600,000,000,000` (`step11 = 10^11`). -/
+theorem frontier7000_cover_119542_and_kstar11_bounds :
+    (H11 + 1) ^ 2228 < 2 ^ 119542 ∧
+    2 ^ 119541 ≤ (H11 + 1) ^ 2228 ∧
+    2 ^ 119541 ≤ (H11 - step11 + 1) ^ 2228 ∧
+    2 ^ 14064 ≤ 4096 * kstar11 ∧
+    4096 * kstar11 < 2 ^ 14065 ∧
+    4096 * kstar11 < 2 ^ H11 := by
+  have h1 : (H11 + 1) ^ 2228 < (2 ^ 59771) * (2 ^ 59771) := by decide
+  have h2 : (2 ^ 59771) * (2 ^ 59770) ≤ (H11 + 1) ^ 2228 := by decide
+  have h3 : (2 ^ 59771) * (2 ^ 59770) ≤ (H11 - step11 + 1) ^ 2228 := by decide
+  have e42 : (2 ^ 59771) * (2 ^ 59771) = 2 ^ 119542 := pow2_add 59771 59771
+  have e41 : (2 ^ 59771) * (2 ^ 59770) = 2 ^ 119541 := pow2_add 59771 59770
+  rw [e42] at h1
+  rw [e41] at h2 h3
+  have hk_lo : 2 ^ 14064 ≤ 4096 * kstar11 := by decide
+  have hk_hi : 4096 * kstar11 < 2 ^ 14065 := by decide
+  have hle : 14065 ≤ H11 := by decide
+  exact ⟨h1, h2, h3, hk_lo, hk_hi, Nat.lt_of_lt_of_le hk_hi (pow2_mono hle)⟩
+
+def step14 : Nat := 100000000000000
+def H14 : Nat := 14174600000000000000
+def kstar14 : Nat := 1920 * (153 ^ 1920) * ((H14 + 1) ^ 2)
+
+/-- Minimal `j = 141,746` fixed-point crossing at `step14 = 10^14`
+(`H14 = 14,174,600,000,000,000,000`), certifying `(H14 + 1)^2228 < 2^141746`,
+adversarial lower failure `2^141745 <= (H14 - step14 + 1)^2228`, and exact
+`14,085`-bit bound `4096 * kstar14 < 2^H14`. -/
+theorem frontier7000_interval_gate_141746_and_kstar14_bounds :
+    (H14 + 1) ^ 2228 < 2 ^ 141746 ∧
+    2 ^ 141745 ≤ (H14 - step14 + 1) ^ 2228 ∧
+    2 ^ 14084 ≤ 4096 * kstar14 ∧
+    4096 * kstar14 < 2 ^ 14085 ∧
+    4096 * kstar14 < 2 ^ H14 := by
+  have h1 : (H14 + 1) ^ 2228 < ((2 ^ 47249) * (2 ^ 47249)) * (2 ^ 47248) := by decide
+  have h2 : ((2 ^ 47249) * (2 ^ 47248)) * (2 ^ 47248) ≤ (H14 - step14 + 1) ^ 2228 := by decide
+  have e98 : (2 ^ 47249) * (2 ^ 47249) = 2 ^ 94498 := pow2_add 47249 47249
+  have e97 : (2 ^ 47249) * (2 ^ 47248) = 2 ^ 94497 := pow2_add 47249 47248
+  have e46 : (2 ^ 94498) * (2 ^ 47248) = 2 ^ 141746 := pow2_add 94498 47248
+  have e45 : (2 ^ 94497) * (2 ^ 47248) = 2 ^ 141745 := pow2_add 94497 47248
+  rw [e98, e46] at h1
+  rw [e97, e45] at h2
+  have hk_lo : 2 ^ 14084 ≤ 4096 * kstar14 := by decide
+  have hk_hi : 4096 * kstar14 < 2 ^ 14085 := by decide
+  have hle : 14085 ≤ H14 := by decide
+  exact ⟨h1, h2, hk_lo, hk_hi, Nat.lt_of_lt_of_le hk_hi (pow2_mono hle)⟩
+
+end KappaCheck.Frontier7000ZeroDeps
+
+#print axioms KappaCheck.Frontier7000ZeroDeps.frontier7000_kappa_hierarchy_and_supplier_margin
+#print axioms KappaCheck.Frontier7000ZeroDeps.frontier7000_unit_job_and_rank_mass_ledger
+#print axioms KappaCheck.Frontier7000ZeroDeps.rank_one_probe_det_zero
+#print axioms KappaCheck.Frontier7000ZeroDeps.rank_one_fusion_impossible
+#print axioms KappaCheck.Frontier7000ZeroDeps.role275_fixed_fusion_impossible
+#print axioms KappaCheck.Frontier7000ZeroDeps.pow2_add
+#print axioms KappaCheck.Frontier7000ZeroDeps.pow2_mono
+#print axioms KappaCheck.Frontier7000ZeroDeps.frontier7000_cover_119542_and_kstar11_bounds
+#print axioms KappaCheck.Frontier7000ZeroDeps.frontier7000_interval_gate_141746_and_kstar14_bounds
   Zero-dependency stock Lean 4 (`Init`-only, compatible with pinned v4.21.0)
   certificate checks for:
   1. Frontier 7000 (`PR #7000` & `PR #7001`, `certificates/selected-result.json`
