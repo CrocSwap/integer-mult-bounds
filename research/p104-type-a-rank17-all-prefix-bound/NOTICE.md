@@ -1,0 +1,1 @@
+Apache-2.0. The two unchanged Laurent engines are reused from exact #7398, including its #7316 reverse convention. #7113 supplies the literal signed caller. See PROVENANCE.json for the scientific input origins and predecessor attribution. OpenAI Codex and subagents materially assisted proof, implementation, independent replay and packaging.
