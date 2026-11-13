@@ -1,0 +1,5 @@
+# Verification
+
+The reverse coefficient extraction authenticates the exact #7481 compressed word and reused row routines. It reconstructs the old bank, the two targets and the separate ownership-transfer identity, then produces two exact probes from row elimination. The independent forward replay authenticates both compressed and expanded source bytes, checks the two probe inputs and the zero control through the old signed transfer, and scans for old subsequent chart-529 arrivals. The original executions took 0.16 and 0.29 seconds respectively, each within a 30-second cap, with exit zero.
+
+The package checks exact path-keyed inputs, compares both deterministic receipts and verifies the two-target determinant. It derives the rank-one saving and offsetting charge from the exact word and 17-stage caller. Controls reject a corrupted source byte, a collapsed target evaluation and duplicate receipt keys. The cut is one exact native case, with no new complete supplier or candidate application to replay.
