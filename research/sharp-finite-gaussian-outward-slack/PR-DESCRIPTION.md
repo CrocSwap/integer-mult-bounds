@@ -1,72 +1,79 @@
-# Prove the exact Gaussian rounding threshold on the radius-five lattice ball with a compact Hall obstruction
+# Prove exact finite Gaussian rounding thresholds with compact Hall witnesses and independently checked orbit-flow certificates
 
-## Exact result
+## Exact result and why it matters
 
-For the complete radius-five ball in Z4, the minimum possible maximum
-outward norm increment of an injective integer-output approximation to
-H4/2 with pointwise Euclidean error at most 1 is exactly
-`sqrt(21)-sqrt(19)`. A full 3,121-input injection attains this value.
-The explicit signed-permutation identity `H4=L(2C+)R` transfers the result
-to the actual ideal Gaussian pair from #6509 and to its conjugate C-.
+For injective integer-output rounding of H4/2 with uniform Euclidean error
+at most1, the complete radius-five lattice ball has exact optimal outward
+slack `sqrt(21)-sqrt(19)`. The exact optima are `sqrt(31)-sqrt(28)` on
+radii6 and7, and `sqrt(78)-sqrt(73)` on radii9 and11. Radius10 follows by
+inclusion, without a separate computation. The explicit signed-permutation
+identity `H4=L(2C+)R` transfers these results to the ideal Gaussian pair of
+#6509 and its conjugate.
 
-The lower bound has a short, independently checkable form. Let B19 be the
-integer points of squared norm at most19. Remove the complete signed
-coordinate orbits with sorted absolute coordinates(0,0,3,3) and(0,1,3,3),
-obtaining N with 1,777 points. Add the 32 positive-product signed permutations
-of(2,2,2,3), obtaining T with 1,809 points. Every error-one neighbor of T
-whose outward increment is strictly below `sqrt(21)-sqrt(19)` lies in N.
-Hall's inequality therefore fails by 32.
+Thus any global injection under these error hypotheses needs outward slack
+at least `sqrt(78)-sqrt(73)`. The available global interval is
+`[sqrt(78)-sqrt(73),1]`; the upper endpoint is inherited from #6509.
+Finite injections do not establish global attainment.
 
-## Why this advances the question
+## What changed and novelty relative to predecessors
 
-#6619 asks about outward slack for rational orthogonal rounding; #2589
-provides its finite-sphere predecessor and #6509 supplies the Gaussian pair
-and a global error-one construction. This package proves an exact finite
-optimum and a necessary global lower bound without a period or conserved-sum
-premise. The compact lower proof uses 38 signed-coordinate representatives,
-rather than trusting a long list of witness inputs or search exclusions.
+#6619 raises the rational norm-rounding question and credits #2589's
+finite-sphere method; #6509 supplies the Gaussian map and a global error-one
+construction. This package supplies exact finite optima and a necessary
+global lower bound without period, conserved-sum or equivariance premises
+on the unknown rounder. Classical Hall and symmetry facts are credited as
+such; the explicit certificates and source-bound transfer are the new work.
 
-The global infimum at error cap 1 is only bracketed here by
-`[sqrt(21)-sqrt(19),1]`. The upper endpoint uses the inherited #6509 global
-construction. A finite injection does not construct a global rounder at the
-lower endpoint. The selected exact-layer multiplication route is not rejected.
+The radius-five lower bound has a short two-exclusion proof. Remove the
+signed coordinate orbits(0,0,3,3) and(0,1,3,3) from the squared-norm19 ball,
+obtaining1,777 points. Add the32 positive-product permutations of(2,2,2,3),
+obtaining1,809 inputs; every error-one neighbor below the strict threshold
+lies in the1,777-point set. Only38 input-orbit representatives need checking.
 
-## Reproduction and independent verification
+The extension gives reusable positive flow and Hall-cut certificates on
+paired W(D4) orbits. Biregularity, rather than complete bipartite adjacency,
+lifts a saturated quotient flow to a fractional matching and then an actual
+finite injection. At radii6/7 the strict Hall sizes are3,569/3,537; at9/11
+they are23,561/23,497. Full orbit predicates and exact capacities are retained.
+This extends the same mathematical package and does not create a separate
+PR for each finite radius.
+
+## Reproduction and independent checks
 
 Canonical base: `e54523517d0f03e58352e647c403a5af3e525a57`.
+Original verified R5 package: `9c75d0b4b6e1cfe74694edf52f2f238a741bbaf5`.
 
 ```sh
 python3 -I -W error -B research/sharp-finite-gaussian-outward-slack/verify.py
-python3 -I -O -W error -B research/sharp-finite-gaussian-outward-slack/verify.py
 python3 -I -W error -B research/sharp-finite-gaussian-outward-slack/compact-hall/check.py
-python3 -I -W error -B research/sharp-finite-gaussian-outward-slack/compact-hall/orbit_cut.py
-python3 -I -W error -B research/sharp-finite-gaussian-outward-slack/review/check_full_matching.py
+python3 -I -W error -B research/sharp-finite-gaussian-outward-slack/orbit-extension/verify.py
+python3 -I -O -W error -B research/sharp-finite-gaussian-outward-slack/orbit-extension/verify.py
+python3 -I -W error -B research/sharp-finite-gaussian-outward-slack/review/extension/check_full_certificates.py
+python3 -I -W error -B research/sharp-finite-gaussian-outward-slack/review/extension/check_full_r9.py
 ```
 
-Default runs are read-only and require only the Python standard library.
-The primary checker validates the exact compressed certificate, complete
-3,121-input injection, original strict Hall neighborhood and native transfer.
-It detects corruption, duplicate output, omitted neighbors, erroneous strict
-error and incorrect threshold ties. The standalone compact checker reads no
-matching or Hall-list certificate. A separate orbit flow and an independent
-full-vertex matching implementation agree on strict optimum 3,089 and the
-deficit 32. Including beta equality restores a full matching.
+These standard-library commands are read-only. Normal/optimized search and
+verification receipts agree. The independent full-point checker reconstructs
+all1,551,060 candidate edges over the four extension domains, checks actual
+point-count orbit capacities, positive-flow conservation and complete Hall
+neighborhoods, and imports no author generator or radical comparator. It
+rejects changed flows, missing neighbor orbits and strict/inclusive boundary
+confusion. A separate full-vertex radius-nine matching has32,633 inputs,
+strict maximum32,569 and full saturation when equality edges are admitted.
+Its different Hall set has23,057 inputs and22,993 outputs, agreeing on
+maximum deficiency64. The original certificate, compact checker and source
+transfer also retain their corruption and tie controls.
 
-Exact source pins, output receipts, search domain and untouched regions,
-proofs and independent review are included. The original proof and checker
-remain available alongside the compact supplement.
+## Limitations, kappa and credit
 
-## Limits, kappa and credit
+This is a scoped rounding obstruction and exact finite verification package.
+It supplies no global map at the lower endpoint, unrestricted forward1/2
+bound, selected caller admission or physical rounding tariff. It does not
+reject the selected exact-layer route. **No new kappa; all five multiplication
+assumptions remain.** Selected conditional kappa is `0.00363005817`.
 
-This is a precision/analytic rounding obstruction, not a new complete
-multiplication coefficient or an unconditional multiplication theorem.
-**No new kappa; all five framework assumptions remain.** The selected
-conditional kappa remains `0.00363005817`. Other radii/error caps, global
-attainment, physical caller admission and complete numerical recovery are
-outside this package's claim.
-
-Prepared for @CubeJerry with substantial OpenAI Astra/Sol/Luna assistance
-in candidate construction, proofs, code and independent review. Credit Nick
-Petalas (#6619), ywz65 (#2589), Ali Romman (#6509), and the source authors
-identified in SOURCES.json and NOTICE.md. Independent AI implementations
-are distinguished from human review or formal-kernel acceptance.
+Prepared for @CubeJerry with substantial OpenAI Astra/Sol/Luna assistance in
+candidate construction, proofs, code and independent checking. Credit Nick
+Petalas (#6619), ywz65 (#2589), Ali Romman (#6509), and the retained source
+authors in SOURCES.json and NOTICE.md. Independent AI implementations are
+not human review or formal-kernel acceptance. No upstream PR is submitted.

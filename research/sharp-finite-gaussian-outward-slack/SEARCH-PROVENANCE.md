@@ -34,3 +34,17 @@ Prepared for @CubeJerry with substantial OpenAI Astra/Sol/Luna assistance.
 Credit #6619, #2589 and #6509 for the preceding question, finite-sphere
 method and Gaussian pair construction. Exact scientific dependencies remain
 pinned in SOURCES.json and the proof documents.
+
+
+## Later bounded extension
+
+After publication of the R5 package at
+`9c75d0b4b6e1cfe74694edf52f2f238a741bbaf5`, a fresh allocation evaluated
+only radii6,7,9,11. Its exact graph counts, attained gaps, binary probes,
+positive flows, strict cuts and untouched regions are in
+`orbit-extension/SEARCH-PROVENANCE.md` and `orbit-extension/RESULT.json`.
+The root independently expanded all individual points and candidate edges
+at all four radii and checked capacities, flows and complete neighborhoods.
+A separate full-vertex maximum matching confirms the radius-nine optimum.
+The radius-ten statement is a monotonicity deduction, not an extra search.
+The initial R3/R4/R5 search coverage described above remains unchanged.
