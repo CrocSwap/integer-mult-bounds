@@ -52,3 +52,35 @@ def construct(old,h=None):
  for q in touched:
   if active[q]!=old['final'][q]:append(['MOVE',q,active[q],old['final'][q],False])
  assert active==old['final']+[None]*old['owned_fields'];out['program']=tape;return out
+
+R,PEER,READOUT=449,1206,1477
+LOW,MIDDLE,HIGH=594,724,904
+AUX=1501
+
+def local_certificate(old):
+ h=json.loads((HERE/'WITNESS.json').read_text());block=h['block'];touched=set(h['touched']);p=old['program']
+ assert sha256(json.dumps(old,sort_keys=True,separators=(',',':')).encode()).hexdigest()==SOURCE
+ assert all(p[i][0]in('ADD','SCALE')and p[i][-1]==MIDDLE for i in block)
+ bounds={}
+ for r in touched:
+  contacts=[i for i,e in enumerate(p)if e[0]!='MOVE'and r in(e[1:3]if e[0]in('ADD','COPY')else e[1:2])]
+  body=[i for i in block if r in(p[i][1:3]if p[i][0]=='ADD'else p[i][1:2])]
+  assert [i for i in contacts if body[0]<=i<=body[-1]]==body
+  bounds[r]=(max((i for i in contacts if i<body[0]),default=-1)+1,min((i for i in contacts if i>body[-1]),default=len(p)))
+ lo=max(a for a,b in bounds.values());hi=min(b for a,b in bounds.values());assert lo<=h['clock']<=hi
+ # Exact block image of the changed ingress direction.
+ x={r:Q(0)for r in touched};x[R]=-1
+ for r,v in h['ingress'].items():x[int(r)]=Q(v)
+ for i in block:
+  e=p[i]
+  if e[0]=='ADD':x[e[1]]+=Q(e[3])*x[e[2]]
+  else:x[e[1]]*=Q(e[2])
+ assert {r:v for r,v in x.items()if v}=={int(r):Q(v)for r,v in h['delta'].items()}
+ # The claimed inverse row applied to M recovers exactly the original r input.
+ y={r:Q(0)for r in touched};y.update({int(r):Q(v)for r,v in h['inverse'].items()})
+ for i in reversed(block):
+  e=p[i]
+  if e[0]=='ADD':y[e[2]]+=Q(e[3])*y[e[1]]
+  else:y[e[1]]*=Q(e[2])
+ assert {r:v for r,v in y.items()if v}=={R:1}
+ return {'block':block,'clock_range':[lo,hi],'ingress':h['ingress'],'delta':h['delta'],'inverse':h['inverse'],'charged_high_readout':READOUT}

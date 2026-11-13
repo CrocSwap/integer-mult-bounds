@@ -2,13 +2,16 @@
 """Source-bound native adjoint and complete directed signed pricing."""
 from pathlib import Path
 from collections import Counter
+from fractions import Fraction as Q
 import sys,json,gzip,copy,argparse
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from source import HERE,sources,load,read,canonical,sha256,need
-from construct import construct
+from construct import construct, local_certificate
+from packing_reference import packing
 
 def run():
  with sources()as(vendor,audit,rank9,bundle,parent,old):
+  local_certificate(old)
   word=construct(old);need(canonical(word)==gzip.decompress((HERE/'WORD.json.gz').read_bytes()),'Complete emitted word')
   ind=load('fused_ind',vendor/'independent.py');before,after=map(ind.native,(old,word));need(not before['bad_inputs']and not after['bad_inputs'],'Whole native arbitrary-input adjoints')
   need(json.loads(json.dumps(before))==read(parent/'NATIVE-RESULT.json')['native'],'Exact predecessor inventory')
@@ -20,6 +23,8 @@ def run():
   for r,v in delta.items():invoice['P'][r]=invoice['P'].get(r,0)+17*v
   need(sum(r*v for r,v in delta.items())==0,'Unchanged rank mass')
   gate,price=engine.exact_price(vendor,audit,oldinvoice,invoice,{'gate':base['gate']})
+  ceiling=packing(invoice,after,engine.module('fused_packing_tariff',vendor/'interval_gate.py'),Q(gate['claim']))
+  print('PASS_FIXED_PROFILE_PACKING_CEILING',json.dumps(ceiling,default=str,sort_keys=True),flush=True)
   return json.loads(json.dumps(dict(status='PASS_SOURCE_BOUND_EXACT_NATIVE_AND_DIRECTED_PRICE',native=after,delta=delta,invoice=invoice,gate=gate,price=price,source_word_sha256=sha256(canonical(old)).hexdigest(),word_sha256=sha256(canonical(word)).hexdigest()),default=str))
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--out',type=Path);a=p.parse_args();r=run()
