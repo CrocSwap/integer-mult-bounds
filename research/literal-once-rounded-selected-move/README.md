@@ -41,6 +41,8 @@ All five framework assumptions and selected conditional kappa remain.
 
 ## Reproduce
 
+This archive uses [REPRODUCTION.json](REPRODUCTION.json) as a standalone replay guide, not a registered `research/<slug>/VERIFY.json` manifest. Run the commands directly from this directory; the ordinary replay is read-only, and `--write` explicitly regenerates the receipt. The generic research-package hook does not validate or run this archive manifest.
+
 Python 3.11+ and standard library only, from this directory:
 
 ```sh
