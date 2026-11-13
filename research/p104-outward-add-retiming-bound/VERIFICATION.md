@@ -1,0 +1,5 @@
+# Verification
+
+The original primary printed all 958 cases and its completion marker. Its measured elapsed time was 76.82 seconds, with 0.43 seconds user and 0.03 seconds system, exceeding the declared 30-second wall limit despite an in-process alarm. The timing does not identify why. The independently written chart interval and ADD barrier replay completed in 0.22 seconds, exit zero, under both its own 30-second deadline and a parent 30-second process cap. It verified the complete scope within the declared budget. The paired receipts are preserved unchanged in mathematical content. The primary receipt is bundled with deterministic gzip compression and is compared by decompressed bytes.
+
+The clean replay authenticates all path-keyed input hashes, runs both exact engines with individual 30-second process caps, and requires exact equality to both frozen receipts. A changed source byte, a duplicate pin key and a modified claimed result are rejected. The package does not rerun the full #7481 supplier or test alternative physical itineraries.

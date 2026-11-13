@@ -1,0 +1,1 @@
+Apache-2.0. #7003 supplies the exact retained commuting ADD and coframe placement scanner. #7481/#7480/#7334 supply the native construction lineage, #7113 the signed caller, and #7362/#7298 the directed tariff. #7434 covers the distinct incoming-ADD historical-bank scope. OpenAI Codex and subagents materially assisted implementation, independent verification and packaging.
