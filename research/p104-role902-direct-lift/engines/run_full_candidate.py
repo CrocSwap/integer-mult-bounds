@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 import json
 from subprocess import run, TimeoutExpired
-from sys import executable
+from sys import argv, executable
 from time import monotonic
 
 ROOT = Path(__file__).resolve().parent
@@ -18,9 +18,11 @@ def utc():
 
 
 def main():
-    assert __debug__
+    assert __debug__ and len(argv) <= 2
+    stages = STAGES if len(argv) == 1 else tuple(stage for stage in STAGES if stage[0] == argv[1])
+    assert stages, "unknown replay stage"
     receipts = ROOT / "receipts"
-    for name, script, cap, marker in STAGES:
+    for name, script, cap, marker in stages:
         started = utc()
         timer = monotonic()
         stdout = receipts / (name + ".stdout")

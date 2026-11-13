@@ -56,10 +56,10 @@ def compare(record, expected, omit=()):
 def main():
     assert __debug__ and sys.version_info[:2] == (3, 12)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stage", choices=("exact", "complete"), required=True)
+    parser.add_argument("--stage", choices=("exact", "native", "signed"), required=True)
     args = parser.parse_args()
     authenticate()
-    with tempfile.TemporaryDirectory(prefix="composed-7481-7542-") as work:
+    with tempfile.TemporaryDirectory(prefix="role902-") as work:
         root = Path(work).resolve()
         (root / "isolated").mkdir()
         frozen = root / "frozen-composition"
@@ -106,18 +106,27 @@ def main():
             shutil.copyfile(expected_word,root/"producer54/reroute/WORD.json.gz")
             shutil.copyfile(engine/"7481-EMISSION.json",root/"producer54/reroute/RESULT.json")
             (root/"receipts").mkdir()
-            contained(root,engine/"adapt_native902.py",engine/"7544-native.py",frozen,
-                      root/"producer54/validation_native/run.py",timeout=5,capture=True)
-            contained(root,engine/"adapt_signed902.py",root,engine/"7544-signed.py",
-                      root/"producer54/validation_signed/role902_run.py",timeout=5,capture=True)
-            shutil.copyfile(engine/"run_full_candidate.py",root/"run_full_candidate.py")
+            native_result = root / "producer54/validation_native/NATIVE-RESULT.json"
+            pinned_native = HERE / "expected/NATIVE.json"
+            if args.stage == "native":
+                contained(root, engine / "adapt_native902.py", engine / "7544-native.py", frozen,
+                          root / "producer54/validation_native/run.py", timeout=5, capture=True)
+            else:
+                shutil.copyfile(pinned_native, native_result)
+                contained(root, engine / "adapt_signed902.py", root, engine / "7544-signed.py",
+                          root / "producer54/validation_signed/role902_run.py", timeout=5, capture=True)
+            shutil.copyfile(engine / "run_full_candidate.py", root / "run_full_candidate.py")
             try:
-                contained(root,root/"run_full_candidate.py",timeout=990)
+                contained(root, root / "run_full_candidate.py", args.stage, timeout=503)
             except subprocess.CalledProcessError:
-                for entry in sorted((root/"receipts").glob("*.stderr")):
+                for entry in sorted((root / "receipts").glob("*.stderr")):
                     sys.stderr.write(entry.read_text())
                 raise
-            compare(root/"producer54/validation_native/NATIVE-RESULT.json",HERE/"expected/NATIVE.json",("timings",))
+            if args.stage == "native":
+                compare(native_result, pinned_native, ("timings",))
+                print("PASS_ROLE902_NATIVE_RECEIPT_MATCH", flush=True)
+                authenticate()
+                return
             compare(root/"producer54/validation_signed/RESULT.json",HERE/"expected/SIGNED.json",("timings","elapsed_seconds"))
             recurrence=root/"recurrence.json"
             recurrence.write_bytes(contained(root,engine/"check_recurrence.py",old,expected_word,
@@ -126,9 +135,10 @@ def main():
             assert recurrence.read_bytes() == (engine/"RECURRENCE.json").read_bytes()
             receipt=root/"final.json"
             receipt.write_bytes(contained(root,engine/"check_final902.py",root,recurrence,
-                inputs/"COMPOSED-APPLICATION.json",timeout=30,capture=True))
-            compare(receipt,HERE/"expected/FINAL.json",("native_result_sha256","signed_result_sha256"))
-            print("PASS_ROLE902_COMPLETE_REPLAY",read(receipt)["claim_decimal"],flush=True)
+                inputs/"COMPOSED-APPLICATION.json", "--pinned-native", pinned_native,
+                timeout=30,capture=True))
+            compare(receipt,HERE/"expected/FINAL.json",("signed_result_sha256",))
+            print("PASS_ROLE902_SIGNED_FINAL_REPLAY",read(receipt)["claim_decimal"],flush=True)
     authenticate()
 
 

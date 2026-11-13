@@ -48,6 +48,8 @@ def main():
     parser.add_argument("root", type=Path, help="isolated output with producer54 stages and wrapper receipts")
     parser.add_argument("recurrence", type=Path, help="fresh check_recurrence.py output")
     parser.add_argument("predecessor", type=Path, help="published exact #7544 final application")
+    parser.add_argument("--pinned-native", type=Path,
+                        help="native receipt compared by the mandatory separate native stage")
     args = parser.parse_args()
     root = args.root / "producer54"
     native_path = root / "validation_native/NATIVE-RESULT.json"
@@ -74,7 +76,13 @@ def main():
     for pair, rank in (((618, 789), 2), ((789, 913), 2), ((618, 913), 4)):
         assert pairs[pair]["rank"] == rank
         assert pairs[pair]["absolute_phase_verified"] and pairs[pair]["columns"] == 512
-    for stage, expected in (("native", native["status"]), ("signed", signed["status"])):
+    receipt_stages = [("signed", signed["status"])]
+    if args.pinned_native is None:
+        receipt_stages.append(("native", native["status"]))
+    else:
+        assert native_path.read_bytes() == args.pinned_native.read_bytes()
+        assert not (args.root / "receipts/native.json").exists()
+    for stage, expected in receipt_stages:
         wrapper = read(args.root / "receipts" / f"{stage}.json")
         assert wrapper["exit"] == 0 and wrapper["expected_marker"] == expected
         assert expected in (args.root / "receipts" / f"{stage}.stdout").read_text()

@@ -43,8 +43,8 @@ python3.12 -B scripts/research_package.py --package research/p104-role902-direct
 
 The exact stage rebuilds the literal word, checks all 512 forward
 and adjoint physical columns, and reconstructs the whole exact
-normalized output, ownership and invoice. The complete stage
-revalidates the native and signed applications, catalogue, ordinary
+normalized output, ownership and invoice. The mandatory native and signed stages
+revalidate their respective applications, the catalogue, ordinary
 budget, grid, precision and tape bounds, and 54 strict and four
 functional outer predicates. It includes wrong-source, omitted-MOVE
 and absolute-phase negative controls.

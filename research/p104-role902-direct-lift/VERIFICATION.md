@@ -22,3 +22,13 @@ The operation targets one pair of role902 moves. Other role902 pairs and
 edits to other roles are outside this result. The exact input, literal
 output, independent replay tools, authoritative receipts, recurrence and
 source history are pinned in this package.
+
+The first hosted run passed onboarding, the independent exact stage
+and the native verifier, then exhausted the combined native-and-signed
+command's 595-second cap during signed replay. The manifest now runs
+native and signed as two mandatory commands in disjoint scratch roots.
+The native stage compares every scientific field against the pinned
+native receipt, omitting timings only. The signed stage authenticates
+that same receipt byte for byte and recomputes its own application and
+claim. The signed stage alone does not certify that the native command
+ran. A registered replay requires all three commands to exit zero.
