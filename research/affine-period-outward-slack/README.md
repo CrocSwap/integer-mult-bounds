@@ -14,6 +14,8 @@ proof uses integral ray shifts inside fixed-sum fibers.
 
 ## Files and reproduction
 
+This archive uses [REPRODUCTION.json](REPRODUCTION.json) as a standalone replay guide, not a registered `research/<slug>/VERIFY.json` manifest. The default direct replay is read-only; `--write-result` explicitly refreshes the receipt. The generic research-package hook does not validate or run this archive manifest.
+
 - [PROOF.md](PROOF.md) gives the period theorem, the complete legal-center
   family proof, the ray inequalities, and the source-bound corollaries.
 - [SOURCES.json](SOURCES.json) pins the canonical base, retained kernel, and
@@ -21,7 +23,7 @@ proof uses integral ray shifts inside fixed-sum fibers.
 - [kernel.py](kernel.py) is a byte-identical copy of #6509's tiny kernel.
 - [SOURCE-NOTICE.md](SOURCE-NOTICE.md) preserves its upstream notice;
   [NOTICE.md](NOTICE.md) records this package's added work and credit.
-- [VERIFY.json](VERIFY.json) records the exact replay command.
+- [REPRODUCTION.json](REPRODUCTION.json) records the standalone replay command.
 
 Run from this directory with Python 3.10+ and the standard library:
 
