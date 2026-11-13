@@ -1,0 +1,1 @@
+Apache-2.0. The exact #7481 word and #7113 signed caller retain their source lineage. The reverse verifier and exact forward, compiler and physical interpreter engines are carried with the upstream license and notices in `notices/`. See PROVENANCE.json for exact origins. OpenAI Codex and subagents materially assisted proof, implementation, independent replay and packaging.
