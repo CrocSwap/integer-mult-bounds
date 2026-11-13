@@ -1,0 +1,1 @@
+Apache-2.0. The signed caller and native data retain the #7113 and #7481 lineages. The exact covector engine follows #7482 and the directed tariff follows #7298. See PROVENANCE.json for exact source paths and predecessor attribution. OpenAI Codex and subagents materially assisted proof, implementation, independent replay and packaging.
