@@ -44,8 +44,8 @@ The verifier compares all 15 target cases through modulus five against a
 separate positional enumerator, with 3,927,606 literal word evaluations and
 2,510 emitted representatives in total across those cases. Every emitted
 word receives a complete four-role integer-matrix endpoint check. Small
-suffix tables receive 187 independently constructed matrix-signature checks
-and 210 completion queries. Eleven controls cover invalid inputs, periodic
+suffix tables cover 187 distinct residue states checked against independently
+constructed matrix-signature sets, and 210 completion queries. Eleven controls cover invalid inputs, periodic
 classes, canonical orientation and chronological direction. In particular,
 the `(3,1)` fixture retains two period-three classes and two period-nine
 classes; filtering out all repeated words would be wrong.
