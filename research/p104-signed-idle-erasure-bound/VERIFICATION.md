@@ -1,0 +1,5 @@
+# Verification
+
+The first frozen width-one case finished in 0.19 seconds on POSIX CPython 3.9.6. The independent cycle-polynomial implementation finished in 0.07 seconds on CPython 3.12.14. Both exit codes were zero. Each runner has a 30-second cap. The primary engine enumerates all 512 bit strings for the pinned signed source and each possible core sign count. The independent engine computes polynomial coefficients modulo $t^4-1$, checks all four exact complex erasure interpolants, and checks that dropping one independent lane removes the obstruction. It imports no primary code.
+
+The package wrapper pins the caller, signed-child source, exact application and directed pricing input. It compares each mathematical receipt and checks a changed caller byte, a duplicate manifest key and a mutated rank receipt. The clean CPython 3.12 command in README uses no network or mutable temporary pointer. It checks only the declared finite case and the arithmetic of the stated analytic bound. There is no changed physical supplier, complete application replay or new exponent claim.
