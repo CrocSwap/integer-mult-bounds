@@ -1,0 +1,642 @@
+"""SOURCE ONLY: parent-gated single attempt using immutable retention V5 APIs.
+No default root, output, authority, funding, lock or admission is supplied here.
+"""
+import argparse
+import errno
+import fcntl
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import resource
+import signal
+import stat
+import sys
+import time
+from plain_boundary import plain_copy, fd_number
+import parent_authority
+import error_custody
+import native_io_custody as native_io
+PINNED = {'archive.py': 'a01f3aa042cf310c670d1d3d72093aa766482091e14e1415718b8c37d9ef3290', 'oracle.py': '4aec1a45015cf35700013a5fffd77acf1bee2c9d4d54281fdcf53dd17319e1d4', 'native_io_custody.py': '4ecdd0d02f96c5ead44da09efb840252dfad0c2948f078092f5879580961f2a1', 'error_custody.py': 'd6bfe3c418845cf20fa6bf05673ca13a22e2c4d472243e5f46aa68c1ec4d3912', 'plain_boundary.py': '770cfd843187fc3dd081fdb09800039483406522fcfc0f6bdac4cffda43a10e6', 'USAGE.md': '13edef89fe8aa68cd662ccc6b0c6fbac7026e08385303c605963594f77c9ba89'}
+MAX_METADATA = 8388608
+LIMIT_MAX = dict(chunk_bytes=1048576, max_entries=4096, max_depth=32, max_path_bytes=4096, max_file_bytes=536870912, max_total_bytes=2147483648, max_unique_bytes=2147483648, max_runs=128, max_manifest_bytes=1048576, max_root_bytes=4194304, max_metadata_bytes=8388608)
+
+def need(value, reason):
+    if not value:
+        raise ValueError(reason)
+
+def canonical(value):
+    value = plain_copy(value)
+    return (json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(',', ':')) + '\n').encode('ascii')
+
+def parse(raw):
+    need(type(raw) in (bytes, str) and len(raw) <= MAX_METADATA, 'exact bounded JSON source bytes')
+
+    def pairs(rows):
+        result = {}
+        for key, value in rows:
+            need(key not in result, 'duplicate metadata key')
+            result[key] = value
+        return result
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=lambda value: need(False, 'nonfinite metadata'))
+
+def exact(value, fields, reason):
+    value = plain_copy(value)
+    need(type(value) is dict and set(value) == set(fields), reason)
+
+def digest(value):
+    return type(value) is str and len(value) == 64 and (set(value) <= set('0123456789abcdef'))
+
+def normalized(value):
+    need(type(value) is str and value.startswith('/') and ('\x00' not in value) and (os.path.normpath(value) == value), 'normalized absolute path required')
+    return value
+
+def signature(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_uid, info.st_gid, info.st_mtime_ns, info.st_ctime_ns, info.st_nlink)
+
+@native_io.owning_leaf
+def directory(path):
+    _owned_fault_1 = native_io._ERRORS.RawSlot()
+    _owned_fault_1.kind = 'LEXICAL-OWNER:directory'
+    fd = native_io.open_fd('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in normalized(path).split('/')[1:]:
+            if part:
+                child = native_io.open_fd(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+                native_io.close_fd(fd)
+                fd = child
+        return fd
+    except BaseException as _owned_error_1:
+        _owned_fault_1.actual = _owned_error_1
+        _owned_fault_1.traceback = BaseException.__traceback__.__get__(_owned_error_1, BaseException)
+        native_io._commit(native_io.process_context(), _owned_fault_1)
+        native_io.close_fd(fd)
+        raise
+
+@native_io.owning_leaf
+def read_pinned(path, expected, maximum=MAX_METADATA):
+    _owned_fault_2 = native_io._ERRORS.RawSlot()
+    _owned_fault_2.kind = 'LEXICAL-OWNER:read_pinned'
+    _owned_fault_3 = native_io._ERRORS.RawSlot()
+    _owned_fault_3.kind = 'LEXICAL-OWNER:read_pinned'
+    need(digest(expected), 'external metadata digest required')
+    parent = directory(os.path.dirname(normalized(path)))
+    try:
+        fd = native_io.open_fd(os.path.basename(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+        try:
+            before = native_io.native_effect('fstat', fd)
+            need(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and (0 <= before.st_size <= maximum), 'metadata type/link/size')
+            need(not native_io.native_effect('listxattr', fd), 'metadata xattrs unsupported')
+            raw = bytearray()
+            while len(raw) <= maximum:
+                block = native_io.read_fd(fd, min(65536, maximum + 1 - len(raw)))
+                if not block:
+                    break
+                raw.extend(block)
+            need(len(raw) == before.st_size and len(raw) <= maximum, 'metadata length changed')
+            need(signature(before) == signature(native_io.native_effect('fstat', fd)), 'metadata custody changed')
+            need(hashlib.sha256(raw).hexdigest() == expected, 'external metadata pin changed')
+            return bytes(raw)
+        except BaseException as _owned_error_2:
+            _owned_fault_2.actual = _owned_error_2
+            _owned_fault_2.traceback = BaseException.__traceback__.__get__(_owned_error_2, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_2)
+            raise
+        finally:
+            native_io.close_fd(fd)
+    except BaseException as _owned_error_3:
+        _owned_fault_3.actual = _owned_error_3
+        _owned_fault_3.traceback = BaseException.__traceback__.__get__(_owned_error_3, BaseException)
+        native_io._commit(native_io.process_context(), _owned_fault_3)
+        raise
+    finally:
+        native_io.close_fd(parent)
+
+def validate_config(cfg):
+    cfg = plain_copy(cfg, max_nodes=4096, max_depth=16, max_text=1048576)
+    exact(cfg, ('schema', 'purpose', 'source_root', 'output', 'tools_root', 'inventory', 'domain', 'closure', 'writer_lease', 'output_parent_identity', 'limits', 'resources', 'authority_review_sha256', 'one_shot_id'), 'config fields')
+    need(cfg['schema'] == 'h25-actual-retention-parent-config-v2', 'config schema')
+    need(cfg['purpose'] in ('historical', 'postrun'), 'retention purpose')
+    need(digest(cfg['authority_review_sha256']), 'separate actual-source approval required')
+    need(type(cfg['one_shot_id']) is str and 1 <= len(cfg['one_shot_id']) <= 128, 'one-shot id')
+    for key in ('source_root', 'output', 'tools_root'):
+        normalized(cfg[key])
+    for key in ('inventory', 'domain', 'closure'):
+        exact(cfg[key], ('path', 'sha256'), key + ' descriptor fields')
+        normalized(cfg[key]['path'])
+        need(digest(cfg[key]['sha256']), key + ' external pin')
+    exact(cfg['output_parent_identity'], ('device', 'inode', 'uid'), 'output owner identity fields')
+    need(all((type(v) is int and v >= 0 for v in cfg['output_parent_identity'].values())), 'output owner identity')
+    exact(cfg['writer_lease'], ('path', 'device', 'inode', 'protocol_sha256'), 'writer lease fields')
+    normalized(cfg['writer_lease']['path'])
+    need(digest(cfg['writer_lease']['protocol_sha256']), 'all-producer lease protocol pin')
+    need(all((type(cfg['writer_lease'][k]) is int and cfg['writer_lease'][k] >= 0 for k in ('device', 'inode'))), 'lease identity')
+    exact(cfg['limits'], LIMIT_MAX, 'complete explicit limits required')
+    need(all((type(cfg['limits'][k]) is int and 0 < cfg['limits'][k] <= v for k, v in LIMIT_MAX.items())), 'limit outside reviewed ceiling')
+    need(cfg['limits']['max_file_bytes'] >= cfg['limits']['max_metadata_bytes'] and cfg['limits']['max_manifest_bytes'] <= cfg['limits']['max_metadata_bytes'] and (cfg['limits']['max_root_bytes'] <= cfg['limits']['max_metadata_bytes']) and (cfg['limits']['max_unique_bytes'] <= cfg['limits']['max_total_bytes']) and (cfg['limits']['max_runs'] <= cfg['limits']['max_entries']), 'inconsistent explicit limits')
+    exact(cfg['resources'], ('wall_seconds', 'address_space_bytes', 'retained_bytes_cap', 'free_reserve_bytes', 'accounting_tail_bytes', 'funding_review_sha256'), 'resource fields')
+    need(all((type(v) is int and v > 0 for k, v in cfg['resources'].items() if k != 'funding_review_sha256')), 'positive explicit resource caps')
+    need(digest(cfg['resources']['funding_review_sha256']), 'separate funding pin required')
+    need(cfg['resources']['wall_seconds'] <= 175 and cfg['resources']['address_space_bytes'] <= 268435456 and (65536 <= cfg['resources']['accounting_tail_bytes'] <= MAX_METADATA), 'resource ceiling or receipt-tail reserve')
+    return cfg
+_TOOL_CACHE = None
+_TOOL_CACHE_OWNER = None
+
+def _function_state(function, depth=0, seen=None):
+    need(depth <= 16, 'bounded tool closure')
+    seen = set() if seen is None else seen
+    if id(function) in seen:
+        return (function, None)
+    seen.add(id(function))
+    cells = ()
+    if function.__closure__ is not None:
+        cells = tuple(((cell, cell.cell_contents, _function_state(cell.cell_contents, depth + 1, seen) if type(cell.cell_contents) is type(_function_state) else None) for cell in function.__closure__))
+    return (function, (function.__code__, function.__globals__, function.__defaults__, function.__kwdefaults__, cells))
+
+def _check_function_state(state):
+    function, details = state
+    if details is None:
+        return
+    code, namespace, defaults, kwdefaults, cells = details
+    need(function.__code__ is code and function.__globals__ is namespace and (function.__defaults__ is defaults) and (function.__kwdefaults__ is kwdefaults), 'checked function/code/globals changed')
+    closure = () if function.__closure__ is None else function.__closure__
+    need(len(closure) == len(cells), 'checked function closure changed')
+    for cell, (original, contents, nested) in zip(closure, cells):
+        need(cell is original and cell.cell_contents is contents, 'checked closure cell changed')
+        if nested is not None:
+            _check_function_state(nested)
+
+def _module_state(module):
+    namespace = module.__dict__
+    functions = []
+    constants = {}
+    identities = {}
+    for name, value in namespace.items():
+        if type(value) is type(_module_state):
+            functions.append((name, _function_state(value)))
+        elif name in ('LIMITS', 'DEFAULTS'):
+            constants[name] = plain_copy(value)
+        elif name == 'HEX':
+            constants[name] = sorted(value)
+        else:
+            identities[name] = value
+    return (namespace, tuple(functions), constants, identities)
+
+def _check_module_state(module, state):
+    namespace, functions, constants, identities = state
+    need(module.__dict__ is namespace, 'same checked source module globals')
+    need(set(namespace) == set(constants) | set(identities) | {name for name, state in functions}, 'checked tool globals membership changed')
+    for name, function_state in functions:
+        need(namespace.get(name) is function_state[0], 'checked tool function identity changed')
+        _check_function_state(function_state)
+    for name, value in constants.items():
+        actual = sorted(namespace[name]) if name == 'HEX' else plain_copy(namespace[name])
+        need(actual == value, 'checked tool mutable constants changed')
+    for name, value in identities.items():
+        need(namespace.get(name) is value, 'checked tool global identity changed')
+
+def modules(tools_root):
+    """Parent loads once; genuine inherited borrower does no import/exec."""
+    global _TOOL_CACHE, _TOOL_CACHE_OWNER
+    normalized(tools_root)
+    raws = {name: read_pinned(tools_root + '/' + name, pin, 1048576) for name, pin in PINNED.items()}
+    if _TOOL_CACHE is not None:
+        root, pins, archive, oracle, archive_state, oracle_state = _TOOL_CACHE
+        need(tools_root == root and pins == PINNED, 'fixed parent preloaded tools binding')
+        _check_module_state(archive, archive_state)
+        _check_module_state(oracle, oracle_state)
+        return (archive, oracle)
+    need(not hasattr(parent_authority, 'is_current_borrower') or not parent_authority.is_current_borrower(), 'borrower tools must be preloaded by genuine parent')
+    old = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    fault = native_io._ERRORS.RawSlot()
+    fault.kind = 'PARENT-TOOLS-LOAD'
+    try:
+        loaded = []
+        for name in ('archive.py', 'oracle.py'):
+            path = tools_root + '/' + name
+            spec = importlib.util.spec_from_file_location('_h25_actual_' + name[:-3], path)
+            module = importlib.util.module_from_spec(spec)
+            module.__dict__['__builtins__'] = __builtins__
+            exec(compile(raws[name], path, 'exec'), module.__dict__)
+            loaded.append(module)
+        archive, oracle = loaded
+        archive._bind_preloaded_oracle(oracle, PINNED['oracle.py'])
+        _TOOL_CACHE_OWNER = os.getpid()
+        _TOOL_CACHE = (tools_root, dict(PINNED), archive, oracle, _module_state(archive), _module_state(oracle))
+        return (archive, oracle)
+    except BaseException as error:
+        fault.actual = error
+        fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        native_io._commit(native_io.process_context(), fault)
+        raise
+    finally:
+        sys.dont_write_bytecode = old
+
+@native_io.owning_leaf
+def lease_check(cfg, lease_fd, capability, custody=None):
+    fault = native_io._ERRORS.RawSlot()
+    fault.kind = 'JOINED-LEASE-OWNER'
+    fd_number(lease_fd)
+    cfg = validate_config(cfg)
+    ctx = native_io.new_context('consumer-lease-preflight', custody)
+    try:
+        binding = parent_authority.authenticate(capability, cfg, lease_fd, ctx.errors)
+        need(parent_authority.is_joined_binding(binding), 'fixed genuine joined owner/borrower only')
+        held = parent_authority.verify_lease_history(binding, lease_fd, ctx.errors)
+        given = native_io.call_native(ctx, 'JOINED-LEASE-FSTAT', os.fstat, lease_fd)
+        need(stat.S_ISREG(given.st_mode) and given.st_nlink == 1 and (given.st_uid == os.geteuid()) and (stat.S_IMODE(given.st_mode) == 384) and (not native_io.call_native(ctx, 'JOINED-LEASE-XATTR', os.listxattr, lease_fd)), 'joined original EX owner/mode/link/xattrs')
+        need((given.st_dev, given.st_ino) == (cfg['writer_lease']['device'], cfg['writer_lease']['inode']), 'joined original EX inode')
+        need(parent_authority.verify_lease_history(binding, lease_fd, ctx.errors) == held, 'joined EX history changed')
+        return signature(given)
+    except BaseException as error:
+        fault.actual = error
+        fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+        native_io._commit(ctx, fault)
+        raise BaseException.with_traceback(ctx.primary, ctx.primary_tb)
+    finally:
+        native_io.finish(ctx)
+
+@native_io.owning_leaf
+def external_metadata(path, source, output):
+    _owned_fault_7 = native_io._ERRORS.RawSlot()
+    _owned_fault_7.kind = 'LEXICAL-OWNER:external_metadata'
+    _owned_fault_8 = native_io._ERRORS.RawSlot()
+    _owned_fault_8.kind = 'LEXICAL-OWNER:external_metadata'
+    normalized(path)
+    need(all((os.path.commonpath((path, root)) != root for root in (source, output))), 'metadata or lease path inside evidence/output')
+    source_fd = directory(source)
+    parent = directory(os.path.dirname(path))
+    try:
+        source_info = native_io.native_effect('fstat', source_fd)
+        source_id = (source_info.st_dev, source_info.st_ino)
+        current = native_io.dup_fd(parent)
+        try:
+            for depth in range(1024):
+                info = native_io.native_effect('fstat', current)
+                need((info.st_dev, info.st_ino) != source_id, 'metadata source ancestry alias')
+                above = native_io.open_fd('..', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
+                upper = native_io.native_effect('fstat', above)
+                same = (info.st_dev, info.st_ino) == (upper.st_dev, upper.st_ino)
+                native_io.close_fd(current)
+                current = above
+                if same:
+                    break
+            else:
+                need(False, 'metadata ancestry cap')
+        except BaseException as _owned_error_7:
+            _owned_fault_7.actual = _owned_error_7
+            _owned_fault_7.traceback = BaseException.__traceback__.__get__(_owned_error_7, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_7)
+            raise
+        finally:
+            native_io.close_fd(current)
+    except BaseException as _owned_error_8:
+        _owned_fault_8.actual = _owned_error_8
+        _owned_fault_8.traceback = BaseException.__traceback__.__get__(_owned_error_8, BaseException)
+        native_io._commit(native_io.process_context(), _owned_fault_8)
+        raise
+    finally:
+        native_io.close_fd(parent)
+        native_io.close_fd(source_fd)
+
+def validate_domain(cfg, inventory, domain, closure):
+    """Versioned complete producer union; missing canonical receipts stay absent."""
+    cfg = validate_config(cfg)
+    inventory, domain, closure = (plain_copy(value) for value in (inventory, domain, closure))
+    exact(domain, ('schema', 'source_root', 'scope', 'root_files', 'runs'), 'complete domain fields')
+    need(domain['schema'] == 'h25-completed-source-domain-v2' and domain['source_root'] == cfg['source_root'] and (domain['scope'] == 'complete-actual-attempt-union'), 'prospective complete case grammar')
+    entries = {row['path']: row for row in inventory['entries']}
+    direct_dirs = sorted((row['path'] for row in inventory['entries'] if row['kind'] == 'dir' and '/' not in row['path']))
+    direct_files = sorted((row['path'] for row in inventory['entries'] if row['kind'] == 'file' and '/' not in row['path']))
+    need(type(domain['runs']) is list and domain['runs'] and (len(domain['runs']) <= cfg['limits']['max_runs']) and (type(domain['root_files']) is list), 'nonempty actual domain tables')
+    fixed_layout = {name: name for name in ('attempt', 'runner', 'intent', 'supervision', 'queue', 'validation', 'serialized-DATA')}
+    names = []
+    for row in domain['runs']:
+        exact(row, ('run', 'terminal_status', 'terminal_receipts', 'layout', 'attempt_state', 'canonical_receipt'), 'case domain row')
+        run = row['run']
+        need(type(run) is str and run not in ('', '.', '..') and ('/' not in run) and ('\\' not in run), 'case identity')
+        need(row['layout'] == fixed_layout and row['attempt_state'] == 'TERMINAL', 'fixed producer layout and genuine terminal')
+        need(row['terminal_status'] in ('PASS', 'STOP', 'NONZERO', 'INTERRUPTED'), 'honest terminal status')
+        names.append(run)
+        need(type(row['terminal_receipts']) is list and row['terminal_receipts'] and (row['terminal_receipts'] == sorted(set(row['terminal_receipts']))), 'actual terminal list')
+        need('attempt/TERMINAL.json' in row['terminal_receipts'], 'actual owner terminal required')
+        for receipt in row['terminal_receipts']:
+            need(type(receipt) is str and (not receipt.startswith('/')) and ('..' not in receipt.split('/')), 'relative terminal path')
+            entry = entries.get(run + '/' + receipt)
+            need(entry is not None and entry['kind'] == 'file', 'actual terminal absent from full inventory')
+        canonical_path = run + '/runner/receipt.json'
+        if row['canonical_receipt'] is None:
+            need(canonical_path not in entries and row['terminal_status'] != 'PASS', 'missing canonical receipt remains missing')
+        else:
+            need(row['canonical_receipt'] == 'runner/receipt.json' and canonical_path in entries and (entries[canonical_path]['kind'] == 'file'), 'canonical receipt observation mismatch')
+        for path, entry in entries.items():
+            if path.startswith(run + '/'):
+                remainder = path[len(run) + 1:]
+                first = remainder.split('/')[0]
+                need(first in fixed_layout, 'unregistered case sibling')
+    need(names == sorted(set(names)) == direct_dirs, 'complete actual entered-attempt union')
+    need(domain['root_files'] == sorted(set(domain['root_files'])) == direct_files, 'all actual root files included')
+    exact(closure, ('schema', 'source_root', 'inventory_sha256', 'domain_sha256', 'lease_protocol_sha256', 'all_producers_enrolled', 'inventory_collected_under_held_lease', 'all_measured_processes_reaped', 'all_terminal_receipts_final', 'all_raw_streams_closed', 'no_future_writes_under_lease', 'purpose', 'attempt_ids'), 'closure fields')
+    need(closure['schema'] == 'h25-parent-run-closure-v1' and closure['source_root'] == cfg['source_root'] and (closure['inventory_sha256'] == cfg['inventory']['sha256']) and (closure['domain_sha256'] == cfg['domain']['sha256']) and (closure['lease_protocol_sha256'] == cfg['writer_lease']['protocol_sha256']) and (closure['purpose'] == cfg['purpose']), 'closure exact external bindings')
+    for key in ('all_producers_enrolled', 'inventory_collected_under_held_lease', 'all_measured_processes_reaped', 'all_terminal_receipts_final', 'all_raw_streams_closed', 'no_future_writes_under_lease'):
+        need(closure[key] is True, 'closure barrier: ' + key)
+    need(closure['attempt_ids'] == names, 'closure complete attempt union')
+
+def footprint(archive, root, cfg):
+    cap = cfg['limits']
+    census = archive.scan(root, {**cap, 'max_entries': cap['max_entries'] * 5 + 256}, True)
+    rows = list(census['entries'].values())
+    logical = sum((row['size'] for row in rows if row['kind'] == 'file'))
+    need(logical <= cfg['resources']['retained_bytes_cap'], 'retained regular-byte cap')
+    return dict(logical_bytes=logical, stat_allocated_bytes=sum((row['allocated'] for row in rows if row['kind'] == 'file')), files=sum((row['kind'] == 'file' for row in rows)), directories=1 + sum((row['kind'] == 'dir' for row in rows)))
+
+def _oracle_limits(limits):
+    return {**{key: limits[key] for key in ('chunk_bytes', 'max_entries', 'max_depth', 'max_path_bytes', 'max_file_bytes', 'max_total_bytes')}, 'max_inventory_bytes': limits['max_metadata_bytes']}
+
+def _nonalias(before, restored):
+    original = {(row['origin']['device'], row['origin']['inode']) for row in before['entries']}
+    restored_ids = {(row['origin']['device'], row['origin']['inode']) for row in restored['entries']}
+    original.add((before['root_origin']['device'], before['root_origin']['inode']))
+    restored_ids.add((restored['root_origin']['device'], restored['root_origin']['inode']))
+    need(not original.intersection(restored_ids), 'complete restored/original inode nonalias')
+
+def _recheck_tools(tools_root):
+    for name, pin in PINNED.items():
+        read_pinned(tools_root + '/' + name, pin, 1048576)
+
+def parent_collect_before(source_root, limits):
+    """Complete independent read; genuine issuer owns EX/admission before call.
+
+    This function issues no capability and supplies no historical default root.
+    """
+    source_root = normalized(source_root)
+    archive, oracle = modules(os.path.dirname(os.path.abspath(__file__)))
+    return oracle.collect(source_root, _oracle_limits(limits), require_single_links=True)
+
+def parent_before_inventory(cfg, capability, lease_fd):
+    cfg = validate_config(cfg)
+    custody = error_custody.new_custody()
+    lease_check(cfg, lease_fd, capability, custody)
+    archive, oracle = modules(cfg['tools_root'])
+    return oracle.collect(cfg['source_root'], _oracle_limits(cfg['limits']), require_single_links=True)
+
+@native_io.owning_leaf
+def verify_parent_readback(cfg, result, capability, lease_fd):
+    """Fresh full parent read after genuine B retirement, still under original EX."""
+    cfg = validate_config(cfg)
+    result = plain_copy(result, max_nodes=65536, max_depth=32, max_text=MAX_METADATA)
+    custody = error_custody.new_custody()
+    held = lease_check(cfg, lease_fd, capability, custody)
+    need(result['status'] == 'PASS_PENDING_PARENT_READBACK', 'child retention unclosed')
+    need(result['one_shot_id'] == cfg['one_shot_id'] and digest(result['expected_root_sha256']), 'child result binding')
+    archive, oracle = modules(cfg['tools_root'])
+    root = result['expected_root_sha256']
+    expected = archive.validate_inventory(archive.parse(read_pinned(cfg['inventory']['path'], cfg['inventory']['sha256'])), cfg['limits'])
+    domain = parse(read_pinned(cfg['domain']['path'], cfg['domain']['sha256']))
+    closure = parse(read_pinned(cfg['closure']['path'], cfg['closure']['sha256']))
+    validate_domain(cfg, expected, domain, closure)
+    external = parse(archive.read_small(cfg['output'], 'EXTERNAL-ROOT.json', cfg['limits']['max_metadata_bytes']))
+    need(external == dict(root_sha256=root, original_inventory_sha256=cfg['inventory']['sha256']), 'external root pin readback')
+    result_raw = archive.read_small(cfg['output'], 'RESULT.json', cfg['limits']['max_metadata_bytes'])
+    recorded = parse(result_raw)
+    need(recorded['status'] == 'PASS_PENDING_PARENT_READBACK' and recorded['expected_root_sha256'] == root and (recorded['one_shot_id'] == cfg['one_shot_id']) and (recorded['canonical_config_sha256'] == hashlib.sha256(canonical(cfg)).hexdigest()), 'actual terminal result readback')
+    verified = archive.verify_archive(cfg['output'] + '/archive', root, cfg['output'] + '/parent-verify-attempt', limits=cfg['limits'])
+    need(verified['status'] == 'PASS', 'full parent archive payload read')
+    restored = oracle.collect(cfg['output'] + '/restored-runs', _oracle_limits(cfg['limits']), require_single_links=True)
+    need(oracle.content_projection(restored) == oracle.content_projection(expected), 'parent fresh full restored comparison')
+    _nonalias(expected, restored)
+    after = oracle.collect(cfg['source_root'], _oracle_limits(cfg['limits']), require_single_links=True)
+    custody_result = oracle.compare_custody(expected, after)
+    need(custody_result['unchanged'], 'parent complete original-after custody')
+    archive.write_new(cfg['output'] + '/PARENT-SOURCE-AFTER.json', oracle.canonical(after))
+    archive.write_new(cfg['output'] + '/PARENT-RESTORED-AFTER.json', oracle.canonical(restored))
+    for key in ('inventory', 'domain', 'closure'):
+        read_pinned(cfg[key]['path'], cfg[key]['sha256'])
+    _recheck_tools(cfg['tools_root'])
+    need(lease_check(cfg, lease_fd, capability, custody) == held, 'parent readback held EX unchanged')
+    retained = footprint(archive, cfg['output'], cfg)
+    need(retained['logical_bytes'] + cfg['resources']['accounting_tail_bytes'] <= cfg['resources']['retained_bytes_cap'], 'parent final retained bytes and tail reserve')
+    return dict(schema='h25-parent-retention-readback-v1', status='PASS', root_sha256=root, inventory_sha256=cfg['inventory']['sha256'], domain_sha256=cfg['domain']['sha256'], closure_sha256=cfg['closure']['sha256'], result_sha256=hashlib.sha256(result_raw).hexdigest(), original_after=custody_result, full_archive_verified=True, full_restored_verified=True, inode_nonalias=True, external_pins_rechecked=True, retained=retained, no_scientific_execution=True, no_original_activity_credit=True)
+bind_tools_once = modules
+
+@native_io.owning_leaf
+def _run_attempt(cfg, lease_fd, expected_authority_sha256, capability=None, custody=None):
+    _owned_fault_9 = native_io._ERRORS.RawSlot()
+    _owned_fault_9.kind = 'LEXICAL-OWNER:_run_attempt'
+    _owned_fault_10 = native_io._ERRORS.RawSlot()
+    _owned_fault_10.kind = 'LEXICAL-OWNER:_run_attempt'
+    _owned_fault_11 = native_io._ERRORS.RawSlot()
+    _owned_fault_11.kind = 'LEXICAL-OWNER:_run_attempt'
+    _owned_fault_12 = native_io._ERRORS.RawSlot()
+    _owned_fault_12.kind = 'LEXICAL-OWNER:_run_attempt'
+    _owned_fault_13 = native_io._ERRORS.RawSlot()
+    _owned_fault_13.kind = 'LEXICAL-OWNER:_run_attempt'
+    _owned_fault_14 = native_io._ERRORS.RawSlot()
+    _owned_fault_14.kind = 'LEXICAL-OWNER:_run_attempt'
+    _owned_fault_15 = native_io._ERRORS.RawSlot()
+    _owned_fault_15.kind = 'LEXICAL-OWNER:_run_attempt'
+    custody = error_custody.new_custody() if custody is None else error_custody.owned(custody)
+    body_fault = error_custody.reserve(custody, 'CONSUMER-BODY')
+    result = dict(schema='h25-actual-retention-result-v4', status='INCOMPLETE', no_scientific_execution=True, original_raws_preserved=True, actual_current_workspace_reclaimed_bytes=0, performance_claim_admission=False, archive_root_external_pin_pending=True, parent_readback_required=True, identity_scope='BORROWER_LOCAL_RAW_ONLY', terminal_receipt_complete=False)
+    started = cpu = before = None
+    after_saved = False
+    output_ready = False
+    cfg = validate_config(cfg)
+    source, output, limits = (cfg['source_root'], cfg['output'], cfg['limits'])
+    try:
+        try:
+            fd_number(lease_fd)
+            need(digest(expected_authority_sha256) and cfg['authority_review_sha256'] == expected_authority_sha256, 'external authority review pin')
+            lease_signature = lease_check(cfg, lease_fd, capability, custody)
+            archive, oracle = modules(cfg['tools_root'])
+            archive.disjoint(source, output, cfg['tools_root'])
+            for key in ('inventory', 'domain', 'closure', 'writer_lease'):
+                external_metadata(cfg[key]['path'], source, output)
+            archive.private_destination_parent(output)
+            parent_fd = directory(os.path.dirname(output))
+            try:
+                info = native_io.native_effect('fstat', parent_fd)
+                need(dict(device=info.st_dev, inode=info.st_ino, uid=info.st_uid) == cfg['output_parent_identity'], 'output parent custody changed')
+                archive.absent(output)
+                expected_raw = read_pinned(cfg['inventory']['path'], cfg['inventory']['sha256'], limits['max_metadata_bytes'])
+                expected = archive.validate_inventory(archive.parse(expected_raw), limits)
+                need(expected['source_root'] == source, 'independently pinned full before source root')
+                domain = parse(read_pinned(cfg['domain']['path'], cfg['domain']['sha256']))
+                closure = parse(read_pinned(cfg['closure']['path'], cfg['closure']['sha256']))
+                validate_domain(cfg, expected, domain, closure)
+                archive.same_source(archive.scan(source, limits, True), expected)
+                needed = expected['counts']['bytes'] + limits['max_unique_bytes'] + 8 * limits['max_metadata_bytes'] + cfg['resources']['accounting_tail_bytes']
+                need(needed <= cfg['resources']['retained_bytes_cap'], 'complete worst-case funded retained cap')
+                free = native_io.native_effect('fstatvfs', parent_fd)
+                free_bytes = free.f_bavail * free.f_frsize
+                need(free_bytes >= needed + cfg['resources']['free_reserve_bytes'], 'free-space reserve')
+                native_io.native_effect('mkdir', os.path.basename(output), 448, dir_fd=parent_fd)
+                output_ready = True
+                native_io.native_effect('fsync', parent_fd)
+            except BaseException as _owned_error_9:
+                _owned_fault_9.actual = _owned_error_9
+                _owned_fault_9.traceback = BaseException.__traceback__.__get__(_owned_error_9, BaseException)
+                native_io._commit(native_io.process_context(), _owned_fault_9)
+                raise
+            finally:
+                native_io.close_fd(parent_fd)
+            started = time.monotonic()
+            cpu = resource.getrusage(resource.RUSAGE_SELF)
+            result.update(one_shot_id=cfg['one_shot_id'], canonical_config_sha256=hashlib.sha256(canonical(cfg)).hexdigest())
+            archive.write_new(output + '/START.json', canonical(dict(config=cfg, lease_signature=lease_signature)))
+            oracle_limits = _oracle_limits(limits)
+            before = expected
+            archive.write_new(output + '/SOURCE-BEFORE.json', expected_raw)
+            result['source_before_observation'] = dict(producer='parent independent full inventory', expected_inventory_sha256=cfg['inventory']['sha256'], fresh_wrapper_payload_reread=False)
+            created = archive.create_archive(source, cfg['inventory']['path'], cfg['inventory']['sha256'], output + '/archive', output + '/create-attempt', provenance=dict(one_shot_id=cfg['one_shot_id'], complete_domain_sha256=cfg['domain']['sha256'], parent_closure_sha256=cfg['closure']['sha256']), limits=limits)
+            result['create'] = created
+            need(created['status'] == 'PASS', 'complete create operation')
+            root = created['root_sha256']
+            archive.write_new(output + '/EXTERNAL-ROOT.json', canonical(dict(root_sha256=root, original_inventory_sha256=cfg['inventory']['sha256'])))
+            restored = archive.restore_archive(output + '/archive', root, output + '/restored-runs', output + '/restore-attempt', limits=limits)
+            result['restore'] = restored
+            need(restored['status'] == 'PASS', 'complete restoration operation')
+            restored_tree = oracle.collect(output + '/restored-runs', oracle_limits, require_single_links=True)
+            archive.write_new(output + '/RESTORED-AFTER.json', oracle.canonical(restored_tree))
+            need(oracle.content_projection(restored_tree) == oracle.content_projection(expected), 'fresh postpublication restored oracle')
+            _nonalias(before, restored_tree)
+            archive_stats = footprint(archive, output + '/archive', cfg)
+            after = oracle.collect(source, oracle_limits, require_single_links=True)
+            archive.write_new(output + '/SOURCE-AFTER.json', oracle.canonical(after))
+            after_saved = True
+            result['source_custody'] = oracle.compare_custody(before, after)
+            need(result['source_custody']['unchanged'], 'full original-after custody')
+            need(lease_check(cfg, lease_fd, capability, custody) == lease_signature, 'same held original EX custody')
+            for key in ('inventory', 'domain', 'closure'):
+                read_pinned(cfg[key]['path'], cfg[key]['sha256'])
+            _recheck_tools(cfg['tools_root'])
+            result.update(status='PASS_PENDING_PARENT_READBACK', expected_root_sha256=root, expected_inventory_sha256=cfg['inventory']['sha256'], archive=archive_stats, source_counts=before['counts'], restored_counts=restored_tree['counts'], independent_restored_comparison=True, free_space_before_bytes=free_bytes, archive_only_reduction_bytes=before['counts']['bytes'] - archive_stats['logical_bytes'], retained_before_result=footprint(archive, output, cfg))
+            need(result['retained_before_result']['logical_bytes'] + cfg['resources']['accounting_tail_bytes'] <= cfg['resources']['retained_bytes_cap'], 'complete result-tail reserve')
+        except BaseException as error:
+            _owned_fault_10.actual = error
+            _owned_fault_10.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_10)
+            body_fault.actual = error
+            body_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            if custody.primary is None:
+                custody.primary = error
+                custody.primary_tb = body_fault.traceback
+            error_custody.commit(custody, body_fault)
+    except BaseException as _owned_error_15:
+        _owned_fault_15.actual = _owned_error_15
+        _owned_fault_15.traceback = BaseException.__traceback__.__get__(_owned_error_15, BaseException)
+        native_io._commit(native_io.process_context(), _owned_fault_15)
+        raise
+    finally:
+        usage_fault = error_custody.reserve(custody, 'CONSUMER-FINAL-RUSAGE')
+        final_cpu = None
+        try:
+            final_cpu = resource.getrusage(resource.RUSAGE_SELF)
+        except BaseException as error:
+            _owned_fault_11.actual = error
+            _owned_fault_11.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_11)
+            usage_fault.actual = error
+            usage_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            error_custody.commit(custody, usage_fault)
+        else:
+            error_custody.release(custody, usage_fault)
+        clock_fault = error_custody.reserve(custody, 'CONSUMER-FINAL-CLOCK')
+        final_clock = None
+        try:
+            final_clock = time.monotonic()
+        except BaseException as error:
+            _owned_fault_12.actual = error
+            _owned_fault_12.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_12)
+            clock_fault.actual = error
+            clock_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            error_custody.commit(custody, clock_fault)
+        else:
+            error_custody.release(custody, clock_fault)
+        projection_fault = error_custody.reserve(custody, 'CONSUMER-FINAL-PROJECTION')
+        try:
+            if custody.primary is not None:
+                result['status'] = 'STOP'
+            result['source_custody_after_stop_unclosed'] = not after_saved
+            result['raw_custody'] = error_custody.snapshot(custody)
+            result['full_parent_envelope_required'] = True
+            if started is not None and cpu is not None and (final_cpu is not None) and (final_clock is not None):
+                result.update(wall_seconds_before_result=final_clock - started, cpu_seconds_before_result=final_cpu.ru_utime + final_cpu.ru_stime - cpu.ru_utime - cpu.ru_stime, process_lifetime_peak_rss_kib=final_cpu.ru_maxrss)
+            else:
+                result['local_accounting_unclosed'] = True
+        except BaseException as error:
+            _owned_fault_13.actual = error
+            _owned_fault_13.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_13)
+            projection_fault.actual = error
+            projection_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            error_custody.commit(custody, projection_fault)
+        else:
+            error_custody.release(custody, projection_fault)
+        receipt_fault = error_custody.reserve(custody, 'CONSUMER-RESULT')
+        try:
+            if output_ready:
+                raw = canonical(result)
+                need(len(raw) <= cfg['resources']['accounting_tail_bytes'], 'bounded final result receipt')
+                archive.write_new(output + '/RESULT.json', raw)
+                result['terminal_receipt_complete'] = True
+        except BaseException as error:
+            _owned_fault_14.actual = error
+            _owned_fault_14.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_14)
+            receipt_fault.actual = error
+            receipt_fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            error_custody.commit(custody, receipt_fault)
+        else:
+            error_custody.release(custody, receipt_fault)
+        error_custody.export(custody)
+    if custody.primary is not None:
+        raise BaseException.with_traceback(custody.primary, custody.primary_tb)
+    error_custody.release(custody, body_fault)
+    need(result['terminal_receipt_complete'] and (not custody.incomplete), 'consumer terminal unclosed')
+    return result
+
+def run(cfg, lease_fd, expected_authority_sha256, capability=None, custody=None):
+    _owned_fault_16 = native_io._ERRORS.RawSlot()
+    _owned_fault_16.kind = 'LEXICAL-OWNER:run'
+    _owned_fault_17 = native_io._ERRORS.RawSlot()
+    _owned_fault_17.kind = 'LEXICAL-OWNER:run'
+    custody = error_custody.new_custody() if custody is None else error_custody.owned(custody)
+    fault = error_custody.reserve(custody, 'CONSUMER-ENTRY')
+    try:
+        try:
+            return _run_attempt(cfg, lease_fd, expected_authority_sha256, capability, custody)
+        except BaseException as error:
+            _owned_fault_16.actual = error
+            _owned_fault_16.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            native_io._commit(native_io.process_context(), _owned_fault_16)
+            fault.actual = error
+            fault.traceback = BaseException.__traceback__.__get__(error, BaseException)
+            if custody.primary is None:
+                custody.primary = error
+                custody.primary_tb = fault.traceback
+            error_custody.commit(custody, fault)
+            raise BaseException.with_traceback(custody.primary, custody.primary_tb)
+    except BaseException as _owned_error_17:
+        _owned_fault_17.actual = _owned_error_17
+        _owned_fault_17.traceback = BaseException.__traceback__.__get__(_owned_error_17, BaseException)
+        native_io._commit(native_io.process_context(), _owned_fault_17)
+        raise
+    finally:
+        error_custody.release(custody, fault)
+
+def run_as_fork_borrower(capability, cfg=None, lease_fd=None, expected_authority_sha256=None, custody=None):
+    actual_cfg, actual_fd, actual_authority = parent_authority.borrowed_arguments(capability)
+    need(_TOOL_CACHE is not None, 'genuine parent preloaded tool cache absent')
+    need(cfg is None and lease_fd is None and (expected_authority_sha256 is None), 'fixed borrower arguments only')
+    custody = error_custody.new_custody() if custody is None else error_custody.owned(custody)
+    native_io._PROCESS = native_io.new_context('genuine-fixed-fork-borrower', custody)
+    return run(actual_cfg, actual_fd, actual_authority, capability, custody)
+
+def main():
+    raise RuntimeError('retention entry requires the fixed genuine same-OFD fork borrower')
+if __name__ == '__main__':
+    main()
