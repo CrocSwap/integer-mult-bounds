@@ -79,7 +79,7 @@ def main():
     assert extraction["pins"] == {f"engines/{name}": pins[f"independent/engines/{name}"] for name in ENGINE_NAMES}
     with TemporaryDirectory(prefix="chart115-") as directory:
         word = Path(directory) / "WORD.json.gz"
-        raw_reverse, stderr = reproduce("next-chart115/check_native.py", "--write-word", word, timeout=32)
+        raw_reverse, stderr = reproduce("next-chart115/check_native.py", "--write-word", word, timeout=122)
         assert not stderr and raw_reverse == (ROOT / REVERSE).read_bytes()
         reverse = parse(raw_reverse)
         candidate = sha256(decompress(word.read_bytes())).hexdigest()

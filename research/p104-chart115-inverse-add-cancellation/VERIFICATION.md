@@ -1,6 +1,6 @@
 # Verification
 
-`receipts/REVERSE.json` records exact old and candidate adjoints across all 1,501 public input columns and the one-ADD mutant. The 30-second reverse process exited zero in 13.86 seconds wall time.
+`receipts/REVERSE.json` records exact old and candidate adjoints across all 1,501 public input columns and the one-ADD mutant. The initial reverse process exited zero locally in 13.86 seconds. The first hosted replay hit its 30-second alarm. The replay now allows 120 seconds for the same reverse checks.
 
 `receipts/FORWARD.json` records the separate retained compiler and physical interpreter checks, including all 512 forward and 512 adjoint Gaussian columns and a rejected one-phase-step mutant. It also records the complete 1,569-row normalized forward replay, all 74 owned clears and lifetimes, 47 owned MOVE ledger entries, the COPY guard, common grid 1125 with 25 fractional bits, and the rebuilt signed ordinary upper bill. The independent process exited zero in 13.37 seconds wall time under its 360-second cap. The wrapper compares the deterministic receipt fields and omits measured elapsed time.
 

@@ -29,7 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write-word", type=Path)
     args = parser.parse_args()
-    alarm(30)
+    alarm(120)
     for path, digest in PINS.items():
         assert sha256((ROOT / path).read_bytes()).hexdigest() == digest
     source = gzip.decompress((ROOT / "inputs/7481-WORD.json.gz").read_bytes())
