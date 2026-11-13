@@ -1,6 +1,6 @@
 # Bound a signed idle pair with two-term erasure
 
-**NO VERIFIED GAIN.** At events 1339 and 1340 of the exact [#7113 caller](https://github.com/CrocSwap/integer-mult-bounds/pull/7113), two independent Type B lanes receive the same signed rank-nine map. On one fixed parked fibre and at width one, even granting each lane a free map of the form (aI+bD^2), the residual rank is at least 480. One rank-nine core on one lane volume supplies at most 392. Arbitrary linear ingress and egress in the residual factorization cannot close this gap. [#7481 application](https://github.com/CrocSwap/integer-mult-bounds/pull/7481)
+**NO VERIFIED GAIN.** At events 1339 and 1340 of the exact [#7113 caller](https://github.com/CrocSwap/integer-mult-bounds/pull/7113), two independent Type B lanes receive the same signed rank-nine map. On one fixed parked fibre and at width one, even granting each lane a free map of the form $aI+bD^2$, the residual rank is at least 480. One rank-nine core on one lane volume supplies at most 392. Arbitrary linear ingress and egress in the residual factorization cannot close this gap. [#7481 application](https://github.com/CrocSwap/integer-mult-bounds/pull/7481)
 
 From a clean POSIX checkout with CPython 3.12 and assertions enabled, run the two finite verifiers and the directed price check together.
 
