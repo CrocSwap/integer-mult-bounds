@@ -40,8 +40,14 @@ established, including the selected-native-tensor-closure lineage and its
 #5442/#5974/#6043/#6293/#6331/#6635/#6878 predecessors. The new claim is the
 source-specific literal physical join on an explicit supplied boundary.
 
-Nick Petalas's #7462 CNOT cancellation, #7468 sharp endpoint-prefix scale,
-and #7477 reversal rejection cleanup are related open follow-ups. Their
-results are not installed by this package, and no competing improvement
-over their exact objects is asserted. Source proposals remain open;
-this package does not represent canonical scientific admission.
+Nick Petalas's #7468 sharp endpoint-prefix integral scale is explicitly
+installed by endpoint.py and retained as an unchanged attributed proof.
+The component norms retain #7211/#2772/#3089/#3091 lineage. The two-endpoint
+width consequence, fixed-common-scale scope and physical application are
+proved in ENDPOINT-PROOF.md. Independent AI mathematical/physical reviews
+retain their precise targets and coverage in endpoint-review.
+
+Nick Petalas's #7462 CNOT cancellation and #7477 reversal rejection cleanup
+remain related work not installed. No competing improvement over their
+exact objects is asserted. Source proposals remain open; this package
+does not represent canonical scientific admission.

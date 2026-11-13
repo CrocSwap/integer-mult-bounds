@@ -38,6 +38,17 @@ literal MOVE was visible in this inspected coverage. This is a scoped
 novelty assessment, not proof of universal novelty.
 
 No new kappa, frontier change, recursive-rate invoice or foundational
-assumption discharge is asserted. The stronger endpoint-scale physical
-wrapper is separate follow-up; the present join retains exact prefix/range
-conditions and proves a sufficient all-f reserve.
+assumption discharge is asserted. The initial core retains exact
+prefix/range conditions and proves a sufficient all-f reserve.
+
+The coherent extension physically installs the credited #7468 scale with
+literal widened headers, signed conversion, exact drop and owner commit.
+At the root's 2026-11-13 07:52 refresh, canonical main and #7468's head were
+unchanged and no new overlapping PR was found. The scope changes from the
+core's prefix predicate to a supplied integral, symmetric signed input/output
+promise; it does not claim the actual selected producer supplies that promise.
+#7468 supplies the integral scale, while its open physical conversions and
+complete local bill are implemented in endpoint.py and ENDPOINT-PROOF.md.
+The known component norms and precise fixed-common-scale width scope are
+credited, with independent agent reviews retained. No arbitrary-input
+rounded trajectory is claimed by this extension.

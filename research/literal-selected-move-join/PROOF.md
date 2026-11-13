@@ -281,3 +281,20 @@ and the selected conditional bound remain unchanged. The source archive was
 authenticated and its exact event/frames re-extracted, but no complete
 catalogue, selected cold replay, Lean or Docker run is claimed. Independent
 human and formal proof-kernel review remain unclaimed.
+
+## 8. Literal endpoint scale/width extension
+
+The frozen core theorem above remains unchanged. endpoint.py supplies a
+separate literal wrapper that physically installs the sharp endpoint scale
+from #7468 and sufficient common signed width. Under the supplied promise
+that original input x and complete output Ux are Gaussian integral and in
+the symmetric signed-w component range, it computes
+`k=floor((f+2)/4)`, builds a private width `w'=w+2k` header, emits actual
+signed scaling, executes the unchanged complete core, validates exact
+unscale/fit into staged original-width output and performs the sole public
+original-owner commit. The transfer uses central endpoints `R x` and
+`L^-1 Ux`. ENDPOINT-PROOF.md states and proves the full extension, its
+52-tape lifecycle and complete direct `2^26(fV'+E+1)` time and
+`K_entry+4096(V'+E+1)` historical bounds. V' includes the actual widening.
+This supplies local conversion; actual selected producer admission and
+the global assumptions remain open.
