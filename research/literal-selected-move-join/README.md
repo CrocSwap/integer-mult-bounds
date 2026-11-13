@@ -43,6 +43,8 @@ endpoint promise and pays its actual physical scale/width conversions.
 
 ## Reproduce
 
+This archive uses [REPRODUCTION.json](REPRODUCTION.json) as a standalone replay guide. It is not a registered `research/<slug>/VERIFY.json` manifest, and the generic research-package hook does not validate or run it. The commands below replay the archive directly; accepted receipts are read-only unless an explicit `--write` option is supplied.
+
 Python 3.11+ and standard library only, from this directory:
 
 ```sh
