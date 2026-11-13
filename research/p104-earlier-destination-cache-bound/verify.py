@@ -42,6 +42,7 @@ def main():
     prefilter_controls = load('cache_prefilter_controls', 'prefilter_controls.py')
     temporal_author = load('cache_temporal_author', 'temporal_author.py')
     temporal_exact = load('cache_temporal_exact', 'temporal_exact.py')
+    main_probes = load('cache_main_probes', 'main_probes.py')
 
     # All parsers must reject changed source bytes before scientific work.
     changed = bytearray(raw)
@@ -55,6 +56,7 @@ def main():
             ('independent', lambda: history_exact.run(source=bad, kr=None)),
             ('temporal_author', lambda: temporal_author.run(source=bad, prior=None)),
             ('temporal_exact', lambda: temporal_exact.run(source=bad, author=None, kernel=None)),
+            ('main_probes', lambda: main_probes.run(source=bad)),
         ]:
             caught = False
             try:
@@ -106,9 +108,11 @@ def main():
         'owned_source_False': 16,
     }, 'complete prefilter source/destination counts')
 
+    probe_result = main_probes.run()
+    need(probe_result['cuts'] == 33, '33 main-only history certificates')
     receipt = dict(
         status='PASS_P104_EARLIER_DESTINATION_CACHE_EXCLUSION',
-        source_mutation_rejected_by_five_engines=True,
+        source_mutation_rejected_by_six_engines=True,
         source_sha256=WORD_SHA256,
         notice_sha256=NOTICE_SHA256,
         instructions=len(word['program']),
@@ -132,6 +136,7 @@ def main():
             past_subspaces=temporal_b['past_subspaces'],
             future_subspaces=temporal_b['future_subspaces']),
         union_earlier_destination_exclusions=65,
+        main_only_history_separators=probe_result,
         history_engines='exact Fraction streaming filter and independent direct Fraction replay agree at all 49 strict-before cuts',
         prefilter_controls=controls,
         output='stdout only; no package files written')

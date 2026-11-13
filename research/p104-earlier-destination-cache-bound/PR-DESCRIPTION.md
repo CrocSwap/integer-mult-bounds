@@ -5,9 +5,16 @@ MOVEs** in the exact #7481 native, and at **all 18 public cuts with a live sourc
 reconstruction**. These are 65 distinct cuts. The owned result has no live-source
 premise: deferred source cleanup cannot fix the missing destination value.
 
-All 1,501 public inputs remain arbitrary. The screen pools every strictly earlier
-coframed native observation, so it grants an arbitrary finite collection of
-zero-initialized ordinary linear caches, preparation, storage and cleanup free.
+For these 65 cuts, all 1,501 public inputs remain arbitrary. The screen pools every
+strictly earlier coframed native observation. A linear-duality information argument
+excludes arbitrary deterministic postprocessing whose only input-dependent data
+come from that history, with preparation, storage and cleanup free.
+
+At **33 owned cuts**, explicit integer separators are supported on main inputs
+alone. Those obstructions survive every nonempty helper-only restriction
+independent of the arbitrary mains, even correlated or nonzero helpers. The
+other 14 cuts remain outside this stronger result. The proof states the legal
+input-direction requirement for a prescribed exact grid.
 **No new kappa** or unconditional multiplication theorem is claimed.
 
 ## Novelty, pins and evidence
@@ -16,7 +23,9 @@ zero-initialized ordinary linear caches, preparation, storage and cleanup free.
 an older #6030 word: 4,033 leaking injection classes including dynamic affine
 closure, 764 incoming-only intervals, and five private rank-four output seams.
 This contribution credits those actual scopes and adds the complete later-word
-cumulative-history test and the temporal owned extension.
+cumulative-history test, the temporal owned extension and main-only information
+certificates. Later-source failure is only diagnostic for a sufficient
+zero-cleanup pattern; no necessity is imposed on general owned erasure.
 
 Canonical base: `e54523517d0f03e58352e647c403a5af3e525a57`.
 Exact unselected #7481 head: `89eaa9d8cae37c1540de98f2d29a3abaabb96a2b`.
@@ -36,12 +45,16 @@ later-source memberships, providing positive controls. Every one of the 76,475
 instructions is replayed. Source-byte mutations, inserted-arrival controls and
 44 independent synthetic donor queries detect false acceptance and rejection.
 Normal, optimized and read-only Git-free export checks are in `VALIDATION.json`.
+The 33 main-only certificates are also checked by literal simultaneous scalar
+input replay without elimination. All owner/frame/main-support bindings and
+2,901 bank-value assertions pass; wrong destination/coframe, helper-supported,
+zero-probe and inclusive-arrival mutants fail through the actual verifier.
 
 ## Limits and credit
 
-The history and public input space are unchanged. Helper restrictions or
-correlations, incoming transported stock, changed earlier native operations,
-other nonlinear mechanisms and a complete physical supplier remain open.
+The native history is unchanged. Helper restrictions at the remaining 14 owned
+cuts, main-dependent preparation, incoming transported stock, changed earlier
+native operations and a complete physical supplier remain open.
 All five foundational assumptions remain. No selected certificate is changed.
 
 Prepared for **Jerry Chen / @CubeJerry** with substantial **OpenAI assistance**
