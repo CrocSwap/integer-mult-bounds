@@ -1,0 +1,5 @@
+# Verification
+
+The source closure is byte-pinned from exact #7481 and its signed #7113 caller. The independent probes use sparse formal influence and dense exact state respectively. The sparse replay also regenerates the full native paid histogram and positive owned-lifetime stock from literal events. The dense replay checks the source's canonical uncompressed digest and matches both exterior coordinates, chart labels, and their last writes. Exact directed arithmetic bounds the full 17-copy prospective price. No machine-specific path, temporary pointer, network or Git checkout is used by the direct replay.
+
+Original local executions passed on CPython 3.12.14 with exit 0, 0.16 seconds for the sparse engine and 0.18 seconds for the dense engine. The runner limits are 30 and 20 seconds. Both receipts are compared in the package replay. Negative controls cover changed source bytes, duplicate pin keys, a dropped exterior response, and a synthetic dirty COPY guard. One case was exhausted. A complete new native supplier, full candidate bound and full κ replay were outside this exclusion. Hosted status is reported separately.
