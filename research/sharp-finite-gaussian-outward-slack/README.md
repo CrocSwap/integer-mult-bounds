@@ -43,6 +43,8 @@ radius-five compact check does not read the original matching certificate.
 
 ## Read-only reproduction
 
+This archive uses [REPRODUCTION.json](REPRODUCTION.json) as a standalone replay guide, not a registered `research/<slug>/VERIFY.json` manifest. The commands below are direct, read-only replays; the generic research-package hook does not validate or run this archive manifest.
+
 Python 3.10+ and the standard library suffice. From this directory:
 
 ```sh
