@@ -6,6 +6,12 @@ a standard-library checker. It makes no κ claim and builds no word. The E8/P104
 numbers use the Gram matrix of the 104 live lines, computed as D Tᵀ/2 from the
 pinned PR968 decoder file. Proofs and premises are in [PROOF.md](PROOF.md).
 
+> **Retraction (Nov 13).** Law 5 as originally stated, and the "neutral period"
+> wording of its premise (Lemma A), are retracted: they fail on E8/P104
+> (D = 7 with 0 neutral and 0 owned columns, against a literal bound of 96). A
+> corrected conditional form replaces them. Laws 1–4 are unaffected, and no κ
+> or price changes. See [ADDENDUM.md](ADDENDUM.md) and `counterexample.py`.
+
 The σ-rank o(N) = rank(σ(N)N⁻¹ − I), the identity o = rank(q-odd part), Lemma E
 and the hub bound are in [#7555](https://github.com/CrocSwap/integer-mult-bounds/pull/7555)
 (law 4 there). They are cited here, not repeated.
@@ -88,7 +94,8 @@ finals forwarded to hub j} and D_j = rank(K_j|S_j).
   - One hub per port gives 96 nested and 103 unforwarded.
 - **Scope.** The per-hub bound D_j ≥ rank(K_j|S_j) uses the same arrival
   formula as law 5, so for hubs below the relay re-add frames it is [cond] on
-  Lemma A.
+  the corrected premise PA_gen ([ADDENDUM.md](ADDENDUM.md)); the retracted
+  "neutral period" wording is not used.
 
 ## 4. The per-J odd unit (`odd_unit.py`)
 
@@ -116,25 +123,36 @@ parity.
   child-size σ-odd transforms. The total is ≥ 20 per port per word for every m,
   against 3 for the unshifted design.
 
-## 5. Y-atom conservation [cond: Lemma A]
+## 5. Y-atom conservation — original form RETRACTED, see [ADDENDUM.md](ADDENDUM.md)
 
-**Statement.** D ≥ dim{k ∈ ker G : k_N = 0} ≥ n − r − N_neutral − N_owned,
-where N is the set of atom columns: columns whose y-atom leaves during Y's
-neutral period, or through an owned copy.
+**Retracted statement (kept for the record).**
 
-- **Status.** The inequality is [P] given premise PA (Lemma A), and PA is open.
-  Combined with law 2, it gives owned cost ≥ n − r − N_neutral for the relay
-  family. That is **96 per call on E8/P104 when N_neutral = 0**.
-- **Checks.**
-  - [C] dim{k ∈ ker G : k_N = 0} ≥ n − r − |N| for every column set N at A3 (64)
-    and A4 (1,024). The bound is tight at every |N|.
-  - Not every set of n − r columns spans (4 sets at A3, 85 at A4).
-  - The exhaustive 2²⁴ cell-assignment run on A3 is not packaged. Its bound
-    follows from the rank inequality rank(Z^E K) ≤ #(columns with early cells)
-    in PROOF.md.
-- **Scope.** Lemma A is supported only by author runs on A3/A4/D4 relay and
-  engine families, which are not packaged here. It is not proved for arbitrary
-  programs.
+> ~~D ≥ dim{k ∈ ker G : k_N = 0} ≥ n − r − N_neutral − N_owned, where N is the
+> set of atom columns: columns whose y-atom leaves during Y's neutral period, or
+> through an owned copy. … That is 96 per call on E8/P104 when N_neutral = 0.~~
+
+- **Why [C].** On E8/P104, there is a σ-anchor design in which every Y_t first
+  takes −Z_ts·x_s from a pure X_s at that partner's line and is then
+  snapshotted and parked. It has 0 neutral columns and 0 owned units, and
+  D = 7, against the literal bound 96. Sources concentrated on 5 or 9 partners
+  give D = 5 and D = 9. `counterexample.py` reproduces this exactly. Frame
+  legality is conditional on the same unbuilt L side as the clean anchor
+  design. There is no κ or price impact.
+- **What replaces it.**
+  - For all programs, D ≥ (n − r) − dim Q_V, where Q_V is the y-classes of
+    token-free arrival combinations at V [P].
+  - The law-5 inequality D ≥ dim{k ∈ K : k_N = 0} holds under PA_gen:
+    Q_V ⊆ span{e_q : q ∈ N}.
+  - In the park family, every L-cell counted in Y_q^final arrives after the park
+    snapshot at frames ⊇ the export frame (Lemma P). So the 48-L-cells-per-
+    column bill holds there without any neutrality hypothesis [P].
+- **Open.**
+  - Tokened public removal, J gauge and carrier preloads, all outside the park
+    family.
+  - The empirical contamination law D ≤ ρ_K(sources), unproved.
+- **Still checked [C].** dim{k ∈ ker G : k_N = 0} ≥ n − r − |N| for every column
+  set N at A3 (64) and A4 (1,024), tight at every |N|. This is a statement
+  about K, not about which columns are atoms.
 
 ## Checks
 
@@ -142,8 +160,9 @@ neutral period, or through an owned copy.
 python3.12 -B scripts/research_package.py --package research/p104-t-minus-one-laws
 ```
 
-There are three commands, listed in [VERIFY.json](VERIFY.json), and all of
-them use the standard library only.
+There are four commands, listed in [VERIFY.json](VERIFY.json), and all of
+them use the standard library only. The fourth, `counterexample.py`, reproduces
+the law-5 retraction ([ADDENDUM.md](ADDENDUM.md)).
 - Each prints the numbers it reproduces, asserts them, and runs a control that
   must fail.
 - The PR968 input is authenticated by SHA256.
@@ -158,13 +177,19 @@ them use the standard library only.
   check.
 - Law 4's boundary count depends on its stated premise. The 17 stages, 36 roles
   and 96/104 ports enter as parameters of #7113's caller.
-- Lemma A is open, so law 5 and the below-re-add-frame case of law 3 are
-  conditional.
+- **Law 5 as originally stated is retracted** ([ADDENDUM.md](ADDENDUM.md)):
+  the "neutral period" wording of Lemma A is false on E8 (D = 7 with 0 neutral
+  and 0 owned columns, literal bound 96). The corrected premise PA_gen is
+  proved in the park family and is open outside it. The below-re-add-frame case
+  of law 3 is conditional on PA_gen.
+- The contamination law D ≤ ρ_K(sources) is empirical.
 - No human has reviewed the package.
 
 ## Open next questions
 
-- **Lemma A.** Is PA true for arbitrary legal programs?
+- **PA_gen.** Does Q_V ⊆ span{e_q : q ∈ N} hold for programs that remove y_t
+  without a park (tokened public routes, J gauge, carrier preloads)?
+- **Contamination law.** Prove D ≤ ρ_K(sources) for contaminated anchors.
 - **The Y-prefix L side.** Can the σ-anchor schedule's L-side network be built
   at public cost below the U-side relay floor?
 
