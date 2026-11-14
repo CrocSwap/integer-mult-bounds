@@ -1,0 +1,9 @@
+# Bounded overlap and the recorded pivot
+
+The exact predecessor A9 proves a generic all-order binary Gaussian rank floor. A10 specializes it to an exact unshifted normalized source core and explicitly leaves physical phases/chirps open. This package changes the matrix: it selects actual nonwrapping same-cell adjacent pairs in the retained column-normalized, unrounded, alias-deleted source factor, without removing its phase/chirp. It counts good starting indices and proves the pointwise directed-tensor statement. It does not claim arbitrary phases or a larger/rounded/periodic caller.
+
+Before construction, public PR queries for `phase transcendence`, `same-cell Stein`, and `phase nonvanishing` returned the metadata preserved in `OVERLAP.json`. The nearby #4201 is a supplied-stencil CRT detector; #803 is a cyclic inverse norm bound; #3974/#3992 concern Toom interfaces. Their mechanisms and claims differ. Early complete-bound corner PRs also use generic nonvanishing, but do not provide this source-phase exponent-box certificate. Query and title/body coverage is bounded; no complete archive, private-work or worldwide priority claim is made.
+
+The initial restricted construction chose `B=K A mod s` with mixed-radix injection. Root and independent review confirmed it, including the fact that nonzero A excludes the terminal source index. One approved evidence-driven pivot enlarged the candidate set to every nonzero residue, bounding bad difference roots by `2r^2+r`. This gives a square-root-prime cap and a positive count of good starting indices. The earlier K screen is internal discovery evidence, not a separate contribution or an additional publication.
+
+All source assumptions remain stated. Classical CRT/transcendence and the predecessor matching minors are credited. No selected certificate, complete bound or native caller is changed. Root performs the final live upstream/claim delta before publication.
