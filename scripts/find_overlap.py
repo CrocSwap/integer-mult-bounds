@@ -384,11 +384,18 @@ def local_coverage(root, records):
                 "complete_head_inventory": None, "unsearched_head_paths": None}
     try:
         def git(*args):
-            return subprocess.run(
-                ["git", "--no-replace-objects", *args], cwd=root, check=True,
-                capture_output=True, encoding="utf-8", errors="surrogateescape", timeout=15,
+            result = subprocess.run(
+                ["git", "--no-replace-objects", *args], cwd=root,
+                capture_output=True, timeout=15,
                 env={**git_source_env(), "GIT_NO_LAZY_FETCH": "1"},
-            ).stdout
+            )
+            # Text-mode pipes normalize CR and CRLF even in `ls-tree -z`
+            # paths. Decode bytes explicitly so distinct Git names stay distinct.
+            # Keep failure diagnostics textual for the existing warning path.
+            result.stdout = result.stdout.decode("utf-8", errors="surrogateescape")
+            result.stderr = result.stderr.decode("utf-8", errors="surrogateescape")
+            result.check_returncode()
+            return result.stdout
 
         # Pin the tree once; only metadata is read, never omitted note blobs.
         coverage["head"] = git("rev-parse", "--verify", "HEAD^{commit}").strip()
