@@ -1,0 +1,7 @@
+Claim checkpoint: compose exact selected MOVE24472 on the supplied six-Gamma packed ABI by literal table concatenation, with one private whole-call bank and one trace. No old-codec/strided caller producer, global precision, recursive speedup, or native_all_columns discharge. Selected kappa remains conditional.
+
+The four pinned source modules share HEADER=0, DATA=1 and clean private tails on successful return. Left phase is a construction-time specialization (2,0,0,0,0,0,0,0,0), zero quadratic rows, constant zero. Source order is right phase, right G, offset, positive C tensor, left phase, left G.
+
+Whole-call source clone prevents earlier factor commits from changing the public owner on a later arithmetic rejection. Failure cleanup/retry remains unclaimed. Sufficient admission: w>=2, f<=cutoff, source components divisible by 2^f and bounded in absolute value by M with 2^f M <=2^(w-1)-1. This deliberately loose reserve gives integral and symmetric-range prefixes.
+
+Wave 2 completed: endpoint.py physically installs k=floor((f+2)/4), width w+2k, private canonical header, signed scale, frozen complete core, exact unscale/fit, staged original-owner commit and full success retirement under a supplied integral symmetric input/output promise. See ENDPOINT-PROOF.md, ENDPOINT-RESULT.json and endpoint-review for final scope and independently reviewed evidence. The frozen core remains unchanged.
