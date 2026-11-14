@@ -1,0 +1,5 @@
+# Attribution and retained scope
+
+Apache-2.0. The contact-level cut discovery adapts 1337isnot1337/OpenAI Codex, research/fresh-helper-boundary/discover-cut.cpp on canonical main e54523517d0f03e58352e647c403a5af3e525a57. Causal normalized-coordinate reconstruction and productive boundary accounting follow Rohan Arun, PR7122 at6391d64cd0e37e0988e6b9c41fe13f053ed2c81e and PR7124 at97dc14132da53562b7939776d7a83d72af72eeb1. The exact current word, caller invoice helper, directed interval engine and observations retain ToikY7546/7544, DreamingOfClouds7542, Clear1nsight7481, RohanArun7113, the7334/7480 lineage, and all authors/notices retained in the complete source closure. CubeJerry7574 supplies the scoped fixed-contact obstruction used for route selection.
+
+Substantial OpenAI Pro/Codex assistance for this adaptation. No predecessor gain is claimed as ours. This is nomination research; arbitrary dirty physical execution, all phases/adjoints/widths,74physicalerasurechannels, complete resource accounting,17caller,58outergates,two complete prices and ceiling remain due for any candidate. The five inherited premises remain.
