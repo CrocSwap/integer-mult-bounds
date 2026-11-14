@@ -18,9 +18,33 @@ The first selected-binding check failed because this sparse checkout lacked
 materialized. The metadata binding check then passed. This did not run the
 selected supplier or change its files.
 
-Registered replay, optimized-mode controls, committed-byte checks and the
-official Git-free export check are pending at this checkpoint. Hosted CI and
-independent substantive review are not yet claimed.
+All six registered commands passed. The fresh native and signed stages took
+129.16 and 136.65 seconds. The source, row and physical checks also pass under
+optimized Python; the price and complete application launchers reject that
+mode before proof work, because their retained engines require assertions.
+
+The official export of scientific commit
+`61f985ed72c5e17c7237f180ecde0a7255ee1453` passed integrity checks. All six commands
+then passed in 302.59 seconds from its read-only, Git-free extraction, with an
+empty executable search path. All 135 exported package files kept their bytes.
+See `data/COLD.json` and `data/VALIDATION.json`. The later documentation,
+license-provenance and validation-receipt changes do not alter any scientific
+file or retained input; their hashes are compared with this export.
+
+Original Git readback matched all 109 retained files. The initial Git add
+normalized five retained text files. A scoped `.gitattributes` rule now
+preserves their exact bytes; the unpublished commit was corrected before
+export. The committed-byte and executable-mode check passed on all 135 files.
+The optional full-history preflight could not run because this checkout is
+shallow. The scientific commit's direct parent is the pinned canonical main;
+the complete source closure is committed and passes the Git-free replay.
+No full-history preflight success is claimed.
+
+The replay plan selects only this package. The first draft manifest exceeded
+the shared 1200-second total timeout cap by 10 seconds. Its exact-row timeout
+was reduced to 100 seconds; the manifest now passes, and that command finished
+in 38.57 seconds in the cold replay. No scientific timeout was extended.
+Hosted CI and independent substantive review are separate from these passes.
 
 The predecessor reports a shared CI navigation failure: unchanged `docs/ci.md`
 names PR6030 while the selected record names PR7000. PR7276 addresses that

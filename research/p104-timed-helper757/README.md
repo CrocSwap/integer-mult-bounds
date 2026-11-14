@@ -5,10 +5,10 @@ Subtract 1255 in chart 3, move 757 directly to chart 603, then add 1255 back.
 This replaces the old `3→595→603` path by `3→603`. It removes one paid MOVE
 per native call and keeps the scalar-operation count unchanged.
 
-The complete 17-call application supports **κ = 0.0036504442446**. This exceeds
-the certified raw crossing upper bound of
+The complete 17-call application supports **κ = 0.0036504442446**. The gain over the raw crossing of
 [PR7604](https://github.com/CrocSwap/integer-mult-bounds/pull/7604)
-by more than **0.0000002219087727**, or about **0.00608%**.
+is more than **0.0000002219087727**, or about **0.00608%**. The comparison uses
+its certified upper bound `0.0036502223358273`.
 The complete paid delta is `P1 -= 34, P2 += 17`; productive targets do not change.
 This is a new paid profile, not a decimal refinement of the predecessor.
 
