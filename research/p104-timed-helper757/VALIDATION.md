@@ -46,6 +46,6 @@ was reduced to 100 seconds; the manifest now passes, and that command finished
 in 38.57 seconds in the cold replay. No scientific timeout was extended.
 Hosted CI and independent substantive review are separate from these passes.
 
-The predecessor reports a shared CI navigation failure: unchanged `docs/ci.md`
+The predecessor reports a shared CI navigation failure: unchanged `docs/ci-verification.md`
 names PR6030 while the selected record names PR7000. PR7276 addresses that
 separate issue. This package does not include an unrelated workflow repair.
