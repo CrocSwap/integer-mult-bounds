@@ -1,0 +1,66 @@
+--- a/research/shared-wire-split-composition/interval_gate.py
++++ b/research/p104-gate-ceiling-lift/interval_gate_signed.py
+@@ -1,4 +1,6 @@
+ #!/usr/bin/env python3
++# PATCHED COPY of research/shared-wire-split-composition/interval_gate.py (see README.md and interval_gate.diff).
++# Do not confuse with the pinned original, which is unchanged.
+ """Independent certified fixed-grid intervals (80 decimal places).
+ ln via 2 atanh after binary range reduction; exp(-x) via alternating
+ Taylor brackets. Uses only integer floor/ceiling, not Decimal transcendents.
+@@ -49,8 +51,18 @@
+  return out
+ def show(x):return [str(F(t,B)) for t in x]
+ def value(x):return [float(F(t,B)) for t in x]
+-def gate(invoice,claim,tested,lo,hi,bit_pin='.00376669'):
++# BIT pin: the admitted ordinary BIT saving .00385248 (PR #7001, disposition
++# "incorporated", scientific_admission in docs/research/pr-intake-decisions.json;
++# README.md:36-37; pr7000-application/PROOF-REVIEW.md:389). The older pin
++# .00376669 (#6726) is a strictly weaker premise of the same chain.
++BIT_PIN='.00385248'
++# Certifiable ceiling: tested < pin (tested = claim + 7g), i.e. kappa < pin - 7g.
++# The signed input-lift bound below is proved for kappa in [0,LIFT_RANGE]
++# (PATCHNOTE.md; Lean: LiftPositivity.lean, lift_pos on (0,.0069]).
++LIFT_RANGE=F('.0069')
++def gate(invoice,claim,tested,lo,hi,bit_pin=BIT_PIN):
+  T=invoice['T'];P=invoice['P'];claim,tested,lo,hi=map(F,(claim,tested,lo,hi));cap=F(bit_pin)
++ assert cap<=F(BIT_PIN),'bit_pin above the admitted BIT saving .00385248 is not allowed'
+  assert 0<claim<tested<lo<hi and tested<cap
+  margins={str(k):sub(moment(T,k),moment(P,k)) for k in (lo,hi,tested)}
+  assert margins[str(lo)][0]>0 and margins[str(hi)][1]<0 and margins[str(tested)][0]>0
+@@ -106,23 +118,28 @@
+  functional=[1-be,be*(1-F(3,1000)),128-48-ep-be-1,be*(1-F(1,250))]
+  assert len(checks)==54 and len(functional)==4 and min(checks+functional)>0
+  result['outer']=dict(strict_count=54,functional_count=4,minimum_margin=str(min(checks+functional)),BIT_just_below_effective_rejected=(a-F(1,10**12))-a<0)
+- # Input-lift is only needed on [1-tested_complex,1]. A stronger BIT
+- # pin is irrelevant to this interval; the source's crude BIT-wide bound
+- # is not imported beyond its valid range.
+- pos={7:1,3:1,5:1};neg={9:1,4:1,1:2};d1=(0,0);curvature=(0,0)
++ # Input-lift is only needed on [1-tested_complex,1].
++ # L(k)=sum_pos r^(1-k)-sum_neg r^(1-k); L(0)=0; L'(0)=-d1;
++ # L''(k)=sum_pos r ln^2 r r^-k - sum_neg r ln^2 r r^-k >= -N for k>=0,
++ # where N=sum_neg r ln^2 r (the positive part is >=0 and r^-k<=1 for r>=1).
++ # Hence L'(k)>=-d1-kN and L(k)>=-k d1-k^2 N/2. Only the NEGATIVE-coefficient
++ # curvature enters (signed bound); |.| over both parts was valid but loose.
++ pos={7:1,3:1,5:1};neg={9:1,4:1,1:2};d1=(0,0);curvature=(0,0);abs_curvature=(0,0)
+  for hist,sign in ((pos,1),(neg,-1)):
+   for r,c in hist.items():
+    d1=add(d1,smul(log(r),sign*c*r))
+-   curvature=add(curvature,smul(mul(log(r),log(r)),c*r))
+- lift_cap=cap if cap<=F('.00376669') else tested
++   abs_curvature=add(abs_curvature,smul(mul(log(r),log(r)),c*r))
++   if sign<0:curvature=add(curvature,smul(mul(log(r),log(r)),c*r))
++ assert curvature[0]>=0
++ lift_cap=cap if cap<=LIFT_RANGE else tested
+  assert tested<=lift_cap and F(d1[1],B)+lift_cap*F(curvature[1],B)<0
+  lifts={}
+  for price in (claim,tested):
+   lift=sub(moment(pos,price),moment(neg,price));assert lift[0]>0
+   assert price*(-F(d1[1],B))-price*price*F(curvature[1],B)/2>0
+   lifts[str(price)]=show(lift)
+- result['input_lift']=dict(margins=lifts,interval_kappa_cap=str(lift_cap),derivative_upper_on_required_interval=str(F(d1[1],B)+lift_cap*F(curvature[1],B)),source_BIT_wide_crude_bound_would_be=str(F(d1[1],B)+cap*F(curvature[1],B)))
++ result['input_lift']=dict(margins=lifts,interval_kappa_cap=str(lift_cap),derivative_upper_on_required_interval=str(F(d1[1],B)+lift_cap*F(curvature[1],B)),signed_curvature_upper=str(F(curvature[1],B)),absolute_curvature_upper=str(F(abs_curvature[1],B)),signed_derivative_ceiling=str(-F(d1[1],B)/F(curvature[1],B)))
+  return result
+ if __name__=='__main__':
+- p=argparse.ArgumentParser();p.add_argument('audit');p.add_argument('--claim',default='.00362852408');p.add_argument('--tested',default='.00362852408007');p.add_argument('--lower',default='.00362852408398727978896072723289');p.add_argument('--upper',default='.00362852408398727978896072723290');p.add_argument('--out',required=True);p.add_argument('--bit-pin',default='.00376669');a=p.parse_args()
++ p=argparse.ArgumentParser();p.add_argument('audit');p.add_argument('--claim',default='.00362852408');p.add_argument('--tested',default='.00362852408007');p.add_argument('--lower',default='.00362852408398727978896072723289');p.add_argument('--upper',default='.00362852408398727978896072723290');p.add_argument('--out',required=True);p.add_argument('--bit-pin',default=BIT_PIN);a=p.parse_args()
+  r=gate(json.loads(Path(a.audit).read_text())['invoice'],a.claim,a.tested,a.lower,a.upper,a.bit_pin);Path(a.out).write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r,indent=2))

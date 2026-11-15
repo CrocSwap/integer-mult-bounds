@@ -1,0 +1,67 @@
+{
+ "schema_version": 1,
+ "task_id": "replay-runtime",
+ "priority_revision": 8,
+ "base_commit": "e54523517d0f03e58352e647c403a5af3e525a57",
+ "original_card": {
+  "id": "replay-runtime",
+  "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+  "starting_points": [
+   "scripts/run_isolated_tests.py",
+   "scripts/verify_replay_coverage.py",
+   "certificates/selected-result.json"
+  ],
+  "methods": [
+   "Profile one isolated replay and optimize the measured bottleneck.",
+   "Design source-bound reuse with explicit dependency invalidation and negative controls."
+  ],
+  "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+  "first_step": {
+   "command": [
+    "python3",
+    "-B",
+    "scripts/research_selected_baseline.py"
+   ],
+   "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+   "inspect": "Resolve the current selected review, separate complex/ordinary BIT/admitted BIT/outer budgets, and compare the card against live handoffs before starting. Historical ceilings require exact source/model equivalence.",
+   "scope": "Source-binding orientation only; not a scientific replay or all-size proof. Materialize selected inputs if this checkout is sparse."
+  },
+  "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+  "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+  "allowed_variations": [
+   "Profile one stage or design one source-bound cache boundary."
+  ],
+  "scope_change_triggers": [
+   "Skipping coverage or comparing different fixtures to claim speedup."
+  ],
+  "overlap_terms": [
+   "replay runtime",
+   "cache invalidation",
+   "isolated tests"
+  ]
+ },
+ "scope_status": "changed",
+ "actual_scope": "Tooling/framework only, no word and no kappa claim: a patched copy of the complex interval gate (interval_gate_signed.py) whose input-lift check uses the signed (negative-coefficient) curvature 51.137 instead of the absolute 94.216 and whose default BIT pin is the admitted ordinary BIT saving .00385248 instead of .00376669, with a Lean lemma for the lift positivity, a 32-case regression test and the diff against the pinned original.",
+ "scope_change_reason": "The replay-runtime card asks for a measured replay speed-up. This package removes two certification ceilings (+2.98%/+3.24% over the frontier) in the gate used to replay complex-word claims; it makes no speed claim. Recorded as changed.",
+ "bottleneck_link": "Side result (tooling). The pinned gate certifies complex words only up to kappa about .00376669 (+2.98% over #7617). Words between that and the admitted BIT saving .00385248 (+5.33%) could not be certified by the official check although the same premises cover them.",
+ "budget_minutes": 60,
+ "stop_rule": "Keep the package only if tests/gate_test.py reproduces all 32 expected outcomes (pinned original passes the #7000 recorded invoice and reproduces its recorded fields; signed gate passes #7617/#7615 and rejects every corrupted invoice, mutant and over-ceiling case); otherwise report the failing case.",
+ "outcome": "completed",
+ "evidence": "VERIFY.json runs tests/gate_test.py: 32/32 expected outcomes; independent audit verdict SOUND with caveats C1-C5 applied (new file, ceiling stated as pin - 7g, pin assert, Lean import for the repo pin, inherited limits stated).",
+ "author": "DreamingOfClouds, with Claude Opus 5.5 (Anthropic), via Claude Code",
+ "ai_assistance": "Prepared with Claude Opus 5.5 via Claude Code: Claude wrote and edited the tooling and tests under DreamingOfClouds' direction. Every command reproduces numbers published by the PRs it wraps or by exact recomputation; no independent human or proof-kernel acceptance is claimed.",
+ "open_questions": [
+  {
+   "question": "Does LiftPositivity.lean build under the repository pin (Lean v4.21 / Mathlib 308445d)?",
+   "why_it_matters": "It was checked only under Lean v4.33.0-rc1 / Mathlib 55b7917; nlinarith behaviour under v4.21 is unverified.",
+   "blocked_by": "No 308445d Mathlib cache was available when this was prepared.",
+   "first_step": "Build the file with the one-line import change already applied."
+  },
+  {
+   "question": "Can the lift histogram {7,3,5}/{9,4,1,1} be replaced by a check computed from the word's actual input lifts?",
+   "why_it_matters": "A word that changes its input lifts is not covered by this gate.",
+   "blocked_by": "The gate hard-codes the histogram inherited from #7000.",
+   "first_step": "Derive the histogram from the invoice and re-run the signed bound."
+  }
+ ]
+}
