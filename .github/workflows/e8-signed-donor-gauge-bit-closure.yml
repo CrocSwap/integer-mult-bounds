@@ -1,0 +1,25 @@
+name: E8 signed donor gauge bit closure
+on:
+  pull_request:
+    paths:
+      - 'research/e8-signed-donor-gauge-bit-closure/**'
+      - '.github/workflows/e8-signed-donor-gauge-bit-closure.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install sympy==1.14.0
+      - run: python -B research/e8-signed-donor-gauge-bit-closure/verify_closure.py --out "$RUNNER_TEMP/bit-closure"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bit-closure-${{ matrix.python }}
+          path: ${{ runner.temp }}/bit-closure

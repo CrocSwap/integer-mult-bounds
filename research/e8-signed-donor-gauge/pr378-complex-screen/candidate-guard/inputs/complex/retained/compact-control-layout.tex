@@ -1,0 +1,118 @@
+\paragraph{Rows and complete compact fields.}
+Let $m,W,s$ denote the complex network constants and keep the layer's global
+$p,d,K$ at every node. Put
+\[
+ G=4\lceil\log_2p\rceil+6,\quad H=dG,\quad
+ q_F=\left\lceil\frac{2H}{K}\right\rceil,\quad
+ q_B=\left\lceil\frac{H}{K}\right\rceil,
+\]
+\[
+ q_0=\lceil\log_2W\rceil\lceil\log_m(2d)\rceil,
+ \quad k_0=\lceil\log_m d\rceil,\quad Q_0=q_0+q_F+q_B.
+\]
+If $D\le Q_0$, apply all $D$ selected kernels individually. Otherwise,
+process individually the first $q_0+q_F$ and last $q_B$ selected axes.
+This uses existing coordinates only. The remaining active axes are a
+consecutive middle block of length $D-Q_0$.
+
+Regard the first $q_0$ chunks as the row index. Immediately after it, the
+next $q_F$ chunks have at least $2H$ bits. Reinterpret these consecutive
+bits as two $H$-bit front fields and a spectator remainder; a remainder
+of length zero is omitted. The last $q_B$ chunks similarly supply one
+$H$-bit back field and a spectator remainder. These reinterpretations move
+no records and preserve the total address space. For a call with $f$ axes
+per slot, carve $nG=(f-1)G\le H$ consecutive bits from each of these
+fields; collapse their unused bits into spectators. The resulting field
+list has a fixed number of entries. Both front fields precede all active
+slots and the back field follows them, so the compact-control proposition
+applies to every ordered pair of slots. For $f=1$ no compact fields are used.
+
+The original row range has length $R_{\rm row}=2^{q_0K}\ge W^{k_0}$.
+For each original prefix, pad this row range to the next multiple of
+$W^{k_0}$ by adding zero rows. A row includes the entire complete front
+fields, active middle block, back field, all spectator coordinates and
+polynomial record suffix. Padding adds whole such rows, so increases total
+volume by at most two and does not change any within-row range.
+
+At a node write the row index as $u=Wg+w$, $0\le w<W$, and send the entire
+row to role $w$. The index $u$ consists solely of the first row region:
+\emph{no compact-field bit is included in it}. Each role therefore has
+the same complete within-row address set and exactly $1/W$ of the parent
+volume. At depth $j$ the remaining row count is divisible by $W^{k_0-j}$.
+This invariant survives further splits, padding, and reassembly. Pointwise
+gates on different roles have aligned $g$ and every remaining coordinate.
+All compact operations restore the temporary fields before a scalar gate,
+recursive child, or returned result uses that layout.
+
+The fixed-tape scheduler is unchanged: park only the other role streams at
+the active stack top, execute the child on a complete role stream, and restore
+the parked streams on return. Every child has its own current logical volume;
+copying, parking, rewinds and clearing cost a fixed multiple of that volume.
+The constant number of compact operations per edge use fixed work areas.
+Descriptors include the global $p,d,K,G,H$ and the carved field lengths;
+all have $O(p)$ bits and there are a fixed number of fields. The existing
+record suffix absorbs polynomial setup at every node and per record.
+
+Each completed invocation acts as the desired $C$ tensor on its active axes
+and as identity on the reserved and spectator coordinates. It therefore
+commutes with the earlier individual kernels, including those on bits now
+interpreted as compact fields. Restoring the row permutation returns the
+result to each original row separately. A padded zero row is consequently
+zero at completion and can be deleted exactly as before. Neither temporary
+field contents nor intermediate scratch payloads were assumed to be zero.
+
+The number of individually processed axes is at most $Q_0$, including the
+fallback $D\le Q_0$. For large $p$, $K\ge d^c/2$ and
+\[
+ q_F+q_B\le\frac{3dG}{K}+2\le6d^{1-c}G+2.
+\]
+Thus preprocessing, padding and reservation cost
+\[
+ O\bigl(V(\log(2d)+d^{\max\{1-c,0\}}\log p+1)\bigr).
+\]
+All reserved axes lie within the original $D$ axes; in particular their
+total number never exceeds $d$. This fact also bounds their coefficient
+dependency depth by the same $8d$ allowance used in the guard proof.
+
+\paragraph{Unrolling the compact-control recurrence.}
+Fix rational $0<\beta<1$. Choose $0<\tau<1$ and
+$\max\{0,\log_m(s/W)\}<\sigma<1$. Stop when $e<d^\beta$ and apply
+the remaining kernels individually. With $F(e)$ denoting time per current
+logical volume, the exact row split gives
+\[
+ F(e)\le(s/W)F(e/m)+O(G^\tau e^\tau+1),\qquad
+ F(e)=O(e)\quad(e<d^\beta).
+\]
+Here $G$ and the compact reservations are global parameters, not rebuilt
+at each node. This is why no factor $K^\tau$ appears in the overhead.
+Repair costs are already included in the node overhead.
+
+Write $b=s/W$. At level $j$ the internal contribution is bounded by
+$O(G^\tau e^\tau(b/m^\tau)^j)$. Summing through the stopping depth gives
+\[
+ O(G^\tau\log(2d)d^\chi),\qquad
+ \chi=\tau+(1-\beta)\max\{\sigma-\tau,0\}.
+\]
+Indeed if $\sigma\le\tau$ the root bounds every summand; otherwise the
+last internal level costs at most the root bound times a fixed constant
+and $d^{(1-\beta)(\sigma-\tau)}$. The additive $1$ is absorbed by
+$G^\tau e^\tau$ at internal nodes. The leaf contribution is at most
+$O(d^{\sigma+\beta(1-\sigma)})$, by the original volume-weighted argument.
+
+Partition $D-Q_0$ into consecutive powers of $m$, using its base-$m$
+expansion. There are $O(\log(2d))$ pieces. Include their costs and the
+reservation cost to obtain, per original volume,
+\[
+ O\!\left((\log p)^3
+ [d^\chi+d^{\sigma+\beta(1-\sigma)}+d^{\max\{1-c,0\}}+1]\right).
+\]
+We used $\log d=\Theta(\log p)$ and $G=O(\log p)$ for each fixed
+$d=\Theta(p^\epsilon)$ family. Any fixed rational exponents satisfying
+\[
+ \max\{\tau,\sigma,\chi\}<\lambda<\lambda'<1,\qquad
+ \max\{\sigma+\beta(1-\sigma),1-c,0\}<\lambda'
+\]
+therefore give the complete $O(Vd^{\lambda'})$ layer bound. The strict gaps
+absorb the logarithms. The small-$D$ fallback obeys the same bound.
+For fixed rational $\beta=u/v$, implement stopping by the integer test
+$e^v<d^u$; its polynomial descriptor cost is already included.

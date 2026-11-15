@@ -1,0 +1,32 @@
+name: E8 signed donor gauge
+on:
+  pull_request:
+    paths:
+      - 'research/e8-signed-donor-gauge/**'
+      - '.github/workflows/e8-signed-donor-gauge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r research/e8-signed-donor-gauge/requirements.txt
+      - run: python -B research/e8-signed-donor-gauge/verify.py "$RUNNER_TEMP/e8-signed-donor-output"
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e8-signed-donor-${{ matrix.python }}
+          path: ${{ runner.temp }}/e8-signed-donor-output/*.json
