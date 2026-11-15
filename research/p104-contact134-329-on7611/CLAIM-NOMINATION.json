@@ -1,0 +1,28 @@
+{
+  "baseline_head": "bbdbc8aea2f4fd94a927f6d8c438372c0c69ae6c",
+  "baseline_invoice_sha256": "3e02c92a82e403154a33dc4ad7cc7b49e3add55ec9a1f8db330b3ac32007ccbb",
+  "claim": "0.003652740309",
+  "command": "ulimit -v 262144; timeout 5s /usr/bin/time -f 'elapsed=%e cpu_user=%U cpu_system=%S max_rss_kib=%M' python3 -I -B /tmp/nominate_7611_price.py",
+  "delta_paid": {
+    "1": -34,
+    "2": 34,
+    "3": -17,
+    "4": -17,
+    "5": 17
+  },
+  "elapsed_seconds": "0.03",
+  "float_bracket": [
+    "0.0036527403112322325",
+    "0.003652740311232233"
+  ],
+  "max_rss_kib": 15844,
+  "paid_calls": 110264,
+  "productive_calls": 22461,
+  "qualification": "Full two-engine directed verification and complete physical and signed application required.",
+  "rank_surplus": 1424,
+  "script": "import json, hashlib, math\nfrom pathlib import Path\np=Path('outputs/kappa-research-20261115/inputs/pr7611/data/invoice-new.json')\nb=p.read_bytes(); x=json.loads(b); P=x['paid']; T=x['targets']\ndelta={'1':-34,'2':34,'3':-17,'4':-17,'5':17}\nfor r,d in delta.items(): P[r]+=d\nranks=set(P)|set(T)\ns=sum(int(r)*(T.get(r,0)-P.get(r,0)) for r in ranks)\ndef moment(k): return s+math.fsum((T.get(r,0)-P.get(r,0))*int(r)*math.expm1(-k*math.log(int(r))) for r in ranks)\nlo,hi=.00365,.00366\nassert moment(lo)>0 and moment(hi)<0\nfor _ in range(60):\n    m=(lo+hi)/2\n    if moment(m)>0: lo=m\n    else: hi=m\nunits=math.floor(((lo+hi)/2)*10**12)-2\nclaim=f'{units/10**12:.12f}'\nprint(json.dumps({'source_invoice_sha256':hashlib.sha256(b).hexdigest(),'method':'float nomination: rank mass plus fsum of expm1 corrections; 60 bisections; not a directed certificate','float_bracket':[lo,hi],'claim':claim,'tested':f'{units/10**12+7e-15:.15f}','paid_calls':sum(P.values()),'productive_calls':sum(T.values()),'surplus':s,'delta_paid':delta,'paid':P,'targets':T},sort_keys=True))\n",
+  "status": "FLOAT_NOMINATION_ONLY_NOT_ADMISSION",
+  "system_cpu_seconds": "0.00",
+  "tested": "0.003652740309007",
+  "user_cpu_seconds": "0.02"
+}
