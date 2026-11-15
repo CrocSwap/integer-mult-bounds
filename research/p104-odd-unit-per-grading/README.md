@@ -189,8 +189,8 @@ Each row gives what was tried, its exact scope, the reason it fails and the numb
 | GRAMLIFT: E8 Gram lift with 8 MOVEs | Y-side algebra exact | No frame-legal design on A3. V side: Theorem M rank Ψ = 6 → D ≥ 6 on A3, D ≥ 104 − m_o on E8 | | [P, C-lane] |
 | YEND: {0}-born helper carrying y to the Y end | merged window | No register visits both X-birth and Y-end (8/8). Y = x needs a dependence inside the invertible {0} basis | D_V = 1/port | [P, C-lane] |
 | XRECALL: recall x_b from other ports' registers | public moves | XRECALL lemma: 0/96 sites without moved owned rows | | [P, C] |
-| COURIER (outside-session lane, Mason's): Y couriers zeroed after delivery | real P104 frames | Only isolated 2-cycles. Induced matching ≤ 4 pairs → ≤ 8 couriers, each forcing an owned ascent. 0 with W6805's rows | S ≤ 848 with a free decoder; WEBS C4: M ≥ 100, S ≤ 780 | [P, C-lane] |
-| YYMIX (outside-session lane, Mason's) k = 2 staged Y–Y mixing → K2REAL with real carriers | cell model → real tokenized carriers | Carrier preloads must happen at {0}. 14 Y mains lose their preload carrier, and X_39 needs ≥ 7 owned rows | M_real ≥ 97, S ≤ 831, ≤ 0.914× (break-even M ≤ 92) | [P, C-lane, C-param] |
+| COURIER (outside-session lane, DreamingOfClouds'): Y couriers zeroed after delivery | real P104 frames | Only isolated 2-cycles. Induced matching ≤ 4 pairs → ≤ 8 couriers, each forcing an owned ascent. 0 with W6805's rows | S ≤ 848 with a free decoder; WEBS C4: M ≥ 100, S ≤ 780 | [P, C-lane] |
+| YYMIX (outside-session lane, DreamingOfClouds') k = 2 staged Y–Y mixing → K2REAL with real carriers | cell model → real tokenized carriers | Carrier preloads must happen at {0}. 14 Y mains lose their preload carrier, and X_39 needs ≥ 7 owned rows | M_real ≥ 97, S ≤ 831, ≤ 0.914× (break-even M ≤ 92) | [P, C-lane, C-param] |
 | YYMIX singular snapshot route (M = 0 in the cell model) | real tokens | CLONEAUDIT: the cell model's token-free carriers are 12 moved owned rows in disguise. A4 toy: snapshot CLEARs drop rank 20 → 16, and all Y wrong | artefact | [P, C toy] |
 | MULTIHELP: multi-sender token-cancelling networks | 85/85 shared-sender pairs rank 2 | Zone lemma. 27 stuck antichains | M_real ≥ 91 (lower bound) against break-even 92 | [P, C-lane] |
 | MULTIMIX: C = 0 range-sector fix for k = 2 | family E, W6805 L layer kept | The Y error has rank 8 and never vanishes for nonempty R. The fix needs ≥ 8 paid units | M ≥ 99 → ≤ 0.8955× | [P, C-lane] |
@@ -203,7 +203,7 @@ Each row gives what was tried, its exact scope, the reason it fails and the numb
 | route | why it fails | tag |
 |---|---|---|
 | HANDT1: hand-built t = −1 decoder | UP + DOWN forced (I6). Late-L gathers at V cost +8/call (0.7933× built). The twin is the park family | [P, C] |
-| DECZERO (outside-session lane, Mason's): zeroing / frame memory / mixing | Each alone is a relabel of the decoder. Zeroing + memory "free lifts" are new freedom (rank 2 per owned register) but cost ≥ 56 for rank-8 networks. Rank ≥ 9 is open | [P] |
+| DECZERO (outside-session lane, DreamingOfClouds'): zeroing / frame memory / mixing | Each alone is a relabel of the decoder. Zeroing + memory "free lifts" are new freedom (rank 2 per owned register) but cost ≥ 56 for rank-8 networks. Rank ≥ 9 is open | [P] |
 | TWINDEC: shared decoder rows across planes | Live (DOWN) and hosted (UP) run opposite ways: C_joint = 112. Round-trip lemma | [P] |
 | FACTORSWAP: alternative rank-8 factorisations | Exactly 10 decompositions on F0 ∪ F1 (8 at C = 56, 2 at 64). The C = 56 ones form one Aut orbit (order 384). The native mirror already maximises shared endpoint frames | [C-lane, S] |
 | STAIRJUNK → STAIRBUILD → ASSEMBLYLB: staircase deposits | 0/96 interior flag frames exist in #7546. Staircases leave the write vectors per target unchanged (0/864 differ), so the assembly floor moves ≤ 43–146 D0 | [P, C-lane] |
@@ -290,7 +290,7 @@ Each row gives what was tried, its exact scope, the reason it fails and the numb
 **Cut Lemma words (`cuts.py`).**
 
 - W6805 is CubeJerry's #6805 word, vendored as data.
-- feeder6805 is a t = −1 feeder word built by an outside-session lane (Fable-assisted, Mason's). It is shipped as an
+- feeder6805 is a t = −1 feeder word built by an outside-session lane (Fable-assisted, DreamingOfClouds'). It is shipped as an
   edit list against W6805.
 
 **Not included, because the design was not replayed exactly as a word:**
@@ -326,7 +326,7 @@ Each row gives what was tried, its exact scope, the reason it fails and the numb
 ## Credits
 
 - **Authors.** DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code. This includes the
-  outside-session lanes DECZERO, COURIER, YYMIX, XBIRTH and WEBS, which are Mason's (DreamingOfClouds).
+  outside-session lanes DECZERO, COURIER, YYMIX, XBIRTH and WEBS, which are DreamingOfClouds'.
 - **Fable-assisted analysis.** The Clone lemma, the b-family and the identification of M45 as the B-port
   contract. We reproduced each independently (CLONEAUDIT, CALLER45, MERGESCAN).
 - **ToikY.** The #7546 base word.

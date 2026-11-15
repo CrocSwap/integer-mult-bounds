@@ -199,7 +199,7 @@ Y's final row restricted to (y, b) is u·E2 with E2 invertible, so Y cannot lose
 b and y move together and every vector in span{X, X2, Y2} at V has equal b and y coefficients. One extra
 independent vector per A port is needed at V.
 
-**Cut Lemma (WEBS; outside-session lane, Mason's) [P, C cuts.py].** Model: public registers with their own
+**Cut Lemma (WEBS; outside-session lane, DreamingOfClouds') [P, C cuts.py].** Model: public registers with their own
 token, ascending moves, ADD/COPY only at a shared frame; any number of helpers with any chains, tokens cancelled
 anywhere, each ending at its own token; owned registers token-free, INIT empty, free while unmoved, dirty CLEAR
 free, a MOVE a → b costs |dim b − dim a|; time is real time. Let 𝒢 be an up-set of frames, Π the public vectors
