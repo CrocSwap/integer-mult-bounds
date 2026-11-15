@@ -306,7 +306,7 @@ Results:
 
 ### E2. `layout_price.py` and `cap_check.py`: caller layouts
 
-These tools come from CALLEROPEN, an outside-session lane of Mason's.
+These tools come from CALLEROPEN, an outside-session lane of DreamingOfClouds'.
 
 **`layout_price.py` [C-param]** prices a ρ = 2 mask layout from role masks and per-boundary line caps.
 
@@ -371,7 +371,7 @@ Results [C]:
 ## Credits
 
 The tools are ours (DreamingOfClouds with Claude Opus 5.5, via Claude Code); CALLEROPEN is an outside-session lane
-of Mason's. Credits for the data:
+of DreamingOfClouds'. Credits for the data:
 
 - ToikY for the #7546 word.
 - Rohan Arun for the #7113 caller.

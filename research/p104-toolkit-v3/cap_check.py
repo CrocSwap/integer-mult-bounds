@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Crossing caps and the Floor lemma on a real caller (CALLEROPEN, an outside-session lane of Mason's / DreamingOfClouds)
+"""Crossing caps and the Floor lemma on a real caller (CALLEROPEN, an outside-session lane of DreamingOfClouds)
 [C exact mod p].  Standard library only.  On the BUILT #7113 B program (default; any caller in #7113 format via argv) compute, per call k,
 the end-referred x/y spans (sl_lib = copy of CALLEROUT/sl_check.py) and check:
  (1) Lemma C: rank(Y_k, Y_k+1 restricted to S = Z_k cap Z_k+1) and rank(X_k, X_k+1 | S)  -> crossing cap |S| - rank;

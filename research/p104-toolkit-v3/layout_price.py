@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Mask-layout pricer for rho = 2 callers (CALLEROPEN, an outside-session lane of Mason's / DreamingOfClouds) [C-param].
+"""Mask-layout pricer for rho = 2 callers (CALLEROPEN, an outside-session lane of DreamingOfClouds) [C-param].
 Standard library only.  PARAMETRIC: prices hypothetical caller layouts with hypothetical natives; no word is built.
  price a rho=2 mask layout from (i) role masks (stage sets), (ii) per-boundary
 line caps.  Ledger [P]: T = sum_roles T[8 deg+1] (odd phase), idle incidences at stage k = |Z_k| - 2 (Lemma Det), thin = n+2-2L
