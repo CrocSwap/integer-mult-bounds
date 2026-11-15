@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [
+    "numpy==2.5.4"
+  ],
+  "inputs": [
+    "scripts/compare_recursive_invoices.py",
+    "scripts/evaluate_recursive_power.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/tests/test_pricing.py"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Data hashes (#7546 word bytes, #7113 caller JSON, #7601 edit list). pricekit: #7546 S = 1424, kappa 0.00364841129479084532481164, D0 393242.1350, 110468 paid jobs, enclosure < 1e-50, uniqueness proved; #7601 word rebuilt from its edit list kappa 0.0036490213053944204892137903671; ledger law d = m; NEG: S <= 0 gives NO_CROSSING, 104 extra rank-1 jobs lower kappa. kformula: C(17) == #7113 caller invoice, C(17) x #7546 native = kappa(#7546), NEG C(16) differs, S(k) = 96k - 208 for k = 4..64, exact sweep peaks at k = 17 and is unimodal on 6..40, D0 slope beta = 34, kappa(17)/(S/D0) = 1.0075, first-order formula within 1%, Lambert optimum k* = 16.15, kappa* = .003641. layout_price: model B = built B readings 1.0950/1.0031/0.9773 [C-param], uncapped reference 1.8950/1.6368/1.5695. cap_check on the built #7113 B: rank 4 at all 15 non-centre boundaries (q0 = 1, i), Floor lemma equality at every non-centre call. Prints PASS_TOOLKIT_PRICING."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/tests/test_checkers.py"
+      ],
+      "timeout_seconds": 240,
+      "checks": "accx: #7546 vs itself PASS; #7601 vs #7546 PASS with GAIN and kappa 0.0036490213053944...; NEG corrupted ADD coefficient FAILS with exact re-check; NEG reversed public MOVE FAILS. validate: #7601 OVERALL PASS with the repository tools (compare_recursive_invoices uniformly_better, evaluate_recursive_power crossing in (0.0036490213053, 0.0036490213054)); NEG corrupted word OVERALL FAIL. fastreplay exact backward slice. lossless (law DUAL): 0 lossy CLEARs on #7546 and #7601; NEG deleting an owned->public write-back makes a CLEAR lossy; agreement with exact Fraction ranks on 400/400 random programs (141 lossy). nativeplan: recost 9975.447669 (routes = stays), 1101 helpers, 3427 stops, 2682 blocks, 36299 meetings, basis rank 253, 70714 helper events re-emitted identically; NEG tampered plan breaks re-emission. Prints PASS_TOOLKIT_CHECKERS."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/tests/test_dual.py"
+      ],
+      "timeout_seconds": 180,
+      "checks": "dualword: dual(#7546) has identical native T/P histograms and identical S, kappa enclosure, D0; frames map to perp (dim d -> 9 - d); every MOVE keeps its signed gap; dual(dual) = #7546 up to frame bases with the single COPY restored (exactly one event differs); exactly the 8 native-B ports need the free contract SCALEs, after which all 1501 public rows equal #7546 (Fraction replay); accx strict fails only the owned-MOVE identity rule, --allow-owned-reframe ALL PASS with kappa ratio 1; 0 lossy CLEARs; dual(#7601) priced = #7601; NEG transpose without the X/Y port swap fails accx. Prints PASS_TOOLKIT_DUAL."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/tests/test_drops.py"
+      ],
+      "timeout_seconds": 360,
+      "checks": "tokdrop on #7546 (numpy backend unless python-flint is present): census 4728 stays, {0} = 3, V = 127, stop price 1.9095 for both #7601 stays; 134@595 repairs with K = 355, 100@783 with K = 118, settlement rank 0 in tiers A and B, pi exact; NEG both drops with no correction candidates are not repairable; exact build of both = the #7601 word byte-for-byte (4 corrections, 152 premix ADDs, 0 post-ops, 1 owned observation removed, none added); accx ALL PASS, kappa 0.0036490213053944.... Prints PASS_TOOLKIT_DROPS."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/tests/test_dualdrop.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Dual scan: dual of #7601 with frames 3 <-> 127 swapped, main 902 = dual register 794; NEG primal 902@595 on #7601 has no clean repair; dual 794@595 repairs with K = 0, settlement rank 0/0; exact build (0 corrections, 0 premix, 1 owned observation removed); mapped back (swap, dual, COPY restore) main 902 climbs 3 -> 618 in one MOVE and its 5 owned ADDs at 595 vanish; accx strict vs #7546 ALL PASS, kappa 0.00364932638757719639692487 (above #7601); 0 lossy CLEARs; NEG dual 1289@117 has settlement rank A 0 / B >= 1 and the exact build is refused. Prints PASS_TOOLKIT_DUAL_DROP."
+    }
+  ]
+}
