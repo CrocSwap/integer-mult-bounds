@@ -6,7 +6,7 @@ This is a separate follow-up to the original PR #7603 package, which is left unc
 
 The literal W2 word has conditional signed claim **C = 0.003656628302607**, under the same five inherited assumptions: `native_all_columns`, `owned_erasure`, `compiler`, `precision_tape`, `analytic_recovery`. The directed crossing is strictly between **0.00365662830260** and **0.00365662830261**. The native ingredient claim is separately **0.003655910458378**; do not confuse it with the complete 17-stage signed application.
 
-Fresh full candidate-adapted native and signed applications passed, including all 3040 signed catalogue cases and assembly. Evidence is in `evidence/NATIVE.json`, `evidence/SIGNED.json` and full logs. Paid signed positions: 110213; productive fields: 22461; ordinary bill: 785258936 (< 10^9); precision context: 2430. Fixed tape: 44069536 scalar services, 25425383744 elementary records, 1156 reserved owned banks.
+Fresh full candidate-adapted native and signed applications passed, including all 3060 signed catalogue cases and assembly. Evidence is in `evidence/NATIVE.json`, `evidence/SIGNED.json` and full logs. Paid signed positions: 110213; productive fields: 22461; ordinary bill: 785258936 (< 10^9); precision context: 2430. Fixed tape: 44069536 scalar services, 25425383744 elementary records, 1156 reserved owned banks.
 
 ## Construction and lifetime boundary
 
