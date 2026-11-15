@@ -3,7 +3,7 @@
 
 Own code (DreamingOfClouds with Claude Opus 5.5), standard library only.  Tags: [C] exact enumeration.
 The lemmas themselves (Pin, time-cut basis, Down-set No-Loss (DNL), Charge Corollary, Duality) are proved in PROOF.md;
-this script only enumerates and applies them.  The S2 proof is an outside-session lane of Mason's (DreamingOfClouds).
+this script only enumerates and applies them.  The S2 proof is an outside-session lane of DreamingOfClouds'.
 
 Checks (F2^3, 16 subspaces as frames, standard dot product)
   a. labels [1,2,4,7]: 8,261 owned multisets of ascending moves with total climb 3; 460 up-sets; 13 pass every births cut

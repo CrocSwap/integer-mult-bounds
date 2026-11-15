@@ -90,12 +90,12 @@ with the maintainers.
 ## 3. t = −1 closures: toys
 
 The model is the WEBS toy: U-only targets, any helpers, owned ascents. The web-general Cut Lemma (WEBS, an
-outside-session lane of Mason's) shipped in #7606 §I.3, and #7606 listed the F₂³ question as open.
+outside-session lane of DreamingOfClouds') shipped in #7606 §I.3, and #7606 listed the F₂³ question as open.
 
 | result | tag |
 |---|---|
 | **F₂³ decided.** Labels 1, 2, 4, 7. There are 8,261 owned multisets of climb 3 and 460 up-sets. 13 sets pass every cut, and all 13 are infeasible for any number of helpers. Owned climb ≥ 4 = n is needed. The 4-feeder control is realised exactly. Labels 1, 2, 7 at climb 2: the only cut-feasible set is also refuted. The Charge Corollary is not vacuous: it blocks 240 of the 2,074 cut-feasible climb-4 sets and leaves the 4-feeder set alone. The duality map permutes the 13 climb-3 sets | [P, C `toy4.py`] |
-| **Proof S2** (outside-session, Mason's): the Pin Lemma, the time-cut basis and the Down-set No-Loss Lemma (DNL) give the **Charge Corollary**. The DNL hypotheses are necessary: violating them, the finals still span on 1,448 random programs | [P] PROOF 3.1–3.4; [C-lane] |
+| **Proof S2** (outside-session, DreamingOfClouds'): the Pin Lemma, the time-cut basis and the Down-set No-Loss Lemma (DNL) give the **Charge Corollary**. The DNL hypotheses are necessary: violating them, the finals still span on 1,448 random programs | [P] PROOF 3.1–3.4; [C-lane] |
 | **Proof S1** (ours): the **Forwarding**, **Union** (multi-commodity cut) and **Duality** (O feasible ⇔ O^⊥ = {(b^⊥, a^⊥)} feasible, X ↔ Y) Lemmas. A brute-force certificate covers all 460 up-sets | [P] PROOF 3.6–3.8; [C-lane `cert3.py`] |
 | On F₂⁴, cuts + Charge + dual Charge + Union decide every 3-port set and the 4-port types (0,2,2,2) and (1,2,2,3). The survivors are path type (8 per set) and two-disjoint-pairs type (32 per set) | [C-lane, CP-SAT up-set ILPs] |
 | **Pocket Lemma** (TOY5, any helpers, descents allowed): o(G) + #(owned moves into the pocket N) ≥ \|R\| | [P] PROOF 3.9 |
@@ -118,7 +118,7 @@ outside-session lane of Mason's) shipped in #7606 §I.3, and #7606 listed the F�
 
 ### 5.1 Two-arm callers
 
-**Lemmas.** These come from CALLEROPEN (an outside-session lane of Mason's).
+**Lemmas.** These come from CALLEROPEN (an outside-session lane of DreamingOfClouds').
 
 | result | tag |
 |---|---|
@@ -133,7 +133,7 @@ outside-session lane of Mason's) shipped in #7606 §I.3, and #7606 listed the F�
 
 | result | tag |
 |---|---|
-| **The junk role is a disguised ρ = 3 caller** (JUNKROLE, an outside-session lane of Mason's). Dilation identity: P = −(I − e_J ãᵀ)(I − b̃ e_Jᵀ). The J-stages vertex-cover K_{8,9}. The honest D-free junk (JF1) prices exactly at SINGLEHUB's ρ = 3 ceiling, 1.0739 / 0.9796 / 0.9532, below B. A D-scaled junk does not cross | [P] PROOF 4.6; [N]; [C-param] |
+| **The junk role is a disguised ρ = 3 caller** (JUNKROLE, an outside-session lane of DreamingOfClouds'). Dilation identity: P = −(I − e_J ãᵀ)(I − b̃ e_Jᵀ). The J-stages vertex-cover K_{8,9}. The honest D-free junk (JF1) prices exactly at SINGLEHUB's ρ = 3 ceiling, 1.0739 / 0.9796 / 0.9532, below B. A D-scaled junk does not cross | [P] PROOF 4.6; [N]; [C-param] |
 | **ρ ≥ 3** (RHO3CROSS). Relation dim ≤ ρ − rank(Σ witness Z_j), so δ = 1 is possible only at the two outer boundaries. This is tight on SINGLEHUB's ρ = 3 root: 13 inner boundaries at 0, both outer boundaries at 1. Best prices: ρ = 3 one-hub 1.0612 / 0.9685 / 0.9426; ρ = 3 two-hub 1.0153 / 0.9301 / 0.9062; ρ = 4 chain 1.0242. All are below B | [P] PROOF 4.7; [C-lane]; [C-param] |
 | **Arm trees** (ARMTREE). Block rank bound (sketch): #roles meeting stage sets A, B ≥ 2·rank sgn(a − b), so interleaving in time costs shared roles. Two-hub two-piece layouts violate it (337 violations at L = 8). A 4-hub tree toy at k = 8 prices 0.59× B(8). Not closed as a theorem | [P sketch; C-lane; C-param] |
 | **β = 4g + 2 = 34** (BETA): 2 uncancelled hubs (2g), arm tops (2g) and the interior (+2). The per-stage lift 8 = h − 1 is the F₂⁸ frame dimension. The hub degree k is forced. **The arm-top degree k/2 is forced only under nesting** | [P] PROOF 4.8; [C-param] |
@@ -166,7 +166,7 @@ shipped in #7607 §E1 (`kformula.py`). New here (KFORMULA, RES-REC):
 
 | result | tag |
 |---|---|
-| **Residual identity** (DECLIFT9, an outside-session lane of Mason's): Q[t, s] = Σ path descents b_j mod 2, one rank-1 term per unit descent, whatever the lifts and merges. Hence **C ≥ n = 104** for odd-denominator networks and **C ≥ 16** at half level (the DEC-only floor was 21). Checked on 800 random networks | [P] PROOF 5.1; [C-lane] |
+| **Residual identity** (DECLIFT9, an outside-session lane of DreamingOfClouds'): Q[t, s] = Σ path descents b_j mod 2, one rank-1 term per unit descent, whatever the lifts and merges. Hence **C ≥ n = 104** for odd-denominator networks and **C ≥ 16** at half level (the DEC-only floor was 21). Checked on 800 random networks | [P] PROOF 5.1; [C-lane] |
 | Lifted kept chains void the ADICWALL partial-replacement bound. Merge-only relays are legal and cheaper, but reach only ports that need neither chain. All 124,146 merge configurations cost ≥ 57 | [P; C-lane] |
 | The caller op X_p → Y_p needs a paid descent (q·q = 1) | [P] PROOF 5.2 |
 | **H10DEC.** On the h = 10 labels (P104 on 103 ports, port 88 → e₁₀), an exact decoder costs **57** (8 E8 rows with 88 zeroed, plus one climb-1 row). C_{h=10} = 1 + C(103), so the true minimum lies in [1 + floor(103), 57]. The ASYMPORTS c = 50 was a floor artefact. h = 10 stays killed at its gate G2 (U packing) | [C-lane; P] PROOF 5.3 |
@@ -279,7 +279,7 @@ shipped in #7607 §E1 (`kformula.py`). New here (KFORMULA, RES-REC):
 
 ## Credits
 
-All checkers and lane code are ours (DreamingOfClouds with Claude Opus 5.5, via Claude Code). Four lanes are Mason's
+All checkers and lane code are ours (DreamingOfClouds with Claude Opus 5.5, via Claude Code). Four lanes are DreamingOfClouds'
 outside-session lanes (DreamingOfClouds): the TOY4 S2 proof, CALLEROPEN, JUNKROLE and DECLIFT9; so is WEBS, whose Cut
 Lemma shipped in #7606 and is used here.
 

@@ -85,7 +85,7 @@ Model (WEBS toy): F₂^m, U-only targets X_t = x_t − y_t at V and Y_t = y_t at
 any web), and owned rows are token-free. φ_d(u) := coef_{x_d}(u) + coef_{y_d}(u). A port s is **tight** if exactly
 one owned move enters G_s.
 
-**3.1 Pin Lemma** (TOY4 S2, an outside-session lane of Mason's). If s is tight, every content held at a frame of G_s
+**3.1 Pin Lemma** (TOY4 S2, an outside-session lane of DreamingOfClouds'). If s is tight, every content held at a frame of G_s
 lies in Π_s = F_s ⊕ ⟨x_s⟩. In particular φ_d = 0 there for every non-partner d of s.
 
 *Proof.* By the Cut Lemma, Σ_{G_s} ⊆ span(Π) + ⟨o⟩ with |Π| = dim F_s. Σ contains F_s + ⟨x_s⟩, of dimension
@@ -199,7 +199,7 @@ This assumes no owned move lands in Up(q_d) \ G.
 
 ## 4. Callers
 
-Setting (CALLEROPEN, an outside-session lane of Mason's, and SINGLEHUB): ρ = 2, K = WZᵀ, units T = I − 2xyᵀ,
+Setting (CALLEROPEN, an outside-session lane of DreamingOfClouds', and SINGLEHUB): ρ = 2, K = WZᵀ, units T = I − 2xyᵀ,
 product −I, HOST stages with t ≠ −1. Lemma S: G_ij = ±(WZᵀ)_ij.
 
 **4.1 Crossing Lemma.** Let k, k+1 be consecutive stages, S = Z_k ∩ Z_{k+1} ⊇ X_k, and let j be a witness stage with
@@ -243,7 +243,7 @@ Scope: two arms meeting only in the hubs, nested masks, ρ = 2, HOST t ≠ −1,
 - Each piece has rank K_i = 2, so N_i ≥ |P_i| + 2 + rank(I − M_i^H).
 - The hub blocks satisfy ∏ M_i^H = −I, so Σ rank(I − M_i^H) ≥ 2. ∎
 
-**4.6 Junk role = dilated root** (JUNKROLE, an outside-session lane of Mason's). Put a = P[J, C], b = P[C, J] and
+**4.6 Junk role = dilated root** (JUNKROLE, an outside-session lane of DreamingOfClouds'). Put a = P[J, C], b = P[C, J] and
 m = P[J, J]. Since det P = 1 and n_C is odd, m = −1 − a·b, and
 
   P = −(I − e_J ãᵀ)(I − b̃ e_Jᵀ),
@@ -320,7 +320,7 @@ Gaps (not proved):
 
 ## 5. Decoders
 
-**5.1 Residual identity** (DECLIFT9, an outside-session lane of Mason's). Give each gathered atom x_s a residual
+**5.1 Residual identity** (DECLIFT9, an outside-session lane of DreamingOfClouds'). Give each gathered atom x_s a residual
 y = q_s.
 
 - At each unit descent f → g, fix π ∈ f \ g and split y = λπ + y′ with y′ ∈ g.
