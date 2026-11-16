@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/compare_recursive_invoices.py",
+    "scripts/evaluate_recursive_power.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify_lifetimes.py"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Authenticates base7605, w7616, and word.json.gz canonical hashes; verifies literal w7616 + edits-on-7616.json reconstruction and unchanged metadata; verifies all 204 owned lifetimes (74 matched-base + 130 strictly stationary), peak 50 <= 68 labels, and non-overlapping per-label allocation over 17 * 68 = 1,156 physical banks."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/verify_certificates.py"
+      ],
+      "timeout_seconds": 300,
+      "checks": "Exact Fraction(Q) replay of data/word.json.gz checking all 204 owned CLEAR certificates in evidence/certs-step1.json (197 dirty + 7 zero; other_rank = 1501; final rank = 1501), confirming 68 unchanged base CLEARs + exact 6 Q-modified matched-base CLEARs [27, 37, 44, 54, 62, 63], plus 3/3 negative control rejections."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/price.py"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Runs repository scripts/compare_recursive_invoices.py and scripts/evaluate_recursive_power.py (--bits 256): verifies strictly uniformly_better order against #7616 and derived #7617 invoices, and certifies the 256-bit crossing bracket [0.003665051802188, 0.003665051802189]."
+    }
+  ]
+}
