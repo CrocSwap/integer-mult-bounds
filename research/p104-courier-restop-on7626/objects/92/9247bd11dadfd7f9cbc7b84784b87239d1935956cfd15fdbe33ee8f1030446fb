@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Synthetic semantic receipt controls; no research, service, or old inputs."""
+import hashlib,importlib.util,json,tempfile
+from pathlib import Path
+root=Path(__file__).resolve().parents[1]; spec=importlib.util.spec_from_file_location('launch',root/'launch.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+def case(mutation):
+ with tempfile.TemporaryDirectory() as t:
+  out=Path(t);case=out/'case';(case/'work').mkdir(parents=True);(case/'resources').mkdir()
+  signed=b'synthetic signed';resources=b'synthetic resource';(case/'work/signed.receipt.json').write_bytes(signed);(case/'resources/RESOURCE-COMPARISON.json').write_bytes(resources)
+  result={'status':'PASS_SIGNED_AND_RESOURCES_CONDITIONAL','qualified_kappa':False,'stage_complete':True,'qualification_run_id':'034355d151a14453831f2fdb46fb5c02','native_result_sha256':'e6aa4d573d7db4b43263449420d8c160f83ba3f25ced5e0c767e8ce6f80d94f4','stages':[{'name':'signed','exit_code':0,'cap_seconds':900},{'name':'resources','exit_code':0,'cap_seconds':20}],'signed_receipt_sha256':hashlib.sha256(signed).hexdigest(),'resource_comparison_sha256':hashlib.sha256(resources).hexdigest()}
+  if mutation=='bad_status':result['status']='INCOMPLETE'
+  elif mutation=='false':result['stage_complete']=False
+  elif mutation=='wrong_native':result['native_result_sha256']='bad'
+  elif mutation=='empty':result['stages']=[]
+  elif mutation=='bool_exit':result['stages'][0]['exit_code']=False
+  elif mutation=='wrong_cap':result['stages'][1]['cap_seconds']=21
+  elif mutation=='bad_receipt':(case/'work/signed.receipt.json').write_text('tampered')
+  elif mutation=='bad_resource':(case/'resources/RESOURCE-COMPARISON.json').unlink()
+  if mutation!='missing':(case/'RESULT.json').write_text(json.dumps(result))
+  record={'error':'primary sentinel','secondary_cleanup_errors':[]};m.record_job_result(out,record)
+  assert record['error']=='primary sentinel'
+  assert record['job_result_valid'] is (mutation=='valid')
+  if mutation!='valid':assert record['secondary_cleanup_errors'][0]['step']=='job_result'
+for mode in ('valid','missing','bad_status','false','wrong_native','empty','bool_exit','wrong_cap','bad_receipt','bad_resource'):case(mode)
+print('PASS: synthetic positive and 9 negative semantic job controls; primary preserved')

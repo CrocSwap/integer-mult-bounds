@@ -1,0 +1,113 @@
+"""Source-bound native pair census for a #7626 successor.
+
+Library only; caller supplies authenticated words, pinned #7624 physical rows,
+and independently specified expected result. No scientific engines imported.
+A caller must hash-bind this module and its inputs before use.
+"""
+import hashlib
+import json
+
+BASE_CAN = '64fca675b91298868e12f09423b47e0c2327cba7095e35c8919c1953b4ed68b8'
+W7624_CAN = 'c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de'
+W7626_CAN = 'df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'
+
+
+def need(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def canonical(obj):
+    return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()
+
+
+def digest(obj):
+    return hashlib.sha256(canonical(obj)).hexdigest()
+
+
+def typed_pairs(rows):
+    need(type(rows) is list and len(rows) > 0, 'empty or invalid pairs')
+    parsed = []
+    for pair in rows:
+        need(type(pair) is list and len(pair) == 2 and
+             all(type(v) is int and v >= 0 for v in pair), 'malformed pair')
+        parsed.append(tuple(pair))
+    need(len(parsed) == len(set(parsed)), 'duplicate pair')
+    return set(parsed)
+
+
+def routes(w):
+    need(type(w) is dict and type(w.get('public')) is int and w['public'] > 0 and
+         type(w.get('program')) is list and w['program'], 'invalid word')
+    out = {i: [] for i in range(w['public'])}
+    for e in w['program']:
+        need(type(e) is list and e, 'malformed event')
+        if e[0] == 'MOVE':
+            need(len(e) >= 4 and type(e[1]) is int and
+                 all(type(v) is int and v >= 0 for v in e[2:4]), 'malformed MOVE')
+            if e[1] in out:
+                out[e[1]].append(tuple(e[2:4]))
+    return out
+
+
+def changed(left, right):
+    need(left.keys() == right.keys(), 'public boundary differs')
+    fields = [i for i in left if left[i] != right[i]]
+    pairs = {p for i in fields for p in left[i] + right[i]}
+    return fields, pairs
+
+
+def build(base, w7624, w7626, candidate, source_rows, candidate_sha, expected):
+    """Derive union, fail closed against independently supplied expected census.
+
+    expected must contain exact changed fields and full_validation_pairs. This
+    check is not an independent oracle if expected is produced by this function.
+    The caller must validate source_rows bytes/status against #7624 pins first.
+    """
+    need(digest(base) == BASE_CAN and digest(w7624) == W7624_CAN and
+         digest(w7626) == W7626_CAN and digest(candidate) == candidate_sha,
+         'canonical word binding')
+    need(candidate_sha != W7626_CAN, 'successor equals source')
+    need(type(source_rows) is list and len(source_rows) == 1075, 'source census size')
+    for row in source_rows:
+        need(type(row) is dict and type(row.get('columns')) is int and row['columns'] == 512 and
+             type(row.get('adjoint_columns')) is int and row['adjoint_columns'] == 512 and
+             row.get('absolute_phase_verified') is True, 'source pair evidence')
+    pinned = typed_pairs([r.get('pair') for r in source_rows])
+    b, s, c, n = map(routes, (base, w7624, w7626, candidate))
+    source_fields, source_pairs = changed(b, s)
+    prior_fields, prior_pairs = changed(b, c)
+    candidate_fields, candidate_pairs = changed(b, n)
+    successor_fields, successor_pairs = changed(c, n)
+    need(len(source_fields) == 201 and source_pairs == pinned, 'source census mismatch')
+    need(prior_fields and candidate_fields and successor_fields and prior_pairs and
+         candidate_pairs and successor_pairs, 'empty changed route census')
+    union = pinned | prior_pairs | candidate_pairs | successor_pairs
+    need(type(expected) is dict and expected.get('source_changed_fields') == source_fields and
+         expected.get('prior_changed_fields') == prior_fields and
+         expected.get('candidate_changed_fields') == candidate_fields and
+         expected.get('successor_changed_fields') == successor_fields and
+         typed_pairs(expected.get('full_validation_pairs')) == union,
+         'independent expected census mismatch')
+    rows = lambda pairs: [list(p) for p in sorted(pairs)]
+    return {'schema': 'swarm30-native-pairs/v1',
+            'base_canonical_sha256': BASE_CAN, 'source7624_canonical_sha256': W7624_CAN,
+            'source7626_canonical_sha256': W7626_CAN, 'candidate_canonical_sha256': candidate_sha,
+            'source_changed_fields': source_fields, 'prior_changed_fields': prior_fields,
+            'candidate_changed_fields': candidate_fields, 'successor_changed_fields': successor_fields,
+            'pinned_source_pairs': rows(pinned), 'base_prior_pairs': rows(prior_pairs),
+            'base_candidate_pairs': rows(candidate_pairs), 'prior_candidate_pairs': rows(successor_pairs),
+            'full_validation_pairs': rows(union)}
+
+
+def validate_chart_receipt(chart, manifest):
+    """Validate exact populated production chart result, not the science itself."""
+    need(type(chart) is dict and chart.get('wrong_phase_rejected') is True, 'phase control')
+    rows = chart.get('all_affected_pairs')
+    need(type(rows) is list and rows and all(type(r) is dict for r in rows), 'missing chart rows')
+    need(typed_pairs([r.get('pair') for r in rows]) == typed_pairs(manifest['full_validation_pairs']),
+         'chart pair coverage')
+    need(all(type(r.get('columns')) is int and r['columns'] == 512 and
+             type(r.get('adjoint_columns')) is int and r['adjoint_columns'] == 512 and
+             r.get('absolute_phase_verified') is True for r in rows), 'chart columns or phase')
+    return True

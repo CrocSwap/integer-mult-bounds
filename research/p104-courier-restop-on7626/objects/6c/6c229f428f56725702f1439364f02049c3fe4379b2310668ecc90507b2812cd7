@@ -1,0 +1,126 @@
+"""Fresh public-span witnesses on actual source and candidate; never run at import."""
+import copy, gzip, hashlib, importlib.util, json
+from pathlib import Path
+from fractions import Fraction as Q
+from collections import Counter
+
+ROOT=Path(__file__).resolve().parents[4]
+ANCESTOR=ROOT/'outputs/kappa-research-20261116b/compose7624_completion/certificates.py'
+RETAINED=ROOT/'outputs/kappa-research-20261116b/compose7624_completion/run/case/certificates/candidate-certificates.json'
+FIRST=ROOT/'outputs/kappa-swarm30-20261116/firstgate-run/case/exact/result.json'
+PINS={ANCESTOR:'10714b5e758ce2bd23432c7824dbcb719b9f81ae2444a32a2eb25d8d284d1411',RETAINED:'48c5ad699c107e915cc8929f01e71c343b64d7b39ba44e96a46d1a4ed6f103ff',FIRST:'ebef891409dca22052498c5e19bf8d01f31f7aadc6d93b6bba1e5c6c8811a645'}
+SOURCE='501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+CANDIDATE='3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'
+ORIGINS='2ba9e98c76939497d5e68b377583e58cdfa523df1fbdd8d03e2d5bdd1a34a6d9'
+def sha(b): return hashlib.sha256(b).hexdigest()
+def need(v,m):
+    if not v: raise ValueError(m)
+def combine(a,b,f):
+    for k,v in b.items():
+        x=a.get(k,Q(0))+f*v
+        if x:a[k]=x
+        else:a.pop(k,None)
+def solve(rows,target,n,preferred):
+    # Exact elimination with provenance; public rows only, and only nonzero providers.
+    if not target:return {}
+    piv={}
+    order=list(dict.fromkeys([int(k) for k in preferred]+list(range(n))))
+    for i in order:
+        if not rows[i]:continue
+        r=dict(rows[i]); rep={i:Q(1)}
+        while r:
+            k=min(r)
+            if k not in piv:
+                v=r[k]; piv[k]=({x:y/v for x,y in r.items()},{x:y/v for x,y in rep.items()});break
+            p,q=piv[k]; f=-r[k];combine(r,p,f);combine(rep,q,f)
+        test=dict(target)
+        while test and min(test) in piv:
+            k=min(test);combine(test,piv[k][0],-test[k])
+        if not test:break
+    r=dict(target); answer={}
+    while r:
+        k=min(r);need(k in piv,'erased form not in current public span')
+        p,q=piv[k];f=r[k];combine(r,p,-f);combine(answer,q,f)
+    return answer
+
+def replay(w, expected, checker):
+    n=w['public'];need(n==1501 and w['owned_fields']==68,'shape');N=n+68
+    rows=[{i:Q(1)} for i in range(n)]+[{} for _ in range(68)]
+    live=set(range(n));cur=list(w['initial'])+[None]*68; active={};occ=Counter();records=[];counts=Counter();peak=0; actual_controls=[]
+    for i,e in enumerate(w['program']):
+        op,r=e[:2];need(type(r)==int and 0<=r<N,'role')
+        if op=='INIT':
+            need(r>=n and r not in live and len(e)==3 and not rows[r],'INIT');live.add(r);cur[r]=e[2];occ[r]+=1;active[r]=(i,e[2],[]);peak=max(peak,len(active));counts['owned']+=1
+        elif op=='CLEAR':
+            need(r in active and cur[r]==e[2],'CLEAR'); j=len(records);need(j<len(expected),'extra clear');init,ic,moves=active[r];base=expected[j]
+            need(base['field']==r and base['lifetime']==occ[r] and base['chart']==e[2] and base['erased']==checker.pack(rows[r]),'erased/lifetime mismatch')
+            cert=solve(rows,rows[r],n,base['certificate'])
+            rec={'clear_index':j,'event':i,'field':r,'lifetime':occ[r],'chart':e[2],'dim':len(w['frames'][e[2]]),'init_event':init,'init_chart':ic,'owned_moves':moves,'erased_support':len(rows[r]),'erased':checker.pack(rows[r]),'other_live':sum(bool(rows[k]) for k in live if k!=r),'other_rank':n,'certificate':checker.pack(cert),'terms':len(cert),'verified_exact':True}
+            checker.check_record(rec,j,i,r,occ[r],e[2],rec['dim'],init,ic,moves,live,rows,n)
+            if cert and not actual_controls:
+                for label in ('coefficient','erased','clock'):
+                    bad=copy.deepcopy(rec)
+                    if label=='coefficient':
+                        key=next(iter(bad['certificate']));bad['certificate'][key]=str(Q(bad['certificate'][key])*2)
+                    elif label=='erased':
+                        key=next(iter(bad['erased']));bad['erased'][key]=str(Q(bad['erased'][key])*2)
+                    else:bad['event']+=1
+                    try: checker.check_record(bad,j,i,r,occ[r],e[2],rec['dim'],init,ic,moves,live,rows,n)
+                    except ValueError: actual_controls.append(label)
+                    else: raise ValueError('actual corruption accepted: '+label)
+            records.append(rec);counts['clears']+=1;counts['owned']+=1;del active[r];live.remove(r);rows[r]={};cur[r]=None
+        elif op=='MOVE':
+            need(r in live and len(e)==5 and cur[r]==e[2] and type(e[4])==bool and e[4]==(r>=n),'MOVE');cur[r]=e[3]
+            if r>=n:active[r][2].append([i,e[2],e[3]]);counts['owned']+=1
+        elif op in ('ADD','COPY','SCALE'):
+            need(r in live,'inactive destination');src=None if op=='SCALE' else e[2];coeff=Q(e[2] if src is None else e[3]);chart=e[3] if src is None else e[4]
+            need(coeff!=0 and cur[r]==chart,'scalar destination');
+            if src is not None:need(src in live and src!=r and cur[src]==chart,'scalar source')
+            if r>=n or (src is not None and src>=n): counts['interfaces']+=1
+            if op=='COPY':
+                counts['copies']+=1;need(not rows[r],'dirty COPY');rows[r]={k:coeff*v for k,v in rows[src].items() if coeff*v}
+            elif op=='SCALE': rows[r]={k:coeff*v for k,v in rows[r].items() if coeff*v}
+            else: combine(rows[r],rows[src],coeff)
+        else:raise ValueError('unknown opcode')
+    need(not active and live==set(range(n)) and cur[:n]==w['final'],'final ownership/charts')
+    need(len(records)==204 and counts=={'clears':204,'owned':455,'interfaces':700,'copies':1},'fixed census')
+    need(peak==50 and sum(not x['erased'] for x in records)==7,'peak/zero census')
+    checker.rank_guard(rows[:n],n)
+    need(len(actual_controls)==3,'actual controls missing')
+    return records,[checker.pack(x) for x in rows[:n]],dict(counts),actual_controls
+
+def run(source,candidate,origins,newout):
+    for p,h in PINS.items():need(sha(p.read_bytes())==h,'closure hash '+str(p))
+    sraw=Path(source).read_bytes();craw=Path(candidate).read_bytes();oraw=Path(origins).read_bytes()
+    need(sha(sraw)==SOURCE and sha(craw)==CANDIDATE and sha(oraw)==ORIGINS,'input hash')
+    s=json.loads(gzip.decompress(sraw));c=json.loads(gzip.decompress(craw));o=json.loads(oraw)
+    need(len(o)==len(c['program']),'origin count');need({k:v for k,v in s.items() if k!='program'}=={k:v for k,v in c.items() if k!='program'},'metadata')
+    spec=importlib.util.spec_from_file_location('pinned_certificate_ancestor',ANCESTOR);checker=importlib.util.module_from_spec(spec);spec.loader.exec_module(checker)
+    old=json.loads(RETAINED.read_bytes())['clears'];need(len(old)==204,'retained denominator')
+    a,af,ac,ax=replay(s,old,checker);b,bf,bc,bx=replay(c,old,checker);need(af==bf,'final rows differ')
+    for x,y in zip(a,b):
+        need(o[y['event']]==x['event'] and o[y['init_event']]==x['init_event'],'origin binding')
+        need([(o[m[0]],m[1],m[2]) for m in y['owned_moves']]==[tuple(m) for m in x['owned_moves']],'owned move binding')
+        need(x['erased']==y['erased'] and x['field']==y['field'] and x['lifetime']==y['lifetime'],'paired exact erased form')
+    # Consumer corruption controls against an actual fresh public witness.
+    controls=checker.controls();need(controls['rejected'],'controls empty')
+    out=Path(newout);out.mkdir(parents=True,exist_ok=False)
+    result={'status':'PASS_FRESH_PUBLIC_CERTIFICATES_204','source_sha256':sha(sraw),'candidate_sha256':sha(craw),'origins_sha256':sha(oraw),'firstgate_sha256':PINS[FIRST],'source_counts':ac,'candidate_counts':bc,'controls':controls,'actual_source_rejections':ax,'actual_candidate_rejections':bx,'limitations':['remaining-live rank is not public-only rank','physical erasure and supplier U not established']}
+    for name,data in [('source-certificates.json',a),('candidate-certificates.json',b),('result.json',result)]: (out/name).write_text(json.dumps(data,sort_keys=True,separators=(',',':'))+'\n')
+    return result
+
+def controls_only():
+    need(sha(ANCESTOR.read_bytes())==PINS[ANCESTOR],'ancestor pin')
+    spec=importlib.util.spec_from_file_location('pinned_certificate_ancestor',ANCESTOR)
+    checker=importlib.util.module_from_spec(spec);spec.loader.exec_module(checker)
+    return checker.controls()
+
+if __name__=='__main__':
+    import argparse
+    p=argparse.ArgumentParser();p.add_argument('--controls-only',action='store_true');p.add_argument('--source');p.add_argument('--candidate');p.add_argument('--origins');p.add_argument('--out');a=p.parse_args()
+    if a.controls_only:
+        need(not any((a.source,a.candidate,a.origins,a.out)),'controls arguments')
+        print(json.dumps({'status':'PASS_CONTROLS','controls':controls_only()},sort_keys=True))
+    else:
+        need(all((a.source,a.candidate,a.origins,a.out)),'missing arguments')
+        print(json.dumps(run(a.source,a.candidate,a.origins,a.out),sort_keys=True))

@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""Literal JSON-only source-clock port. No scientific computation or replay."""
+import collections
+import copy
+import gzip
+import hashlib
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+SOURCE = ROOT / 'inputs' / 'source7626-word.json.gz'
+SOURCE_INFO = ROOT / 'inputs' / 'SOURCE.json'
+
+def canon(o):
+    return json.dumps(o, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+def write_json(path, obj):
+    path.write_text(json.dumps(obj, sort_keys=True, indent=2) + '\n')
+def need(ok, msg):
+    if not ok: raise ValueError(msg)
+
+info = json.loads(SOURCE_INFO.read_text())
+raw = SOURCE.read_bytes()
+need(sha(raw) == info['gzip_sha256'], 'source gzip identity')
+word = json.loads(gzip.decompress(raw))
+need(sha(canon(word)) == info['canonical_sha256'], 'source canonical identity')
+p = word['program']
+need(len(p) == info['events'] == 77371, 'source event count')
+
+# Positions refer only to the unmodified 7626 program. Anchor values are asserted
+# by full literal and unique occurrence, including retained donor returns.
+anchors = {
+32940:['MOVE',226,86,260,False],
+32941:['MOVE',224,250,260,False],
+32942:['ADD',226,224,'1',260],
+34163:['ADD',226,1506,'-1',260],
+34164:['INIT',1502,541],
+34177:['ADD',1477,226,'-1',260],
+41997:['MOVE',226,260,719,False],
+41998:['MOVE',990,260,719,False],
+41999:['MOVE',473,716,719,False],
+42000:['ADD',990,473,'-1',719],
+42001:['ADD',990,226,'-1',719],
+42002:['MOVE',990,719,907,False],
+42006:['ADD',473,226,'1',719],
+44287:['MOVE',473,719,906,False],
+44288:['ADD',213,473,'-1/2',906],
+46435:['MOVE',226,719,127,False],
+46436:['ADD',1477,226,'1',127],
+46437:['MOVE',990,907,127,False],
+46438:['ADD',990,226,'1',127],
+46439:['ADD',990,1477,'1',127],
+46830:['MOVE',473,906,127,False],
+}
+# Uniqueness uses literal equality rather than indexing into a changed program.
+for i,e in anchors.items():
+    need(p[i] == e, f'anchor mismatch at {i}')
+    need(p.count(e) == 1, f'anchor is not unique: {i}')
+
+delclocks = [32940,41997,42001,42006,44287,46435]
+insertions = {
+32942:[['MOVE',226,86,260,False]],
+34164:[['ADD',990,226,'-1',260]],
+42001:[['MOVE',473,719,906,False],['MOVE',226,260,906,False],['ADD',473,226,'1',906]],
+46435:[['MOVE',226,906,127,False]],
+}
+manifest = {
+ 'schema':'restop226-literal-sourceclock-edits/v1',
+ 'source_pr':info['source_pr'],'source_head':info['source_head'],
+ 'source_gzip_sha256':info['gzip_sha256'],'source_canonical_sha256':info['canonical_sha256'],
+ 'clock':'zero-based source7626 program index; all insertions occur before their source clock even if deleted',
+ 'source_events':len(p),
+ 'anchors':[{'source_clock':i,'event':e,'count':1} for i,e in sorted(anchors.items())],
+ 'delete':[{'source_clock':i,'event':anchors[i]} for i in delclocks],
+ 'insert_before':[{'source_clock':i,'events':es} for i,es in sorted(insertions.items())],
+ 'preserved_returns':[34177,46436,46437,46438,46439,46830],
+ 'scope':'helper 226 only; no 1445/1461 courier edits',
+}
+need(len(set(delclocks)) == len(delclocks), 'duplicate deletions')
+need(all(i in anchors for i in insertions), 'insertion anchors required')
+out=[]; source_map={}; inserted=[]
+for i,e in enumerate(p):
+    for ev in insertions.get(i, []):
+        inserted.append({'source_before':i,'candidate_clock':len(out),'event':ev})
+        out.append(ev)
+    if i not in delclocks:
+        if i in anchors: source_map[str(i)] = len(out)
+        out.append(e)
+need(len(out)==len(p), 'event count unexpectedly changed')
+need(collections.Counter(x[0] for x in out)==collections.Counter(x[0] for x in p), 'operation counts changed')
+new = dict(word); new['program']=out
+need({k:v for k,v in new.items() if k!='program'} == {k:v for k,v in word.items() if k!='program'}, 'header differs')
+canonical=canon(new)
+compressed=gzip.compress(canonical, compresslevel=9, mtime=0)
+(HERE / 'candidate-word.json.gz').write_bytes(compressed)
+write_json(HERE / 'EDITS.json', manifest)
+mutant = copy.deepcopy(manifest)
+mutant['schema']='restop226-preloan-rejecting-control/v1'
+mutant['control']='Move the 990-=226 encode before the source 34163 owned-field write; must be rejected by later paired replay / observation checks. Not constructed or tested.'
+for group in mutant['insert_before']:
+    if group['source_clock']==34164:
+        group['source_clock']=34163
+mutant['insert_before'].sort(key=lambda x:x['source_clock'])
+write_json(HERE / 'PRELOAN.json', mutant)
+receipt = {
+ 'schema':'restop226-json-build/v1','status':'BUILT_UNVALIDATED',
+ 'source_gzip_sha256':sha(raw),'source_canonical_sha256':sha(canon(word)),
+ 'candidate_gzip_sha256':sha(compressed),'candidate_canonical_sha256':sha(canonical),
+ 'source_events':len(p),'candidate_events':len(out),'deleted_count':len(delclocks),'inserted_count':len(inserted),
+ 'operation_counts':dict(sorted(collections.Counter(x[0] for x in out).items())),
+ 'header_canonical_sha256':sha(canon({k:v for k,v in word.items() if k!='program'})),
+ 'source_anchor_to_candidate_clock':source_map,'inserted_candidate_clocks':inserted,
+ 'edits_sha256':sha((HERE/'EDITS.json').read_bytes()),
+ 'preloan_manifest_sha256':sha((HERE/'PRELOAN.json').read_bytes()),
+ 'limitations':['JSON reconstruction only; no replay, mathematical computation, pricing, physical or signed/native validation.', 'PRELOAN is an untested manifest, not a constructed mutant.'],
+}
+write_json(HERE/'BUILD.json', receipt)
+print(json.dumps({'status':receipt['status'],'candidate_gzip_sha256':receipt['candidate_gzip_sha256'],'candidate_canonical_sha256':receipt['candidate_canonical_sha256'],'events':len(out)}))

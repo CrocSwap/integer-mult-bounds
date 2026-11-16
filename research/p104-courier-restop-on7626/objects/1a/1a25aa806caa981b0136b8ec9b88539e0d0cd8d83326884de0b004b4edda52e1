@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Full successor resource conjunction. Prepared only; parent owns custody and execution."""
+import argparse, gzip, hashlib, json, sys
+from fractions import Fraction as F
+from pathlib import Path
+SOURCE='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'
+CANDIDATE='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'
+CALLER='255d89f38cd45e38e5770f559bc43dc217e989032359768cdc7e8cdfd64b47bc'
+SOURCE_GZ='501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+CANDIDATE_GZ='3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'
+U_HASH='c71edf637bfe5f946b9e13652c2e66c657e13083916f77e103d54650e8972a93'
+FIRST='5071b903ae31b30cdfa4184ce9d0389b861e93e45de265a8ffade357573cf25b'
+SCREEN='22004bf74ae00934608f6e83f65daa9829159996a3a18823c7971c13b148ab87'
+CLAIM=F(916432819,250000000000)
+PROBE=F(3665731276007,10**15)
+UPPER=F(25188234281719,6871947673600000)
+def need(x,s):
+    if not x: raise ValueError(s)
+def read(p): return json.loads(Path(p).read_bytes())
+def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def canonical_hash(x): return hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+def gate(g,label):
+    need(g['outer']['strict_count']==54 and g['outer']['functional_count']==4,label+' outer count')
+    need(F(g['claim'])>0 and F(g['raw_bracket'][0])<F(g['raw_bracket'][1]),label+' bracket')
+def signed_resources(checks,word,canonical,label):
+    p=checks['ODD-PRECISION.json'];t=checks['ODD-FIXED-TAPE-COUNTS.json'];a=checks['ODD-ADMISSION-PARTIAL.json'];g=checks['ODD-CALLER-EXACT-GRID.json']
+    need(p['native_sha256']==t['native_sha256']==a['native_sha256']==canonical,label+' native binding')
+    need(p['caller_sha256']==t['caller_sha256']==a['caller_sha256']==g['caller_sha256']==CALLER,label+' caller binding')
+    need(t['native_invocations']==17 and t['owned_banks_per_raw_occurrence']==1156,label+' invocation/stock')
+    need(p['context_c']==t['context_c'] and 0<p['context_c']<=4096,label+' precision context')
+    need(t['actual_ambient']<=t['compiler_ambient_cap']==153 and t['context_bound_bits']<t['H'] and t['Kstar_bits']<t['H'],label+' compiler/tape size')
+    need(all(int(x['strict_power_of_two'])<t['H'] for x in p['rounded_caller']['bounds'].values()),label+' rounded caller bound')
+    native_scalars=sum(e[0]!='MOVE' for e in word['program'])
+    need(t['scalar_macro_inputs']['native']==17*native_scalars,label+' actual scalar occurrences')
+    need(t['scalar_services_upper']==32*sum(t['scalar_macro_inputs'].values()),label+' charged scalar services')
+    need(t['scalar_steps_coefficient']==t['scalar_services_upper']*2**20,label+' normalized scalar coefficient')
+    need(t['elementary_records_per_map_upper']==4*(t['actual_ambient']+1)**2 and t['elementary_records_upper']==t['monomial_map_slots']*t['elementary_records_per_map_upper'],label+' finite map records')
+    ordinary=a['ordinary'];need(ordinary['route_items']['owned_lifetime']==4*204 and ordinary['routing']==1000*sum(ordinary['route_items'].values()),label+' charged lifetime routing')
+    need(ordinary['raw_upper']==17*(ordinary['scalar_upper']+ordinary['routing'])+ordinary['caller_total'],label+' 17-call ordinary multiplication')
+    need(ordinary['conservative_total']==ordinary['raw_upper']+ordinary['per_input_conversion']+ordinary['lambda_second_charge']+ordinary['all_caller_scalar_surcharge']+ordinary['charged_caller_odd_conversions'],label+' complete ordinary charge')
+    need(ordinary['conservative_total']<10**9 and a['crossing_probe_rejected'],label+' ordinary/probe')
+    gate(a['compiler_outer'],label)
+    need(F(t['tested_claim'])==F(a['compiler_outer']['claim']) and F(t['H'])==F(a['compiler_outer']['H']),label+' tape/gate claim and H')
+    return {'ordinary':ordinary['conservative_total'],'ordinary_margin':10**9-ordinary['conservative_total'],'lifetime_routing_charge_per_native_call':ordinary['route_items']['owned_lifetime']*1000,'lifetime_routing_charge_in_ordinary':17*ordinary['route_items']['owned_lifetime']*1000,'native_lifetime_pairs_per_raw_occurrence':17*204,'INIT_CLEAR_scalar_services_charged':17*408*32,'precision_context':p['context_c'],'ambient':t['actual_ambient'],'scalar_services':t['scalar_services_upper'],'scalar_steps_coefficient':t['scalar_steps_coefficient'],'map_slots':t['monomial_map_slots'],'elementary_records':t['elementary_records_upper'],'context_bound_bits':t['context_bound_bits'],'H':t['H']}
+
+def main():
+    need(not sys.flags.optimize,'resource qualification requires assertions enabled')
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--root',type=Path,required=True,help='swarm round root')
+    ap.add_argument('--work',type=Path,required=True,help='isolated application work')
+    ap.add_argument('--out',type=Path,required=True,help='new output directory')
+    ap.add_argument('--common-u',type=Path,required=True)
+    ap.add_argument('--certificates',type=Path,required=True)
+    a=ap.parse_args(); root=a.root; w=a.work
+    # Parent's controller must independently freeze the complete transitive closure.
+    ledger_path=w/'SWARM30-ADAPTERS.json'; launcher=w/'SWARM30-LAUNCHER.py'
+    ledger=read(ledger_path); identity=read(w/'QUALIFICATION-ID.json'); u=read(a.common_u)
+    need(sha(a.common_u)==U_HASH and u['status']=='EXPLICIT_UNIMPLEMENTED_SUPPLIER_PREMISE','common U pin/status')
+    t=u['finite_same_tariff_assumptions']
+    need(t['ordinary_source_units_per_lifetime_pair']==4000 and t['scalar_services_per_INIT_or_CLEAR']==32 and t['scalar_elementary_coefficient_per_service']==2**20 and t['precision_context_cap']==4096 and t['fixed_banks_signed']==1156,'complete common U tariff')
+    need(ledger['common_U_sha256']==sha(a.common_u) and ledger['launcher_sha256']==sha(launcher),'ledger U/launcher binding')
+    need(identity['run_id'] and identity['candidate_canonical_sha256']==CANDIDATE and identity['source_canonical_sha256']==SOURCE,'run identity')
+    need(ledger['candidate_canonical_sha256']==CANDIDATE and ledger['source_canonical_sha256']==SOURCE,'ledger identities')
+    if 'run_id' in ledger: need(ledger['run_id']==identity['run_id'],'ledger run ID')
+    for section in ('adapter_source_hashes','frozen_hashes'):
+        need(section in ledger and ledger[section], 'missing ledger inventory '+section)
+        # Inventory entries are work-relative; launcher must bind the resource script itself.
+        for name,h in ledger[section].items():
+            path=w/name; need(not path.is_symlink() and path.resolve().is_relative_to(w.resolve()) and path.is_file() and sha(path)==h,'inventory '+name)
+    need(ledger['resource_script_sha256']==sha(Path(__file__)),'resource script freeze')
+    fg=root/'firstgate-run/case/RESULT.json'; screen=root/'firstgate-run/case/PRICE.json'
+    need(sha(fg)==FIRST and sha(screen)==SCREEN,'first gate pin')
+    f=read(fg); p=read(screen); v=p['variants']['joint']; b=v['provisional_bracket']
+    need(f['status']=='PASS_EXACT_AND_PROVISIONAL_PRICE_NOT_QUALIFIED' and f['qualified_kappa'] is False and f['joint_candidate_canonical_sha256']==CANDIDATE and f['price_sha256']==sha(screen),'first gate status/binding')
+    need(F(f['provisional_claim'])==F(b['claim'])==CLAIM and F(f['provisional_tested'])==F(b['tested'])==PROBE and F(p['comparator_full_upper'])==UPPER and UPPER<CLAIM<PROBE<F(b['lower']),'first gate price inputs')
+    need(b['status']=='PROVISIONAL_ABOVE_FULL_UPPER' and b['integer_lower']=='new_cost_lower' and b['integer_test']=='new_cost_lower' and b['integer_upper']=='new_cost_higher' and v['interval_classification']=='positive' and v['integer_power_classification']=='new_cost_lower','first gate directed controls')
+    srcfile=w/'frozen-composition/7626-WORD.json.gz'; candfile=w/'producer54/reroute/WORD.json.gz'
+    need(sha(srcfile)==SOURCE_GZ and sha(candfile)==CANDIDATE_GZ,'word gzip pins')
+    source=json.loads(gzip.decompress(srcfile.read_bytes())); candidate=json.loads(gzip.decompress(candfile.read_bytes()))
+    need(canonical_hash(source)==SOURCE and canonical_hash(candidate)==CANDIDATE,'word canonical pins')
+    for word in (source,candidate):
+        need(word['owned_fields']==68 and sum(e[0]=='INIT' for e in word['program'])==sum(e[0]=='CLEAR' for e in word['program'])==204,'actual 204 lifetimes')
+    cert=read(a.certificates/'result.json'); need(cert['status']=='PASS_FRESH_PUBLIC_CERTIFICATES_204' and cert['source_sha256']==SOURCE_GZ and cert['candidate_sha256']==CANDIDATE_GZ and cert['firstgate_sha256']==f['exact_result_sha256'],'fresh certificate identities')
+    need(cert['source_counts']==cert['candidate_counts']=={'clears':204,'owned':455,'interfaces':700,'copies':1},'certificate census')
+    need(set(cert['actual_source_rejections'])==set(cert['actual_candidate_rejections'])=={'coefficient','erased','clock'} and cert['controls']['rejected'],'certificate controls')
+    for name in ('source-certificates.json','candidate-certificates.json'):
+        records=read(a.certificates/name); need(type(records) is list and len(records)==204 and all(x.get('verified_exact') is True and x.get('clear_index')==i for i,x in enumerate(records)),'certificate records '+name)
+    cr=read(w/'certificates.receipt.json')
+    need(cr['stage']=='certificates' and type(cr['exit']) is int and cr['exit']==0 and cr['run_id']==identity['run_id'] and cr['candidate_canonical_sha256']==CANDIDATE and cr['adapter_sha256']==sha(ledger_path) and cr['launcher_sha256']==sha(launcher),'certificate receipt binding')
+    for key,name in (('result_sha256','result.json'),('source_certificates_sha256','source-certificates.json'),('candidate_certificates_sha256','candidate-certificates.json')):
+        need(cr[key]==sha(a.certificates/name),'certificate receipt file '+name)
+    npath=w/'producer54/validation_native/NATIVE-RESULT.json'; spath=w/'producer54/validation_signed/RESULT.json'; n=read(npath); s=read(spath)
+    need(n['status']=='PASS_SWARM30_COMPLETE_NATIVE' and s['status']=='PASS_SWARM30_COMPLETE_SIGNED_APPLICATION','native/signed statuses')
+    for stage,path in (('native',npath),('signed',spath)):
+        r=read(w/(stage+'.receipt.json'))
+        need(r['stage']==stage and type(r['exit']) is int and r['exit']==0 and r['run_id']==identity['run_id'] and r['candidate_canonical_sha256']==CANDIDATE,'fresh receipt '+stage)
+        need(r[stage+'_result_sha256']==sha(path) and r['adapter_sha256']==sha(ledger_path) and r['launcher_sha256']==sha(launcher),'fresh receipt hashes '+stage)
+    need(n['word_canonical_sha256']==CANDIDATE and n['native']['lifetimes']==n['baseline7626_native']['lifetimes']==204 and n['native']['owned_peak']==n['baseline7626_native']['owned_peak']==50 and not n['native']['bad_inputs'] and not n['baseline7626_native']['bad_inputs'],'paired native allocation')
+    ingredient=n['paired_ordinary']; paired=n['paired_precision']; need(ingredient['candidate']==n['ordinary'] and paired['candidate']==n['precision'],'candidate ingredient binding')
+    for label,obj in (('source',ingredient['source_7626']),('candidate',ingredient['candidate'])):
+        need(obj['conservative_total']<10**9 and obj['route_items']['owned_lifetime']==816,'ingredient lifetime tariff '+label)
+        need(obj['routing']==1000*sum(obj['route_items'].values()) and obj['raw_upper']==18*(obj['scalar_upper']+obj['routing'])+obj['caller_total'],'18-call ingredient routing '+label)
+        need(obj['conservative_total']==obj['raw_upper']+obj['per_input_conversion']+obj['lambda_second_charge']+obj['extra_B_scalar_surcharge'],'18-call complete ordinary '+label)
+    gate(n['gate'],'candidate ingredient'); gate(paired['baseline7626_gate'],'source ingredient')
+    sr=s['source_resource']; need(sr['status']=='DERIVED_FRESH_SOURCE_RESOURCE_ONLY' and sr['native_word_sha256']==SOURCE and sr['candidate_native_receipt_sha256']==sha(npath) and sr['source_catalogue_rerun'] is False,'derived source scope')
+    need(read(w/'producer54/validation_signed/SOURCE-RESOURCE.json')==sr and sr['source_word_gzip_sha256']==sha(srcfile) and sr['caller_sha256']==CALLER,'source resource file and pins')
+    d=sr['derived_result']; need(d['native']==n['baseline7626_native'] and d['invoice']==n['baseline7626_invoice'] and d['precision']==paired['source_7626'] and d['ordinary']==ingredient['source_7626'] and d['gate']==paired['baseline7626_gate'] and d['price']==paired['baseline7626_price'],'derived source paired binding')
+    names={'ODD-TYPE-B-REPLAY.json','ODD-TYPE-AB-REPLAY.json','ODD-CALLER-EXACT-GRID.json','ODD-PHYSICAL-BINDING.json','ODD-PRECISION.json','ODD-ADMISSION-PARTIAL.json','ODD-FIXED-TAPE-COUNTS.json'}
+    need(set(sr['checks'])==set(sr['check_sha256'])==names and len(sr['logs'])==len({x['check'] for x in sr['logs']})==7,'source seven inventory')
+    for row in sr['logs']: need(sha(w/'producer54/validation_signed'/('SOURCE-'+row['check']+'.log'))==row['sha256'],'source log hash')
+    for name in names:
+        path=w/'producer54/validation_signed/source-checks'/name
+        need(not path.is_symlink() and path.is_file() and sha(path)==sr['check_sha256'][name] and read(path)==sr['checks'][name],'source check bytes '+name)
+    for label,checks,np in (('source',sr['checks'],paired['source_7626']),('candidate',s['checks'],n['precision'])):
+        pr=checks['ODD-PRECISION.json']; need(pr['native_grid']==np['word'] and pr['rounded_native']==np['rounded_native'],'paired native precision '+label)
+    ss=signed_resources(sr['checks'],source,SOURCE,'source signed'); cs=signed_resources(s['checks'],candidate,CANDIDATE,'candidate signed')
+    for key in ('context_height','context_mass_bits','context_c'):
+        need(sr['checks']['ODD-PRECISION.json'][key]==s['checks']['ODD-PRECISION.json'][key],'common precision '+key)
+    need(paired['source_7626']['context_c']==n['precision']['context_c']<=4096,'ingredient common context')
+    # Deliberate predecessor contract change: joint adds 2 ADDs per native call.
+    # 17 calls * 2 events * 32 services = 1088; inequality <= source is invalid.
+    need(cs['scalar_services']==ss['scalar_services']+1088,'exact charged scalar service increase')
+    matched=s['matched_ordinary']; need(read(w/'producer54/validation_signed/MATCHED-ORDINARY.json')==matched and matched['source_total']==ss['ordinary'] and matched['candidate_total']==cs['ordinary'],'matched ordinary')
+    price=s['price']; gate(price['public_claim_gate'],'candidate public gate'); gate(sr['source_17_gate'],'source 17-call gate')
+    need(sr['source_17_gate']==sr['checks']['ODD-ADMISSION-PARTIAL.json']['compiler_outer'] and sr['source_18_gate']==paired['baseline7626_gate'],'source gate contexts')
+    actual=price['after']; base=price['baseline_7626']; expected=v['invoice']; baseline=read(w/'frozen-composition/7626-INVOICE.json')
+    norm=lambda x:{str(k):v for k,v in x.items()}
+    need(sha(w/'frozen-composition/7626-INVOICE.json')=='e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2' and p['invoice_sha256']==sha(w/'frozen-composition/7626-INVOICE.json'),'baseline invoice pin')
+    need(s['checks']['ODD-ADMISSION-PARTIAL.json']['invoice']==actual and s['checks']['ODD-ADMISSION-PARTIAL.json']['compiler_outer']==price['gate'],'fresh candidate partial price binding')
+    need(norm(actual['P'])==expected['paid'] and norm(actual['T'])==expected['targets'] and norm(base['P'])==baseline['paid'] and norm(base['T'])==baseline['targets'],'actual full signed invoices')
+    need(actual['T']==base['T'] and actual['S']==base['S']==1424 and actual['P']!=base['P'] and sum(actual['T'].values())==22461,'changed paid, unchanged targets')
+    need(price['baseline_7626_rejects_claim'] is True and price['baseline_7626_rejects_raw_upper'] is True and F(price['first_gate_claim'])==CLAIM and F(price['first_gate_probe'])==PROBE and F(price['first_gate_old_upper'])==UPPER,'fresh signed directed prices')
+    need(F(price['public_claim_gate']['claim'])==CLAIM and PROBE<F(price['gate']['raw_bracket'][0]) and UPPER<CLAIM,'fresh directed bracket')
+    size=s['catalogue_size']; rows=s['catalogue']; generator=w/'producer54/validation_signed/adapted/short_native_catalogue.py'
+    need(type(size) is int and size>0 and type(rows) is list and rows and sha(generator)==s['catalogue_generator_sha256']==ledger['catalogue_generator_sha256'],'protected generator/census'); cursor=0
+    for row in rows:
+        need(all(type(row[k]) is int for k in ('catalogue_size','slice_start','slice_stop','checked_maps','main_boundary_pairs')) and row['catalogue_size']==size and row['slice_start']==cursor and row['slice_stop']>cursor and row['checked_maps']==row['slice_stop']-cursor and row['checked_maps']<=1000 and row['word_sha256']==CANDIDATE_GZ and row['phase_control_rejected'] is True,'catalogue slice')
+        cursor=row['slice_stop']
+    need(cursor==size and sum(x['checked_maps'] for x in rows)==size and sum(x['main_boundary_pairs'] for x in rows)==104,'catalogue closure')
+    checks=s['checks']['ODD-8X9-APPLICATION-CHECKS.json']; need(checks['native_canonical_sha256']==CANDIDATE,'assembled application binding')
+    report={'status':'PASS_CONDITIONAL_COMMON_U_APPLICATION','claim':str(CLAIM),'old_full_upper':str(UPPER),'source_signed':ss,'candidate_signed':cs,'ingredient_ordinary':{k:ingredient[k]['conservative_total'] for k in ('source_7624','source_7626','candidate')},'scalar_service_increase':1088,'common_h_lower_bound':str(max(F(ss['H']),F(cs['H']),F(paired['baseline7626_gate']['H']),F(n['gate']['H']))),'source_17_resource_scope':'Fresh seven source checks derived from paired candidate-bound native calculations; source catalogue not rerun.','source_premise_discharged':False,'selected_frontier_changed':False,'limitations':u['limitations'],'run_id':identity['run_id'],'native_result_sha256':sha(npath),'signed_result_sha256':sha(spath),'common_U_sha256':sha(a.common_u)}
+    a.out.mkdir(); (a.out/'RESOURCE-COMPARISON.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n'); print(json.dumps({'status':report['status'],'claim':report['claim']}),flush=True)
+if __name__=='__main__': main()

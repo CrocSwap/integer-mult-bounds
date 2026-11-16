@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Proposed one-window signed/resources completion; no science on import.
+
+The previous native/certificate evidence is reused exactly, not reissued.
+Controller owns cgroup, timing, termination, audit and outer freeze verification.
+"""
+import argparse, hashlib, json, os, subprocess, sys, time
+from pathlib import Path
+
+HERE=Path(__file__).resolve().parent
+RUN_ID='034355d151a14453831f2fdb46fb5c02'
+CAND='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'
+NATIVE='e6aa4d573d7db4b43263449420d8c160f83ba3f25ced5e0c767e8ce6f80d94f4'
+LAUNCHER='39bf058c74c73b42ba114c355ebfd0f69d226fa36ab89ece662b9f642d64c5ee'
+LEDGER='ea3c19f9572d885f3885f3f739edc29820d3669cd4d04030c035c04a12d11945'
+OLD_FREEZE='cd123ca067099d282cc78d73fe8d10d8afbe3bb10c29235db82ef4c3affc0b44'
+PINS={'native.receipt.json':'5f9bbc8166c6d1884ff45f6ec9e1bf5254961e898cd7ecb46d7a493099f3fa23',
+      'certificates.receipt.json':'46db5e0744a6fe581e3f5b1b0d57cf4e6e0bd4177cc6fbfd02a35b17ab6ca7ef',
+      'SWARM30-ADAPTERS.json':LEDGER,'PREPARED.json':'6b39d756b89f9f4904bbbbf3796a4ed32a3212afe089412f2efddf043b5c55f2',
+      'QUALIFICATION-ID.json':'2512a590f351e081e87aa332c603cbd7278f65a4da131e6198ef41f285ad7c04',
+      'producer54/validation_native/NATIVE-RESULT.json':NATIVE}
+CERTS={'result.json':'6fc33449df9c83f25842f66f6e865c1c3581b01f3f92dfb12dbeea1e84162848',
+       'source-certificates.json':'9d0ca23067ea26d0498acc50b6ffad56a647baf8d83b5d878985829c9aa75bf6',
+       'candidate-certificates.json':'6df3d99cf8074412dab9035c593f657a8b449c80a49b7b4a5fbb99ce3d8a956a'}
+PARTIAL='9862b16fcc1beb5416c8f313402f80ecbddc45ea7e04f5682fe85741042b6fe8'
+
+def need(x,msg):
+    if not x:raise ValueError(msg)
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def read(p):return json.loads(Path(p).read_bytes())
+def write(p,v):
+    with Path(p).open('x') as f:json.dump(v,f,sort_keys=True,indent=2);f.write('\n')
+def safe_relative(rel):
+    p=Path(rel);need(not p.is_absolute() and '..' not in p.parts and str(p)==rel,'unsafe relative path');return p
+
+def check_file(p,digest):
+    p=Path(p);need(p.is_file() and not p.is_symlink() and sha(p)==digest,'changed input '+str(p));return p
+
+def freeze_check(freeze):
+    rows=read(freeze)['files'];need(type(rows) is list and rows,'empty freeze')
+    mapped={}
+    for row in rows:
+        p=check_file(row['path'],row['sha256']);need(type(row['bytes']) is int and p.stat().st_size==row['bytes'],'frozen length')
+        key=str(p.resolve());need(key not in mapped,'duplicate frozen path');mapped[key]=row
+    return mapped
+
+def in_freeze(p,h,rows):
+    key=str(Path(p).resolve());need(key in rows and rows[key]['sha256']==h,'missing frozen source '+key)
+
+def predecessor(root,freeze):
+    old=root/'fullqualification-run/case';work=old/'work';certs=old/'certificates'; oldfreeze=root/'fullqualification/controller/FREEZE.json'
+    check_file(oldfreeze,OLD_FREEZE);in_freeze(oldfreeze,OLD_FREEZE,freeze)
+    oldrows=read(oldfreeze)['files'];need(len(oldrows)==450,'fixed prior freeze denominator')
+    for row in oldrows:in_freeze(row['path'],row['sha256'],freeze)
+    check_file(old/'PARTIAL.json',PARTIAL);in_freeze(old/'PARTIAL.json',PARTIAL,freeze)
+    partial=read(old/'PARTIAL.json');need(partial['status']=='INCOMPLETE' and partial['qualified_kappa'] is False,'predecessor status')
+    need([(x['name'],x['exit_code']) for x in partial['stages']]==[('prepare',0),('certificates',0),('native',0)],'predecessor stage history')
+    need(not (old/'RESULT.json').exists() and not (old.parent/'RESOURCE.json').exists(),'predecessor completion status changed')
+    for rel,h in PINS.items():check_file(work/rel,h);in_freeze(work/rel,h,freeze)
+    for rel,h in CERTS.items():check_file(certs/rel,h);in_freeze(certs/rel,h,freeze)
+    ledger=read(work/'SWARM30-ADAPTERS.json');identity=read(work/'QUALIFICATION-ID.json');prep=read(work/'PREPARED.json')
+    need(identity['run_id']==ledger['run_id']==prep['run_id']==RUN_ID and identity['candidate_canonical_sha256']==ledger['candidate_canonical_sha256']==CAND,'logical qualification identity')
+    need(prep['ledger_sha256']==LEDGER and ledger['launcher_sha256']==LAUNCHER,'original ledger and launcher')
+    need(len(ledger['frozen_hashes'])==77 and len(ledger['adapter_source_hashes'])==11,'fixed predecessor input inventory')
+    required={}
+    for section in ('frozen_hashes','adapter_source_hashes'):
+        for rel,h in ledger[section].items():
+            safe_relative(rel);need(rel not in required or required[rel]==h,'conflicting input hashes');required[rel]=h
+            check_file(work/rel,h);in_freeze(work/rel,h,freeze)
+    for rel,h in PINS.items():need(rel not in required or required[rel]==h,'receipt conflicts');required[rel]=h
+    native=read(work/'native.receipt.json');cr=read(work/'certificates.receipt.json')
+    for r,stage in ((native,'native'),(cr,'certificates')):
+        need(r['stage']==stage and type(r['exit']) is int and r['exit']==0 and r['run_id']==RUN_ID and r['candidate_canonical_sha256']==CAND and r['adapter_sha256']==LEDGER and r['launcher_sha256']==LAUNCHER,'predecessor '+stage+' receipt')
+    need(native['native_result_sha256']==NATIVE and all(cr[k]==CERTS[n] for k,n in (('result_sha256','result.json'),('source_certificates_sha256','source-certificates.json'),('candidate_certificates_sha256','candidate-certificates.json'))),'predecessor result bindings')
+    expected=(work/'frozen-composition/SWARM30-EXPECTED-PAIRS.json').resolve();descriptor=read(work/'SWARM30-NATIVE-INPUTS.json')
+    need(Path(descriptor['pair_expected_path']).resolve()==expected and descriptor['pair_expected_sha256']==sha(expected),'pinned historical pair path')
+    return old,work,certs,required
+
+def copy_pinned(source,dest,expected):
+    source=check_file(source,expected);dest.parent.mkdir(parents=True,exist_ok=True)
+    need(not dest.exists() and not dest.is_symlink(),'copy output exists')
+    with source.open('rb') as inp,dest.open('xb') as out:
+        while True:
+            chunk=inp.read(1024*1024)
+            if not chunk:break
+            out.write(chunk)
+    need(sha(dest)==expected and sha(source)==expected,'copy mismatch')
+
+def finalize_result(path,result,writer=write):
+    # A failed final write must not erase an earlier stage error or appear as
+    # successful completion. The outer controller treats missing RESULT as
+    # incomplete and retains its own error/cleanup record.
+    try:writer(path,result);return True
+    except BaseException as ex:
+        result['stage_complete']=False
+        result['result_write_error']={'type':type(ex).__name__,'message':str(ex)}
+        try:print(json.dumps({'status':'RESULT_WRITE_FAILED','primary_error':result.get('error'),'result_write_error':result['result_write_error']}),file=sys.stderr,flush=True)
+        except BaseException:pass
+        return False
+
+def failure_controls():
+    def bad_writer(path,result):raise OSError('synthetic receipt failure')
+    previous={'status':'INCOMPLETE','stage_complete':False,'error':{'type':'ValueError','message':'primary stage'}}
+    need(finalize_result(None,previous,bad_writer) is False,'write failure accepted')
+    need(previous['error']['message']=='primary stage' and previous['result_write_error']['type']=='OSError' and previous['stage_complete'] is False,'primary/result write separation')
+    successful={'status':'PASS_SIGNED_AND_RESOURCES_CONDITIONAL','stage_complete':True}
+    need(finalize_result(None,successful,bad_writer) is False and successful['stage_complete'] is False,'write failure after success accepted')
+    return {'status':'PASS_RESULT_FAILURE_CONTROLS'}
+
+def main():
+    ap=argparse.ArgumentParser();ap.add_argument('--controls-only',action='store_true');ap.add_argument('--root',type=Path);ap.add_argument('--out',type=Path);ap.add_argument('--freeze',type=Path);a=ap.parse_args()
+    if a.controls_only:
+        need(not any((a.root,a.out,a.freeze)),'controls arguments');print(json.dumps(failure_controls(),sort_keys=True));return 0
+    need(all((a.root,a.out,a.freeze)),'missing stage arguments')
+    root=a.root.resolve();out=a.out.resolve();freeze=a.freeze.resolve();need(root==HERE.parent.resolve() and out.name=='case','fixed round and output')
+    need(not out.exists(),'fresh output required');out.mkdir(parents=True)
+    start=time.monotonic();deadline=start+1190;stages=[]
+    result={'status':'INCOMPLETE','qualified_kappa':False,'stage_complete':False,'stages':stages,'qualification_run_id':RUN_ID,
+      'retained_stages':['prepare','certificates','native'],'native_result_sha256':NATIVE,
+      'original_native_receipt_sha256':PINS['native.receipt.json'],'original_certificates_receipt_sha256':PINS['certificates.receipt.json'],
+      'previous_attempt':'interrupted; no final controller RESOURCE or audit receipt; cause unconfirmed',
+      'scope':'distinct service window; fresh signed and resources only; previous total cost incomplete'}
+    try:
+        need(__debug__ and sys.version_info[:2]==(3,12),'Python3.12 normal mode required')
+        rows=freeze_check(freeze);old,original,certs,required=predecessor(root,rows)
+        work=out/'work';work.mkdir();destcert=out/'certificates';destcert.mkdir()
+        for rel,h in sorted(required.items()):copy_pinned(original/safe_relative(rel),work/safe_relative(rel),h)
+        for name,h in CERTS.items():copy_pinned(certs/name,destcert/name,h)
+        # No previous signed output, isolated scratch or audit log is copied.
+        need(not (work/'signed.stdout').exists() and not (work/'signed.receipt.json').exists() and not (work/'isolated/windows-path-adaptations.jsonl').exists(),'dirty signed seed')
+        need(sha(work/'SWARM30-ADAPTERS.json')==LEDGER and sha(work/'native.receipt.json')==PINS['native.receipt.json'] and sha(work/'certificates.receipt.json')==PINS['certificates.receipt.json'],'receipt bytes changed on copy')
+        freeze_check(freeze);predecessor(root,rows)
+        original_app=root/'fullqualification/application.py';check_file(original_app,LAUNCHER)
+        original_freeze=root/'fullqualification/controller/FREEZE.json'
+        common=root/'fullqualification/COMMON-U.json'
+        commands=[('signed',900,[str(original_app),'--stage','signed','--root',str(root),'--work',str(work),'--freeze',str(original_freeze)]),
+                  ('resources',20,[str(work/'frozen-code/resources.py'),'--root',str(root),'--work',str(work),'--out',str(out/'resources'),'--common-u',str(common),'--certificates',str(destcert)])]
+        for name,cap,tail in commands:
+            left=deadline-time.monotonic();need(left>0,'inner time exhausted')
+            env={k:v for k,v in os.environ.items() if not k.upper().startswith('PYTHON')};env.update(OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1')
+            argv=[sys.executable,'-I','-B','-X','pycache_prefix='+str(out/'stage-pycache'/name),*tail]
+            tick=time.monotonic()
+            with (out/(name+'.stdout')).open('x') as so,(out/(name+'.stderr')).open('x') as se:
+                done=subprocess.run(argv,stdout=so,stderr=se,env=env,timeout=min(cap,left),check=False)
+            stages.append({'name':name,'exit_code':done.returncode,'wall_seconds':time.monotonic()-tick,'cap_seconds':cap})
+            need(done.returncode==0,'stage failed '+name);freeze_check(freeze)
+        report=read(out/'resources/RESOURCE-COMPARISON.json');need(report['status']=='PASS_CONDITIONAL_COMMON_U_APPLICATION','resource conjunction')
+        need(report['native_result_sha256']==NATIVE and report['run_id']==RUN_ID,'resource predecessor binding')
+        need(report['claim']==read(root/'firstgate-run/case/RESULT.json')['provisional_claim'],'claim mismatch')
+        result.update(status='PASS_SIGNED_AND_RESOURCES_CONDITIONAL',stage_complete=True,claim=report['claim'],
+          signed_receipt_sha256=sha(work/'signed.receipt.json'),resource_comparison_sha256=sha(out/'resources/RESOURCE-COMPARISON.json'))
+    except BaseException as ex:
+        result['error']={'type':type(ex).__name__,'message':str(ex)}
+    finally:
+        result['wall_seconds']=time.monotonic()-start;finalize_result(out/'RESULT.json',result)
+        print(json.dumps({'status':result['status'],'stage_complete':result['stage_complete'],'qualified_kappa':result['qualified_kappa'],'error':result.get('error')}),flush=True)
+    return 0 if result['stage_complete'] else 1
+if __name__=='__main__':raise SystemExit(main())

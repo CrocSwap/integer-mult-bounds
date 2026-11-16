@@ -1,0 +1,40 @@
+import resource,signal,gzip,json,hashlib,collections
+resource.setrlimit(resource.RLIMIT_CPU,(60,60)); resource.setrlimit(resource.RLIMIT_AS,(256*1024*1024,256*1024*1024)); signal.alarm(120)
+p='outputs/kappa-swarm30-20261116/inputs/source7626-word.json.gz'
+b=open(p,'rb').read(); assert hashlib.sha256(b).hexdigest()=='501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+w=json.loads(gzip.decompress(b)); P=w['program']; n=w['public']; excluded={902,1091,1445,1461,226,473,990}
+def span(f):
+ s={0}
+ for x in f: s|={a^x for a in s}
+ return s
+sp=[span(f) for f in w['frames']]; routes=collections.defaultdict(list)
+for i,e in enumerate(P):
+ if e[0]=='MOVE' and not e[4] and e[1] not in excluded: routes[e[1]].append((i,e[2],e[3]))
+triples=[]
+for r,ms in routes.items():
+ for x,y in zip(ms,ms[1:]):
+  if x[2]==y[1] and x[0]<38685: triples.append((x[0],r,x[1],x[2],y[2],y[0]))
+triples.sort(); count=collections.Counter(); out=[]
+for i,r,a,m,b,j in triples:
+ count['early_transit_triples']+=1
+ for d,ms in sorted(routes.items()):
+  if d==r: continue
+  count['transit_donor_pairs']+=1
+  # donor arrives at m from a after encoding point and before transit leaves m
+  for k,(di,da,dm) in enumerate(ms):
+   if da!=a or dm!=m or not(i<=di<=j): continue
+   count['same_origin_to_middle']+=1
+   if k+1>=len(ms): continue
+   ni,na,nb=ms[k+1]
+   if na!=m or ni<j: continue
+   count['donor_stays_through_transit_exit']+=1
+   if not(sp[m]<sp[b] and (b==nb or sp[b]<sp[nb])): continue
+   count['legal_return_nested']+=1
+   obs=[(z,e) for z,e in enumerate(P[i:j+1],i) if e[0] in ('ADD','COPY','SCALE','CLEAR') and (e[1]==r or (e[0] in ('ADD','COPY') and e[2]==r))]
+   out.append({'transit':r,'donor':d,'clocks':[i,di,j,ni], 'charts':[a,m,b,nb], 'transit_incidents':obs, 'optimistic_route_delta': {'remove':[[a,m],[m,b],[m,nb]],'add':[[a,b],[m,b],[b,nb]] if b!=nb else [[a,b],[m,b]], 'caveat':'route only; rank pricing and all shear/corrections omitted'}})
+   if len(out)>=30: break
+  if len(out)>=30: break
+ if len(out)>=30: break
+result={'source_sha256':hashlib.sha256(b).hexdigest(),'total_early_triples':len(triples),'counts_until_stop':dict(count),'stop':'30 nominations' if len(out)==30 else 'exhausted early triples','nominations':out,'limitations':'No algebra, observational equivalence, valid edit construction, arbitrary donor return, full replay or invoice. Incidents list only transit, not all donor/indirect interactions. Route delta assumes donor original next move; symbolic rank/profile and additional charges unknown.'}
+open('outputs/kappa-swarm30-20261116/agents/12-couriers-a-early/screen.json','w').write(json.dumps(result,indent=2))
+print(json.dumps({k:v for k,v in result.items() if k!='nominations'})); print('nominations',len(out)); print(json.dumps(out[:3]))

@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Source-bound data-only #7621 1445/1461 courier builder. No scientific imports."""
+import copy, gzip, hashlib, json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROUND = HERE.parent.parent
+SOURCE = ROUND / 'inputs' / 'source7626-word.json.gz'
+META = ROUND / 'inputs' / 'SOURCE.json'
+UPSTREAM = ROUND.parent / 'kappa-research-20261116b' / 'side-research' / 'source-pr7621' / 'data' / 'edits.json'
+UPSTREAM_SHA = '9ed885170928fda98709116edc8c09b2482943191e9525627427b4c5391bae3c'
+DELETE_CLOCKS = (38849,38850,40500,40501,40510,40511,41937,41938,41939,41946,41948)
+INSERT_CLOCKS = (38849,41937,41948)
+
+def sha(data): return hashlib.sha256(data).hexdigest()
+def canonical(obj): return json.dumps(obj,sort_keys=True,separators=(',',':')).encode()
+def require(condition, message):
+    if not condition: raise ValueError(message)
+def locate(program, literal):
+    found = [i for i,e in enumerate(program) if e == literal]
+    require(len(found) == 1, 'literal must occur once: %r; count=%d' % (literal,len(found)))
+    return found[0]
+def resolve(program, deletions, groups):
+    ds = []
+    for clock,event in deletions:
+        index = locate(program,event)
+        require(index not in [x['source_index'] for x in ds], 'deletion collision')
+        ds.append({'pr7621_base_index':clock,'source_index':index,'event':event})
+    ins = []
+    for clock,anchor,events in groups:
+        index = locate(program,anchor)
+        require(index not in [x['source_index'] for x in ins], 'insertion collision')
+        ins.append({'pr7621_base_index':clock,'source_index':index,'anchor':anchor,'events':events})
+    require([x['source_index'] for x in ds] == sorted(x['source_index'] for x in ds),'deletion order changed')
+    require([x['source_index'] for x in ins] == sorted(x['source_index'] for x in ins),'insertion order changed')
+    return ds,ins
+
+def main():
+    metadata=json.loads(META.read_bytes()); raw=SOURCE.read_bytes(); source=json.loads(gzip.decompress(raw))
+    require(sha(raw)==metadata['gzip_sha256'],'source gzip hash mismatch')
+    require(sha(canonical(source))==metadata['canonical_sha256'],'source canonical hash mismatch')
+    require(metadata['source_head']=='5987b208bc05d066f01f800a3d88538cb216eccd','source head mismatch')
+    program=source['program']; require(len(program)==metadata['events']==77371,'source event count')
+    upstream_raw=UPSTREAM.read_bytes(); require(sha(upstream_raw)==UPSTREAM_SHA,'upstream edit manifest mismatch')
+    upstream=json.loads(upstream_raw)
+    deletes=[(clock,event) for clock,event in upstream['delete'] if clock in DELETE_CLOCKS]
+    byclock=dict(deletes)
+    require(tuple(c for c,_ in deletes)==DELETE_CLOCKS,'upstream deletion selection mismatch')
+    groups=[(clock,byclock[clock],events) for clock,events in upstream['insert_before'] if clock in INSERT_CLOCKS]
+    require(tuple(c for c,_,_ in groups)==INSERT_CLOCKS,'upstream insertion selection mismatch')
+    ds,ins=resolve(program,deletes,groups)
+    controls={}
+    badgroups=copy.deepcopy(groups); badgroups[0]=(badgroups[0][0],['INVALID_ANCHOR'],badgroups[0][2])
+    try: resolve(program,deletes,badgroups)
+    except ValueError as exc: controls['malformed_anchor']={'rejected':True,'reason':str(exc)}
+    else: raise ValueError('malformed anchor control unexpectedly accepted')
+    try: resolve(program,deletes+[deletes[0]],groups)
+    except ValueError as exc: controls['deletion_collision']={'rejected':True,'reason':str(exc)}
+    else: raise ValueError('deletion collision control unexpectedly accepted')
+    di={e['source_index']:e for e in ds}; ii={e['source_index']:e for e in ins}
+    out=[]
+    for i,event in enumerate(program):
+        if i in ii:
+            group=ii[i]; group['candidate_indices']=list(range(len(out),len(out)+len(group['events'])))
+            out.extend(copy.deepcopy(group['events']))
+        if i in di: di[i]['candidate_insertion_point']=len(out)
+        else: out.append(copy.deepcopy(event))
+    candidate=copy.deepcopy(source); candidate['program']=out
+    require({k:v for k,v in candidate.items() if k!='program'}=={k:v for k,v in source.items() if k!='program'},'header changed')
+    require(len(out)==len(program)+2,'unexpected event delta')
+    require(len(ds)==11 and sum(len(g['events']) for g in ins)==13,'courier edit counts')
+    # The manifest is self-contained so a composer can independently resolve it on the original source.
+    edits={'schema':'swarm30-literal-edits-v1','lane':'01-courier-1445-1461-only','source_head':metadata['source_head'],
+           'source_gzip_sha256':metadata['gzip_sha256'],'source_canonical_sha256':metadata['canonical_sha256'],
+           'source_events':len(program),'clock':'zero-based source7626 native program index',
+           'upstream_pr7621_head':'0ddef5c67b90bc4e9561186a435b44a46f49a0b1','upstream_edits_sha256':UPSTREAM_SHA,
+           'delete':ds,'insert_before':ins,'candidate_events':len(out),'event_delta':2}
+    candidate_bytes=canonical(candidate)
+    compressed=gzip.compress(candidate_bytes,compresslevel=9,mtime=0)
+    # gzip.compress historically varies OS byte by interpreter; deterministic on this runtime, pinned below.
+    (HERE/'candidate-word.json.gz').write_bytes(compressed)
+    (HERE/'EDITS.json').write_text(json.dumps(edits,sort_keys=True,indent=2)+'\n')
+    build={'status':'BUILT_NOT_REPLAYED','source':metadata,'candidate_canonical_sha256':sha(candidate_bytes),
+           'candidate_gzip_sha256':sha(compressed),'edits_sha256':sha((HERE/'EDITS.json').read_bytes()),
+           'source_events':len(program),'candidate_events':len(out),'deleted_events':len(ds),'inserted_events':sum(len(g['events']) for g in ins),
+           'header_identical':True,'controls':controls,'validation_scope':'structural binding and edit controls only; no replay, economics or qualification'}
+    (HERE/'BUILD.json').write_text(json.dumps(build,sort_keys=True,indent=2)+'\n')
+    print(json.dumps({'status':build['status'],'candidate_canonical_sha256':build['candidate_canonical_sha256'],
+                      'source_indices_deleted':[x['source_index'] for x in ds],
+                      'source_indices_inserted_before':[x['source_index'] for x in ins], 'controls':controls},indent=2))
+if __name__=='__main__': main()

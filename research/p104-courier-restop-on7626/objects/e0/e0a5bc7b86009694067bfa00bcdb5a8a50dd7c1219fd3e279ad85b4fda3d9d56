@@ -1,0 +1,140 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Counted source-bound signed overlay preparation; never executes science.
+
+The original signed runner and helper are inherited from #7626 and retain their
+source notices. This program only verifies frozen bytes and writes an overlay.
+Its output is not a qualification; the controlling launcher must independently
+validate physical/catalogue/resource results, all receipts, U, and process cleanup.
+"""
+from pathlib import Path
+import argparse
+import hashlib
+import json
+
+SOURCE_RUNNER_SHA = '5c48e9ef2c8d7f95bbeab8a25955fb9b2d62b02fe3e5d4fa159ad99effb7711e'
+HELPER_SHA = '85b8e86c1e5e4a2dbc2feb98d41b95bdd3c38a35842ff4bd97a0402d6e4f7119'
+BASE = 'df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'
+BASE_GZ = '501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+CAND = 'b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'
+CAND_GZ = '3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'
+INVOICE = 'e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2'
+
+def sha(data): return hashlib.sha256(data).hexdigest()
+def need(test, msg):
+    if not test: raise ValueError(msg)
+def main():
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--runner',type=Path,required=True,help='authenticated prepared #7626 signed runner')
+    ap.add_argument('--helper',type=Path,required=True,help='authenticated 204-lifetime signed helper')
+    ap.add_argument('--out',type=Path,required=True,help='new isolated work runner path')
+    ap.add_argument('--ledger',type=Path,required=True,help='new adapter ledger path')
+    args=ap.parse_args(); raw=args.runner.read_bytes()
+    need(sha(raw)==SOURCE_RUNNER_SHA and sha(args.helper.read_bytes())==HELPER_SHA,'source byte pins')
+    need(not args.out.exists() and not args.ledger.exists(),'output already exists')
+    text=raw.decode('utf-8'); edits=[]
+    def patch(label,old,new):
+        nonlocal text
+        n=text.count(old); need(n==1, f'{label}: expected exactly one anchor, got {n}')
+        text=text.replace(old,new,1); edits.append({'label':label,'old':old,'new':new,'count':n})
+    def region(label,start,end,new):
+        nonlocal text
+        need(text.count(start)==1 and text.count(end)==1,label+' boundary counts')
+        i=text.index(start);j=text.index(end,i); old=text[i:j]
+        text=text[:i]+new+text[j:];edits.append({'label':label,'old':old,'new':new,'count':1})
+    patch('candidate identity',"assert sha256(canonical(new_word)).hexdigest()=='"+BASE+"'", "assert sha256(canonical(new_word)).hexdigest()=='"+CAND+"'")
+    patch('native marker',"PASS_CONTACT7624_COMPLETE_NATIVE",'PASS_SWARM30_COMPLETE_NATIVE')
+    patch('adapter receipt',"ROOT/'CONTACT7624-ADAPTERS.json'", "ROOT/'SWARM30-ADAPTERS.json'")
+    patch('launcher receipt',"ROOT/'CONTACT7624-LAUNCHER.py'", "ROOT/'SWARM30-LAUNCHER.py'")
+    patch('candidate count',"  assert sum(after['P'].values())==110043 and sum(after['T'].values())==22461", "  assert sum(after['T'].values())==22461 and after['S']==1424")
+    region('current complete invoice and first-gate binding',
+      '  # Reconstruct the current #7624 baseline with this actual native inventory\n',
+      "  G=load('producer_signed_price_engine',bundle/'gate.py')\n",'''  # Fresh #7626 baseline; preserve #7624 fields in the native result separately.
+  baseline_word=read(FROZEN/'7626-WORD.json.gz')
+  assert sha256(canonical(baseline_word)).hexdigest()==\''''+BASE+'''\'
+  assert sha256((FROZEN/'7626-WORD.json.gz').read_bytes()).hexdigest()==\''''+BASE_GZ+'''\'
+  baseline_native=ind.native(baseline_word);assert not baseline_native['bad_inputs']
+  baseline_invoice=ind.invoices(baseline_word,C,baseline_native)
+  source_invoice_path=FROZEN/'7626-INVOICE.json'
+  assert sha256(source_invoice_path.read_bytes()).hexdigest()==\''''+INVOICE+'''\'
+  source_invoice=read(source_invoice_path)
+  assert normal(baseline_invoice['P'])==source_invoice['paid'] and normal(baseline_invoice['T'])==source_invoice['targets']
+  assert baseline_invoice['S']==1424 and not baseline_invoice['empty_root_credits']
+  assert sum(baseline_invoice['P'].values())==110043 and sum(baseline_invoice['T'].values())==22461
+  actual_delta={r:after['P'].get(r,0)-baseline_invoice['P'].get(r,0) for r in set(after['P'])|set(baseline_invoice['P']) if after['P'].get(r,0)!=baseline_invoice['P'].get(r,0)}
+  assert actual_delta and after['T']==baseline_invoice['T'], 'Changed complete paid profile and target contract'
+  # Frozen parent first-gate file binds the actual exact result and independently
+  # generated provisional screen. These are not full admission receipts.
+  cfg=read(ROOT/'SWARM30-SIGNED-INPUTS.json')
+  assert cfg['schema']=='swarm30-signed-inputs/v1'
+  assert cfg['source_canonical_sha256']==\''''+BASE+'''\' and cfg['candidate_canonical_sha256']==\''''+CAND+'''\'
+  assert cfg['candidate_gzip_sha256']==\''''+CAND_GZ+'''\' and cfg['source_invoice_sha256']==\''''+INVOICE+'''\'
+  exact_path=Path(cfg['exact_path']); screen_path=Path(cfg['screen_path'])
+  assert sha256(exact_path.read_bytes()).hexdigest()==cfg['exact_sha256']
+  assert sha256(screen_path.read_bytes()).hexdigest()==cfg['screen_sha256']
+  exact=read(exact_path); screen=read(screen_path)
+  assert exact['status']=='PASS_LITERAL_EXACT_ONLY'
+  cases=[x for x in exact['cases'] if x['name']==cfg['case_name']]
+  assert len(cases)==1 and cases[0]['status']=='PASS' and cases[0]['canonical_sha256']==\''''+CAND+'''\' and cases[0]['gzip_sha256']==\''''+CAND_GZ+'''\'
+  assert cases[0]['manifest_sha256']==cfg['manifest_sha256']
+  assert {x['name'] for x in exact['controls']}=={'boolean_clock','duplicate_clock','wrong_literal','deleted_clear','preloan','sign','missing_decode','ownership'} and all(x['rejected'] is True for x in exact['controls'])
+  controls=exact['source_free_controls'];assert controls['status']=='PASS_SOURCE_FREE_CONTROLS'
+  assert set(controls['positive'])=={'dirty_entry','init_reset','copy_prewrite_and_assignment','clear_pre_reset','nonidentity_public_final'}
+  required={'dirty_copy','both_empty','missing_reference','empty_event_inventory','identity_public_final'} | {prefix+kind for prefix in ('missing_','duplicate_','missing_reference_') for kind in ('clear','owned','interface','copy')}
+  assert set(controls['rejected'])==required
+  assert screen['status']=='PROVISIONAL_DECLARED_INVOICE_ONLY' and screen['source']['canonical_sha256']==\''''+BASE+'''\' and screen['invoice_sha256']==\''''+INVOICE+'''\'
+  variant=screen['variants'][cfg['case_name']]
+  assert variant['word']['canonical_sha256']==\''''+CAND+'''\' and variant['word']['gzip_sha256']==\''''+CAND_GZ+'''\'
+  assert variant['interval_classification']=='positive' and variant['integer_power_classification']=='new_cost_lower'
+  candidate_invoice=variant['invoice']
+  assert normal(after['P'])==candidate_invoice['paid'] and normal(after['T'])==candidate_invoice['targets'], 'Fresh whole signed invoice differs from screen'
+  firstgate_path=Path(cfg['firstgate_path']);assert sha256(firstgate_path.read_bytes()).hexdigest()==cfg['firstgate_sha256']
+  firstgate=read(firstgate_path);bracket=variant['provisional_bracket']
+  assert firstgate['status']=='PASS_EXACT_AND_PROVISIONAL_PRICE_NOT_QUALIFIED' and firstgate['qualified_kappa'] is False
+  assert firstgate['exact_result_sha256']==cfg['exact_sha256'] and firstgate['price_sha256']==cfg['screen_sha256']
+  assert firstgate['joint_candidate_canonical_sha256']==cfg['candidate_canonical_sha256']
+  assert bracket['status']=='PROVISIONAL_ABOVE_FULL_UPPER' and bracket['integer_lower']=='new_cost_lower' and bracket['integer_test']=='new_cost_lower' and bracket['integer_upper']=='new_cost_higher'
+  first_claim=Q(bracket['claim']);first_probe=Q(bracket['tested']);old_upper=Q(25188234281719,6871947673600000)
+  assert first_claim==Q(firstgate['provisional_claim'])==Q(916432819,250000000000)
+  assert first_probe==Q(firstgate['provisional_tested'])==Q(3665731276007,10**15)
+  assert Q(screen['comparator_full_upper'])==old_upper and old_upper<first_claim<first_probe<Q(bracket['lower'])
+
+''')
+    patch('baseline upper diagnostic',"Current #7624 invoice rejects its certified upper bound","Current #7626 invoice rejects its certified upper bound")
+    patch('baseline claim diagnostic',"Current #7624 rejects candidate claim","Current #7626 rejects candidate claim")
+    patch('price output source key',"baseline_7624=baseline_invoice,baseline_7624_rejects_claim=True,baseline_7624_rejects_raw_upper=True,", "baseline_7626=baseline_invoice,baseline_7626_rejects_claim=True,baseline_7626_rejects_raw_upper=True,")
+    patch('fresh baseline native binding',"normal(baseline_native)==new_result['source_native']", "normal(baseline_native)==new_result['baseline7626_native']")
+    patch('fresh baseline native invoice binding',"native=new_result['source_native'],invoice=new_result['source_invoice'],", "native=new_result['baseline7626_native'],invoice=new_result['baseline7626_invoice'],")
+    patch('fresh baseline precision and gate',"precision=paired['source_7624'],gate=paired['source_gate'],price=paired['source_price'],", "precision=paired['source_7626'],gate=paired['baseline7626_gate'],price=paired['baseline7626_price'],")
+    patch('fresh baseline ordinary',"ordinary=paired_ordinary['source_7624'],", "ordinary=paired_ordinary['source_7626'],")
+    patch('fresh baseline dyadic height',"paired['source_7624']['word']['dyadic_height']", "paired['source_7626']['word']['dyadic_height']")
+    # These occurrences refer only to the fresh derived baseline branch.
+    old="(FROZEN/'7624-WORD.json.gz').read_bytes()"; patch('baseline source gzip',old,"(FROZEN/'7626-WORD.json.gz').read_bytes()")
+    patch('baseline result source identity',"word_canonical_sha256='c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de'", "word_canonical_sha256='"+BASE+"'")
+    patch('baseline resource source identity',"native_word_sha256='c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de'", "native_word_sha256='"+BASE+"'")
+    patch('baseline 18 gate hash',"canonical(normal(paired['source_gate']))", "canonical(normal(paired['baseline7626_gate']))")
+    patch('baseline 18 result fields',"source_18_gate=paired['source_gate'],source_18_price=paired['source_price']", "source_18_gate=paired['baseline7626_gate'],source_18_price=paired['baseline7626_price']")
+    patch('catalogue consumer',"  with(HERE/'assemble_odd_application.py.log').open('w')as stream:", '''  # Closed coverage of the unchanged protected catalogue and caller.
+  assert type(size) is int and size>0 and catalogue
+  cursor=0
+  for item in catalogue:
+   assert all(type(item[k]) is int for k in ('catalogue_size','slice_start','slice_stop','checked_maps','main_boundary_pairs'))
+   assert item['catalogue_size']==size and item['slice_start']==cursor and item['slice_stop']>cursor
+   assert item['slice_stop']-cursor==item['checked_maps'] and item['checked_maps']<=1000 and item['word_sha256']==\"'''+CAND_GZ+'''\"
+   assert item['phase_control_rejected'] is True
+   cursor=item['slice_stop']
+  assert cursor==size and sum(x['checked_maps'] for x in catalogue)==size
+  assert sum(x['main_boundary_pairs'] for x in catalogue)==104
+  assert public_gate['outer']['strict_count']==54 and public_gate['outer']['functional_count']==4
+  with(HERE/'assemble_odd_application.py.log').open('w')as stream:''')
+    patch('signed status','PASS_CONTACT7624_COMPLETE_SIGNED_APPLICATION','PASS_SWARM30_COMPLETE_SIGNED_APPLICATION')
+    # Ensure the whole retained source catalogue loop and seven checks were not removed.
+    for anchor in ("assert size>0", "range(0,size,1000)", "'check_odd_fixed_tape_counts.py'", "assert source_checks['ODD-PRECISION.json'][key]==candidate_precision[key]", "assert Q(candidate_precision['context_c'])<=4096"):
+        need(text.count(anchor)==1,'retained required anchor '+anchor)
+    compile(text,str(args.out),'exec')
+    args.out.write_text(text,encoding='utf-8')
+    ledger={'schema':'swarm30-signed-adapter/v1','source_runner_sha256':sha(raw),'source_helper_sha256':HELPER_SHA,
+       'adapted_runner_sha256':sha(text.encode()),'candidate_canonical_sha256':CAND,'candidate_gzip_sha256':CAND_GZ,
+       'baseline_canonical_sha256':BASE,'baseline_gzip_sha256':BASE_GZ,'baseline_invoice_sha256':INVOICE,
+       'edits':edits,'status':'PREPARED_ONLY_NOT_EXECUTED'}
+    args.ledger.write_text(json.dumps(ledger,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+if __name__=='__main__': main()

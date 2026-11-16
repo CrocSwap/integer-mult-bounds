@@ -1,0 +1,77 @@
+"""Fail-closed consumer for a fresh successor native result; no science engine."""
+from copy import deepcopy
+
+CANDIDATE='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'
+
+
+def need(ok, message):
+    if not ok: raise ValueError(message)
+
+
+def pairs(rows):
+    need(type(rows) is list and rows, 'empty pair inventory')
+    out=[]
+    for p in rows:
+        need(type(p) is list and len(p)==2 and all(type(x) is int and x>=0 for x in p),'bad pair')
+        out.append(tuple(p))
+    need(len(set(out))==len(out),'duplicate pair')
+    return set(out)
+
+
+def validate(obj, expected):
+    need(obj['status']=='PASS_SWARM30_COMPLETE_NATIVE' and obj['word_canonical_sha256']==CANDIDATE,'wrong native result')
+    native=obj['native'];need(native['public']==1501 and native['lifetimes']==204 and native['owned_peak']==50 and not native['bad_inputs'],'native ownership')
+    controls=obj['controls'];need(type(controls) is dict and controls and all(x is True for x in controls.values()) and
+        controls.get('wrong_902_1091_contact_source') is True and controls.get('missing_902_paid_move') is True and
+        controls.get('wrong_courier_1461_source') is True and controls.get('missing_courier_1461_move') is True and
+        controls.get('wrong_226_restop_source') is True and controls.get('extra_uncharged_owned_lifetime') is True and controls.get('insufficient_odd_grid') is True and
+        controls.get('insufficient_fractional_grid') is True,'inherited control failure')
+    need(obj['derived_grid']['odd_scale']==1125 and obj['derived_grid']['fractional_bits']==25,'grid')
+    expected_pairs=pairs(expected['full_validation_pairs'])
+    chart=obj['charts']; rows=chart['all_affected_pairs']
+    need(type(rows) is list and rows and all(type(r) is dict for r in rows),'bad chart inventory')
+    need(pairs([r['pair'] for r in rows])==expected_pairs and chart['wrong_phase_rejected'] is True,'chart coverage or phase')
+    need(all(type(r.get('columns')) is int and r['columns']==512 and type(r.get('adjoint_columns')) is int and
+             r['adjoint_columns']==512 and r.get('absolute_phase_verified') is True for r in rows),'chart columns')
+    need(obj['physical_checks']==['verify_host3_odd.py','physical.py'],'finite physical checks')
+    for key in ('source_7624','source_7626','candidate'):
+        need(obj['paired_ordinary'][key]['conservative_total']<10**9 and obj['paired_precision'][key],'paired resource '+key)
+    need(obj['baseline7626_native'] and obj['baseline7626_invoice'] and obj['source_native'] and obj['source_invoice'], 'paired native invoices')
+    return True
+
+
+def inventory_controls(obj, expected):
+    validate(obj, expected)
+    need(len(obj['charts']['all_affected_pairs'])>=2,'insufficient rows for controls')
+    results={}
+    for name in ('missing_pair','substituted_pair','duplicate_pair','empty_pairs','boolean_pair','malformed_row'):
+        bad=deepcopy(obj); r=bad['charts']['all_affected_pairs']
+        if name=='missing_pair': r.pop()
+        elif name=='substituted_pair': r[0]['pair']=[2**63,0]
+        elif name=='duplicate_pair': r[-1]['pair']=list(r[0]['pair'])
+        elif name=='empty_pairs': r.clear()
+        elif name=='boolean_pair': r[0]['pair'][0]=True
+        else: r[0]['columns']=True
+        try: validate(bad,expected)
+        except (ValueError,KeyError,TypeError,IndexError): results[name]=True
+        else: raise ValueError('native consumer accepted '+name)
+    return results
+
+
+def receipt_valid(receipt, *, run_id, native_result_sha256, adapter_sha256, launcher_sha256):
+    need(receipt['stage']=='native' and type(receipt['exit']) is int and receipt['exit']==0 and
+         receipt['run_id']==run_id and receipt['candidate_canonical_sha256']==CANDIDATE and
+         receipt['native_result_sha256']==native_result_sha256 and receipt['adapter_sha256']==adapter_sha256 and
+         receipt['launcher_sha256']==launcher_sha256, 'stale native receipt binding')
+    return True
+
+
+def receipt_controls(receipt, **bindings):
+    receipt_valid(receipt,**bindings)
+    rejected=[]
+    for field in ('run_id','native_result_sha256','adapter_sha256','launcher_sha256'):
+        bad=dict(receipt);bad[field]=str(bad[field])+'-stale'
+        try: receipt_valid(bad,**bindings)
+        except ValueError: rejected.append(field)
+        else: raise ValueError('accepted stale '+field)
+    return rejected

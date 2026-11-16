@@ -1,0 +1,58 @@
+# Static source-bound port design: #7621 joint courier and re-stop
+
+Status: **design only; no candidate constructed or scientific code run**. The task's executable mapping below is conditional on verifying all literals, uniqueness, and chronology against the parent-supplied exact #7626 candidate. It carries both #7621 mechanisms, since the published price delta is joint. A gain or preservation of owned forms is not established.
+
+## Source and coverage
+
+#7621 head `0ddef5c67b90bc4e9561186a435b44a46f49a0b1`: inspected all of `side-research/source-pr7621/README.md`, `data/edits.json`, and the checker reconstruction, route, inverse, invoice and negative-control sections in `check.py`; this is not the complete source closure. File SHA-256 values respectively `093c75348deadd111734662d5903d3a4f01aab731a2aa3006ad79f2d623d4af8`, `9ed885170928fda98709116edc8c09b2482943191e9525627427b4c5391bae3c`, `d5a0f0d50824468d754efb6bbd7917e89d28d86ee20c6a0c79b912e1b0c6404f`, matching ACQUIRED.json. #7624 source head `3f231831e0bff0cc5241ec89e122d99132bddf52`: inspected standard-library JSON/gzip data from `outputs/kappa-research-20261116b/inputs/pr7624/research/p104-w2-primal-dual-bypass/data/word.json.gz`, compressed SHA-256 `bfe2a4fb54dd82940ba78d8b3efd4f587e3fc9e978ccfd48561199d2c9fb4887`. Prior authenticated follow-up recorded all 18 deletions uniquely present in #7624. No #7626 candidate read or validation yet.
+
+## Literal deletion mapping and implementation
+
+Read original immutable candidate as data. Build one immutable event list; assert 18 listed deleted literals each occur exactly once; map each to its candidate index, independently of #7620/#7624 clocks. The authoritative complete literal payload is `source-pr7621/data/edits.json` (18 `delete` entries). Prior source clocks for those entries in order are:
+
+| #7620 index | #7624 index | Literal |
+|---:|---:|---|
+|32935|32940|MOVE 226 86 260 false|
+|38849|38680|MOVE 1445 3 755 false|
+|38850|38681|ADD 1157 1445 -1 755|
+|40500|40690|ADD 207 1461 1 3|
+|40501|40691|ADD 1461 971 1 3|
+|40510|40700|MOVE 1461 3 755 false|
+|40511|40701|ADD 1157 1461 1/2 755|
+|41798|41998|MOVE 226 260 719 false|
+|41799|41999|MOVE 990 260 719 false|
+|41802|42002|ADD 990 226 -1 719|
+|41807|42007|ADD 473 226 1 719|
+|41937|42131|ADD 1461 395 1/2 755|
+|41938|42132|MOVE 1461 755 924 false|
+|41939|42133|ADD 1461 971 -1 924|
+|41946|42137|ADD 1445 395 1 755|
+|41948|42139|MOVE 1445 755 757 false|
+|44106|44288|MOVE 473 719 906 false|
+|46258|46436|MOVE 226 719 127 false|
+
+Insert groups below against *unmodified* candidate positions, before the stated anchor; merge in order while walking once, emitting each insertion immediately before its anchor even if anchor itself is deleted. Booleans are JSON `false`; event notation is JSON array in given order. This avoids index shift and faithfully represents #7621 insertion ordering, with the re-stop encode localized to the observed #7624 final write rather than assuming #7620's source clock. Abort for missing or nonunique anchors, wrong ordering, changed interval, or changed original-candidate hash. Also assert no independent insertion groups collide and exact proposed event count is old count +2.
+
+1. Before `['ADD',226,224,'1',260]` (#7624 clock 32942), insert `['MOVE',226,86,260,false]`. This swaps the two independent moves relative to source.
+2. Immediately after `['ADD',226,1506,'-1',260]` (#7624 clock 34163), i.e. before its next original event `['INIT',1502,541]` at 34164, insert `['ADD',990,226,'-1',260]`. Require these two original literals consecutive and verify 226 and 990 co-present. Source #7624 scan found no later incident involving 226 or 990 until clocks 34177 (read of 226), 41998/41999 (MOVEs), 42001/42002 (ADDs). In #7621, encode is placed just after last chart-260 write. Exact #7620 insertion-anchor literal is unavailable in the three-file closure; the above is an adaptation requiring full paired execution, not proof of identical event scheduling.
+3. Before deleted `['MOVE',1445,3,755,false]` (#7624 clock 38680), insert in sequence:
+   `['ADD',207,1461,'1',3]`, `['ADD',1461,971,'1',3]`, `['ADD',1461,1445,'-2',3]`, `['ADD',1445,1461,'2/3',3]`, `['MOVE',1461,3,755,false]`, `['ADD',1157,1461,'1/2',755]`.
+4. Before `['MOVE',473,716,719,false]` (#7624 42000), insert `['MOVE',990,260,719,false]`.
+5. Before deleted `['ADD',990,226,'-1',719]` (#7624 42002), directly after `['ADD',990,473,'-1',719]`, insert `['MOVE',473,719,906,false]`, `['MOVE',226,260,906,false]`, `['ADD',473,226,'1',906]`.
+6. Before deleted `['ADD',1461,395,'1/2',755]` (#7624 42131), insert `['ADD',1461,395,'-3/2',755]`.
+7. Before deleted `['MOVE',1445,755,757,false]` (#7624 42139), insert `['MOVE',1461,755,757,false]`, `['MOVE',1445,3,757,false]`, `['ADD',1445,1461,'-2/3',757]`, `['ADD',1461,1445,'2',757]`, `['MOVE',1461,757,924,false]`, `['ADD',1461,971,'-1',924]`.
+8. Before deleted `['MOVE',226,719,127,false]` (#7624 46436), insert `['MOVE',226,906,127,false]`.
+
+All four undeleted anchor literals must also be unique in the candidate, or be matched using a uniquely verified consecutive context. No mutation of input is permitted. Preserve the candidate header and all non-program fields exactly; emit only to lane-owned output if parent authorizes construction.
+
+## Funding, return and complete price obligation
+
+At chart 3, 1461 is the funded courier: first `1461 -= 2*1445`, then `1445 += 2/3*1461`; at 757 decode in reverse by `1445 -= 2/3*1461`, `1461 += 2*1445`. The 207/971 reads move early, 395 coefficient changes from +1/2 to -3/2, 1157 effect is to be verified. Target routes 1445: 3→757→923→127 (old 3→755→757→923→127); 1461: 3→755→757→924→127 (old 3→755→924→127). 226 retains its arbitrary content through 260→906, while 990 encodes `-226` at 260 and decodes `+226` at 127; move existing 473 719→906 after `990 -= 473` and before `473 += 226` at 906. Route 226 becomes 3→86→260→906→127. Require exact content, clean returns, nonaliasing, all intervening producer/consumer chronology, and every owned observation and CLEAR; syntactic absence of direct owned ADD does not prove any of these.
+
+For #7621 on #7620 only, native delta `{1:+1,2:+1,3:-3,6:+1}` per call, over 17 calls `{1:+17,2:+17,3:-51,6:+17}`, paid positions unchanged, target unchanged, total event ADD +2; #7621's ordinary bill rises 1088. This is not a candidate-derived invoice. On #7626 derive complete signed paid and target histograms, every fee/precision/grid/resource cost and all actual calls, including lifecycle and nonreset work; verify the full upper for #7626 is beaten under the complete common-U premise. New chart pairs require affected census rather than just two pairs. Changed coefficients and routes require full 5-smooth, width, phase and physical cost checks. Common U covers full private extent/residuals/atomic return/nonaliasing, lifecycle item 4000 including nonreset, 32 scalar services per INIT/CLEAR, normalized 2^20, all width/size/precision factors, cap 4096; no supplier or original-premise implication is established.
+
+## Decisive next gate and credit
+
+Parent GO and exact shared immutable candidate required first. Data-only map each anchor and assert complete source/candidate chronology, including the contact edit and required presence of the 226 last-write anchor; then bounded candidate construction and independent exact arbitrary-input paired replay, event legality and all row/end-chart/owned observation/CLEAR/return comparisons. Reject if any fail; compute complete paid/target/fees before any broader qualification. Only then proceed, within parent authorization, to full affected-column absolute-phase/native/signed application/resource/directed-price checks and predecessor rejection controls (wrong or missing shears, wrong 395 coefficient, moved/reversed/illegal route, late 473, flipped ownership, tampered invoice). No qualified gain now.
+
+Credit: #7621 DreamingOfClouds with Claude Opus 5.5; base #7620 SYLforge; the funded-return chain attribution in #7621 includes Clear1nsight #7244/#7274/#7314/#7334/#7481, rohanarun #7480/#7277, CubeJerry #7577, petalas #7326 and prior #7615/#7617. Respect all original notices in any later publication.

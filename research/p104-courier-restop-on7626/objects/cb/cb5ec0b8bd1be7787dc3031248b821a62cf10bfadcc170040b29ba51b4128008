@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Provisional literal-variant census and directed declared-invoice screen.
+
+Pricing engines retain Clear1nsight/Ali Romman and predecessors' notices. This
+is not a replay, supplier, ordinary-budget, precision, outer-gate or kappa proof.
+Execute only on parent GO under the parent-controlled resource limit.
+"""
+import argparse
+import collections
+import copy
+from fractions import Fraction
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import runpy
+import sys
+
+SOURCE_CANON = 'df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'
+INVOICE_HASH = 'e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2'
+ENGINE_HASH = '52b20f41fd0bb55fa88dccd6015af2ce358917817b9506720f3e60ce681cc3ad'
+COMPARE_HASH = '3930c22c11da7bc6042cfeb6e459ecb06e4478430037bee3469d034353855fc6'
+INTERVAL_HASH = '60a743d13f668ef86db4b8215b4d5d04430a671ba6f1fe06d9c1c4c3dfe86da5'
+FULL_UPPER = Fraction(25188234281719, 6871947673600000)
+
+def need(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+def digest(data): return hashlib.sha256(data).hexdigest()
+def canonical(obj): return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()
+def load_word(path):
+    data = Path(path).read_bytes()
+    obj = json.loads(gzip.decompress(data))
+    return obj, {'path': str(path), 'gzip_sha256': digest(data), 'canonical_sha256': digest(canonical(obj))}
+def hist(counter): return {str(k): v for k, v in sorted(counter.items()) if v}
+def diff(a,b): return {k:b.get(k,0)-a.get(k,0) for k in sorted(a.keys()|b.keys(),key=int) if b.get(k,0)!=a.get(k,0)}
+
+def census(w):
+    """Independent structural census, not row/physical legality replay."""
+    n = w['public']; count = w['owned_fields']; ranks = [len(f) for f in w['frames']]
+    need(len(w['initial']) == len(w['final']) == n, 'public header dimensions')
+    live = set(w['live']); mains = live | {r + 112 for r in live} | set(w['hosted']['X2']) | set(w['hosted']['Y2'])
+    need(all(type(r) is int and 0 <= r < n for r in mains), 'main registers')
+    targets = collections.Counter(ranks[w['final'][r]]-ranks[w['initial'][r]] for r in range(n) if r not in mains)
+    paid = collections.Counter(); rises = collections.Counter(); ops = collections.Counter(); owned_moves = 0
+    alive = set(); labels = set(); peak = 0; init = clear = 0
+    for ev in w['program']:
+        op, r = ev[0], ev[1]; ops[op] += 1
+        need(type(r) is int and 0 <= r < n+count, 'register bounds')
+        if op == 'MOVE':
+            need(len(ev)==5 and type(ev[4]) is bool and ev[4] == (r>=n), 'MOVE ownership')
+            d = ranks[ev[3]]-ranks[ev[2]]
+            need(d != 0, 'zero-rank MOVE unsupported by pricing')
+            paid[abs(d)] += 1
+            if r >= n:
+                need(r in alive, 'owned MOVE outside lifetime')
+                owned_moves += 1
+                if d > 0: rises[d] += 1
+        elif op == 'INIT':
+            need(r >= n and r not in alive, 'INIT lifetime')
+            alive.add(r); labels.add(r); init += 1; peak = max(peak,len(alive))
+        elif op == 'CLEAR':
+            need(r in alive, 'CLEAR lifetime'); alive.remove(r); clear += 1
+        else:
+            need(op in ('SCALE','ADD','COPY'), 'unknown opcode')
+    need(not alive and init==clear, 'unclosed lifetimes')
+    need(all(k > 0 for k in targets), 'nonpositive target rank')
+    return {'events':len(w['program']), 'public':n, 'owned_fields':count, 'owned_labels_used':len(labels),
+            'opcodes':dict(sorted(ops.items())), 'scalar_events':sum(v for k,v in ops.items() if k!='MOVE'),
+            'native_paid':hist(paid), 'native_targets':hist(targets), 'owned_rises':hist(rises),
+            'owned_moves':owned_moves, 'init':init, 'clear':clear, 'lifetimes':clear, 'peak':peak}
+
+def main():
+    p=argparse.ArgumentParser()
+    p.add_argument('--source',required=True); p.add_argument('--invoice',required=True)
+    p.add_argument('--engine',required=True); p.add_argument('--compare',required=True); p.add_argument('--interval',required=True)
+    p.add_argument('--variant',action='append',required=True,help='NAME=path to gzip word; repeat for three variants')
+    p.add_argument('--point',default='0.003665370500199',help='exact rational above #7626 full upper')
+    p.add_argument('--out',required=True)
+    a=p.parse_args(); need(not sys.flags.optimize,'assertions must be enabled'); point=Fraction(a.point)
+    need(FULL_UPPER < point < Fraction('0.00376669'), 'probe outside allowed interval')
+    need(len(a.variant)==3,'require exactly three literal variants')
+    source, source_pin = load_word(a.source); need(source_pin['canonical_sha256']==SOURCE_CANON,'source canonical pin')
+    ib=Path(a.invoice).read_bytes(); need(digest(ib)==INVOICE_HASH,'source full invoice pin'); inv=json.loads(ib)
+    for path,pin in ((a.engine,ENGINE_HASH),(a.compare,COMPARE_HASH),(a.interval,INTERVAL_HASH)):
+        need(digest(Path(path).read_bytes())==pin,'engine pin: '+path)
+    need(Path(a.compare).resolve()==(Path(a.engine).resolve().parent/'compare_recursive_invoices.py'),'comparator path')
+    need('compare_recursive_invoices' not in sys.modules,'preloaded comparator')
+    engine=runpy.run_path(a.engine); interval=runpy.run_path(a.interval)
+    need(Path(sys.modules['compare_recursive_invoices'].__file__).resolve()==Path(a.compare).resolve(),'loaded comparator')
+    verified,_=engine['load_invoice'](Path(a.invoice)); need(verified==inv,'invoice normalized')
+    need(inv['contract']=={'model':'mixed-target-unnormalized-power-v1','rank_semantics':'H_r costs r^(1-C); debit surrendered productive fields','ambient_rank':145,'boundary':'complete signed #7113 caller application with 17 native calls'},'invoice contract')
+    base=census(source); residual={}
+    for field,native in (('paid','native_paid'),('targets','native_targets')):
+        residual[field]={k:inv[field].get(k,0)-17*base[native].get(k,0) for k in inv[field].keys()|base[native].keys()}
+        need(all(v>=0 for v in residual[field].values()),'negative residual '+field)
+    zero=dict(inv,paid={},targets={})
+    def moment(i):
+        return interval['moment']({int(r):i['targets'].get(r,0)-i['paid'].get(r,0) for r in i['targets'].keys()|i['paid'].keys()},point)
+    equality=engine['evaluate'](inv,inv,1-point,bits=256)
+    need(equality['classification']=='equal','equality control')
+    losing=copy.deepcopy(inv); losing['paid']['1']+=1
+    loss=engine['evaluate'](inv,losing,1-point,bits=256)
+    need(loss['classification']=='new_cost_higher','losing control')
+    oldlo,oldhi=moment(inv); need(oldhi<0,'comparator upper negative interval')
+    out={'status':'PROVISIONAL_DECLARED_INVOICE_ONLY','point':str(point),'comparator_full_upper':str(FULL_UPPER),
+         'source':source_pin,'invoice_sha256':INVOICE_HASH,'engine_hashes':{'evaluate':ENGINE_HASH,'compare':COMPARE_HASH,'interval':INTERVAL_HASH},
+         'source_census':base,'caller_residual_assumed':residual,'controls':{'equality':equality['classification'],'losing':loss['classification'],'source_moment_upper':str(Fraction(oldhi,interval['B']))},
+         'scope':'Fixed residual is an assumption pending full signed caller reconstruction. No row replay, U implementation, ordinary or precision fee, outer gate or kappa qualification.', 'variants':{}}
+    for spec in a.variant:
+        name,sep,path=spec.partition('='); need(sep and name and name not in out['variants'],'variant NAME=PATH')
+        w,pin=load_word(path)
+        need({k:v for k,v in w.items() if k!='program'}=={k:v for k,v in source.items() if k!='program'},'variant header mismatch '+name)
+        c=census(w); new=copy.deepcopy(inv)
+        for field,native in (('paid','native_paid'),('targets','native_targets')):
+            vals={k:17*c[native].get(k,0)+residual[field].get(k,0) for k in c[native].keys()|residual[field].keys()}
+            need(all(v>=0 for v in vals.values()),'negative derived invoice')
+            new[field]={k:v for k,v in sorted(vals.items(),key=lambda kv:int(kv[0])) if v}
+        power=engine['evaluate'](zero,new,1-point,bits=256); lo,hi=moment(new)
+        interval_class='positive' if lo>0 else 'negative' if hi<0 else 'unresolved'
+        directed_class=power['classification']
+        if interval_class=='positive': need(directed_class=='new_cost_lower','independent oracle disagreement')
+        if interval_class=='negative': need(directed_class=='new_cost_higher','independent oracle disagreement')
+        out['variants'][name]={'word':pin,'census':c,'native_paid_delta':diff(base['native_paid'],c['native_paid']),
+          'native_target_delta':diff(base['native_targets'],c['native_targets']), 'paid_delta':diff(inv['paid'],new['paid']),
+          'target_delta':diff(inv['targets'],new['targets']), 'invoice':new,'invoice_canonical_sha256':digest(canonical(new)),
+          'moment_interval':[str(Fraction(lo,interval['B'])),str(Fraction(hi,interval['B']))],
+          'interval_classification':interval_class,'integer_power_classification':directed_class,
+          'integer_power_new_minus_zero':power['new_minus_old']}
+    target=Path(a.out); need(not target.exists(),'output already exists'); target.write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+if __name__=='__main__': main()

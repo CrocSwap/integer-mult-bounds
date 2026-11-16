@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Source-free controller receipt and final-result controls; never starts a service."""
+import importlib.util, json, tempfile
+from pathlib import Path
+from unittest.mock import patch
+ROOT=Path(__file__).resolve().parents[1]
+spec=importlib.util.spec_from_file_location('controller',ROOT/'launch.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+
+def check(payload=None, primary=False, unreadable=False):
+    with tempfile.TemporaryDirectory() as temp:
+        root=Path(temp); out=root/'out'; control=root/'control';out.mkdir();control.mkdir()
+        if payload is not None:(out/'RESOURCE.json').write_text(payload)
+        record={'returncode':0,'group_empty':True,'audit_capture_valid':True,'job_result_valid':True,'secondary_cleanup_errors':[]}
+        if primary:record['error']='primary sentinel'
+        if unreadable:
+            with patch.object(Path,'read_text',side_effect=PermissionError('unreadable sentinel')):
+                m.record_job_receipt(out,control,record)
+        else:m.record_job_receipt(out,control,record)
+        return record,(control/'INCOMPLETE.json').exists()
+
+valid=json.dumps({'source_executed':True,'differential_case_completed':True,'stages':[{'name':'dummy','argv':['dummy'],'exit_code':0}]})
+for payload, unreadable in [(None,False),('{',False),('[]',False),('{}',False),(json.dumps({'source_executed':1,'differential_case_completed':True,'stages':[]}),False),(json.dumps({'source_executed':True,'differential_case_completed':True,'stages':[]}),False),(valid,True)]:
+    for primary in (False,True):
+        record,incomplete=check(payload,primary,unreadable)
+        assert not record['differential_case_completed'] and not record['job_receipt_available'] and incomplete
+        assert record['receipt_error'] and record['secondary_cleanup_errors'][0]['step']=='job_receipt'
+        if primary:assert record['error']=='primary sentinel'
+record,incomplete=check(valid)
+assert record['differential_case_completed'] and not incomplete
+record,_=check(valid,True)
+assert not record['differential_case_completed'] and record['error']=='primary sentinel'
+with tempfile.TemporaryDirectory() as temp:
+    root=Path(temp); out=root/'out';control=root/'control';out.mkdir();control.mkdir()
+    (out/'RESOURCE.json').write_text(valid)
+    record={'returncode':0,'group_empty':True,'audit_capture_valid':False,'secondary_cleanup_errors':[{'step':'audit_capture','error':'invalid'}]}
+    m.record_job_receipt(out,control,record)
+    assert not record['differential_case_completed'] and record['job_receipt_available']
+
+# Simulate a controller body failure before process creation: RESULT must preserve
+# the primary error and missing receipt as secondary, without invoking systemd.
+with tempfile.TemporaryDirectory() as temp:
+    root=Path(temp); argv=['launch.py','--control',str(root/'control'),'--out',str(root/'out'),'--freeze-sha','0'*64]
+    with patch.object(m.sys,'argv',argv), patch.object(m.signal,'signal'), patch.object(m.signal,'setitimer'), patch.object(m.os,'sched_getaffinity',return_value={0}), patch.object(m.subprocess,'Popen',side_effect=RuntimeError('primary sentinel')):
+        try:m.main()
+        except SystemExit as e:assert e.code==1
+        else:raise AssertionError('failure was accepted')
+    result=json.loads((root/'control'/'RESULT.json').read_text())
+    assert 'primary sentinel' in result['error'] and result['receipt_error'] and not result['group_empty']
+    assert {x['step'] for x in result['secondary_cleanup_errors']}=={'job_receipt','job_result'} and not result['differential_case_completed']
+print('PASS: 14 missing/malformed/shape/unreadable x primary controls; valid, primary, and final RESULT')
