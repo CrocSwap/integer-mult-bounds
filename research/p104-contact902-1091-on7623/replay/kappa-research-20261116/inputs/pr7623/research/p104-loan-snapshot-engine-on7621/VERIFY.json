@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/compare_recursive_invoices.py",
+    "scripts/evaluate_recursive_power.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "core"
+      ],
+      "timeout_seconds": 200,
+      "checks": "Vendored #7621 word bytes and new word hash; word = #7621 + edit list (73 deletions, 154 insertions); exact arbitrary-input replay and legality of both words; header identical; all 1,569 rows and end charts equal #7621's; helpers identity, owned rows empty; owned MOVEs (47), peak 50 and 68 labels unchanged; 167 old lifetimes kept, 13 new stationary lifetimes (INIT, one write, one read, dirty CLEAR, no MOVE); all 1,018 old owned observations identical and in order; old 167 CLEAR contents identical and in order (180 CLEARs in all); exact CLEAR certificates for the 13 new CLEARs (#7620's verify_certificates rule); 14 side-A instances, exactly 28 changed chains, 24 new strictly nested MOVE pairs; 5-smooth coefficients, non-dyadic events 5903 -> 5903, grid unchanged; paid delta {1:+1, 2:+13, 3:-28, 4:+13, 5:+1}; S 1424; invoice and kappa 0.0036624027915539 recomputed; #7621 crossing reproduced. Prints PASS_CORE_LOAN_ON_7621."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "controls"
+      ],
+      "timeout_seconds": 420,
+      "checks": "22 negative controls (loan, settle, swap, snapshot write/pickup/CLEAR, ordering, wrong chart, stop removed, flag flip, rerouted-write variants, bare stop drop on #7621) all rejected by exact replay, row/end-chart or CLEAR-content checks; the hit and #7621 words accepted. Prints PASS_CONTROLS_LOAN."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "columns1"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Gaussian column tests (512 forward + 512 adjoint, signed Pauli action, absolute phase, exact rank, wrong-phase rejection) on the even-indexed half of the 964-pair affected census (#7621's 846 plus 118 pairs on the old or new routes of the 28 changed registers; none dropped), with rejecting controls. Prints PASS_COLUMNS_ON_7621_1."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "columns2"
+      ],
+      "timeout_seconds": 120,
+      "checks": "Same column tests on the odd-indexed half of the 964-pair census. Prints PASS_COLUMNS_ON_7621_2."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/price.py"
+      ],
+      "timeout_seconds": 60,
+      "checks": "Repository tools: uniformly_better against #7621; new_cost_lower at C=0.0036624027915, 0.0036614625547 and 0.0036611026181; new_cost_higher at C=0.0036624027916. Prints PASS_PRICE."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "engine"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Engine reproduction: engine/run_on.py on #7621's word (census, greedy loan + snapshot passes, re-census) lands 14 instances; the output word is JSON-equal to data/word.json.gz and the instance log equals data/instances.json. Prints PASS_ENGINE_REPRODUCES_HIT_LOAN_14."
+    }
+  ]
+}
