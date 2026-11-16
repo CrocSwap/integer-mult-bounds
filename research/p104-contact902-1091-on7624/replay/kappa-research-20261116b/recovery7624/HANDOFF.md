@@ -1,0 +1,15 @@
+# #7624 contact qualification recovery
+
+The original service is stopped. It ran from 2026-11-16 04:10:40 to 04:10:51 UTC (15:10:40 to 15:10:51 AEDT). The journal records a stop, without identifying the initiating cause. The previous Codex turn was interrupted. The service cgroup was absent at recovery. This is an incomplete qualification, not a mathematical rejection or a successful validation.
+
+Only source-first preparation (3.323546859 s) and certificate input custody (0.264832330 s) have complete passing stage receipts in this full qualification. Fresh certificate replay was interrupted. Native validation, signed validation, the final resource conjunction and final controller/resource receipts are missing. No new scientific process was started during recovery.
+
+The earlier explicitly approved corrected differential gate passed. It retains the original metadata-checker failure, passed exact operator/proof evidence, corrected source/candidate 204-certificate checks, twelve changed route-pair phase checks and two directed price calculations. Its conditional proposal is kappa >= 0.003665370499, with a computed lower-minus-upper margin of 0.000000318696811 over #7624's reported full upper. Paid count falls from 110060 to 110043 in the 17-call signed profile. These are provisional until complete qualification succeeds.
+
+The common whole-private-extent tariff U remains a stronger, unimplemented assumption. No unconditional bound, original-premise implication, frontier selection or adoption has been established.
+
+All 300 originally frozen files (45769808 bytes) matched unchanged. PREPARED-SEED.json preserves all 58 prepared work files. INTERRUPTED-RUN-INVENTORY.json preserves all 77 run/control files. Original STATE is retained in STATE-BEFORE.json; the current round state now records the interrupted execution honestly. SERVICE-JOURNAL.txt contains the read-only journal evidence. No missing final receipt was synthesized.
+
+The source PR is https://github.com/CrocSwap/integer-mult-bounds/pull/7624 at 3f231831e0bff0cc5241ec89e122d99132bddf52. Main remained e54523517d0f03e58352e647c403a5af3e525a57 at the recovery refresh. The existing scoped discussion is https://github.com/CrocSwap/integer-mult-bounds/discussions/7111#discussioncomment-19645069; its original claim window has expired. No new claim or PR has been posted during recovery. The previously delivered #7625 is predecessor work, not a new result for this contact.
+
+The smallest remaining check is a separately frozen completion of only certificate-verifier, native, signed and resources, using a copy of the retained prepared work. It would require a new execution service and a new explicitly authorized wall window. The current instruction says to continue without restarting, so preparation is allowed but that launch is held. If eventually qualified, publish via Chrome with all inherited assumptions, failures, custody and predecessor credit, and request frontier review without changing the selected frontier.
