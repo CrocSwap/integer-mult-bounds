@@ -1,0 +1,60 @@
+"""Isolated-shim audit custody after all service descendants exit. No science."""
+# SPDX-License-Identifier: Apache-2.0
+# Adapted from qualification7624_signed_completion/audit_custody.py.
+import ctypes
+import hashlib
+import json
+import os
+from pathlib import Path
+
+LOG='windows-path-adaptations.jsonl'
+SHIM='windows_path_shim.py'
+SHIM_SHA='918d245bd2a398dde8b3ef923aa17dc160bbe7cf645e0ec28d876d0a341ab620'
+KNOWN={'source_sha256':'35a3a38c6fe57cfb703a57a0382ef6f6b738131753b5fb5b97a68185b82994e1',
+       'before':'str(arc.relative_to(HERE))', 'after':'arc.relative_to(HERE).as_posix()',
+       'adapted_sha256':'57d9c83ecbcb3e9d7697dfa0d78bce6ff98958a1ee53267bffb710e362844caf',
+       'path_name':'source.py'}
+
+def need(condition,message):
+    if not condition: raise ValueError(message)
+
+def unique_object(pairs):
+    obj={}
+    for key,value in pairs:
+        need(key not in obj,'duplicate audit field')
+        obj[key]=value
+    return obj
+
+def validate_log(path):
+    need(path.is_file() and not path.is_symlink(),'audit log missing or symlink')
+    raw=path.read_bytes()
+    need(0<len(raw)<=4*1024*1024 and raw.endswith(b'\n'),'audit log bounds or trailing newline')
+    rows=raw.splitlines()
+    for row in rows:
+        need(json.loads(row,object_pairs_hook=unique_object)==KNOWN,'unknown audit row')
+    return {'sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw),'rows':len(rows)}
+
+def archive(isolated,destination):
+    """Validate fixed shim and known audit, then atomically move with no replacement."""
+    isolated=Path(isolated); destination=Path(destination)
+    need(isolated.is_dir() and not isolated.is_symlink(),'isolated directory missing or symlink')
+    shim=isolated/SHIM
+    need(shim.is_file() and not shim.is_symlink() and hashlib.sha256(shim.read_bytes()).hexdigest()==SHIM_SHA,'isolated shim missing or changed')
+    need(destination.parent.is_dir() and not destination.parent.is_symlink(),'audit destination parent missing or symlink')
+    need(not destination.exists() and not destination.is_symlink(),'audit destination already exists')
+    source=isolated/LOG
+    if not source.exists() and not source.is_symlink():
+        return {'status':'ABSENT','rows':0,'bytes':0}
+    stats=validate_log(source)
+    need(source.stat().st_dev==destination.parent.stat().st_dev,'audit move crosses filesystems')
+    before=source.stat(follow_symlinks=False)
+    libc=ctypes.CDLL(None,use_errno=True); renameat2=libc.renameat2
+    renameat2.argtypes=[ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint]
+    renameat2.restype=ctypes.c_int
+    if renameat2(-100,os.fsencode(source),-100,os.fsencode(destination),1)!=0:
+        err=ctypes.get_errno();raise OSError(err,os.strerror(err))
+    after=destination.stat(follow_symlinks=False)
+    need((before.st_dev,before.st_ino)==(after.st_dev,after.st_ino),'audit move identity changed')
+    need(validate_log(destination)==stats,'archived audit bytes changed')
+    need(not source.exists() and not source.is_symlink(),'audit source remains after capture')
+    return {'status':'ARCHIVED',**stats}

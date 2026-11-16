@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""One source-bound full qualification, inside the parent-verified cgroup."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+def need(ok,message):
+    if not ok:
+        raise ValueError(message)
+
+def read(path):
+    return json.loads(Path(path).read_bytes())
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def write(path,value):
+    Path(path).write_text(json.dumps(value,indent=2,sort_keys=True)+'\n')
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--root',type=Path,required=True)
+    parser.add_argument('--out',type=Path,required=True)
+    parser.add_argument('--freeze',type=Path,required=True)
+    args=parser.parse_args()
+    root=args.root.resolve()
+    out=args.out.resolve()
+    out.mkdir(exist_ok=False)
+    started=time.monotonic()
+    work=out/'work'
+    cache=out/'pycache'
+    result={'status':'INCOMPLETE','qualified_kappa':False,'stages':[],
+            'source_pr':7626,'source_canonical_sha256':'df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2',
+            'candidate_canonical_sha256':'b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'}
+    def frozen_check():
+        for item in read(args.freeze)['files']:
+            path=Path(item['path'])
+            need(path.is_file() and not path.is_symlink() and path.stat().st_size==item['bytes'] and sha(path)==item['sha256'],'frozen source changed '+str(path))
+    def command(script,*arguments):
+        return [sys.executable,'-I','-B','-X','pycache_prefix='+str(cache),str(script),*map(str,arguments)]
+    def run(name,argv,cap):
+        remaining=3290-(time.monotonic()-started)
+        need(remaining>0,'whole-job inner deadline')
+        before=time.monotonic()
+        environment={k:v for k,v in os.environ.items() if not k.upper().startswith('PYTHON')}
+        environment.update(OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1')
+        with (out/(name+'.stdout')).open('x') as stdout,(out/(name+'.stderr')).open('x') as stderr:
+            process=subprocess.run(argv,stdout=stdout,stderr=stderr,env=environment,timeout=min(cap,remaining),check=False)
+        result['stages'].append({'name':name,'argv':argv,'exit_code':process.returncode,'wall_seconds':time.monotonic()-before})
+        write(out/'PARTIAL.json',result)
+        need(process.returncode==0,'failed qualification stage '+name)
+        frozen_check()
+    try:
+        need(not sys.flags.optimize,'scientific optimization prohibited')
+        frozen_check()
+        application=root/'fullqualification/application.py'
+        def stage(name):
+            return command(application,'--stage',name,'--root',root,'--work',work,'--freeze',args.freeze)
+        run('prepare',stage('prepare'),90)
+        run('certificates',stage('certificates'),180)
+        run('native',stage('native'),1900)
+        run('signed',stage('signed'),900)
+        resource=work/'frozen-code/resources.py'
+        run('resources',command(resource,'--root',root,'--work',work,'--out',out/'resources',
+                                '--common-u',root/'fullqualification/COMMON-U.json','--certificates',out/'certificates'),20)
+        report=read(out/'resources/RESOURCE-COMPARISON.json')
+        need(report['status']=='PASS_CONDITIONAL_COMMON_U_APPLICATION','full resource conjunction did not pass')
+        first=read(root/'firstgate-run/case/RESULT.json')
+        need(report['claim']==first['provisional_claim'],'full claim differs from qualified inputs')
+        result.update(status='PASS_QUALIFIED_CONDITIONAL_COMMON_U_KAPPA',qualified_kappa=True,
+                      claim=report['claim'],resource_comparison_sha256=sha(out/'resources/RESOURCE-COMPARISON.json'),
+                      common_U_implemented=False,selected_frontier_changed=False,
+                      limitations=['Five inherited assumptions and full unimplemented common U remain.','Source-resource branch is derived; source catalogue is not rerun.','Fresh protected-generator coverage is not an independent catalogue inventory oracle.'])
+    except BaseException as error:
+        result['error']={'type':type(error).__name__,'message':str(error)}
+    finally:
+        result['wall_seconds']=time.monotonic()-started
+        write(out/'RESULT.json',result)
+        print(json.dumps({'status':result['status'],'qualified_kappa':result['qualified_kappa'],'error':result.get('error'),'wall_seconds':result['wall_seconds']},sort_keys=True),flush=True)
+    return 0 if result['qualified_kappa'] else 1
+
+if __name__=='__main__':
+    raise SystemExit(main())

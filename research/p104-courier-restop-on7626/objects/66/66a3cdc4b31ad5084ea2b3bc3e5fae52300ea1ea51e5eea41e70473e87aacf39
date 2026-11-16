@@ -1,0 +1,119 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Successor stage consumers. No scientific runner or process launch on import.
+
+Parent owns process supervision, fixed caps, freezes and immutable source copies.
+These checks complement, not replace, accepted #7626 source/caller validation.
+"""
+from pathlib import Path
+from fractions import Fraction
+import hashlib, json
+
+BASE='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'
+CAND='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'
+BASE_GZ='501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+CAND_GZ='3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'
+EXACT='ebef891409dca22052498c5e19bf8d01f31f7aadc6d93b6bba1e5c6c8811a645'
+PRICE='22004bf74ae00934608f6e83f65daa9829159996a3a18823c7971c13b148ab87'
+FIRST='5071b903ae31b30cdfa4184ce9d0389b861e93e45de265a8ffade357573cf25b'
+CONTROL='6fcf46e05c2b6658bcc9b39b784e1fa6ec23038df9c8b8962314bc8fa9447687'
+UPPER=Fraction(25188234281719,6871947673600000)
+CLAIM=Fraction(916432819,250000000000)
+PROBE=Fraction(3665731276007,10**15)
+
+def need(ok,msg):
+    if not ok: raise ValueError(msg)
+def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def read(path): return json.loads(Path(path).read_bytes())
+def pin(path,h):
+    p=Path(path);need(p.is_file() and not p.is_symlink() and sha(p)==h,'input pin '+str(p));return p
+
+def preflight(first, exact, price, control, freeze_rows):
+    """Verify real first-gate bytes and complete independently declared closure.
+
+    freeze_rows must be a nonempty independently reviewed unique path/sha256/bytes
+    inventory, covering these paths and all transitive executable/input files.
+    This function validates rows; the controller establishes completeness.
+    """
+    first=pin(first,FIRST);exact=pin(exact,EXACT);price=pin(price,PRICE);control=pin(control,CONTROL)
+    need(type(freeze_rows) is list and freeze_rows,'empty source freeze')
+    paths=set()
+    for r in freeze_rows:
+        p=pin(r['path'],r['sha256']);need(str(p.resolve()) not in paths,'duplicate freeze path')
+        need(type(r['bytes']) is int and r['bytes']==p.stat().st_size,'freeze length')
+        paths.add(str(p.resolve()))
+    need({str(x.resolve()) for x in (first,exact,price,control)}<=paths,'first gate absent from frozen closure')
+    f=read(first); c=read(control); e=read(exact); p=read(price)
+    need(f['status']=='PASS_EXACT_AND_PROVISIONAL_PRICE_NOT_QUALIFIED' and f['qualified_kappa'] is False,'first gate scope')
+    need(f['exact_result_sha256']==EXACT and f['price_sha256']==PRICE and f['joint_candidate_canonical_sha256']==CAND,'first gate binding')
+    need(all(c.get(k) is True for k in ('differential_case_completed','group_empty','verified_before_release','source_released')) and c['guard_only'] is False and type(c['returncode']) is int and c['returncode']==0 and not c['secondary_cleanup_errors'],'first controller incomplete')
+    limits={'cpu.max':'10000 10000','cpu.max.burst':'0','memory.max':'2147483648','memory.swap.max':'0','memory.oom.group':'1','pids.max':'16'}
+    need(all(c['kernel_controls'].get(k)==v for k,v in limits.items()),'first-gate kernel limits')
+    need(e['status']=='PASS_LITERAL_EXACT_ONLY' and len(e['cases'])==3 and len(e['controls'])==8 and all(x['rejected'] is True for x in e['controls']),'exact gate')
+    need(e['source']['canonical_sha256']==BASE and e['source']['gzip_sha256']==BASE_GZ and e['source']['counts']=={'clears':204,'copies':1,'interfaces':700,'owned':455},'exact source denominator')
+    need({x['name'] for x in e['controls']}=={'boolean_clock','duplicate_clock','wrong_literal','deleted_clear','preloan','sign','missing_decode','ownership'},'exact control inventory')
+    joint=[x for x in e['cases'] if x['name']=='joint'];need(len(joint)==1 and joint[0]['canonical_sha256']==CAND and joint[0]['gzip_sha256']==CAND_GZ and joint[0]['status']=='PASS','joint exact gate')
+    sc=e['source_free_controls'];need(sc['status']=='PASS_SOURCE_FREE_CONTROLS','source-free controls')
+    required={'dirty_copy','both_empty','missing_reference','empty_event_inventory','identity_public_final'} | {prefix+kind for prefix in ('missing_','duplicate_','missing_reference_') for kind in ('clear','owned','interface','copy')}
+    need(set(sc['rejected'])==required and set(sc['positive'])=={'dirty_entry','init_reset','copy_prewrite_and_assignment','clear_pre_reset','nonidentity_public_final'},'source-free control inventory')
+    v=p['variants']['joint']; b=v['provisional_bracket']
+    need(p['status']=='PROVISIONAL_DECLARED_INVOICE_ONLY' and p['source']['canonical_sha256']==BASE and v['word']['canonical_sha256']==CAND and v['word']['gzip_sha256']==CAND_GZ,'screen identities')
+    need(v['interval_classification']=='positive' and v['integer_power_classification']=='new_cost_lower' and b['status']=='PROVISIONAL_ABOVE_FULL_UPPER','screen direction')
+    need(Fraction(f['provisional_claim'])==Fraction(b['claim'])==CLAIM and Fraction(f['provisional_tested'])==Fraction(b['tested'])==PROBE and UPPER<CLAIM<PROBE<Fraction(b['lower']),'claim and tested endpoints')
+    return {'status':'PASS_PREFLIGHT_ONLY','freeze_count':len(paths),'first_sha256':FIRST,'exact_sha256':EXACT,'price_sha256':PRICE,'controller_sha256':CONTROL}
+
+def certificates(folder, first_exact_sha256=EXACT):
+    folder=Path(folder);r=read(folder/'result.json')
+    need(r['status']=='PASS_FRESH_PUBLIC_CERTIFICATES_204' and r['source_sha256']==BASE_GZ and r['candidate_sha256']==CAND_GZ and r['firstgate_sha256']==first_exact_sha256==EXACT,'certificate identity')
+    need(r['origins_sha256']=='2ba9e98c76939497d5e68b377583e58cdfa523df1fbdd8d03e2d5bdd1a34a6d9','certificate origin')
+    expected={'clears':204,'owned':455,'interfaces':700,'copies':1}
+    need(r['source_counts']==expected and r['candidate_counts']==expected,'certificate counts')
+    need(set(r['actual_source_rejections'])=={'coefficient','erased','clock'} and set(r['actual_candidate_rejections'])=={'coefficient','erased','clock'} and r['controls']['rejected'],'certificate failure controls')
+    files={}
+    for name in ('source-certificates.json','candidate-certificates.json'):
+        p=folder/name; records=read(p);need(type(records) is list and len(records)==204,'certificate inventory '+name)
+        need(all(x.get('verified_exact') is True and x.get('clear_index')==i for i,x in enumerate(records)),'certificate record closure '+name)
+        files[name]=sha(p)
+    return {'status':'PASS_CERTIFICATE_CONSUMER','result_sha256':sha(folder/'result.json'),'files':files}
+
+def native(obj_path, expected_path, native_consumer, receipt, run_id, adapter_path, launcher_path, stale_paths):
+    """Use 07 native consumer plus its six mutation and four receipt controls."""
+    obj=read(obj_path);expected=read(expected_path)
+    native_consumer.validate(obj,expected)
+    controls=native_consumer.inventory_controls(obj,expected)
+    bindings=dict(run_id=run_id,native_result_sha256=sha(obj_path),adapter_sha256=sha(adapter_path),launcher_sha256=sha(launcher_path))
+    r=read(receipt); stale_receipts=native_consumer.receipt_controls(r,**bindings)
+    need(type(stale_paths) is list and len(stale_paths)>=3,'predecessor native controls')
+    for path in stale_paths:
+        try: native_consumer.validate(read(path),expected)
+        except (ValueError,KeyError,TypeError,IndexError): pass
+        else: raise ValueError('stale native result accepted '+str(path))
+    return {'status':'PASS_NATIVE_CONSUMER','native_sha256':sha(obj_path),'receipt_sha256':sha(receipt),'inventory_controls':controls,'stale_receipt_controls':stale_receipts,'stale_result_count':len(stale_paths)}
+
+def signed(result_path, native_receipt_path, native_result_path, run_id, signed_receipt_path, adapter_path, launcher_path, generator_path, generator_sha256, generator_prepared_path):
+    obj=read(result_path); rec=read(signed_receipt_path)
+    need(obj['status']=='PASS_SWARM30_COMPLETE_SIGNED_APPLICATION','signed status')
+    need(rec['stage']=='signed' and type(rec['exit']) is int and rec['exit']==0 and rec['run_id']==run_id and rec['candidate_canonical_sha256']==CAND,'signed receipt identity')
+    need(rec['signed_result_sha256']==sha(result_path) and rec['adapter_sha256']==sha(adapter_path) and rec['launcher_sha256']==sha(launcher_path),'signed receipt hash')
+    nr=read(native_receipt_path)
+    need(nr['run_id']==run_id and nr['native_result_sha256']==sha(native_result_path) and nr['candidate_canonical_sha256']==CAND,'paired native receipt')
+    pin(generator_path,generator_sha256);need(obj['catalogue_generator_sha256']==generator_sha256,'catalogue generator binding')
+    gp=Path(generator_prepared_path);need(gp.is_file() and not gp.is_symlink(),'generator preparation receipt')
+    g=read(gp)
+    need(g['schema']=='swarm30-generator-prepared/v1' and g['generator_sha256']==generator_sha256 and g['run_id']==run_id,'pre-catalogue generator binding')
+    need(g['candidate_gzip_sha256']==CAND_GZ and g['candidate_canonical_sha256']==CAND and g['firstgate_result_sha256']==FIRST,'generator source binding')
+    need(g['native_result_sha256']==sha(native_result_path) and g['native_receipt_sha256']==sha(native_receipt_path),'generator native binding')
+    size=obj['catalogue_size'];rows=obj['catalogue'];need(type(size) is int and size>0 and type(rows) is list and rows,'catalogue denominator')
+    cursor=0
+    for row in rows:
+        need(all(type(row[k]) is int for k in ('catalogue_size','slice_start','slice_stop','checked_maps','main_boundary_pairs')),'catalogue types')
+        need(row['catalogue_size']==size and row['slice_start']==cursor and row['slice_stop']>cursor and row['checked_maps']==row['slice_stop']-cursor and row['checked_maps']<=1000 and row['word_sha256']==CAND_GZ and row['phase_control_rejected'] is True,'catalogue slice')
+        cursor=row['slice_stop']
+    need(cursor==size and sum(x['checked_maps'] for x in rows)==size and sum(x['main_boundary_pairs'] for x in rows)==104,'catalogue closure')
+    price=obj['price'];gate=price['public_claim_gate'];outer=gate['outer']
+    need(outer['strict_count']==54 and outer['functional_count']==4,'outer predicate coverage')
+    need(Fraction(price['first_gate_claim'])==CLAIM and Fraction(price['first_gate_probe'])==PROBE and Fraction(price['first_gate_old_upper'])==UPPER,'signed price inputs')
+    need(price['baseline_7626_rejects_claim'] is True and price['baseline_7626_rejects_raw_upper'] is True,'baseline price rejection')
+    need(obj['checks']['ODD-FIXED-TAPE-COUNTS.json']['native_invocations']==17,'signed 17 calls')
+    source=obj['source_resource'];need(source['status']=='DERIVED_FRESH_SOURCE_RESOURCE_ONLY' and source['native_word_sha256']==BASE and source['source_catalogue_rerun'] is False,'source resource scope')
+    ordinary=obj['matched_ordinary'];need(ordinary['source_total']<10**9 and ordinary['candidate_total']<10**9,'matched ordinary bill')
+    return {'status':'PASS_SIGNED_CONSUMER','signed_result_sha256':sha(result_path),'signed_receipt_sha256':sha(signed_receipt_path),'native_receipt_sha256':sha(native_receipt_path),'catalogue_size':size,'catalogue_generator_sha256':generator_sha256,'generator_prepared_sha256':sha(generator_prepared_path),'boundaries':104,'outer_predicates':58}

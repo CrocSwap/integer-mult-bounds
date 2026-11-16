@@ -1,0 +1,140 @@
+{
+  "adapted_runner_sha256": "036c4bf933b8ef7cbec0d9fbe3b732a7ce644de4348c987e695ba017e930fa2d",
+  "baseline_canonical_sha256": "df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2",
+  "baseline_gzip_sha256": "501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0",
+  "baseline_invoice_sha256": "e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2",
+  "candidate_canonical_sha256": "b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238",
+  "candidate_gzip_sha256": "3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9",
+  "edits": [
+    {
+      "count": 1,
+      "label": "candidate identity",
+      "new": "assert sha256(canonical(new_word)).hexdigest()=='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'",
+      "old": "assert sha256(canonical(new_word)).hexdigest()=='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'"
+    },
+    {
+      "count": 1,
+      "label": "native marker",
+      "new": "PASS_SWARM30_COMPLETE_NATIVE",
+      "old": "PASS_CONTACT7624_COMPLETE_NATIVE"
+    },
+    {
+      "count": 1,
+      "label": "adapter receipt",
+      "new": "ROOT/'SWARM30-ADAPTERS.json'",
+      "old": "ROOT/'CONTACT7624-ADAPTERS.json'"
+    },
+    {
+      "count": 1,
+      "label": "launcher receipt",
+      "new": "ROOT/'SWARM30-LAUNCHER.py'",
+      "old": "ROOT/'CONTACT7624-LAUNCHER.py'"
+    },
+    {
+      "count": 1,
+      "label": "candidate count",
+      "new": "  assert sum(after['T'].values())==22461 and after['S']==1424",
+      "old": "  assert sum(after['P'].values())==110043 and sum(after['T'].values())==22461"
+    },
+    {
+      "count": 1,
+      "label": "current complete invoice and first-gate binding",
+      "new": "  # Fresh #7626 baseline; preserve #7624 fields in the native result separately.\n  baseline_word=read(FROZEN/'7626-WORD.json.gz')\n  assert sha256(canonical(baseline_word)).hexdigest()=='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'\n  assert sha256((FROZEN/'7626-WORD.json.gz').read_bytes()).hexdigest()=='501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'\n  baseline_native=ind.native(baseline_word);assert not baseline_native['bad_inputs']\n  baseline_invoice=ind.invoices(baseline_word,C,baseline_native)\n  source_invoice_path=FROZEN/'7626-INVOICE.json'\n  assert sha256(source_invoice_path.read_bytes()).hexdigest()=='e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2'\n  source_invoice=read(source_invoice_path)\n  assert normal(baseline_invoice['P'])==source_invoice['paid'] and normal(baseline_invoice['T'])==source_invoice['targets']\n  assert baseline_invoice['S']==1424 and not baseline_invoice['empty_root_credits']\n  assert sum(baseline_invoice['P'].values())==110043 and sum(baseline_invoice['T'].values())==22461\n  actual_delta={r:after['P'].get(r,0)-baseline_invoice['P'].get(r,0) for r in set(after['P'])|set(baseline_invoice['P']) if after['P'].get(r,0)!=baseline_invoice['P'].get(r,0)}\n  assert actual_delta and after['T']==baseline_invoice['T'], 'Changed complete paid profile and target contract'\n  # Frozen parent first-gate file binds the actual exact result and independently\n  # generated provisional screen. These are not full admission receipts.\n  cfg=read(ROOT/'SWARM30-SIGNED-INPUTS.json')\n  assert cfg['schema']=='swarm30-signed-inputs/v1'\n  assert cfg['source_canonical_sha256']=='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2' and cfg['candidate_canonical_sha256']=='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'\n  assert cfg['candidate_gzip_sha256']=='3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9' and cfg['source_invoice_sha256']=='e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2'\n  exact_path=Path(cfg['exact_path']); screen_path=Path(cfg['screen_path'])\n  assert sha256(exact_path.read_bytes()).hexdigest()==cfg['exact_sha256']\n  assert sha256(screen_path.read_bytes()).hexdigest()==cfg['screen_sha256']\n  exact=read(exact_path); screen=read(screen_path)\n  assert exact['status']=='PASS_LITERAL_EXACT_ONLY'\n  cases=[x for x in exact['cases'] if x['name']==cfg['case_name']]\n  assert len(cases)==1 and cases[0]['status']=='PASS' and cases[0]['canonical_sha256']=='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238' and cases[0]['gzip_sha256']=='3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'\n  assert cases[0]['manifest_sha256']==cfg['manifest_sha256']\n  assert {x['name'] for x in exact['controls']}=={'boolean_clock','duplicate_clock','wrong_literal','deleted_clear','preloan','sign','missing_decode','ownership'} and all(x['rejected'] is True for x in exact['controls'])\n  controls=exact['source_free_controls'];assert controls['status']=='PASS_SOURCE_FREE_CONTROLS'\n  assert set(controls['positive'])=={'dirty_entry','init_reset','copy_prewrite_and_assignment','clear_pre_reset','nonidentity_public_final'}\n  required={'dirty_copy','both_empty','missing_reference','empty_event_inventory','identity_public_final'} | {prefix+kind for prefix in ('missing_','duplicate_','missing_reference_') for kind in ('clear','owned','interface','copy')}\n  assert set(controls['rejected'])==required\n  assert screen['status']=='PROVISIONAL_DECLARED_INVOICE_ONLY' and screen['source']['canonical_sha256']=='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2' and screen['invoice_sha256']=='e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2'\n  variant=screen['variants'][cfg['case_name']]\n  assert variant['word']['canonical_sha256']=='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238' and variant['word']['gzip_sha256']=='3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'\n  assert variant['interval_classification']=='positive' and variant['integer_power_classification']=='new_cost_lower'\n  candidate_invoice=variant['invoice']\n  assert normal(after['P'])==candidate_invoice['paid'] and normal(after['T'])==candidate_invoice['targets'], 'Fresh whole signed invoice differs from screen'\n  firstgate_path=Path(cfg['firstgate_path']);assert sha256(firstgate_path.read_bytes()).hexdigest()==cfg['firstgate_sha256']\n  firstgate=read(firstgate_path);bracket=variant['provisional_bracket']\n  assert firstgate['status']=='PASS_EXACT_AND_PROVISIONAL_PRICE_NOT_QUALIFIED' and firstgate['qualified_kappa'] is False\n  assert firstgate['exact_result_sha256']==cfg['exact_sha256'] and firstgate['price_sha256']==cfg['screen_sha256']\n  assert firstgate['joint_candidate_canonical_sha256']==cfg['candidate_canonical_sha256']\n  assert bracket['status']=='PROVISIONAL_ABOVE_FULL_UPPER' and bracket['integer_lower']=='new_cost_lower' and bracket['integer_test']=='new_cost_lower' and bracket['integer_upper']=='new_cost_higher'\n  first_claim=Q(bracket['claim']);first_probe=Q(bracket['tested']);old_upper=Q(25188234281719,6871947673600000)\n  assert first_claim==Q(firstgate['provisional_claim'])==Q(916432819,250000000000)\n  assert first_probe==Q(firstgate['provisional_tested'])==Q(3665731276007,10**15)\n  assert Q(screen['comparator_full_upper'])==old_upper and old_upper<first_claim<first_probe<Q(bracket['lower'])\n\n",
+      "old": "  # Reconstruct the current #7624 baseline with this actual native inventory\n  # and the very same signed caller, not from a projected raw delta.\n  baseline_word=read(FROZEN/'7624-WORD.json.gz')\n  assert sha256(canonical(baseline_word)).hexdigest()=='c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de'\n  baseline_native=ind.native(baseline_word);assert not baseline_native['bad_inputs']\n  baseline_invoice=ind.invoices(baseline_word,C,baseline_native)\n  source_invoice_path=FROZEN/'7624-INVOICE.json'\n  assert sha256(source_invoice_path.read_bytes()).hexdigest()=='e3f1c1bb9516eb141f2c51b8cd12a9a55026f5968082083bd8d9fdb793a2e486'\n  source_invoice=read(source_invoice_path)\n  assert normal(baseline_invoice['P'])==source_invoice['paid'] and normal(baseline_invoice['T'])==source_invoice['targets'], 'Fresh signed #7624 baseline invoice'\n  assert baseline_invoice['S']==1424 and not baseline_invoice['empty_root_credits']\n  assert sum(baseline_invoice['P'].values())==110060 and sum(baseline_invoice['T'].values())==22461\n  actual_delta={r:after['P'].get(r,0)-baseline_invoice['P'].get(r,0) for r in set(after['P'])|set(baseline_invoice['P']) if after['P'].get(r,0)!=baseline_invoice['P'].get(r,0)}\n  expected_delta={1:-34,2:34,3:-17,4:-17,5:17}\n  assert actual_delta==expected_delta and after['T']==baseline_invoice['T'], 'Fresh complete signed #7624 comparison'\n  def delta_from_source(prior):\n   ranks=set(baseline_invoice['P'])|set(prior['P'])|set(expected_delta)\n   return {r:baseline_invoice['P'].get(r,0)-prior['P'].get(r,0)+expected_delta.get(r,0) for r in ranks if baseline_invoice['P'].get(r,0)-prior['P'].get(r,0)+expected_delta.get(r,0)}\n  assert delta==delta_from_source(before) and peer_delta==delta_from_source(peer_invoice), 'Derived baseline comparisons'\n  candidate_invoice=read(FROZEN/'CANDIDATE-INVOICE.json')\n  assert normal(after['P'])==candidate_invoice['paid'] and normal(after['T'])==candidate_invoice['targets']\n  gate_path=FROZEN/'CONTACT7624-PRICE.json'\n  assert sha256(gate_path.read_bytes()).hexdigest()=='60b624c8f5c08ef7ba03d89c271504990cd62743159c9babe5c420f0f301c31b'\n  first_gate=read(gate_path)\n  assert first_gate['status']=='PROVISIONAL_UNDER_COMMON_U' and first_gate['bindings']['candidate_canonical_sha256']=='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'\n  assert first_gate['bindings']['original_word_canonical_sha256']=='c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de' and first_gate['bindings']['old_invoice_sha256']=='e3f1c1bb9516eb141f2c51b8cd12a9a55026f5968082083bd8d9fdb793a2e486'\n  assert sha256((FROZEN/'CANDIDATE-INVOICE.json').read_bytes()).hexdigest()==first_gate['candidate_invoice']['sha256'], 'First-gate candidate invoice bytes'\n  first_claim=Q(first_gate['claim']);first_probe=Q(first_gate['tested']);old_upper=Q(first_gate['old_published_raw_upper'])\n  assert old_upper<first_claim<first_probe\n"
+    },
+    {
+      "count": 1,
+      "label": "baseline upper diagnostic",
+      "new": "Current #7626 invoice rejects its certified upper bound",
+      "old": "Current #7624 invoice rejects its certified upper bound"
+    },
+    {
+      "count": 1,
+      "label": "baseline claim diagnostic",
+      "new": "Current #7626 rejects candidate claim",
+      "old": "Current #7624 rejects candidate claim"
+    },
+    {
+      "count": 1,
+      "label": "price output source key",
+      "new": "baseline_7626=baseline_invoice,baseline_7626_rejects_claim=True,baseline_7626_rejects_raw_upper=True,",
+      "old": "baseline_7624=baseline_invoice,baseline_7624_rejects_claim=True,baseline_7624_rejects_raw_upper=True,"
+    },
+    {
+      "count": 1,
+      "label": "fresh baseline native binding",
+      "new": "normal(baseline_native)==new_result['baseline7626_native']",
+      "old": "normal(baseline_native)==new_result['source_native']"
+    },
+    {
+      "count": 1,
+      "label": "fresh baseline native invoice binding",
+      "new": "native=new_result['baseline7626_native'],invoice=new_result['baseline7626_invoice'],",
+      "old": "native=new_result['source_native'],invoice=new_result['source_invoice'],"
+    },
+    {
+      "count": 1,
+      "label": "fresh baseline precision and gate",
+      "new": "precision=paired['source_7626'],gate=paired['baseline7626_gate'],price=paired['baseline7626_price'],",
+      "old": "precision=paired['source_7624'],gate=paired['source_gate'],price=paired['source_price'],"
+    },
+    {
+      "count": 1,
+      "label": "fresh baseline ordinary",
+      "new": "ordinary=paired_ordinary['source_7626'],",
+      "old": "ordinary=paired_ordinary['source_7624'],"
+    },
+    {
+      "count": 1,
+      "label": "fresh baseline dyadic height",
+      "new": "paired['source_7626']['word']['dyadic_height']",
+      "old": "paired['source_7624']['word']['dyadic_height']"
+    },
+    {
+      "count": 1,
+      "label": "baseline source gzip",
+      "new": "(FROZEN/'7626-WORD.json.gz').read_bytes()",
+      "old": "(FROZEN/'7624-WORD.json.gz').read_bytes()"
+    },
+    {
+      "count": 1,
+      "label": "baseline result source identity",
+      "new": "word_canonical_sha256='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'",
+      "old": "word_canonical_sha256='c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de'"
+    },
+    {
+      "count": 1,
+      "label": "baseline resource source identity",
+      "new": "native_word_sha256='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'",
+      "old": "native_word_sha256='c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de'"
+    },
+    {
+      "count": 1,
+      "label": "baseline 18 gate hash",
+      "new": "canonical(normal(paired['baseline7626_gate']))",
+      "old": "canonical(normal(paired['source_gate']))"
+    },
+    {
+      "count": 1,
+      "label": "baseline 18 result fields",
+      "new": "source_18_gate=paired['baseline7626_gate'],source_18_price=paired['baseline7626_price']",
+      "old": "source_18_gate=paired['source_gate'],source_18_price=paired['source_price']"
+    },
+    {
+      "count": 1,
+      "label": "catalogue consumer",
+      "new": "  # Closed coverage of the unchanged protected catalogue and caller.\n  assert type(size) is int and size>0 and catalogue\n  cursor=0\n  for item in catalogue:\n   assert all(type(item[k]) is int for k in ('catalogue_size','slice_start','slice_stop','checked_maps','main_boundary_pairs'))\n   assert item['catalogue_size']==size and item['slice_start']==cursor and item['slice_stop']>cursor\n   assert item['slice_stop']-cursor==item['checked_maps'] and item['checked_maps']<=1000 and item['word_sha256']==\"3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9\"\n   assert item['phase_control_rejected'] is True\n   cursor=item['slice_stop']\n  assert cursor==size and sum(x['checked_maps'] for x in catalogue)==size\n  assert sum(x['main_boundary_pairs'] for x in catalogue)==104\n  assert public_gate['outer']['strict_count']==54 and public_gate['outer']['functional_count']==4\n  with(HERE/'assemble_odd_application.py.log').open('w')as stream:",
+      "old": "  with(HERE/'assemble_odd_application.py.log').open('w')as stream:"
+    },
+    {
+      "count": 1,
+      "label": "signed status",
+      "new": "PASS_SWARM30_COMPLETE_SIGNED_APPLICATION",
+      "old": "PASS_CONTACT7624_COMPLETE_SIGNED_APPLICATION"
+    }
+  ],
+  "schema": "swarm30-signed-adapter/v1",
+  "source_helper_sha256": "85b8e86c1e5e4a2dbc2feb98d41b95bdd3c38a35842ff4bd97a0402d6e4f7119",
+  "source_runner_sha256": "5c48e9ef2c8d7f95bbeab8a25955fb9b2d62b02fe3e5d4fa159ad99effb7711e",
+  "status": "PREPARED_ONLY_NOT_EXECUTED"
+}

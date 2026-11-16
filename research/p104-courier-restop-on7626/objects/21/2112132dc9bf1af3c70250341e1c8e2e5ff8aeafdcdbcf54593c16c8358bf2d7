@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Independent source-bound chart-pair inventory, to run only in prepare stage.
+
+Reads literal word programs directly; does not import or execute agent 07 code.
+Output is an expectation for comparison, not a native validation receipt.
+"""
+import argparse
+import gzip
+import hashlib
+import json
+from pathlib import Path
+
+WORD_HASHES = {
+    'base': '64fca675b91298868e12f09423b47e0c2327cba7095e35c8919c1953b4ed68b8',
+    'source': 'c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de',
+    'prior': 'df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2',
+    'candidate': 'b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238',
+}
+EVIDENCE_SHA = '88de25922ac37156fcaee215467c0109cca9d4d2e326a49c0aa329ebb600e6e2'
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()
+
+
+def load_word(path, label):
+    raw = path.read_bytes()
+    obj = json.loads(gzip.decompress(raw))
+    require(sha(canonical(obj)) == WORD_HASHES[label], label + ' canonical mismatch')
+    require(type(obj) is dict and type(obj.get('public')) is int and obj['public'] > 0
+            and type(obj.get('program')) is list and obj['program'], label + ' word schema')
+    # Group MOVE events by their literal role, preserving event chronology.
+    by_role = {}
+    for event in obj['program']:
+        require(type(event) is list and event, label + ' event schema')
+        if event[0] != 'MOVE':
+            continue
+        require(len(event) >= 4 and type(event[1]) is int and event[1] >= 0 and
+                type(event[2]) is int and event[2] >= 0 and
+                type(event[3]) is int and event[3] >= 0, label + ' MOVE schema')
+        if event[1] < obj['public']:
+            by_role.setdefault(event[1], []).append((event[2], event[3]))
+    return obj['public'], by_role, sha(raw)
+
+
+def compare(left, right, count):
+    fields, edges = [], set()
+    for role in range(count):
+        before = left.get(role, [])
+        after = right.get(role, [])
+        if before != after:
+            fields.append(role)
+            edges.update(before)
+            edges.update(after)
+    return fields, edges
+
+
+def main():
+    p = argparse.ArgumentParser()
+    for name in ('base', 'source', 'prior', 'candidate', 'evidence', 'output'):
+        p.add_argument('--' + name, type=Path, required=True)
+    a = p.parse_args()
+    require(not a.output.exists(), 'output must be new')
+    words = {label: load_word(getattr(a, label), label) for label in WORD_HASHES}
+    count = words['base'][0]
+    require(all(word[0] == count for word in words.values()), 'public count mismatch')
+    evidence_raw = a.evidence.read_bytes()
+    require(sha(evidence_raw) == EVIDENCE_SHA, 'source evidence byte mismatch')
+    evidence = json.loads(evidence_raw)
+    require(evidence.get('status') == 'PASS_W3H_ADAPTED_COMPLETE_NATIVE' and
+            evidence.get('word_canonical_sha256') == WORD_HASHES['source'], 'source evidence identity')
+    rows = evidence['charts']['all_affected_pairs']
+    require(type(rows) is list and len(rows) == 1075, 'source pair count')
+    pinned = set()
+    for row in rows:
+        require(type(row) is dict and type(row.get('pair')) is list and len(row['pair']) == 2
+                and all(type(x) is int and x >= 0 for x in row['pair'])
+                and type(row.get('columns')) is int and row['columns'] == 512
+                and type(row.get('adjoint_columns')) is int and row['adjoint_columns'] == 512
+                and row.get('absolute_phase_verified') is True, 'invalid source row')
+        pair = tuple(row['pair'])
+        require(pair not in pinned, 'duplicate source pair')
+        pinned.add(pair)
+    source_fields, source_edges = compare(words['base'][1], words['source'][1], count)
+    prior_fields, prior_edges = compare(words['base'][1], words['prior'][1], count)
+    candidate_fields, candidate_edges = compare(words['base'][1], words['candidate'][1], count)
+    successor_fields, successor_edges = compare(words['prior'][1], words['candidate'][1], count)
+    require(len(source_fields) == 201 and source_edges == pinned, 'source route census mismatch')
+    require(prior_fields and candidate_fields and successor_fields and prior_edges and candidate_edges
+            and successor_edges, 'empty comparison')
+    result = {
+        'schema': 'swarm30-independent-native-pairs/v1',
+        'source_changed_fields': source_fields,
+        'prior_changed_fields': prior_fields,
+        'candidate_changed_fields': candidate_fields,
+        'successor_changed_fields': successor_fields,
+        'full_validation_pairs': [list(x) for x in sorted(pinned | source_edges | prior_edges | candidate_edges | successor_edges)],
+        'bindings': {'canonical_word_sha256': WORD_HASHES,
+                     'compressed_word_sha256': {label: words[label][2] for label in WORD_HASHES},
+                     'source_evidence_sha256': EVIDENCE_SHA},
+    }
+    a.output.write_text(json.dumps(result, sort_keys=True, indent=2) + '\n')
+
+
+if __name__ == '__main__':
+    main()

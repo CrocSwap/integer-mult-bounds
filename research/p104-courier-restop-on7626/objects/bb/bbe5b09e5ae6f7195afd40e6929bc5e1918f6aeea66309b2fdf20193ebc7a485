@@ -1,0 +1,48 @@
+import gzip,json,hashlib,collections,resource,signal
+resource.setrlimit(resource.RLIMIT_CPU,(60,60)); resource.setrlimit(resource.RLIMIT_AS,(256*1024*1024,256*1024*1024)); signal.alarm(120)
+p='outputs/kappa-swarm30-20261116/inputs/source7626-word.json.gz'
+b=open(p,'rb').read(); assert hashlib.sha256(b).hexdigest()=='501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+d=json.loads(gzip.decompress(b)); prog=d['program']; n=d['public']; assert len(prog)==77371
+exclude={902,1091,1445,1461,226,473,990}
+moves=collections.defaultdict(list); incidents=collections.defaultdict(list)
+for i,e in enumerate(prog):
+ if e[0]=='MOVE' and e[4] is False and e[1]<n: moves[e[1]].append((i,e[2],e[3]))
+ if e[0]=='ADD':
+  for r in e[1:3]: incidents[r].append((i,e))
+ elif e[0] in ('SCALE','COPY','CLEAR','INIT'):
+  for r in e[1:3]:
+   if isinstance(r,int) and 0<=r<n: incidents[r].append((i,e))
+intervals=collections.defaultdict(list); byrole={}
+for r in range(n):
+ es=moves[r]; start=-1; chart=d['initial'][r]; ls=[]
+ for t,a,b in es:
+  if chart!=a: raise ValueError('route mismatch')
+  ls.append((start,t,chart)); start=t; chart=b
+ ls.append((start,len(prog),chart)); byrole[r]=ls
+ for j,(s,t,c) in enumerate(ls): intervals[c].append((r,j,s,t))
+late=[]
+for r,es in moves.items():
+ for j in range(len(es)-1):
+  x,y=es[j],es[j+1]
+  if x[0]>=38685: late.append((x[0],r,j,x,y))
+late.sort(); considered=0; excluded=0; out=[]; truncated=False
+for t0,s,j,x,y in late:
+ if s in exclude: excluded+=1; continue
+ considered+=1; t1=y[0]; a,m,b=x[1],x[2],y[2]; end=byrole[s][j+2][1]
+ for r,k,ds,de in sorted(intervals[a]):
+  if r==s or r in exclude or not (ds<t0<de): continue
+  ls=byrole[r]
+  for v in range(k+1,len(ls)):
+   ms,me,mc=ls[v]
+   if ms>t1: break
+   if mc!=m or not (ms<t1 and me>t0): continue
+   for w in range(v+1,len(ls)):
+    bs,be,bc=ls[w]
+    if bs>=end: break
+    if bc!=b or not (bs<end and be>t1): continue
+    out.append({'S':s,'D':r,'t0':t0,'t1':t1,'a':a,'m':m,'b':b,'D_m_interval':[ms,me],'D_b_interval':[bs,be], 'S_incident_t0_t1':[i for i,e in incidents[s] if t0<i<t1], 'D_incident_t0_b':[i for i,e in incidents[r] if t0<i<min(end,be)]})
+    if len(out)==30: truncated=True; break
+   if truncated: break
+  if truncated: break
+ if truncated: break
+print(json.dumps({'late_middle_total':len(late),'transit_excluded_seen':excluded,'transit_examined':considered,'tuples':out,'limit_reached':truncated,'remaining_transit_stops_unexamined':len(late)-excluded-considered,'note':'co-presence is only interval overlap; encodability, exact chart span inclusion, observers, invoice, actual rank, algebra and gain untested'},indent=2))

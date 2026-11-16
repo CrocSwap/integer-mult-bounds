@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Data-only composition of two source-clock manifests; no scientific imports."""
+import copy
+import gzip
+import hashlib
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+
+def need(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+def main():
+    source_path = ROOT/'inputs/source7626-word.json.gz'
+    data = source_path.read_bytes()
+    source = json.loads(gzip.decompress(data))
+    source_hash = digest(canonical(source))
+    need(digest(data) == '501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0', 'source bytes')
+    need(source_hash == 'df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2', 'source canonical')
+    program = source['program']
+    combined = {'schema':'swarm30-literal-edits-v1', 'source_head':'5987b208bc05d066f01f800a3d88538cb216eccd',
+                'source_canonical_sha256':source_hash, 'source_gzip_sha256':digest(data),
+                'source_events':len(program), 'delete':[], 'insert_before':[], 'components':[]}
+    for name in ('01-courier', '02-restop'):
+        manifest_path = ROOT/'agents'/name/'EDITS.json'
+        raw = manifest_path.read_bytes()
+        manifest = json.loads(raw)
+        need(all(manifest[key] == combined[key] for key in ('source_head','source_canonical_sha256','source_gzip_sha256','source_events')), 'component source mismatch')
+        for kind in ('delete', 'insert_before'):
+            for row in manifest[kind]:
+                item = copy.deepcopy(row)
+                index = item.pop('source_index', item.pop('source_clock', None))
+                need(type(index) is int and 0 <= index < len(program), 'clock')
+                item['source_index'] = index
+                combined[kind].append(item)
+        combined['components'].append({'name':name, 'manifest_sha256':digest(raw), 'word_gzip_sha256':digest((manifest_path.parent/'candidate-word.json.gz').read_bytes())})
+    deleted = {}
+    inserted = {}
+    for row in combined['delete']:
+        index = row['source_index']
+        need(index not in deleted and program[index] == row['event'], 'delete collision or literal')
+        need(sum(event == row['event'] for event in program) == 1, 'delete not unique')
+        deleted[index] = row['event']
+    for row in combined['insert_before']:
+        index = row['source_index']
+        need(index not in inserted and type(row['events']) is list and row['events'], 'insert collision or empty')
+        if 'anchor' in row:
+            need(row['anchor'] == program[index], 'insert anchor')
+        inserted[index] = row['events']
+    new = []
+    origins = []
+    for index, event in enumerate(program):
+        for item in inserted.get(index, []):
+            new.append(item)
+            origins.append(None)
+        if index not in deleted:
+            new.append(event)
+            origins.append(index)
+    candidate = dict(source, program=new)
+    need(len(new) == len(program)+2, 'combined event delta')
+    need({key:value for key,value in candidate.items() if key != 'program'} == {key:value for key,value in source.items() if key != 'program'}, 'header')
+    target = ROOT/'agents/joint'
+    target.mkdir(exist_ok=False)
+    payload = canonical(candidate)
+    packed = gzip.compress(payload, mtime=0)
+    (target/'candidate-word.json.gz').write_bytes(packed)
+    (target/'EDITS.json').write_text(json.dumps(combined, indent=2, sort_keys=True)+'\n')
+    (target/'ORIGINS.json').write_text(json.dumps(origins)+'\n')
+    result = {'status':'DATA_ONLY_COMPOSED_NOT_REPLAYED', 'candidate_gzip_sha256':digest(packed), 'candidate_canonical_sha256':digest(payload),
+              'source_events':len(program), 'candidate_events':len(new), 'deleted':len(deleted), 'inserted':sum(map(len, inserted.values())),
+              'manifest_sha256':digest((target/'EDITS.json').read_bytes()), 'origins_sha256':digest((target/'ORIGINS.json').read_bytes()),
+              'source_canonical_sha256':source_hash, 'components':combined['components']}
+    (target/'BUILD.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+    print(json.dumps(result, sort_keys=True))
+
+if __name__ == '__main__':
+    main()

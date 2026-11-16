@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""One bounded literal exact/provisional-price gate, not full qualification."""
+import argparse
+from fractions import Fraction
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+def need(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def read(path):
+    return json.loads(Path(path).read_bytes())
+
+def write(path, value):
+    Path(path).write_text(json.dumps(value, indent=2, sort_keys=True)+'\n')
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--plan',required=True)
+    parser.add_argument('--out',required=True)
+    args=parser.parse_args()
+    out=Path(args.out).resolve()
+    out.mkdir(exist_ok=False)
+    started=time.monotonic()
+    result={'status':'INCOMPLETE','qualified_kappa':False,'stages':[],'case_pins':{}}
+    def run(name,argv,limit):
+        remaining=580-(time.monotonic()-started)
+        need(remaining>0,'whole inner deadline')
+        before=time.monotonic()
+        environment={k:v for k,v in os.environ.items() if not k.upper().startswith('PYTHON')}
+        environment.update(OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1')
+        with (out/(name+'.stdout')).open('x') as stdout,(out/(name+'.stderr')).open('x') as stderr:
+            process=subprocess.run(argv,stdout=stdout,stderr=stderr,env=environment,timeout=min(limit,remaining),check=False)
+        result['stages'].append({'name':name,'argv':argv,'exit_code':process.returncode,'wall_seconds':time.monotonic()-before})
+        write(out/'PARTIAL.json',result)
+        need(process.returncode==0,'failed stage '+name)
+    try:
+        plan=read(args.plan)
+        need(plan['schema']=='swarm30-firstgate-plan/v1','plan schema')
+        need(set(plan['cases'])=={'courier','restop','joint'},'exact case names')
+        need(plan['source']['canonical_sha256']=='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2','source canonical')
+        for item in plan['files']:
+            path=Path(item['path'])
+            need(path.is_file() and not path.is_symlink() and sha(path)==item['sha256'],'frozen firstgate file '+str(path))
+        frozen={item['path']:item['sha256'] for item in plan['files']}
+        def bound(path):
+            need(str(Path(path).resolve()) in frozen,'unbound path '+path)
+        for path in (plan['source']['path'],plan['source']['metadata'],plan['checker'],plan['pricing'],*plan['pricing_inputs'].values()):
+            bound(path)
+        exact_args=[sys.executable,'-I','-B',plan['checker'],'--source',plan['source']['path'],'--source-metadata',plan['source']['metadata']]
+        canonical_seen={plan['source']['canonical_sha256']}
+        for name in ('courier','restop','joint'):
+            case=plan['cases'][name]
+            for path in (case['word'],case['manifest']):
+                bound(path)
+            need(case['canonical_sha256'] not in canonical_seen,'repeated or unchanged case')
+            canonical_seen.add(case['canonical_sha256'])
+            need(sha(case['word'])==case['gzip_sha256'] and sha(case['manifest'])==case['manifest_sha256'],'case binding '+name)
+            result['case_pins'][name]=case
+            exact_args+=['--case',name,case['word'],case['manifest']]
+        exact_args+=['--out',str(out/'exact')]
+        run('controls-normal',[sys.executable,'-I','-B',plan['checker'],'--controls-only'],10)
+        run('controls-optimized',[sys.executable,'-I','-O','-B',plan['checker'],'--controls-only'],10)
+        run('exact',exact_args,500)
+        exact=read(out/'exact/result.json')
+        need(exact['status']=='PASS_LITERAL_EXACT_ONLY' and len(exact['cases'])==3,'exact result incomplete')
+        need({item['name'] for item in exact['cases']}==set(plan['cases']),'exact result case census')
+        for item in exact['cases']:
+            case=plan['cases'][item['name']]
+            need(item['status']=='PASS' and all(item[key]==case[key] for key in ('gzip_sha256','canonical_sha256','manifest_sha256')),'exact result case mismatch')
+        need(len(exact['controls'])==8 and all(item['rejected'] is True for item in exact['controls']),'actual mutation controls')
+        source_counts=exact['source']['counts']
+        need((source_counts['clears'],source_counts['interfaces'],source_counts['copies'],source_counts['owned'])==(204,700,1,455),'exact source positive denominator')
+        price_args=[sys.executable,'-I','-B',plan['pricing'],'--source',plan['source']['path']]
+        for option,key in (('--invoice','invoice'),('--engine','engine'),('--compare','compare'),('--interval','interval')):
+            price_args += [option,plan['pricing_inputs'][key]]
+        for name in ('courier','restop','joint'):
+            price_args+=['--variant',name+'='+plan['cases'][name]['word']]
+        price_args+=['--out',str(out/'PRICE.json')]
+        run('pricing',price_args,60)
+        price=read(out/'PRICE.json')
+        need(price['status']=='PROVISIONAL_DECLARED_INVOICE_ONLY' and set(price['variants'])==set(plan['cases']),'price scope or case census')
+        need(price['source']['canonical_sha256']==plan['source']['canonical_sha256'],'price source binding')
+        for name,variant in price['variants'].items():
+            case=plan['cases'][name]
+            need(variant['word']['canonical_sha256']==case['canonical_sha256'] and variant['word']['gzip_sha256']==case['gzip_sha256'],'price/exact input binding '+name)
+        joint=price['variants']['joint']
+        bracket=joint['provisional_bracket']
+        need(joint['interval_classification']=='positive' and joint['integer_power_classification']=='new_cost_lower','joint declared price not positive')
+        need(joint['paid_delta'] or joint['target_delta'],'unchanged complete profile')
+        need(bracket['status']=='PROVISIONAL_ABOVE_FULL_UPPER','no conservative claim above comparator full upper')
+        need(Fraction(bracket['claim'])>Fraction(plan['comparator_full_upper']),'claim threshold')
+        need(Fraction(joint['moment_interval'][0])>0,'directed positive lower')
+        for item in plan['files']:
+            need(sha(item['path'])==item['sha256'],'source changed during gate')
+        result.update(status='PASS_EXACT_AND_PROVISIONAL_PRICE_NOT_QUALIFIED',exact_result_sha256=sha(out/'exact/result.json'),price_sha256=sha(out/'PRICE.json'),provisional_claim=bracket['claim'],provisional_tested=bracket['tested'],joint_candidate_canonical_sha256=plan['cases']['joint']['canonical_sha256'])
+    except BaseException as error:
+        result['error']={'type':type(error).__name__,'message':str(error)}
+    finally:
+        result['wall_seconds']=time.monotonic()-started
+        write(out/'RESULT.json',result)
+        print(json.dumps({'status':result['status'],'qualified_kappa':False,'error':result.get('error'),'wall_seconds':result['wall_seconds']},sort_keys=True),flush=True)
+    return 0 if result['status']=='PASS_EXACT_AND_PROVISIONAL_PRICE_NOT_QUALIFIED' else 1
+
+if __name__=='__main__':
+    raise SystemExit(main())

@@ -1,0 +1,191 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Counted overlay of pinned prepared #7626 native runner, no science here.
+
+No qualification is conferred by constructing this adapter. A controlling job
+must validate first-gate/controller/freeze and isolate the shim, then execute
+this overlay under the authorized resource envelope. See INPUT-CONTRACT.md.
+"""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+ORIGINAL_SHA = '97fe99b0d7f7b525d73ae1ae26f5fd479181237857b4ea321f7bdc6efb338217'
+BASE = 'df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'
+CAND = 'b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'
+BASE_GZ = '501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+CAND_GZ = '3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'
+BASE_NATIVE_SHA = '2cf79508c3dbffb56a1f0609710ccc921590dd4747850279edefe8f71238b682'
+
+
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def need(ok, message):
+    if not ok: raise ValueError(message)
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--runner', type=Path, required=True)
+    p.add_argument('--word-binding', type=Path, required=True)
+    p.add_argument('--pair-binding', type=Path, required=True)
+    p.add_argument('--out', type=Path, required=True)
+    p.add_argument('--ledger', type=Path, required=True)
+    a = p.parse_args()
+    raw = a.runner.read_bytes()
+    need(sha(raw) == ORIGINAL_SHA, 'exact prepared #7626 runner required')
+    need(not a.out.exists() and not a.ledger.exists(), 'outputs must be new')
+    word_sha = sha(a.word_binding.read_bytes()); pair_sha = sha(a.pair_binding.read_bytes())
+    text = raw.decode('utf-8'); edits = []
+    def patch(label, old, new):
+        nonlocal text
+        need(text.count(old) == 1, label + ': anchor count')
+        text = text.replace(old, new, 1)
+        edits.append({'label': label, 'old_sha256': sha(old.encode()),
+                      'new_sha256': sha(new.encode()), 'occurrences': 1})
+    def region(label, start, end, replacement):
+        nonlocal text
+        need(text.count(start) == 1 and text.count(end) == 1, label + ': boundary count')
+        i = text.index(start); j = text.index(end, i); old = text[i:j]
+        text = text[:i] + replacement + text[j:]
+        edits.append({'label': label, 'old_sha256': sha(old.encode()),
+                      'new_sha256': sha(replacement.encode()), 'occurrences': 1})
+
+    patch('candidate hash', "EXPECTED='"+BASE+"'", "EXPECTED='"+CAND+"'")
+    region('full pair census',
+           "    old_routes,new_routes=routes(before),routes(source7624)\n",
+           "    report=[]\n    for a,b in sorted(affected):",
+'''    # Original #7624 source census, #7626 baseline, and actual successor.
+    frozen=ROOT/'frozen-composition'
+    pair_module=frozen/'swarm30_native_pairs.py'
+    need(sha256(pair_module.read_bytes()).hexdigest()=='@PAIR_MODULE_SHA@','Pinned pair adapter')
+    pairlib=module('swarm30_native_pairs',pair_module)
+    baseline=read(frozen/'7626-WORD.json.gz')
+    need(sha256((frozen/'7626-WORD.json.gz').read_bytes()).hexdigest()=='@BASE_GZ@','Exact #7626 gzip')
+    evidence_path=frozen/'7624-NATIVE.json'
+    need(sha256(evidence_path.read_bytes()).hexdigest()=='88de25922ac37156fcaee215467c0109cca9d4d2e326a49c0aa329ebb600e6e2','Source #7624 census evidence')
+    evidence=read(evidence_path)
+    need(evidence['status']=='PASS_W3H_ADAPTED_COMPLETE_NATIVE' and evidence['word_canonical_sha256']=='c14f365d254598f6a2daa349b47f815d20c649f0439cc36897b531412e19a3de','Source #7624 census identity')
+    cfg=read(ROOT/'SWARM30-NATIVE-INPUTS.json')
+    pair_expected=Path(cfg['pair_expected_path'])
+    need(sha256(pair_expected.read_bytes()).hexdigest()==cfg['pair_expected_sha256'],'Independent pair expectation hash')
+    pairs=pairlib.build(before,source7624,baseline,word,evidence['charts']['all_affected_pairs'],EXPECTED,read(pair_expected))
+    affected={tuple(x) for x in pairs['full_validation_pairs']}
+    need(affected and len(affected)==len(pairs['full_validation_pairs']),'Positive unique complete union')
+    changed=pairs['candidate_changed_fields']
+'''.replace('@PAIR_MODULE_SHA@', pair_sha).replace('@BASE_GZ@', BASE_GZ))
+    patch('chart receipt self-check',
+          "    return {'all_affected_pairs':report,'changed_public_fields':changed,'wrong_phase_rejected':True}",
+          "    receipt={'all_affected_pairs':report,'changed_public_fields':changed,'wrong_phase_rejected':True}\n    pairlib.validate_chart_receipt(receipt,pairs)\n    return receipt")
+    patch('literal predecessor binding',
+          "contact['candidate_canonical_sha256']==EXPECTED,'Five unique edits'",
+          "contact['candidate_canonical_sha256']=='"+BASE+"','Five unique predecessor edits'")
+    patch('successor full literal projection',
+          "        need(new==dict(source7624,program=successor),'Literal candidate splice')",
+'''        baseline=read(ROOT/'frozen-composition/7626-WORD.json.gz')
+        need(baseline==dict(source7624,program=successor),'Literal #7626 predecessor splice')
+        binding_path=ROOT/'frozen-composition/swarm30_word_binding.py'
+        need(sha256(binding_path.read_bytes()).hexdigest()=='@WORD_MODULE_SHA@','Pinned literal adapter')
+        binding=module('swarm30_word_binding',binding_path)
+        projection=binding.check((ROOT/'frozen-composition/7626-WORD.json.gz').read_bytes(),
+            (CANDIDATE/'WORD.json.gz').read_bytes(),(ROOT/'frozen-composition/SWARM30-EDITS.json').read_bytes(),
+            (ROOT/'frozen-composition/SWARM30-ORIGINS.json').read_bytes())
+        need(projection['candidate_canonical_sha256']==EXPECTED,'Successor projection bound')'''.replace('@WORD_MODULE_SHA@', word_sha))
+    # First-gate results are read and bound in the actual native run, not implied by adapter preparation.
+    patch('fresh gate evidence',
+          "    previous=read(SOURCE/'NATIVE-RESULT.json')",
+'''    cfg=read(ROOT/'SWARM30-NATIVE-INPUTS.json')
+    need(cfg['schema']=='swarm30-native-inputs/v1' and cfg['source_canonical_sha256']=='@BASE@' and cfg['candidate_canonical_sha256']==EXPECTED and cfg['candidate_gzip_sha256']=='@CAND_GZ@','Native input descriptor identity')
+    for kind in ('exact','screen','controller','job','pair_expected'):
+        path=Path(cfg[kind+'_path'])
+        need(path.is_file() and not path.is_symlink() and sha256(path.read_bytes()).hexdigest()==cfg[kind+'_sha256'],'Bound gate input '+kind)
+    control=read(Path(cfg['controller_path']))
+    need(control['differential_case_completed'] is True and control['group_empty'] is True and control['verified_before_release'] is True and control['returncode']==0,'First-gate controller incomplete')
+    job=read(Path(cfg['job_path']))
+    need(job['status']=='PASS_EXACT_AND_PROVISIONAL_PRICE_NOT_QUALIFIED' and job['qualified_kappa'] is False and job['exact_result_sha256']==cfg['exact_sha256'] and job['price_sha256']==cfg['screen_sha256'] and job['joint_candidate_canonical_sha256']==EXPECTED,'First-gate job binding')
+    exact=read(Path(cfg['exact_path']))
+    need(exact['status']=='PASS_LITERAL_EXACT_ONLY','Exact first gate')
+    cases=[x for x in exact['cases'] if x['name']==cfg['case_name']]
+    need(len(cases)==1 and cases[0]['status']=='PASS' and cases[0]['canonical_sha256']==EXPECTED and cases[0]['gzip_sha256']=='@CAND_GZ@' and cases[0]['manifest_sha256']=='5a3e0bcad804b9c91758bd2acdf8fa9490a8202e98b9b58305477b70f83a9857','Exact gate case')
+    need(len(exact['controls'])==8 and {x['name'] for x in exact['controls']}=={'boolean_clock','duplicate_clock','wrong_literal','deleted_clear','preloan','sign','missing_decode','ownership'} and all(x['rejected'] is True for x in exact['controls']),'Actual first-gate rejection controls')
+    sc=exact['source_free_controls']
+    required={'dirty_copy','both_empty','missing_reference','empty_event_inventory','identity_public_final'} | {prefix+kind for prefix in ('missing_','duplicate_','missing_reference_') for kind in ('clear','owned','interface','copy')}
+    need(sc['status']=='PASS_SOURCE_FREE_CONTROLS' and set(sc['positive'])=={'dirty_entry','init_reset','copy_prewrite_and_assignment','clear_pre_reset','nonidentity_public_final'} and len(sc['rejected'])==len(required) and set(sc['rejected'])==required,'Source-free controls')
+    screen=read(Path(cfg['screen_path']))
+    need(screen['status']=='PROVISIONAL_DECLARED_INVOICE_ONLY' and screen['source']['canonical_sha256']=='@BASE@' and screen['variants'][cfg['case_name']]['word']['canonical_sha256']==EXPECTED and screen['variants'][cfg['case_name']]['word']['gzip_sha256']=='@CAND_GZ@','Price screen binding')
+    need(screen['variants'][cfg['case_name']]['interval_classification']=='positive' and screen['variants'][cfg['case_name']]['integer_power_classification']=='new_cost_lower' and Q(screen['comparator_full_upper'])==Q(25188234281719,6871947673600000) and Q(screen['point'])>Q(screen['comparator_full_upper']),'Exact ceiling screen')
+    bracket=screen['variants'][cfg['case_name']]['provisional_bracket']
+    need(bracket['status']=='PROVISIONAL_ABOVE_FULL_UPPER' and bracket['claim']==job['provisional_claim'] and bracket['tested']==job['provisional_tested'] and Q(bracket['claim'])>Q(screen['comparator_full_upper']) and Q(bracket['tested'])>Q(bracket['claim']),'Candidate claim and probe binding')
+    previous=read(SOURCE/'NATIVE-RESULT.json')'''.replace('@BASE@', BASE).replace('@CAND_GZ@', CAND_GZ))
+    patch('paired fresh native inventories',
+          "        sourceN=I.native(source7624)",
+'''        sourceN=I.native(source7624)
+        baselineN=I.native(baseline)
+        census=screen['variants'][cfg['case_name']]['census']; baseline_census=screen['source_census']
+        need(normalized(N['paid'])==census['native_paid'] and normalized(N['helpers'])==census['native_targets'] and normalized(N['rises'])==census['owned_rises'] and N['events']==census['events'] and N['lifetimes']==census['lifetimes'] and N['owned_peak']==census['peak'],'Fresh candidate matches first-gate census')
+        need(normalized(baselineN['paid'])==baseline_census['native_paid'] and normalized(baselineN['helpers'])==baseline_census['native_targets'] and normalized(baselineN['rises'])==baseline_census['owned_rises'],'Fresh baseline matches first-gate census')
+        baseline_result_path=ROOT/'frozen-composition/7626-NATIVE-RESULT.json'
+        need(sha256(baseline_result_path.read_bytes()).hexdigest()=='@BASE_NATIVE_SHA@','Exact #7626 native result')
+        baseline_result=read(baseline_result_path)
+        need(baseline_result['word_canonical_sha256']=='@BASE@' and normalized(baselineN)==baseline_result['native'] and not baselineN['bad_inputs'],'Fresh #7626 native inventory')'''.replace('@BASE_NATIVE_SHA@', BASE_NATIVE_SHA).replace('@BASE@', BASE))
+    patch('fresh baseline delta',
+          "need(not sourceN['bad_inputs'] and delta(N['paid'],sourceN['paid'])=={1:-2,2:2,3:-1,4:-1,5:1},'Fresh #7624 native paid delta')",
+          "need(not sourceN['bad_inputs'] and delta(baselineN['paid'],sourceN['paid'])=={1:-2,2:2,3:-1,4:-1,5:1} and delta(N['paid'],baselineN['paid']), 'Fresh baseline and changed candidate paid profiles')")
+    patch('peer paid fixed delta',
+          "        need(delta(N['paid'],peerN['paid'])=={1:-17,2:104,3:-206,4:80,5:9,6:9,8:1},'Exact additional helper757 native saving')",
+          "        need(delta(baselineN['paid'],peerN['paid'])=={1:-17,2:104,3:-206,4:80,5:9,6:9,8:1},'Exact #7626 predecessor paid delta')")
+    patch('old paid fixed delta',
+          "        need(delta(N['helpers'],oldN['helpers'])=={} and delta(N['paid'],oldN['paid'])=={1:-22,2:98,3:-206,4:81,5:9,6:10,7:1,8:1},'Exact paid delta and all helper targets')",
+          "        need(delta(N['helpers'],oldN['helpers'])=={} and delta(baselineN['paid'],oldN['paid'])=={1:-22,2:98,3:-206,4:81,5:9,6:10,7:1,8:1},'Predecessor paid delta and candidate helper targets')")
+    patch('instruction count', "len(new['program'])==len(old['program'])+899", "len(new['program'])==len(old['program'])+901")
+    patch('baseline fresh invoice',
+          "        source_invoice=I.invoices(source7624,C,sourceN)",
+'''        source_invoice=I.invoices(source7624,C,sourceN)
+        baseline_invoice=I.invoices(baseline,C,baselineN)
+        need(normalized(baseline_invoice)==baseline_result['invoice'],'Fresh #7626 ingredient invoice')
+        need(normalized(baseline_invoice['T'])==normalized(invoice['T']),'Baseline/candidate ingredient target equality')''')
+    patch('baseline ordinary',
+          "        need(source_ordinary['margin_to_billion']>0,'Source full ordinary allowance')",
+'''        need(source_ordinary['margin_to_billion']>0,'Source full ordinary allowance')
+        baseline_ordinary=I.ordinary(baseline,C,baselineN)
+        baseline_ordinary['caller_items']['B']['fused_routes']=routes
+        for k in ('caller_total','raw_upper','conservative_total'): baseline_ordinary[k]+=route_delta
+        baseline_ordinary['extra_B_scalar_surcharge']=surcharge;baseline_ordinary['conservative_total']+=surcharge
+        baseline_ordinary['margin_to_billion']=10**9-baseline_ordinary['conservative_total']
+        need(baseline_ordinary['margin_to_billion']>0 and normalized(baseline_ordinary)==baseline_result['ordinary'],'Fresh #7626 complete ingredient ordinary')''')
+    patch('baseline precision and gate',
+          "        source_precision=base.precision(vendor,source7624,C,source_gate,manifest)",
+'''        source_precision=base.precision(vendor,source7624,C,source_gate,manifest)
+        baseline_gate,baseline_price=G.exact_price(vendor,archive,before,baseline_invoice,previous)
+        baseline_precision=base.precision(vendor,baseline,C,baseline_gate,manifest)
+        need(normalized(baseline_precision)==baseline_result['precision'],'Fresh #7626 ingredient precision')''')
+    patch('baseline common precision',
+          "need(source_precision['context_c']==precision['context_c'],'Common ingredient precision context')",
+          "need(source_precision['context_c']==baseline_precision['context_c']==precision['context_c'],'Common ingredient precision context')")
+    patch('result source additions',
+          "native=N,source_native=sourceN,source_invoice=source_invoice,forward=forward_receipt",
+          "native=N,source_native=sourceN,source_invoice=source_invoice,baseline7626_native=baselineN,baseline7626_invoice=baseline_invoice,forward=forward_receipt")
+    patch('result ordinary addition',
+          "'source_7624':source_ordinary,'candidate':ordinary",
+          "'source_7624':source_ordinary,'source_7626':baseline_ordinary,'candidate':ordinary")
+    patch('result precision addition',
+          "'source_7624':source_precision,'candidate':precision,'source_gate':source_gate,'source_price':source_price",
+          "'source_7624':source_precision,'source_7626':baseline_precision,'candidate':precision,'source_gate':source_gate,'source_price':source_price,'baseline7626_gate':baseline_gate,'baseline7626_price':baseline_price")
+    patch('new native status', "status='PASS_CONTACT7624_COMPLETE_NATIVE'", "status='PASS_SWARM30_COMPLETE_NATIVE'")
+    # Lock protected checks and inherited corruption controls against accidental omission.
+    for anchor in ("for column in range(512):need(interpreter.state(x,column)==interpreter.state(y,column)",
+                   "controls['wrong_902_1091_contact_source']", "controls['missing_902_paid_move']",
+                   "controls['extra_uncharged_owned_lifetime']", "controls['insufficient_odd_grid']",
+                   "controls['insufficient_fractional_grid']", "forward_endpoint(new,forward[0])",
+                   "vendor/'frozen/verify_host3_odd.py'", "vendor/'frozen/physical.py'",
+                   "need(all(controls.values()),'Every corruption control rejected')"):
+        need(text.count(anchor)==1, 'protected runner anchor '+anchor)
+    compile(text, str(a.out), 'exec')
+    a.out.write_bytes(text.encode())
+    ledger={'schema':'swarm30-native-adapter/v1','status':'PREPARED_ONLY_NOT_EXECUTED',
+            'source_runner_sha256':ORIGINAL_SHA,'adapted_runner_sha256':sha(text.encode()),
+            'word_binding_sha256':word_sha,'pair_binding_sha256':pair_sha,
+            'source7626_canonical_sha256':BASE,'candidate_canonical_sha256':CAND,
+            'candidate_gzip_sha256':CAND_GZ,'edits':edits}
+    a.ledger.write_text(json.dumps(ledger,sort_keys=True,indent=2)+'\n')
+
+if __name__=='__main__': main()

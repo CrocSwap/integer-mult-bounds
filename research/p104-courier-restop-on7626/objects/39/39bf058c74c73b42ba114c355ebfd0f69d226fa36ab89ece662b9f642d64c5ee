@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""One source-bound successor application. All science only on explicit --stage.
+
+Prepared for the parent-controlled single bounded job. This file is not a
+controller: parent must freeze the complete source closure, enforce cgroup,
+limits/deadlines, no retry, cleanup, and preserve primary/secondary failures.
+"""
+import argparse, hashlib, importlib.util, json, os, shutil, subprocess, sys, uuid
+from pathlib import Path
+
+HERE=Path(__file__).resolve().parent
+OLD=HERE.parent.parent/'kappa-research-20261116b'
+BASE='df521d552dc35de6271e67655e4f9c466bc9247d37a5196b85613870209106a2'
+BASE_GZ='501876971143a0588403d653852b2305893d9b385be94f0f5d7134ebd97e03f0'
+CAND='b80b6e74bff87c8d8160c5e121dac7c68df0827a7061847b896075417a346238'
+CAND_GZ='3b0947df9d291308279a00e009f9c1f845151b5b40f81960a53a2949cb44c9a9'
+BASE_INV='e8fc28dd2cf09256c1895ddb1a759b1a6cc2911899a2b16dd33aa5ff366f2cf2'
+BASE_NATIVE='2cf79508c3dbffb56a1f0609710ccc921590dd4747850279edefe8f71238b682'
+OLD_NATIVE_RUNNER='97fe99b0d7f7b525d73ae1ae26f5fd479181237857b4ea321f7bdc6efb338217'
+OLD_SIGNED_RUNNER='5c48e9ef2c8d7f95bbeab8a25955fb9b2d62b02fe3e5d4fa159ad99effb7711e'
+HELPER='85b8e86c1e5e4a2dbc2feb98d41b95bdd3c38a35842ff4bd97a0402d6e4f7119'
+SHIM='918d245bd2a398dde8b3ef923aa17dc160bbe7cf645e0ec28d876d0a341ab620'
+U='ba33b4baedc5250995c98c32a32a963ee9d3d573f11d000bb72174a7be346db9'
+
+def need(x,m):
+    if not x: raise ValueError(m)
+def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def read(p): return json.loads(Path(p).read_bytes())
+def write(p,o):
+    with Path(p).open('x') as f: json.dump(o,f,sort_keys=True,indent=2);f.write('\n')
+def copy_new(src,dst,expected=None):
+    src=Path(src);dst=Path(dst);need(src.is_file() and not src.is_symlink() and not dst.exists(),'copy custody '+str(src));dst.parent.mkdir(parents=True,exist_ok=True)
+    if expected: need(sha(src)==expected,'source hash '+str(src))
+    with dst.open('xb') as f:f.write(src.read_bytes())
+    need(sha(src)==sha(dst),'copy mismatch');return dst
+
+def load(name,path):
+    spec=importlib.util.spec_from_file_location(name,path);obj=importlib.util.module_from_spec(spec);spec.loader.exec_module(obj);return obj
+
+def clean_env(work):
+    env={k:v for k,v in os.environ.items() if not k.upper().startswith('PYTHON')}
+    env.update(TMPDIR=str(work/'isolated'),TEMP=str(work/'isolated'),TMP=str(work/'isolated'),PYTHONPYCACHEPREFIX=str(work/'isolated/pycache'),OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1')
+    return env
+
+def code_paths(root):
+    return {'native_overlay':root/'agents/07-native/native-overlay-repaired.py','native_adapter':root/'agents/07-native/NATIVE-ADAPTER-repaired.json',
+      'native_consumer':root/'agents/07-native/native_consumer.py','native_pairs':root/'agents/07-native/native_pairs.py','word_binding':root/'agents/07-native/word_binding.py',
+      'signed_overlay':root/'agents/08-signed/signed-overlay.py','signed_adapter':root/'agents/08-signed/ADAPTER.json','consumer':root/'agents/08-signed/application_consumer.py',
+      'pair_generator':root/'agents/28-custody/independent_pairs.py','certificates':root/'agents/05-owned-return/stage.py','resources':root/'agents/29-ordinary/resources.py'}
+
+def first_paths(root):
+    return {'first':root/'firstgate-run/case/RESULT.json','exact':root/'firstgate-run/case/exact/result.json',
+      'price':root/'firstgate-run/case/PRICE.json','control':root/'firstgate-control/RESULT.json'}
+
+def first_checks(root, consumer, freeze):
+    spec=read(freeze);rows=spec['files'];need(type(rows) is list and rows,'empty full freeze')
+    p=first_paths(root); result=consumer.preflight(p['first'],p['exact'],p['price'],p['control'],rows)
+    inventory={str(Path(row['path']).resolve()):row for row in rows}
+    required=list(code_paths(root).values())+[HERE/'application.py',HERE/'COMMON-U.json',OLD/'qualification7624/application.py',
+      root/'inputs/source7626-word.json.gz',root/'inputs/pricing/invoice7626.json',root/'agents/joint/candidate-word.json.gz',
+      root/'agents/joint/EDITS.json',root/'agents/joint/ORIGINS.json',OLD/'qualification7624_signed_completion/run/case/work/producer54/validation_native/NATIVE-RESULT.json']
+    need(all(str(x.resolve()) in inventory for x in required),'required executable/input not in full freeze')
+    for predecessor in (OLD/'qualification7624/FREEZE.json',OLD/'compose7624_completion/FREEZE.json'):
+        need(str(predecessor.resolve()) in inventory,'missing predecessor freeze')
+        for item in read(predecessor)['files']:
+            key=str(Path(item['path']).resolve());need(key in inventory and inventory[key]['sha256']==item['sha256'] and inventory[key]['bytes']==item['bytes'],'predecessor freeze closure '+key)
+    return result
+
+def stage_subprocess(args,work,log):
+    with Path(log).open('x') as f:
+        p=subprocess.run(args,cwd=work,env=clean_env(work),stdout=f,stderr=subprocess.STDOUT,check=False)
+    need(p.returncode==0,'stage failed '+str(log)+' rc='+str(p.returncode))
+
+def prepare(root,work,freeze):
+    need(not work.exists(),'fresh work required')
+    oldapp=OLD/'qualification7624/application.py';legacy=load('legacy_qualification7624',oldapp)
+    consumer=load('swarm30_consumer_prepare',code_paths(root)['consumer']);first_checks(root,consumer,freeze)
+    need(sha(HERE/'COMMON-U.json')==U,'common U pin')
+    legacy.WORD=BASE;legacy.GZIP=BASE_GZ
+    legacy.prepare(OLD,work)  # historical #7626 preparation ONLY, no legacy.execute
+    oldnative=work/'producer54/validation_native/run.py';oldsigned=work/'producer54/validation_signed/run.py';helper=work/'producer54/validation_signed/w2_adapt.py'
+    need(sha(oldnative)==OLD_NATIVE_RUNNER and sha(oldsigned)==OLD_SIGNED_RUNNER and sha(helper)==HELPER,'prepared predecessor runner/helper')
+    hist=work/'historical-preparation';hist.mkdir()
+    for src in (oldnative,oldsigned,work/'CONTACT7624-ADAPTERS.json',work/'PREPARED.json',work/'QUALIFICATION-ID.json'):
+        copy_new(src,hist/('native-run.py' if src==oldnative else 'signed-run.py' if src==oldsigned else src.name))
+    frozen=work/'frozen-composition'; paths=code_paths(root); newcode=work/'frozen-code';newcode.mkdir()
+    for name,p in paths.items():copy_new(p,newcode/(name+'.py' if p.suffix=='.py' else name+'.json'))
+    na=read(paths['native_adapter']);sa=read(paths['signed_adapter'])
+    need(na['source_runner_sha256']==OLD_NATIVE_RUNNER and na['candidate_canonical_sha256']==CAND and na['candidate_gzip_sha256']==CAND_GZ and na['adapted_runner_sha256']==sha(paths['native_overlay']),'native counted adapter ledger')
+    need(na['word_binding_sha256']==sha(paths['word_binding']) and na['pair_binding_sha256']==sha(paths['native_pairs']),'native adapter helper bytes')
+    need(sa['source_runner_sha256']==OLD_SIGNED_RUNNER and sa['source_helper_sha256']==HELPER and sa['candidate_canonical_sha256']==CAND and sa['candidate_gzip_sha256']==CAND_GZ and sa['adapted_runner_sha256']==sha(paths['signed_overlay']),'signed counted adapter ledger')
+    copy_new(root/'inputs/source7626-word.json.gz',frozen/'7626-WORD.json.gz',BASE_GZ)
+    copy_new(root/'inputs/pricing/invoice7626.json',frozen/'7626-INVOICE.json',BASE_INV)
+    prior_native=OLD/'qualification7624_signed_completion/run/case/work/producer54/validation_native/NATIVE-RESULT.json'
+    copy_new(prior_native,frozen/'7626-NATIVE-RESULT.json',BASE_NATIVE)
+    for source,name in ((paths['word_binding'],'swarm30_word_binding.py'),(paths['native_pairs'],'swarm30_native_pairs.py'),
+      (root/'agents/joint/EDITS.json','SWARM30-EDITS.json'),(root/'agents/joint/ORIGINS.json','SWARM30-ORIGINS.json')):copy_new(source,frozen/name)
+    # These two files belong to this fresh work and were created by legacy.prepare;
+    # archive predecessor bytes first, then replace with the exact new candidate.
+    cand=root/'agents/joint/candidate-word.json.gz';need(sha(cand)==CAND_GZ,'joint gzip')
+    for dest in (frozen/'CANDIDATE-WORD.json.gz',work/'producer54/reroute/WORD.json.gz'):
+        copy_new(dest,hist/('frozen-predecessor-word.gz' if dest.parent==frozen else 'reroute-predecessor-word.gz'))
+        dest.unlink();copy_new(cand,dest,CAND_GZ)
+    inv=frozen/'CANDIDATE-INVOICE.json';copy_new(inv,hist/'predecessor-invoice.json');inv.unlink()
+    write(inv,read(first_paths(root)['price'])['variants']['joint']['invoice'])
+    for dest,src in ((oldnative,paths['native_overlay']),(oldsigned,paths['signed_overlay'])):
+        dest.unlink();copy_new(src,dest)
+    # The independent generator constructs a fresh expected pair inventory from
+    # literal source words; the native overlay separately derives its own set.
+    isolated=work/'isolated';isolated.mkdir(exist_ok=True)
+    pair=frozen/'SWARM30-EXPECTED-PAIRS.json'
+    args=[sys.executable,'-I','-B',str(paths['pair_generator']),'--base',str(frozen/'7481-WORD.json.gz'),'--source',str(frozen/'7624-WORD.json.gz'),
+      '--prior',str(frozen/'7626-WORD.json.gz'),'--candidate',str(cand),'--evidence',str(frozen/'7624-NATIVE.json'),'--output',str(pair)]
+    stage_subprocess(args,work,work/'pair-generator.log')
+    fp=first_paths(root);common={'schema':'swarm30-native-inputs/v1','source_canonical_sha256':BASE,'candidate_canonical_sha256':CAND,'candidate_gzip_sha256':CAND_GZ,
+      'case_name':'joint','exact_path':str(fp['exact']),'exact_sha256':sha(fp['exact']),'screen_path':str(fp['price']),'screen_sha256':sha(fp['price']),
+      'controller_path':str(fp['control']),'controller_sha256':sha(fp['control']),'job_path':str(fp['first']),'job_sha256':sha(fp['first']),
+      'pair_expected_path':str(pair),'pair_expected_sha256':sha(pair)}
+    write(work/'SWARM30-NATIVE-INPUTS.json',common)
+    signed={'schema':'swarm30-signed-inputs/v1','source_canonical_sha256':BASE,'candidate_canonical_sha256':CAND,'candidate_gzip_sha256':CAND_GZ,
+      'source_invoice_sha256':BASE_INV,'case_name':'joint','exact_path':str(fp['exact']),'exact_sha256':sha(fp['exact']),
+      'screen_path':str(fp['price']),'screen_sha256':sha(fp['price']),'firstgate_path':str(fp['first']),'firstgate_sha256':sha(fp['first']),
+      'manifest_sha256':sha(root/'agents/joint/EDITS.json')}
+    write(work/'SWARM30-SIGNED-INPUTS.json',signed)
+    run_id=uuid.uuid4().hex
+    # Existing identities belong to the historical predecessor and are retained above.
+    (work/'QUALIFICATION-ID.json').unlink();write(work/'QUALIFICATION-ID.json',{'run_id':run_id,'source_canonical_sha256':BASE,'candidate_canonical_sha256':CAND,'candidate_gzip_sha256':CAND_GZ})
+    launcher=copy_new(HERE/'application.py',work/'SWARM30-LAUNCHER.py')
+    # Isolate shim beside its audit log; never execute the original pinned package copy.
+    shim=OLD/'inputs/pr7624/research/p104-w2-primal-dual-bypass/windows_path_shim.py'
+    copy_new(shim,isolated/'windows_path_shim.py',SHIM)
+    # Resource module needs a work-bound immutable code copy, and the parent
+    # independently freezes original inputs and this executable.
+    source_hashes={str(p.relative_to(work)):sha(p) for p in sorted(newcode.iterdir()) if p.is_file()}
+    excluded={'SWARM30-ADAPTERS.json','PREPARED.json'}
+    fixed={str(p.relative_to(work)):sha(p) for p in sorted(work.rglob('*')) if p.is_file() and not p.is_symlink() and p.name not in excluded and not p.is_relative_to(work/'isolated') and not p.is_relative_to(newcode)}
+    fixed[str((isolated/'windows_path_shim.py').relative_to(work))]=sha(isolated/'windows_path_shim.py')
+    ledger={'schema':'swarm30-application-adapters/v1','run_id':run_id,'source_canonical_sha256':BASE,'candidate_canonical_sha256':CAND,'candidate_gzip_sha256':CAND_GZ,
+      'firstgate_result_sha256':sha(fp['first']),'launcher_sha256':sha(launcher),'common_U_sha256':sha(HERE/'COMMON-U.json'),
+      'resource_script_sha256':sha(newcode/'resources.py'),'catalogue_generator_prepared_relative':'producer54/validation_signed/GENERATOR-PREPARED.json','adapter_source_hashes':source_hashes,'frozen_hashes':fixed}
+    write(work/'SWARM30-ADAPTERS.json',ledger)
+    (work/'PREPARED.json').unlink();write(work/'PREPARED.json',{'status':'PREPARED_NOT_EXECUTED','run_id':run_id,'ledger_sha256':sha(work/'SWARM30-ADAPTERS.json')})
+    legacy.pin_package(OLD/'inputs/pr7624/research/p104-w2-primal-dual-bypass')
+
+def validate_work(root,work,freeze):
+    ledger=read(work/'SWARM30-ADAPTERS.json');ident=read(work/'QUALIFICATION-ID.json');prepared=read(work/'PREPARED.json')
+    need(ident['run_id']==ledger['run_id']==prepared['run_id'] and prepared['ledger_sha256']==sha(work/'SWARM30-ADAPTERS.json'),'ledger identity')
+    need(ledger['source_canonical_sha256']==BASE and ledger['candidate_canonical_sha256']==CAND and ident['candidate_gzip_sha256']==CAND_GZ,'word identity')
+    need(ledger['launcher_sha256']==sha(work/'SWARM30-LAUNCHER.py')==sha(HERE/'application.py') and ledger['common_U_sha256']==sha(HERE/'COMMON-U.json')==U,'launcher/U')
+    for section in ('adapter_source_hashes','frozen_hashes'):
+        need(ledger[section],'empty '+section)
+        for rel,h in ledger[section].items():
+            p=work/rel;need(not p.is_symlink() and p.is_file() and p.resolve().is_relative_to(work.resolve()) and sha(p)==h,'immutable input '+rel)
+    consumer=load('swarm30_consumer_run',work/'frozen-code/consumer.py');first_checks(root,consumer,freeze)
+    legacy=load('legacy_qualification7624_run',OLD/'qualification7624/application.py');legacy.pin_package(OLD/'inputs/pr7624/research/p104-w2-primal-dual-bypass')
+    return ledger,ident,consumer,legacy
+
+def cert_stage(root,work,ident,consumer):
+    script=root/'agents/05-owned-return/stage.py';need(sha(script)==sha(work/'frozen-code/certificates.py'),'certificate script pin')
+    # Controls in both interpreter modes, then one actual paired replay.
+    for name,opt in (('normal',[]),('optimized',['-O'])):
+        log=work/('certificate-controls-'+name+'.log')
+        stage_subprocess([sys.executable,'-I',*opt,'-B',str(script),'--controls-only'],work,log)
+        result=read(log);need(result['status']=='PASS_CONTROLS' and result['controls']['rejected'],'certificate controls '+name)
+    out=work.parent/'certificates'
+    stage_subprocess([sys.executable,'-I','-B',str(script),'--source',str(work/'frozen-composition/7626-WORD.json.gz'),
+      '--candidate',str(work/'producer54/reroute/WORD.json.gz'),'--origins',str(work/'frozen-composition/SWARM30-ORIGINS.json'),
+      '--out',str(out)],work,work/'certificates.stdout')
+    checked=consumer.certificates(out)
+    r=receipt_base('certificates',work,ident);r.update(result_sha256=checked['result_sha256'],source_certificates_sha256=checked['files']['source-certificates.json'],candidate_certificates_sha256=checked['files']['candidate-certificates.json'])
+    write(work/'certificates.receipt.json',r)
+
+def receipt_base(stage,work,ident):
+    return {'stage':stage,'exit':0,'run_id':ident['run_id'],'candidate_canonical_sha256':CAND,'adapter_sha256':sha(work/'SWARM30-ADAPTERS.json'),'launcher_sha256':sha(work/'SWARM30-LAUNCHER.py')}
+
+def execute_body(root,work,stage,ledger,ident,consumer,legacy):
+    if stage=='certificates':
+        cert_stage(root,work,ident,consumer);return
+    need((work/'certificates.receipt.json').is_file(),'certificates required')
+    checks=consumer.certificates(work.parent/'certificates');cr=read(work/'certificates.receipt.json')
+    need(cr['stage']=='certificates' and type(cr['exit']) is int and cr['exit']==0 and cr['run_id']==ident['run_id'] and cr['candidate_canonical_sha256']==CAND,'certificate receipt identity')
+    need(cr['adapter_sha256']==sha(work/'SWARM30-ADAPTERS.json') and cr['launcher_sha256']==sha(work/'SWARM30-LAUNCHER.py') and cr['result_sha256']==checks['result_sha256'],'certificate receipt binding')
+    need(cr['source_certificates_sha256']==checks['files']['source-certificates.json'] and cr['candidate_certificates_sha256']==checks['files']['candidate-certificates.json'],'certificate files receipt')
+    shim=work/'isolated/windows_path_shim.py';script=work/('producer54/validation_'+stage+'/run.py');cache=work/'isolated/pycache'
+    if stage=='signed':
+        nc=load('swarm30_native_consumer_pre_signed',work/'frozen-code/native_consumer.py')
+        stale=[OLD/'inputs/pr7624/research/p104-w2-primal-dual-bypass/evidence/NATIVE.json',OLD.parent/'kappa-research-20261115b/inputs/pr7620/evidence/FULL-NATIVE-RESULT.json',OLD.parent/'kappa-research-20261115b/inputs/pr7616/evidence/NATIVE.json']
+        consumer.native(work/'producer54/validation_native/NATIVE-RESULT.json',work/'frozen-composition/SWARM30-EXPECTED-PAIRS.json',nc,work/'native.receipt.json',ident['run_id'],work/'SWARM30-ADAPTERS.json',work/'SWARM30-LAUNCHER.py',stale)
+    args=[sys.executable,'-I','-B','-X','pycache_prefix='+str(cache),str(shim),str(script)]
+    stage_subprocess(args,work,work/(stage+'.stdout'))
+    path=work/('producer54/validation_'+stage+'/RESULT.json' if stage=='signed' else 'producer54/validation_native/NATIVE-RESULT.json')
+    r=receipt_base(stage,work,ident);r[stage+'_result_sha256']=sha(path)
+    if stage=='native':
+        nc=load('swarm30_native_consumer',work/'frozen-code/native_consumer.py');expected=read(work/'frozen-composition/SWARM30-EXPECTED-PAIRS.json')
+        nc.validate(read(path),expected);nc.inventory_controls(read(path),expected)
+        bindings={'run_id':ident['run_id'],'native_result_sha256':sha(path),'adapter_sha256':sha(work/'SWARM30-ADAPTERS.json'),'launcher_sha256':sha(work/'SWARM30-LAUNCHER.py')}
+        nc.receipt_controls(r,**bindings)
+        stale=[OLD/'inputs/pr7624/research/p104-w2-primal-dual-bypass/evidence/NATIVE.json',OLD.parent/'kappa-research-20261115b/inputs/pr7620/evidence/FULL-NATIVE-RESULT.json',OLD.parent/'kappa-research-20261115b/inputs/pr7616/evidence/NATIVE.json']
+        for p in stale:
+            try:nc.validate(read(p),expected)
+            except (ValueError,KeyError,TypeError,IndexError):pass
+            else:raise ValueError('stale native accepted '+str(p))
+        write(work/'native.receipt.json',r)
+    else:
+        # Do not publish a successful receipt until the consumer passes.
+        pending=work/'signed.receipt.pending.json';write(pending,r)
+        gen=work/'producer54/validation_signed/GENERATOR-PREPARED.json';gs=read(gen)['generator_sha256']
+        consumer.signed(path,work/'native.receipt.json',work/'producer54/validation_native/NATIVE-RESULT.json',ident['run_id'],pending,work/'SWARM30-ADAPTERS.json',work/'SWARM30-LAUNCHER.py',work/'producer54/validation_signed/adapted/short_native_catalogue.py',gs,gen)
+        need(not (work/'signed.receipt.json').exists(),'signed receipt exists');pending.rename(work/'signed.receipt.json')
+
+def with_custody(body, check, diagnostic):
+    # Preserve the scientific/body failure when a source custody check also
+    # fails. A custody-only failure still fails the stage; log failure is
+    # secondary and cannot replace an existing failure.
+    primary=None;value=None
+    try:value=body()
+    except BaseException as ex:primary=ex
+    secondary=None
+    try:check()
+    except BaseException as ex:secondary=ex
+    if secondary is not None:
+        details={'status':'SOURCE_CUSTODY_FAILED','type':type(secondary).__name__,'message':str(secondary),'primary_present':primary is not None}
+        try:write(diagnostic,details)
+        except BaseException as log_error:
+            if primary is not None:primary.add_note('custody diagnostic write failure: '+repr(log_error))
+            else:secondary.add_note('custody diagnostic write failure: '+repr(log_error))
+        if primary is not None:primary.add_note('secondary source custody failure: '+repr(secondary))
+    if primary is not None:raise primary
+    if secondary is not None:raise secondary
+    return value
+
+def execute(root,work,stage,freeze):
+    ledger,ident,consumer,legacy=validate_work(root,work,freeze)
+    check=lambda:legacy.pin_package(OLD/'inputs/pr7624/research/p104-w2-primal-dual-bypass')
+    return with_custody(lambda:execute_body(root,work,stage,ledger,ident,consumer,legacy),check,work/(stage+'-custody-error.json'))
+
+def custody_controls():
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        path=Path(d)/'secondary.json'
+        def body():raise ValueError('primary control')
+        def check():raise RuntimeError('custody control')
+        try:with_custody(body,check,path)
+        except ValueError as ex:
+            need(str(ex)=='primary control' and any('secondary source custody failure' in x for x in ex.__notes__),'primary failure was masked')
+        else:raise ValueError('dual failure accepted')
+        row=read(path);need(row['primary_present'] is True and row['type']=='RuntimeError','secondary custody not recorded')
+        only=Path(d)/'only.json'
+        try:with_custody(lambda:None,check,only)
+        except RuntimeError as ex:need(str(ex)=='custody control','custody-only error changed')
+        else:raise ValueError('custody-only failure accepted')
+        need(read(only)['primary_present'] is False,'custody-only diagnostic')
+    return {'status':'PASS_CUSTODY_CONTROLS','dual_failure_preserves_primary':True,'custody_only_fails':True}
+
+def main():
+    p=argparse.ArgumentParser();p.add_argument('--controls-only',action='store_true');p.add_argument('--stage',choices=['prepare','certificates','native','signed']);p.add_argument('--root',type=Path);p.add_argument('--work',type=Path);p.add_argument('--freeze',type=Path);a=p.parse_args()
+    if a.controls_only:
+        need(not any((a.stage,a.root,a.work,a.freeze)),'controls arguments');print(json.dumps(custody_controls(),sort_keys=True));return
+    need(all((a.stage,a.root,a.work,a.freeze)),'stage arguments required')
+    need(sys.version_info[:2]==(3,12) and __debug__,'requires Python 3.12 with assertions enabled')
+    root=a.root.resolve();work=a.work.resolve();need(root==HERE.parent.resolve(),'unexpected round root')
+    if a.stage=='prepare':
+        legacy=load('legacy_custody_prepare',OLD/'qualification7624/application.py')
+        check=lambda:legacy.pin_package(OLD/'inputs/pr7624/research/p104-w2-primal-dual-bypass')
+        with_custody(lambda:prepare(root,work,a.freeze.resolve()),check,work.parent/'prepare-custody-error.json')
+    else:execute(root,work,a.stage,a.freeze.resolve())
+if __name__=='__main__':main()
