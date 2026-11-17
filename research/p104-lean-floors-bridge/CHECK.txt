@@ -1,0 +1,185 @@
+CHECK.txt: staging, Nov 16
+Toolchain leanprover/lean4:v4.33.0-rc1; Mathlib 55b7917b472489c7c56a0fa6393af05cfd536599 (existing build of that commit, no download).
+Method: each .lean file compiled alone, in dependency order, one lean process at a time, `lean -o out/Nov15/X.olean <file>` with LEAN_PATH =
+  fresh output dir + the pinned packages, under a 3.5 GB RSS watcher (kill if exceeded; none triggered). Staged files are byte-identical copies.
+Axioms: Lean.collectAxioms over every theorem declared in each module; union and any axiom outside {propext, Classical.choice, Quot.sound} printed.
+Result (round 2): kernel-only files PASS: 72 (round 1) + V2Bridge, V2BridgeFinal; native/ support 5 of 6 PASS (round 1) + V2FloorNativeJoint PASS (verified build, below). 0 errors, 0 sorry.
+PENDING: native/V2FloorNativeBeta.lean (beta native: pending); kernel-only V2FloorKernel* hyperplane cover (LEAN-KERNEL build still running; not staged).
+Round 1 note: No Lean.ofReduceBool in the five native support files (data and soundness lemmas only; axioms [propext, Classical.choice, Quot.sound]).
+No Lean.ofReduceBool in any compiled file of round 1: native/ files compiled here (Tab, Tab2, Data, Lists, Chk) define data and soundness lemmas only, and show [propext, Classical.choice, Quot.sound].
+
+## Round 2 additions
+Nov15/V2Bridge PASS rc=0 7s peakRSS=2.4GB errors=0 sorry=0
+  V2Bridge.move_dom, chD0_bound, helper_bound, bridge, bridge_0V, bridge_beta_V: axioms [propext, Classical.choice, Quot.sound]
+Nov15/V2BridgeFinal PASS rc=0 6s peakRSS=2.3GB errors=0 sorry=0
+  V2Bridge.v2floor_helperD0_joint, _joint_0V, _beta, _beta_V: axioms [propext, Classical.choice, Quot.sound]
+native/Nov15/V2FloorNativeJoint PASS (verified build, not rebuilt here) rc=0 4389s peak 2.3GB errors=0 sorry=0
+  axioms of V2Floor.v2floor_joint_native: [propext, Classical.choice, Quot.sound, native_check_joint._native.native_decide.ax_1_1]
+  (the last is the native_decide axiom, via Lean.ofReduceBool; native library only)
+native/Nov15/V2FloorNativeBeta: pending (beta native: pending)
+V2FloorKernel* (kernel-only cover): pending
+
+## Compile (file, result, rc, wall, peak RSS, errors, sorry)
+Nov15/ExportLaw PASS OK rc=0 3s peakRSS=2.0GB errors=0 sorry=0
+Nov15/DepartD1 PASS OK rc=0 3s peakRSS=1.9GB errors=0 sorry=0
+Nov15/DescentPrice PASS OK rc=0 1s peakRSS=1.4GB errors=0 sorry=0
+Nov15/TokenCancel PASS OK rc=0 3s peakRSS=1.7GB errors=0 sorry=0
+Nov15/DiffChain PASS OK rc=0 2s peakRSS=1.6GB errors=0 sorry=0
+Nov15/Floor PASS OK rc=0 3s peakRSS=2.0GB errors=0 sorry=0
+Nov15/FloorCertDefs PASS OK rc=0 0s peakRSS=0.4GB errors=0 sorry=0
+Nov15/FloorCertData PASS OK rc=0 83s peakRSS=1.7GB errors=0 sorry=0
+Nov15/FloorCertCheck PASS OK rc=0 14s peakRSS=2.4GB errors=0 sorry=0
+Nov15/FloorGlue PASS OK rc=0 2s peakRSS=2.0GB errors=0 sorry=0
+Nov15/FloorCert PASS OK rc=0 3s peakRSS=2.2GB errors=0 sorry=0
+Nov15/FloorEndToEnd PASS OK rc=0 5s peakRSS=2.1GB errors=0 sorry=0
+Nov15/JunkLB2 PASS OK rc=0 6s peakRSS=2.5GB errors=0 sorry=0
+Nov15/FloorD0 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/RankLaw PASS OK rc=0 4s peakRSS=2.1GB errors=0 sorry=0
+Nov15/HubSettle PASS OK rc=0 3s peakRSS=2.1GB errors=0 sorry=0
+Nov15/Gauge PASS OK rc=0 3s peakRSS=2.1GB errors=0 sorry=0
+Nov15/LemmaPG PASS OK rc=0 5s peakRSS=2.1GB errors=0 sorry=0
+Nov15/NativeFeasData PASS OK rc=0 5s peakRSS=0.9GB errors=0 sorry=0
+Nov15/NativeFeasCheck PASS OK rc=0 28s peakRSS=3.3GB errors=0 sorry=0
+Nov15/NativeFeas PASS OK rc=0 4s peakRSS=2.3GB errors=0 sorry=0
+Nov15/R25Kill PASS OK rc=0 7s peakRSS=2.3GB errors=0 sorry=0
+Nov15/RankLawC PASS OK rc=0 3s peakRSS=2.0GB errors=0 sorry=0
+Nov15/SYLEQ PASS OK rc=0 2s peakRSS=1.5GB errors=0 sorry=0
+Nov15/SwapWord PASS OK rc=0 3s peakRSS=2.1GB errors=0 sorry=0
+Nov15/TokenRank PASS OK rc=0 4s peakRSS=2.0GB errors=0 sorry=0
+Nov15/V2FloorCert PASS OK rc=0 2s peakRSS=1.5GB errors=0 sorry=0
+Nov15/V2FloorCost PASS OK rc=0 29s peakRSS=3.1GB errors=0 sorry=0
+Nov15/V2FloorBound PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorData PASS OK rc=0 17s peakRSS=3.5GB errors=0 sorry=0
+Nov15/V2FloorDefs_b PASS OK rc=0 3s peakRSS=2.3GB errors=0 sorry=0
+Nov15/V2FloorChk_b_0 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_b_1000 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_b_1250 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_b_1500 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_b_1750 PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorChk_b_250 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_b_500 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_b_750 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorDefs_j PASS OK rc=0 3s peakRSS=2.2GB errors=0 sorry=0
+Nov15/V2FloorChk_j_0 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_1000 PASS OK rc=0 4s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_j_1250 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_1500 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_1750 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_2000 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_2250 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_250 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_2500 PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorChk_j_500 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_j_750 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_0 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_1000 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_1250 PASS OK rc=0 4s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_1500 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_1750 PASS OK rc=0 3s peakRSS=2.3GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_250 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_500 PASS OK rc=0 4s peakRSS=2.6GB errors=0 sorry=0
+Nov15/V2FloorChk_sb_750 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_0 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_1000 PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_1250 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_1500 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_1750 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_2000 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_2250 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_250 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_2500 PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_500 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorChk_sj_750 PASS OK rc=0 3s peakRSS=2.5GB errors=0 sorry=0
+Nov15/V2FloorFinal PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorNativeTab PASS OK rc=0 4s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorNativeTab2 PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorNativeData PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/V2FloorNativeLists PASS OK rc=0 1s peakRSS=1.2GB errors=0 sorry=0
+Nov15/V2FloorNativeChk PASS OK rc=0 3s peakRSS=2.4GB errors=0 sorry=0
+Nov15/YRelay PASS OK rc=0 4s peakRSS=1.7GB errors=0 sorry=0
+
+## Axioms per module (all theorems)
+AXIOMS Nov15.ExportLaw: 155 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.DepartD1: 19 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.DescentPrice: 23 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.TokenCancel: 130 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.DiffChain: 25 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.Floor: 26 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.FloorCertDefs: 5 theorems; union = [propext]; nonstandard = []
+AXIOMS Nov15.FloorCertData: 0 theorems; union = []; nonstandard = []
+AXIOMS Nov15.FloorCertCheck: 8 theorems; union = []; nonstandard = []
+AXIOMS Nov15.FloorGlue: 17 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.FloorCert: 24 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.FloorEndToEnd: 242 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.JunkLB2: 168 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.FloorD0: 45 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.RankLaw: 67 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.HubSettle: 22 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.Gauge: 38 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.LemmaPG: 20 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.NativeFeasData: 0 theorems; union = []; nonstandard = []
+AXIOMS Nov15.NativeFeasCheck: 8 theorems; union = [propext]; nonstandard = []
+AXIOMS Nov15.NativeFeas: 61 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.R25Kill: 116 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.RankLawC: 7 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.SYLEQ: 60 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.SwapWord: 17 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.TokenRank: 117 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorCert: 9 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorCost: 169 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorBound: 14 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorData: 7 theorems; union = [propext]; nonstandard = []
+AXIOMS Nov15.V2FloorDefs_b: 0 theorems; union = []; nonstandard = []
+AXIOMS Nov15.V2FloorDefs_j: 0 theorems; union = []; nonstandard = []
+AXIOMS Nov15.V2FloorFinal: 69 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorNativeTab: 81 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorNativeTab2: 40 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorNativeData: 19 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorNativeLists: 13 theorems; union = [Quot.sound, propext]; nonstandard = []
+AXIOMS Nov15.V2FloorNativeChk: 29 theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+
+## Axioms, V2FloorChk_* slices
+  38 AXIOMS <slice>: N theorems; union = [Quot.sound, Classical.choice, propext]; nonstandard = []
+
+## #print axioms for each main theorem (kernel-only; qualified names)
+#print axioms DepartD1.D1_false: [propext, Classical.choice, Quot.sound]
+#print axioms DescentPrice.helper_price: [propext, Classical.choice, Quot.sound]
+#print axioms DescentPrice.owned_price: [propext, Classical.choice, Quot.sound]
+#print axioms DiffChain.scale_breaks: [propext, Classical.choice, Quot.sound]
+#print axioms ExportLaw.drop_od_false: [propext, Classical.choice, Quot.sound]
+#print axioms ExportLaw.drop_oe_false: [propext, Classical.choice, Quot.sound]
+#print axioms ExportLaw.drop_owned_false: [propext, Classical.choice, Quot.sound]
+#print axioms Floor.floor_of_certificate: [propext, Classical.choice, Quot.sound]
+#print axioms FloorCert.cost_ge_real: [propext, Classical.choice, Quot.sound]
+#print axioms FloorCert.floor_le_native: [propext, Classical.choice, Quot.sound]
+#print axioms FloorCert.stops_ge_780: [propext, Classical.choice, Quot.sound]
+#print axioms FloorD0.floor_D0_classK: [propext, Classical.choice, Quot.sound]
+#print axioms FloorE2E.R1_row: [propext, Classical.choice, Quot.sound]
+#print axioms Gauge.run_gauge: [propext, Classical.choice, Quot.sound]
+#print axioms Gauge.valid_gauge: [propext, Classical.choice, Quot.sound]
+#print axioms HubSettle.iff_false_example: [propext, Classical.choice, Quot.sound]
+#print axioms HubSettle.prefix_valid: [propext, Classical.choice, Quot.sound]
+#print axioms HubSettle.vmix_not_unique_example: [propext, Classical.choice, Quot.sound]
+#print axioms JunkLB2.T4_public_only_false: [propext, Classical.choice, Quot.sound]
+#print axioms LemmaPG.char_two_counterexample: [propext, Classical.choice, Quot.sound]
+#print axioms LemmaPG.lemmaPG: [propext, Classical.choice, Quot.sound]
+#print axioms R25Kill.kill_outer: [propext, Classical.choice, Quot.sound]
+#print axioms R25Kill.n_words: []
+#print axioms RankLaw.copy_lossy_example: [propext, Classical.choice, Quot.sound]
+#print axioms RankLaw.rank_law: [propext, Classical.choice, Quot.sound]
+#print axioms RankLawC.rank_law_indep: [propext, Classical.choice, Quot.sound]
+#print axioms RankLawC.rank_law_proj: [propext, Classical.choice, Quot.sound]
+#print axioms SwapWord.absorb: [propext, Classical.choice, Quot.sound]
+#print axioms SwapWord.inject: [propext, Classical.choice, Quot.sound]
+#print axioms SYLEQ.rankEqRaw_not_mono: [propext, Classical.choice, Quot.sound]
+#print axioms TokenCancel.T2_literal_false: [propext, Classical.choice, Quot.sound]
+#print axioms TokenRank.TR1_count_literal_false: [propext, Classical.choice, Quot.sound]
+#print axioms YRelay.read_leak: [propext, Classical.choice, Quot.sound]
+#print axioms YRelay.scale_leak: [propext, Classical.choice, Quot.sound]
+
+## sha256 of generated data files
+0b261ab071b3c302ded3b86d76c8d94d95026071953c33986fcca40fafb65e59  FloorCertData.lean
+ed2230d269d82f2c2be499280bfccc1173e6a7803b8c49e524d466ba81778094  NativeFeasData.lean
+c19d8840f299e8b8ceaeed617f7485badbc3a66a0a24927cb44599495a9479d5  V2FloorData.lean
+69970f4f9458f906d7731ac70b88be04ef68254e0884c150b59e7e0b86740459  V2FloorCost.lean
+fa97a891b09b5449110fa18b39d00e0c6adddf7fa99a751d07c5e3593105eb3e  floorcert_index.txt
