@@ -1,0 +1,974 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Exact replay of seven stop edits and one joint hub re-settle on #7623's word.
+
+Standard library only. Written for this package; it imports no other package and runs no other author's code
+(the #7623 word, invoice and affected-pair census are vendored as data).
+
+Modes (each is a separate VERIFY command): core, certificates, controls, columns1, columns2; all runs every mode.
+
+core
+  1. Vendored #7623 word (data/base-7623-word.json.gz, sha256 97391721...) and new word (data/word.json.gz, sha256 fa1a8dad...).
+  2. Header identical except initial[457] 3 -> 281 and initial[461] 3 -> 285 (the two rebirths).
+  3. Interior: every MOVE/INIT/CLEAR and every ADD/COPY/SCALE at a chart of dimension 1..8 of the new word equals #7623's
+     interior with the 23 deletions and 12 insertions of data/edits.json (E1..E7), event for event and in order.
+     Everything else (ADD/SCALE at the {0} chart and at V) is the re-derived joint hub.
+  4. Both words replayed over the rationals from arbitrary inputs with full legality checks (every ADD/COPY between two
+     registers at the same chart, every public MOVE strictly ascending, owned fields live). All 1,569 rows and end charts
+     equal #7623's; helpers end at identity; owned rows end empty; owned MOVE multiset, owned lifetimes (field, INIT chart,
+     CLEAR chart), peak 50, 68 labels and 180 CLEARs unchanged.
+  5. Routes: exactly the 7 registers of E1..E7 change chains, each from route_before to route_after; new MOVE pairs strictly nested.
+  6. Coefficients 5-smooth; grid statistics printed.
+  7. Census, complete invoice (17 native calls), S and kappa recomputed; #7623's crossing reproduced.
+certificates  exact CLEAR certificates for all 180 CLEARs of the new word (#7620's verify_certificates rule), 2 rejecting controls.
+controls      negative controls (each edit's new op dropped or altered, hub corrupted, bare stop drop on #7623, ...) rejected; 2 positives.
+columns1/2    affected-pair column tests on the 981-pair census (even / odd sorted index): 512 forward + 512 adjoint exact Gaussian
+              columns, signed Pauli action, absolute phase, exact ascent rank, wrong-phase rejection; rejecting controls.
+"""
+import collections
+import multiprocessing
+import copy
+import decimal
+import gzip
+import hashlib
+import json
+import sys
+from fractions import Fraction as Q
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+DATA = HERE / 'data'
+BASE_SHA256 = '97391721ab7d30f8dd84c8d3c29a3c3ed2df2d65ca55e7ff8329bd09877681d2'
+WORD_SHA256 = 'fa1a8dad12d28e6e5ced5a6989d49074efe15d6647ffc122cb28fcd666f366c2'
+CALLS = 17
+CLAIM, ABOVE = '0.0036667343458', '0.0036667343459'
+
+
+def require(cond, label):
+    if not cond:
+        raise AssertionError(label)
+
+
+def load_gz(path):
+    return json.loads(gzip.decompress(path.read_bytes()))
+
+
+def span(vectors):
+    s = {0}
+    for v in vectors:
+        require(type(v) is int and 0 < v < 512 and v not in s, 'frame vectors independent in F2^9')
+        s |= {x ^ v for x in s}
+    return frozenset(s)
+
+
+def mains(W):
+    live = set(W['live'])
+    return live | {r + 112 for r in live} | set(W['hosted']['X2']) | set(W['hosted']['Y2'])
+
+
+def replay(W):
+    """Exact replay; returns rows, end charts, MOVE chains and owned data. Raises on any illegality."""
+    n, N = W['public'], W['public'] + W['owned_fields']
+    sp = [span(f) for f in W['frames']]
+    rows = [{r: Q(1)} if r < n else {} for r in range(N)]
+    cur = list(W['initial']) + [None] * W['owned_fields']
+    alive, chains, owned_moves = set(), collections.defaultdict(list), collections.Counter()
+    lifetimes, peak = collections.Counter(), 0
+    init_chart = {}
+    stats = dict(max_den_exp=0, odd_den=1, max_num_bits=0, smooth=True)
+
+    def note(q):
+        d = q.denominator
+        e = (d & -d).bit_length() - 1
+        stats['max_den_exp'] = max(stats['max_den_exp'], e)
+        odd = d >> e
+        o = odd
+        for p in (3, 5):
+            while o % p == 0:
+                o //= p
+        if o != 1:
+            stats['smooth'] = False
+        if odd > 1 and stats['odd_den'] % odd:
+            stats['odd_den'] = stats['odd_den'] * odd // __import__('math').gcd(stats['odd_den'], odd)
+        stats['max_num_bits'] = max(stats['max_num_bits'], abs(q.numerator).bit_length())
+
+    for i, e in enumerate(W['program']):
+        op, r = e[0], e[1]
+        require(type(r) is int and 0 <= r < N, '%d register index' % i)
+        if op == 'MOVE':
+            a, b, flag = e[2], e[3], e[4]
+            require(type(flag) is bool and flag == (r >= n), '%d MOVE ownership flag' % i)
+            require(cur[r] == a, '%d MOVE from the current chart' % i)
+            if r >= n:
+                require(r in alive, '%d owned MOVE on a live field' % i)
+                require(sp[a] < sp[b] or sp[b] < sp[a], '%d owned MOVE nested' % i)
+                owned_moves[(a, b)] += 1
+            else:
+                require(sp[a] < sp[b], '%d public MOVE strictly ascends' % i)
+            cur[r] = b
+            chains[r].append((a, b))
+        elif op == 'INIT':
+            require(r >= n and r not in alive and len(e) == 3, '%d INIT of a dead owned field' % i)
+            alive.add(r); rows[r] = {}; cur[r] = e[2]; init_chart[r] = e[2]
+            peak = max(peak, len(alive))
+        elif op == 'CLEAR':
+            require(r >= n and r in alive and cur[r] == e[2], '%d CLEAR at the current chart' % i)
+            lifetimes[(r, init_chart.pop(r), e[2])] += 1
+            alive.discard(r); rows[r] = {}; cur[r] = None
+        elif op == 'SCALE':
+            q = Q(e[2])
+            require(q != 0, '%d SCALE by zero' % i)
+            require(cur[r] == e[3] and (r < n or r in alive), '%d SCALE chart' % i)
+            rows[r] = {k: v * q for k, v in rows[r].items()}
+            for v in rows[r].values():
+                note(v)
+        elif op in ('ADD', 'COPY'):
+            s, q, f = e[2], Q(e[3]), e[4]
+            require(type(s) is int and 0 <= s < N and s != r, '%d operand' % i)
+            require(q != 0, '%d zero coefficient' % i)
+            require(cur[r] == f and cur[s] == f, '%d ADD/COPY operands at chart %d' % (i, f))
+            for x in (r, s):
+                require(x < n or x in alive, '%d owned field live' % i)
+            if op == 'COPY':
+                require(not rows[r], '%d COPY into a zero field' % i)
+            R = rows[r]
+            for k, v in rows[s].items():
+                nv = R.get(k, 0) + q * v
+                if nv:
+                    R[k] = nv
+                    note(nv)
+                else:
+                    R.pop(k, None)
+        else:
+            raise AssertionError('%d unknown op %r' % (i, op))
+    require(not alive, 'every owned field cleared')
+    require(cur[:n] == list(W['final']), 'public fields end at final charts')
+    return dict(rows=rows, cur=cur, chains=chains, owned_moves=owned_moves,
+                lifetimes=lifetimes, peak=peak, sp=sp, stats=stats)
+
+
+def crossing(T, P, digits=40):
+    """Root of F(C) = sum (T_r - P_r) r^(1-C) on [0.003, 0.0045] by bisection in 80-digit decimals."""
+    D = decimal.Decimal
+    with decimal.localcontext(decimal.Context(prec=digits + 40)) as ctx:
+        ranks = sorted({int(r) for r in T} | {int(r) for r in P})
+        terms = [(D(T.get(str(r), 0) - P.get(str(r), 0)) * r, D(r).ln()) for r in ranks]
+
+        def F(C):
+            return sum((c * (-C * l).exp() for c, l in terms), D(0))
+        lo, hi = D('0.003'), D('0.0045')
+        require(F(lo) > 0 > F(hi), 'crossing bracketed')
+        for _ in range(160):
+            mid = (lo + hi) / 2
+            if F(mid) > 0:
+                lo = mid
+            else:
+                hi = mid
+    return decimal.Context(prec=digits).create_decimal(lo)
+
+
+def invoice_json(P, T):
+    return {'schema': 'integer-mult-recursive-invoice/v1',
+            'contract': {'model': 'mixed-target-unnormalized-power-v1',
+                         'rank_semantics': 'H_r costs r^(1-C); debit surrendered productive fields',
+                         'ambient_rank': 145,
+                         'boundary': 'complete signed #7113 caller application with 17 native calls'},
+            'paid': {k: P[k] for k in sorted(P, key=int)},
+            'targets': {k: T[k] for k in sorted(T, key=int)}}
+
+
+def clears(W):
+    """Row content erased at every owned CLEAR, in program order."""
+    n = W['public']
+    rows = [{r: Q(1)} if r < n else {} for r in range(n + W['owned_fields'])]
+    out = []
+    for e in W['program']:
+        op, r = e[0], e[1]
+        if op == 'INIT':
+            rows[r] = {}
+        elif op == 'CLEAR':
+            out.append((r, tuple(sorted(rows[r].items()))))
+            rows[r] = {}
+        elif op == 'SCALE':
+            rows[r] = {k: v * Q(e[2]) for k, v in rows[r].items()}
+        elif op in ('ADD', 'COPY'):
+            R = rows[r]
+            for k, v in rows[e[2]].items():
+                nv = R.get(k, 0) + Q(e[3]) * v
+                if nv:
+                    R[k] = nv
+                else:
+                    R.pop(k, None)
+    return out
+
+
+
+def literal_coeffs(program):
+    return [Q(e[2]) for e in program if e[0] == 'SCALE'] + [Q(e[3]) for e in program if e[0] in ('ADD', 'COPY')]
+
+
+def nondyadic(program):
+    return sum(1 for q in literal_coeffs(program) if q.denominator & (q.denominator - 1))
+
+
+# ---------------------------------------------------------------------------
+# Column tests for every affected public chart pair (own implementation).
+# A chart pair (a, b) is the operator F_a^dagger F_b of two nine-bit stabilizer
+# frames (Gaussian-dyadic Clifford maps). For each pair this section (i) builds
+# the circuit of F_a^dagger F_b directly from the frame definition, (ii) compiles
+# it to the child recipe  monomial . Fourier^r . monomial  with r = dim b - dim a,
+# (iii) requires the recipe and the direct circuit to agree in signed Pauli action
+# and exact absolute phase, and (iv) compares all 512 forward and 512 adjoint
+# Gaussian columns, then checks that a recipe with its absolute phase shifted is
+# rejected. Gates: P (bit permutation), D (diagonal Z4 quadratic form),
+# C (one Fourier line, (1+i)I/2 + (1-i)X/2), X (offset), phase (i^k).
+# ---------------------------------------------------------------------------
+NB = 9
+FULL = 1 << NB
+
+
+def par(x):
+    return x.bit_count() & 1
+
+
+def rank2(rows):
+    piv = {}
+    for x in rows:
+        while x:
+            b = x.bit_length() - 1
+            if b not in piv:
+                piv[b] = x
+                break
+            x ^= piv[b]
+    return len(piv)
+
+
+def tr(rows, n=NB):
+    return tuple(sum(((rows[j] >> i) & 1) << j for j in range(n)) for i in range(n))
+
+
+def mvec(rows, x):
+    return sum(par(r & x) << i for i, r in enumerate(rows))
+
+
+def minv(rows, n=NB):
+    a = [r | (1 << (n + i)) for i, r in enumerate(rows)]
+    for j in range(n):
+        k = next(i for i in range(j, n) if a[i] >> j & 1)
+        a[j], a[k] = a[k], a[j]
+        for i in range(n):
+            if i != j and a[i] >> j & 1:
+                a[i] ^= a[j]
+    require([r & ((1 << n) - 1) for r in a] == [1 << i for i in range(n)], 'binary inverse')
+    return tuple(r >> n for r in a)
+
+
+def extend(vecs, n=NB):
+    out = []
+    for x in list(vecs) + [1 << i for i in range(n)]:
+        if rank2(out + [x]) > len(out):
+            out.append(x)
+    require(len(out) == n, 'basis extension')
+    return tuple(out)
+
+
+def qform(Qr, al, x):
+    return (sum(al[i] for i in range(NB) if x >> i & 1)
+            + 2 * sum(par((Qr[i] >> (i + 1)) & (x >> (i + 1))) for i in range(NB) if x >> i & 1)) % 4
+
+
+def dagger(circ):
+    out = []
+    for g in reversed(circ):
+        t = g[0]
+        if t == 'P':
+            out.append(('P', minv(g[1])))
+        elif t == 'D':
+            out.append(('D', g[1], tuple(-a % 4 for a in g[2])))
+        elif t == 'C':
+            out.append(('C', g[1], -g[2]))
+        elif t == 'phase':
+            out.append(('phase', -g[1] % 4))
+        else:
+            out.append(g)
+    return tuple(out)
+
+
+def fourier(r):
+    return tuple(('C', 1 << i, 1) for i in range(r))
+
+
+def frame_circuit(vecs):
+    r = len(vecs)
+    if r == 0:
+        return ()
+    if r == NB:
+        return fourier(NB)
+    G = tr(extend(vecs))
+    gi = tr(minv(G))
+    Qr = tuple((1 << i) ^ sum(par(a & b) << j for j, b in enumerate(gi)) for i, a in enumerate(gi))
+    chart = (('P', G), ('D', Qr, tuple((row >> i) & 1 for i, row in enumerate(Qr))))
+    return dagger(chart) + fourier(r) + chart
+
+
+def tableau(circ):
+    rows = [(1 << i, 0, 0) for i in range(NB)] + [(0, 1 << i, 0) for i in range(NB)]
+    for g in circ:
+        t = g[0]
+        out = []
+        it = tr(minv(g[1])) if t == 'P' else None
+        for x, z, p in rows:
+            if t == 'P':
+                x, z = mvec(g[1], x), mvec(it, z)
+            elif t == 'X':
+                p += 2 * par(z & g[1])
+            elif t == 'C':
+                if par(z & g[1]):
+                    x ^= g[1]
+                    p += 3 * g[2]
+            elif t == 'D':
+                p += sum(g[2][i] for i in range(NB) if x >> i & 1)
+                p += 2 * sum(par((g[1][i] >> (i + 1)) & (x >> (i + 1))) for i in range(NB) if x >> i & 1)
+                z ^= mvec(g[1], x)
+            else:
+                require(t == 'phase', 'gate type')
+            out.append((x, z, p % 4))
+        rows = out
+    return tuple(rows)
+
+
+_ACT = {}
+
+
+def dact(g):
+    if g not in _ACT:
+        _ACT[g] = tuple(qform(g[1], g[2], x) for x in range(FULL))
+    return _ACT[g]
+
+
+def rot(pr, k):
+    a, b = pr
+    return ((a, b), (-b, a), (-a, -b), (b, -a))[k % 4]
+
+
+def column(circ, basis=0):
+    """Exact Gaussian-dyadic column: ({address: (re, im)}, denominator exponent), value = num / 2^(den/2) ... ."""
+    val, den = {basis: (1, 0)}, 0
+    for g in circ:
+        t = g[0]
+        res = {}
+        if t == 'C':
+            d, s = g[1], g[2]
+            for ad, (a, b) in val.items():
+                for tg, pr in ((ad, (a - s * b, b + s * a)), (ad ^ d, (a + s * b, b - s * a))):
+                    o = res.get(tg, (0, 0))
+                    res[tg] = (o[0] + pr[0], o[1] + pr[1])
+            den += 1
+        else:
+            for ad, pr in val.items():
+                if t == 'P':
+                    tg = mvec(g[1], ad)
+                elif t == 'X':
+                    tg = ad ^ g[1]
+                elif t == 'D':
+                    tg = ad
+                    pr = rot(pr, dact(g)[ad])
+                else:
+                    require(t == 'phase', 'gate type')
+                    tg = ad
+                    pr = rot(pr, g[1])
+                require(tg not in res, 'monomial map injective')
+                res[tg] = pr
+        val = {ad: pr for ad, pr in res.items() if pr != (0, 0)}
+    while den and all((a | b) % 2 == 0 for a, b in val.values()):
+        den -= 1
+        val = {ad: (a // 2, b // 2) for ad, (a, b) in val.items()}
+    return val, den
+
+
+def monomial_circuit(rec):
+    M, Qr, al = tuple(rec['matrix_rows']), tuple(rec['quadratic_rows']), tuple(rec['linear_Z4'])
+    require(tr(Qr) == Qr and all(al[i] % 2 == (Qr[i] >> i) & 1 for i in range(NB)), 'diagonal form')
+    minv(M)
+    return (('D', Qr, al), ('P', M), ('X', rec['offset']), ('phase', rec['phase']))
+
+
+def recipe_circuit(rec):
+    if rec['rank'] == 0:
+        return monomial_circuit(rec['left'])
+    return monomial_circuit(rec['right']) + fourier(rec['rank']) + monomial_circuit(rec['left'])
+
+
+# compiler: symplectic tableau algebra used to produce the recipe
+def pmul(a, b):
+    x, z, p = a
+    y, w, q = b
+    return x ^ y, z ^ w, (p + q + 2 * par(z & y)) % 4
+
+
+def tapply(T, pa):
+    x, z, ph = pa
+    out = (0, 0, ph)
+    for i in range(NB):
+        if x >> i & 1:
+            out = pmul(out, T[i])
+    for i in range(NB):
+        if z >> i & 1:
+            out = pmul(out, T[NB + i])
+    return out
+
+
+def tcompose(A, B):
+    return tuple(tapply(A, p) for p in B)
+
+
+def tidentity():
+    return tuple([(1 << i, 0, 0) for i in range(NB)] + [(0, 1 << i, 0) for i in range(NB)])
+
+
+def tinverse(T):
+    cols = [x | (z << NB) for x, z, p in T]
+    ci = tr(minv(tr(cols, 2 * NB), 2 * NB), 2 * NB)
+    out = []
+    for j, w in enumerate(ci):
+        x, z = w & (FULL - 1), w >> NB
+        u, v, p = tapply(T, (x, z, 0))
+        require((u, v) == tidentity()[j][:2], 'tableau inverse')
+        out.append((x, z, -p % 4))
+    return tuple(out)
+
+
+class Op:
+    def __init__(s, tab, circ):
+        s.tab, s.circ = tab, tuple(circ)
+
+    def then(s, o):
+        return Op(tcompose(o.tab, s.tab), s.circ + o.circ)
+
+    def dag(s):
+        return Op(tinverse(s.tab), dagger(s.circ))
+
+
+def op_perm(G):
+    cols, gi = tr(G), minv(G)
+    return Op(tuple([(a, 0, 0) for a in cols] + [(0, a, 0) for a in gi]), [('P', tuple(G))])
+
+
+def op_diag(Qr, al=None):
+    Qr = tuple(Qr)
+    al = tuple(al) if al is not None else tuple((Qr[i] >> i) & 1 for i in range(NB))
+    return Op(tuple([(1 << i, Qr[i], al[i]) for i in range(NB)] + [(0, 1 << i, 0) for i in range(NB)]), [('D', Qr, al)])
+
+
+def op_c(q, s=1):
+    return Op(tuple([(1 << i, 0, 0) for i in range(NB)]
+                    + [(q if q >> i & 1 else 0, 1 << i, (3 * s) % 4 if q >> i & 1 else 0) for i in range(NB)]), [('C', q, s)])
+
+
+def op_x(b):
+    return Op(tuple([(1 << i, 0, 0) for i in range(NB)] + [(0, 1 << i, 2 * ((b >> i) & 1)) for i in range(NB)]), [('X', b)])
+
+
+def op_id():
+    return Op(tidentity(), [])
+
+
+def op_four(axes):
+    o = op_id()
+    for i in axes:
+        o = o.then(op_c(1 << i))
+    return o
+
+
+def op_had(axes):
+    S = op_diag(tuple(1 << i if i in axes else 0 for i in range(NB)))
+    return S.then(op_four(axes)).then(S)
+
+
+def frame_op(vecs):
+    r = len(vecs)
+    if r == 0:
+        return op_id()
+    if r == NB:
+        return op_four(range(NB))
+    G = tr(extend(vecs))
+    gi = tr(minv(G))
+    Qr = tuple((1 << i) ^ sum(par(a & b) << j for j, b in enumerate(gi)) for i, a in enumerate(gi))
+    K = op_perm(G).then(op_diag(Qr))
+    return K.dag().then(op_four(range(r))).then(K)
+
+
+def split_monomial(op):
+    T = op.tab
+    require(all(x == 0 and p % 2 == 0 for x, z, p in T[NB:]), 'monomial tableau')
+    G = tr([x for x, z, p in T[:NB]])
+    b = mvec(G, sum((p // 2) << i for i, (x, z, p) in enumerate(T[NB:])))
+    cols = [mvec(tr(G), z) for x, z, p in T[:NB]]
+    Qr = tr(cols)
+    al = [(p - 2 * par(b & z)) % 4 for x, z, p in T[:NB]]
+    out = op_diag(Qr, al).then(op_perm(G)).then(op_x(b))
+    require(out.tab == T, 'monomial rebuilt')
+    val, den = column(op.circ)
+    require(den == 0 and all(v == (0, 0) for a, v in val.items() if a != b), 'monomial column')
+    ph = [(1, 0), (0, 1), (-1, 0), (0, -1)].index(val[b])
+    out = out.then(Op(tidentity(), [('phase', ph)]))
+    return out, dict(matrix_rows=G, offset=b, quadratic_rows=Qr, linear_Z4=al, phase=ph)
+
+
+def lower(op):
+    Bc = [x for x, z, p in op.tab[NB:]]
+    r = rank2(Bc)
+    if not r:
+        mon, rec = split_monomial(op)
+        return dict(rank=0, left=rec, right=None)
+    G = tr(extend(Bc))
+    A = minv(G)
+    PA = op_perm(A)
+    part = op.then(PA)
+    Bc = [x for x, z, p in part.tab[NB:]]
+    Dc = [z for x, z, p in part.tab[NB:]]
+    picks, sel = [], []
+    for j, x in enumerate(Bc):
+        if rank2(sel + [x]) > len(sel):
+            picks.append(j)
+            sel.append(x)
+    require(len(picks) == r and all(x >> r == 0 for x in Bc), 'rank selection')
+    Br = tr(sel, r)
+    Bi = minv(Br, r)
+    Dr = tr([Dc[j] & ((1 << r) - 1) for j in picks], r)
+    Qs = tuple(sum(par(row & col) << j for j, col in enumerate(tr(Bi, r))) for row in Dr)
+    DQ = op_diag(Qs + (0,) * (NB - r))
+    V = part.then(DQ).then(op_had(range(r)))
+    require(all(x == 0 for x, z, p in V.tab[NB:]), 'V monomial')
+    Vm, _ = split_monomial(V)
+    S = op_diag(tuple(1 << i if i < r else 0 for i in range(NB)))
+    left = S.dag().then(DQ.dag()).then(PA.dag())
+    right = Vm.then(S.dag()).then(op_x((1 << r) - 1))
+    lm, lrec = split_monomial(left)
+    rm, rrec = split_monomial(right)
+    comp = rm.then(op_four(range(r))).then(lm)
+    require(comp.tab == op.tab and column(comp.circ) == column(op.circ), 'recipe reproduces the pair operator')
+    return dict(rank=r, left=lrec, right=rrec)
+
+
+def pair_columns(frames, a, b, wrong_phase=True):
+    """Full column test of the chart pair (a, b); returns its rank."""
+    U, V = frames[a], frames[b]
+    rec = lower(frame_op(U).dag().then(frame_op(V)))
+    require(rec['rank'] == len(V) - len(U), 'exact public ascent rank of pair %s' % ((a, b),))
+    expected = dagger(frame_circuit(U)) + frame_circuit(V)
+    actual = recipe_circuit(rec)
+    require(tableau(actual) == tableau(expected), 'signed Pauli action of pair %s' % ((a, b),))
+    for x, y in ((actual, expected), (dagger(actual), dagger(expected))):
+        for c in range(FULL):
+            require(column(x, c) == column(y, c), 'Gaussian column %d of pair %s' % (c, (a, b)))
+    if wrong_phase:
+        bad = actual + (('phase', 1),)
+        require(tableau(bad) == tableau(actual) and column(bad) != column(expected), 'wrong absolute phase rejected')
+    return rec['rank']
+
+
+
+# ---------------------------------------------------------------------------
+# Package-specific checks.
+# ---------------------------------------------------------------------------
+MODE = sys.argv[1] if len(sys.argv) > 1 else 'all'
+require(MODE in ('all', 'core', 'certificates', 'controls', 'columns1', 'columns2'),
+        'mode is all, core, certificates, controls, columns1 or columns2')
+
+
+def load_words():
+    base_raw = (DATA / 'base-7623-word.json.gz').read_bytes()
+    require(hashlib.sha256(base_raw).hexdigest() == BASE_SHA256, 'vendored #7623 word bytes')
+    word_raw = (DATA / 'word.json.gz').read_bytes()
+    require(hashlib.sha256(word_raw).hexdigest() == WORD_SHA256, 'new word bytes')
+    return json.loads(gzip.decompress(base_raw)), json.loads(gzip.decompress(word_raw))
+
+
+def interior_test(W):
+    dim = [len(f) for f in W['frames']]
+
+    def ok(e):
+        if e[0] in ('ADD', 'COPY'):
+            return 0 < dim[e[4]] < 9
+        if e[0] == 'SCALE':
+            return 0 < dim[e[3]] < 9
+        return True
+    return ok
+
+
+def apply_interior(B, E):
+    """#7623's interior subsequence with the listed deletions and insertions."""
+    ok, P = interior_test(B), B['program']
+    dele, ins = {}, collections.defaultdict(list)
+    for ed in E['edits']:
+        for i, ev in ed['delete']:
+            require(P[i] == ev and ok(ev) and i not in dele, '%s deletion %d matches an interior base event' % (ed['id'], i))
+            dele[i] = ev
+        for x in ed['insert']:
+            require(ok(x['event']), '%s insertion is interior' % ed['id'])
+            ins[x['before']].append(x['event'])
+    keys, k, out = sorted(ins), 0, []
+    for i, e in enumerate(P):
+        if not ok(e):
+            continue
+        while k < len(keys) and keys[k] <= i:
+            out.extend(ins[keys[k]])
+            k += 1
+        if i not in dele:
+            out.append(e)
+    for key in keys[k:]:
+        out.extend(ins[key])
+    return out, len(dele), sum(len(v) for v in ins.values())
+
+
+def chain_route(RX, X, r):
+    ch = RX['chains'].get(r, [])
+    return [ch[0][0]] + [b for a, b in ch] if ch else [X['initial'][r]]
+
+
+def routes_of(X):
+    out = collections.defaultdict(list)
+    for e in X['program']:
+        if e[0] == 'MOVE' and e[1] < X['public']:
+            out[e[1]].append((e[2], e[3]))
+    return out
+
+
+def move_pairs(X):
+    return {(e[2], e[3]) for e in X['program'] if e[0] == 'MOVE'}
+
+
+def native_counts(W):
+    dim = [len(f) for f in W['frames']]
+    paid = collections.Counter(abs(dim[e[3]] - dim[e[2]]) for e in W['program'] if e[0] == 'MOVE')
+    M, n = mains(W), W['public']
+    helpers = collections.Counter(dim[W['final'][r]] - dim[W['initial'][r]] for r in range(n) if r not in M)
+    return paid, helpers
+
+
+def diff(a, b):
+    d = collections.Counter(b)
+    d.subtract(a)
+    return {k: v for k, v in sorted(d.items()) if v}
+
+
+def verify_certificates(W, certs):
+    """#7620's verify_certificates rule at every CLEAR: erased row == sum of certificate coefficients times rows of live
+    registers other than the cleared field, exactly. A zero row needs the empty certificate. Returns per-CLEAR sizes and failures."""
+    n = W['public']
+    rows = [{r: Q(1)} if r < n else {} for r in range(n + W['owned_fields'])]
+    live, sizes, bad, seen = set(range(n)), [], [], 0
+    for i, e in enumerate(W['program']):
+        op, r = e[0], e[1]
+        if op == 'INIT':
+            live.add(r)
+            rows[r] = {}
+        elif op == 'CLEAR':
+            seen += 1
+            c = certs.get(str(i))
+            okc = c is not None
+            if okc:
+                cert = {int(k): Q(v) for k, v in c.items()}
+                okc = all(k in live and k != r for k in cert)
+                s = {}
+                for k, cf in cert.items():
+                    for t, v in rows[k].items():
+                        s[t] = s.get(t, 0) + cf * v
+                okc = okc and {t: v for t, v in s.items() if v} == rows[r]
+                sizes.append(len(cert))
+            if not okc:
+                bad.append(i)
+            rows[r] = {}
+            live.discard(r)
+        elif op == 'SCALE':
+            rows[r] = {k: v * Q(e[2]) for k, v in rows[r].items()}
+        elif op != 'MOVE':
+            R = rows[r]
+            for k, v in rows[e[2]].items():
+                nv = R.get(k, 0) + Q(e[3]) * v
+                if nv:
+                    R[k] = nv
+                else:
+                    R.pop(k, None)
+    require(seen == len(certs), 'one certificate per CLEAR and no other')
+    return sizes, bad
+
+
+def certificates_section(B, W):
+    certs = json.loads((DATA / 'clear-certificates.json').read_text())['clear_event_index']
+    require(len(certs) == 180, '180 certificates')
+    sizes, bad = verify_certificates(W, certs)
+    require(not bad and len(sizes) == 180, 'every CLEAR certified (failures at %s)' % bad[:5])
+    nz = sum(1 for s in sizes if s)
+    cb, cw = clears(B), clears(W)
+    same = sum(1 for a, b in zip(cb, cw) if a == b)
+    print('PASS CLEAR certificates: all 180 CLEARs of the new word erase an exact combination of other live registers'
+          ' (#7620 verify_certificates rule; %d nonzero rows, certificate sizes %d..%d; %d zero rows); %d of 180 CLEAR contents'
+          ' are identical to #7623\'s, the rest change with the re-derived hub content' % (nz, min(s for s in sizes if s), max(sizes), 180 - nz, same))
+    k = next(i for i, c in certs.items() if c)
+    X = copy.deepcopy(certs)
+    f0 = next(iter(X[k]))
+    X[k][f0] = str(Q(X[k][f0]) + 1)
+    require(int(k) in verify_certificates(W, X)[1], 'corrupted coefficient rejected')
+    Y = copy.deepcopy(certs)
+    r = W['program'][int(k)][1]
+    Y[k][str(r)] = Y[k].pop(f0)
+    require(int(k) in verify_certificates(W, Y)[1], 'cleared field as a term rejected')
+    print('PASS certificate controls: corrupted coefficient (CLEAR at event %s) rejected; cleared field as a term rejected' % k)
+    print('PASS_CERTIFICATES_ON_7623')
+
+
+def affected_pairs(B, W):
+    """#7623's 964-pair census plus every old- and new-route pair of the 7 registers whose chain changed; none leaves."""
+    p964 = {tuple(p) for p in json.loads((DATA / 'affected-pairs-7623.json').read_text())}
+    require(len(p964) == 964, "#7623's census is 964 pairs")
+    rb, rw = routes_of(B), routes_of(W)
+    changed = [r for r in range(W['public']) if rb[r] != rw[r]]
+    require(changed == [44, 176, 382, 457, 461, 490, 902], 'changed routes are exactly E1..E7')
+    allp = p964 | {q for r in changed for q in rb[r] + rw[r]}
+    filep = {tuple(p) for p in json.loads((DATA / 'affected-pairs-new.json').read_text())}
+    require(allp == filep and len(allp) == 981 and not p964 - allp, 'census is 981 pairs (964 + 17), none dropped')
+    require(move_pairs(W) - move_pairs(B) <= allp, 'every new MOVE pair is tested')
+    return p964, allp
+
+
+def _pair_job(args):
+    frames, a, b = args
+    return (a, b, pair_columns(frames, a, b))
+
+
+def columns_section(B, W, part):
+    p964, allp = affected_pairs(B, W)
+    frames = [tuple(f) for f in W['frames']]
+    mine = sorted(allp)[part::2]
+    print('affected pairs: 964 (#7623) + 17 = %d; half %d of 2 tests %d pairs' % (len(allp), part + 1, len(mine)))
+    jobs = [(frames, a, b) for a, b in mine]
+    with multiprocessing.Pool(min(8, multiprocessing.cpu_count())) as pool:
+        done = pool.map(_pair_job, jobs, chunksize=4)
+    require(len(done) == len(mine), 'all pairs of this half tested')
+    print('PASS columns half %d: %d chart pairs x (512 forward + 512 adjoint) exact Gaussian columns = %d, signed Pauli action,'
+          ' absolute phase, exact public ascent rank, wrong-phase rejection each' % (part + 1, len(done), len(done) * 1024))
+    if part:
+        return
+
+    def col_rejected(label, mutate):
+        try:
+            mutate()
+        except AssertionError as exc:
+            print('PASS control rejected: %s (%s)' % (label, str(exc)[:70]))
+            return
+        raise AssertionError('control not rejected: ' + label)
+
+    def non_nested():
+        pair_columns(frames, 260, 128)
+    require(not (span(frames[260]) < span(frames[128]) or span(frames[128]) < span(frames[260])), 'control pair is not nested')
+    col_rejected('column test rejects the non-nested pair (260,128)', non_nested)
+    exp_of = lambda a, b: dagger(frame_circuit(frames[a])) + frame_circuit(frames[b])
+    newp = sorted(move_pairs(W) - move_pairs(B))
+    for a, b in (newp[0], newp[-1]):
+        def tampered_recipe(a=a, b=b):
+            rec = lower(frame_op(frames[a]).dag().then(frame_op(frames[b])))
+            rec['left']['offset'] ^= 1
+            exp = exp_of(a, b)
+            require(tableau(recipe_circuit(rec)) == tableau(exp) and column(recipe_circuit(rec), 0) == column(exp, 0), 'recipe column 0')
+        col_rejected('column test rejects a (%d,%d) recipe with a shifted offset' % (a, b), tampered_recipe)
+
+        def phase_only(a=a, b=b):
+            rec = lower(frame_op(frames[a]).dag().then(frame_op(frames[b])))
+            require(column(recipe_circuit(rec) + (('phase', 2),), 0) == column(exp_of(a, b), 0), 'recipe column 0 phase')
+        col_rejected('column test rejects a (%d,%d) recipe with a global phase error' % (a, b), phase_only)
+
+
+def run_controls(B, W):
+    RB = replay(B)
+    P0 = W['program']
+    res = []
+
+    def outcome(P, X0, initial=None):
+        X = dict(X0)
+        X['program'] = P
+        if initial is not None:
+            X['initial'] = initial
+        try:
+            R = replay(X)
+        except AssertionError as ex:
+            return 'illegal: ' + str(ex)
+        if R['rows'] != RB['rows'] or R['cur'] != RB['cur']:
+            return 'rows/end charts differ (%d rows)' % sum(a != b for a, b in zip(R['rows'], RB['rows']))
+        return None
+
+    def test(label, P, X0=W, expect_reject=True, initial=None):
+        o = outcome(P, X0, initial)
+        require((o is not None) == expect_reject, 'control %s: %s' % (label, 'ACCEPTED' if o is None else 'REJECTED ' + o))
+        if expect_reject:
+            res.append(1)
+        print('PASS control %s: %s %s' % ('rejected' if expect_reject else 'accepted', label, '(%s)' % o[:80] if o else ''), flush=True)
+
+    def mod(f, base=P0):
+        P = list(base)
+        f(P)
+        return P
+
+    def ix(ev, P=P0):
+        require(P.count(ev) == 1, 'control event present once: %r' % (ev,))
+        return P.index(ev)
+
+    def setv(old, new):
+        return lambda P: P.__setitem__(ix(old, P), new)
+
+    dim = [len(f) for f in W['frames']]
+    N553 = ['ADD', 553, 383, '1/2', 24]
+    N1427 = ['ADD', 1427, 296, '-1', 725]
+    N816 = ['ADD', 382, 816, '-1', 849]
+    N1000 = ['ADD', 176, 1000, '-1/4', 928]
+    N236 = ['ADD', 176, 236, '-1', 928]
+    C457 = ['ADD', 242, 457, '-1', 281]
+    C461 = ['ADD', 10, 461, '-1', 285]
+    M902 = ['MOVE', 902, 3, 618, False]
+    M44 = ['MOVE', 44, 495, 127, False]
+    for ev in (N553, N1427, N816, N1000, N236, C457, C461, M902, M44):
+        ix(ev)
+    v_add = next(i for i, e in enumerate(P0) if e[0] == 'ADD' and dim[e[4]] == 9)
+    z_add = next(i for i, e in enumerate(P0) if e[0] == 'ADD' and dim[e[4]] == 0)
+    test('new word (positive)', P0, expect_reject=False)
+    test('#7623 word itself (positive)', B['program'], B, expect_reject=False)
+    test('1 E3 re-route 553 += 1/2*383 @24 dropped', mod(lambda P: P.remove(N553)))
+    test('2 E3 re-route coefficient 1/2 -> 1', mod(setv(N553, ['ADD', 553, 383, '1', 24])))
+    test('3 E4 re-route 1427 += -1*296 @725 dropped', mod(lambda P: P.remove(N1427)))
+    test('4 E5 re-route 382 += -1*816 @849 dropped', mod(lambda P: P.remove(N816)))
+    test('5 E6 twin pickup 176 += -1/4*1000 @928 dropped', mod(lambda P: P.remove(N1000)))
+    test('6 E6 twin pickup 176 += -1*236 @928 coefficient -> +1', mod(setv(N236, ['ADD', 176, 236, '1', 928])))
+    test('7 E1 canceller 242 += -1*457 @281 dropped', mod(lambda P: P.remove(C457)))
+    test('8 E2 canceller 10 += -1*461 @285 coefficient -> +1', mod(setv(C461, ['ADD', 10, 461, '1', 285])))
+    ini = list(W['initial'])
+    ini[457] = 3
+    test('9 E1 rebirth undone in the header only (457 born at {0})', P0, initial=ini)
+    test('10 E7 MOVE 902 3->618 replaced by 3->595 (stop not taken)', mod(setv(M902, ['MOVE', 902, 3, 595, False])))
+    test('11 E5 MOVE 44 495->127 ownership flag True', mod(setv(M44, M44[:4] + [True])))
+    test('12 first V-mix ADD coefficient doubled', mod(lambda P: P.__setitem__(v_add, P[v_add][:3] + [str(2 * Q(P[v_add][3]))] + P[v_add][4:])))
+    test('13 first {0}-prefix ADD dropped', mod(lambda P: P.pop(z_add)))
+    Bp = B['program']
+    E = json.loads((DATA / 'edits.json').read_text())
+    eid = {ed['id']: ed for ed in E['edits']}
+
+    def bare(ed, mv):
+        def f(P):
+            for i, ev in sorted(ed['delete'], reverse=True):
+                require(P[i] == ev, '%s event in #7623' % ed['id'])
+                del P[i]
+            P.insert(ed['delete'][0][0], mv)
+        return f
+    test('14 bare E3 stop drop on #7623 (382 goes 3->849, no 553 += 1/2*383, no hub re-settle)',
+         mod(bare(eid['E3'], ['MOVE', 382, 3, 849, False]), Bp), B)
+    test('E7 alone on #7623 without hub re-settle (positive: the four deliveries of 902 at 595 cancel downstream)',
+         mod(bare(eid['E7'], ['MOVE', 902, 3, 618, False]), Bp), B, expect_reject=False)
+    require(len(res) == 14, '14 negative controls rejected')
+    print('PASS_CONTROLS_ON_7623: 14/14 negative controls rejected, 3 positives accepted')
+
+
+def core(B, W):
+    E = json.loads((DATA / 'edits.json').read_text())
+    require(all(B[k] == W[k] for k in B if k not in ('program', 'initial')) and B.keys() == W.keys(), 'header identical except initial')
+    di = {r: [B['initial'][r], W['initial'][r]] for r in range(len(B['initial'])) if B['initial'][r] != W['initial'][r]}
+    want = {ed['register']: ed['initial'] for ed in E['edits'] if 'initial' in ed}
+    require(di == want == {457: [3, 281], 461: [3, 285]}, 'initial changes exactly the two rebirths')
+    print('PASS header: identical to #7623 except initial[457] 3 -> 281 and initial[461] 3 -> 285')
+    got, nd, ni = apply_interior(B, E)
+    ok = interior_test(W)
+    mine = [e for e in W['program'] if ok(e)]
+    require(got == mine, 'interior of the new word = #7623 interior + edit list')
+    require((nd, ni) == (23, 12), '23 deletions, 12 insertions')
+    hb = sum(1 for e in B['program'] if not ok(e))
+    hw = sum(1 for e in W['program'] if not ok(e))
+    print('PASS interior: %d interior events = #7623\'s %d - %d deleted + %d inserted (E1..E7); hub events (ADD/SCALE at {0} and V)'
+          ' %d -> %d; word %d -> %d events' % (len(mine), len(mine) - ni + nd, nd, ni, hb, hw, len(B['program']), len(W['program'])))
+    RB, R = replay(B), replay(W)
+    n = W['public']
+    bad = [r for r in range(len(R['rows'])) if R['rows'][r] != RB['rows'][r]]
+    require(not bad, 'all rows equal #7623 (first differing %s)' % bad[:3])
+    require(R['cur'] == RB['cur'], 'all end charts equal #7623')
+    M = mains(W)
+    require(all(R['rows'][r] == {r: Q(1)} for r in range(n) if r not in M), 'helpers end at identity')
+    require(all(not R['rows'][r] for r in range(n, len(R['rows']))), 'owned rows end empty')
+    require(R['owned_moves'] == RB['owned_moves'], 'owned MOVE multiset unchanged')
+    require(R['lifetimes'] == RB['lifetimes'] and sum(R['lifetimes'].values()) == 180, 'owned lifetimes (field, INIT chart, CLEAR chart) unchanged, 180')
+    require(R['peak'] == RB['peak'] == 50, 'owned peak 50')
+    labels = {e[1] for e in W['program'] if e[0] == 'INIT'}
+    require(len(labels) == 68 == W['owned_fields'], '68 owned labels')
+    print('PASS exact replay: both words legal; all %d rows and end charts equal #7623, helpers identity, owned empty;'
+          ' owned MOVEs (%d), 180 lifetimes, peak 50 and 68 labels unchanged' % (len(R['rows']), sum(R['owned_moves'].values())))
+    changed = sorted(r for r in range(n) if chain_route(R, W, r) != chain_route(RB, B, r))
+    require(changed == sorted(ed['register'] for ed in E['edits']), 'exactly the 7 registers of E1..E7 change chains')
+    for ed in E['edits']:
+        r = ed['register']
+        require(chain_route(RB, B, r) == ed['route_before'] and chain_route(R, W, r) == ed['route_after'],
+                '%s route of %d: %s -> %s' % (ed['id'], r, chain_route(RB, B, r), chain_route(R, W, r)))
+    newp, gone = sorted(move_pairs(W) - move_pairs(B)), sorted(move_pairs(B) - move_pairs(W))
+    for a, b in newp:
+        require(R['sp'][a] < R['sp'][b], 'new pair %s strictly nested' % ((a, b),))
+    print('PASS routes: exactly registers %s change chains, as listed; %d new MOVE pairs %s, all strictly nested; %d leave %s'
+          % (changed, len(newp), newp, len(gone), gone))
+    sb, sw = RB['stats'], R['stats']
+    require(sw['smooth'], 'replayed coefficients have 5-smooth denominators')
+    for q in literal_coeffs(W['program']):
+        o = q.denominator
+        for p in (2, 3, 5):
+            while o % p == 0:
+                o //= p
+        require(o == 1, 'literal coefficient has a 5-smooth denominator')
+    print('PASS coefficients: 5-smooth; replayed grid #7623 (2-adic exponent %d, odd lcm %d, numerator bits %d) -> new (%d, %d, %d);'
+          ' non-dyadic literal events %d -> %d' % (sb['max_den_exp'], sb['odd_den'], sb['max_num_bits'], sw['max_den_exp'], sw['odd_den'],
+                                                  sw['max_num_bits'], nondyadic(B['program']), nondyadic(W['program'])))
+    pb, hb_ = native_counts(B)
+    pw, hw_ = native_counts(W)
+    dP, dT = diff(pb, pw), diff(hb_, hw_)
+    require(dP == {1: -2, 2: -3, 3: -5, 5: 1, 6: 2} and dT == {6: 2, 9: -2}, 'native deltas per call')
+    print('PASS native per call: paid MOVE delta %s; helper target delta %s' % (dP, dT))
+    inv0 = json.loads((DATA / 'invoice-7623.json').read_text())
+    P0 = {k: inv0['paid'][k] for k in sorted(inv0['paid'], key=int)}
+    T0 = {k: inv0['targets'][k] for k in sorted(inv0['targets'], key=int)}
+    require(inv0 == invoice_json(P0, T0), 'invoice-7623.json is #7623\'s invoice in the official schema')
+    P, T = collections.Counter({int(k): v for k, v in P0.items()}), collections.Counter({int(k): v for k, v in T0.items()})
+    for k, v in dP.items():
+        P[k] += CALLS * v
+    for k, v in dT.items():
+        T[k] += CALLS * v
+    require(min(P.values()) >= 0 and min(T.values()) >= 0, 'nonnegative counts')
+    Pn = {str(k): v for k, v in sorted(P.items()) if v}
+    Tn = {str(k): v for k, v in sorted(T.items()) if v}
+    Sf = lambda T_, P_: sum(int(k) * v for k, v in T_.items()) - sum(int(k) * v for k, v in P_.items())
+    require(Sf(T0, P0) == Sf(Tn, Pn) == 1424, 'rank surplus S 1424 unchanged')
+    require(json.loads((DATA / 'invoice-new.json').read_text()) == invoice_json(Pn, Tn), 'invoice-new.json matches')
+    require(json.loads((DATA / 'invoice-zero.json').read_text()) == invoice_json({}, {}), 'zero invoice')
+    print('PASS complete invoice: paid positions %d -> %d, productive %d -> %d, S = 1424' % (sum(P0.values()), sum(Pn.values()), sum(T0.values()), sum(Tn.values())))
+    k0, k1 = crossing(T0, P0), crossing(Tn, Pn)
+    require(decimal.Decimal('0.0036624027915') <= k0 <= decimal.Decimal('0.0036624027916'), '#7623 crossing reproduced')
+    print('PASS kappa #7623 %s' % k0)
+    print('PASS kappa new   %s (ratio over #7623 %s)' % (k1, +decimal.Context(prec=12).divide(k1, k0)))
+    expected = json.loads((HERE / 'EXPECTED.json').read_text())
+    require(str(k1)[:len(expected['kappa_prefix'])] == expected['kappa_prefix'], 'kappa digits as recorded')
+    require(decimal.Decimal(CLAIM) < k1 < decimal.Decimal(ABOVE), 'claim %s is below the exact crossing' % CLAIM)
+    print('PASS_CORE_ON_7623')
+
+
+def main():
+    B, W = load_words()
+    if MODE in ('core', 'all'):
+        core(B, W)
+    if MODE in ('certificates', 'all'):
+        certificates_section(B, W)
+    if MODE in ('controls', 'all'):
+        run_controls(B, W)
+    if MODE in ('columns1', 'all'):
+        columns_section(B, W, 0)
+        print('PASS_COLUMNS_ON_7623_1')
+    if MODE in ('columns2', 'all'):
+        columns_section(B, W, 1)
+        print('PASS_COLUMNS_ON_7623_2')
+    if MODE == 'all':
+        print('PASS_REROUTES_ON_7623_EXACT (conditional on the same framework assumptions as #7623)')
+
+
+if __name__ == '__main__':
+    main()
