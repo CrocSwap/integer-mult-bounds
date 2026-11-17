@@ -1,0 +1,7 @@
+# Source provenance
+
+The #7644 source is CrocSwap/integer-mult-bounds PR 7644, head `32cfa1d20d3e4587dc601e69ccac1cd24a239e5c`. At that head, `research/chart1062-original-erasures` has Git tree ID `6558aa5cab9e608b951b36db2c2fb6d76693cdd4` and 170 files. All 156 files retained by this package match their exact Git blob IDs in that tree; `UPSTREAM-TREE-PINS.json` records each Git blob and SHA-256. This is a verified dependency subset, not a copy of all 170 files. Its retained #7605 package Git tree ID is `11c10b1dbd0383bee8a0e980fb579db0f7c7dbae`; the archive manifest independently records SHA-256 for every retained source file and the complete 138-file closure.
+
+The two original large public objects are preserved byte for byte: `pr7334.tar.gz` Git blob `e69e784c1edeeffe330a78c579aed210cd8815ff`, SHA-256 `721f839cc48605cccd3629d11456e1fcbb3810a624803ad27e99a1bfd6246211`; `replay.zip` Git blob `4c1789b1b7f57bac919e26c724d86603e9b568bc`, SHA-256 `0bf0082cab9b6d2bb6657903a4169a3d04c380927982fc4672a6a44edda79a2a`. The deterministic remainder archive's SHA-256 is `a1bbe4897942e6e22ae947d39803e7db821e2774e25b3164b470ade7406f9835`. `data/source-manifest.json` binds both blobs to their exact paths in the archived closure.
+
+The actual author-supplied #7644 #7605 closure manifests, proofs and NOTICE files are preserved without modification inside the offline archive. This is byte and provenance evidence, not independent validation of every inherited mathematical claim.
