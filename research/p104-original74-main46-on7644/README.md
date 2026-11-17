@@ -16,6 +16,8 @@ The original native stage took 503.70 seconds and the signed stage 437.13 second
 
 ## Offline replay
 
+An early hosted replay exposed a race in the process-cleanup control. Its reader could see an empty PID file between creation and the writer's first write. The helper now writes and closes a temporary file before atomically renaming it into place. It keeps the group leader’s PID reserved until final cleanup, including when the leader exits before publishing the marker. Pausing the writer for 250 ms reproduced the original failure and passed with the corrected helper. The process-group assertions run before scientific preparation. [Original hosted failure](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/44187293472/job/134410025509).
+
 The repository hook uses Linux process-group and `/proc` controls with Python 3.12:
 
 ```sh

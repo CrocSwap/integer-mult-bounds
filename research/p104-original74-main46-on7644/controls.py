@@ -43,11 +43,19 @@ def main():
             shutil.rmtree(scratch)
             verifier.POINTER.unlink()
         marker = Path(directory) / 'child.pid'
-        parent_code = (
-            'import subprocess,sys,time; '
-            'p=subprocess.Popen([sys.executable,"-c","import time; time.sleep(60)"]); '
-            'open(sys.argv[1],"w").write(str(p.pid)); time.sleep(60)'
-        )
+        parent_code = """\
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+marker = Path(sys.argv[1])
+pending = marker.with_suffix(".tmp")
+pending.write_text(str(child.pid), encoding="ascii")
+pending.replace(marker)
+time.sleep(60)
+"""
         parent = subprocess.Popen([sys.executable, '-I', '-B', '-c', parent_code, str(marker)],
                                   start_new_session=True)
         try:
@@ -60,23 +68,28 @@ def main():
             if os.getpgid(child_pid) != parent.pid:
                 raise RuntimeError('child escaped hook-owned group')
             os.killpg(parent.pid, signal.SIGTERM)
-            parent.wait(timeout=5)
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
                 status = Path('/proc') / str(child_pid) / 'stat'
                 try:
                     state = status.read_text().split()[2]
                 except FileNotFoundError:
-                    break
-                if state == 'Z':
+                    state = None
+                leader_exit = os.waitid(os.P_PID, parent.pid,
+                                        os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                if leader_exit is not None and state in (None, 'Z'):
                     break
                 time.sleep(0.02)
             else:
-                raise RuntimeError('group termination left live child')
+                raise RuntimeError('group termination left a live parent or child')
         finally:
-            if parent.poll() is None:
+            # Keep the group leader unreaped until the final cleanup. Its PID
+            # cannot be reused even if it exits before publishing the marker.
+            try:
                 os.killpg(parent.pid, signal.SIGKILL)
-                parent.wait(timeout=5)
+            except ProcessLookupError:
+                pass
+            parent.wait(timeout=5)
     print('PASS_SOURCE_FREE_PROCESS_GROUP_CONTROL')
 
 
