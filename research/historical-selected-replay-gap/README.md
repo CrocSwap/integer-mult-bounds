@@ -69,7 +69,11 @@ python3 -B scripts/research_package.py --package research/historical-selected-re
 
 The direct command prints `PASS_HISTORICAL_SELECTED_REPLAY_GAP`. A registered
 replay prints `PASS_REGISTERED_RESEARCH_PACKAGE`. Both require Git history
-containing the two inspected commits.
+containing the two inspected commits and the source and manifest objects at
+`2485805a6d47f36ea83ddde6327d453ac82d44dc`. The verifier uses a temporary
+sparse checkout of that commit, checks the declared source digests there, and
+uses its planner and manifest inventory. The recorded rejections and selection
+therefore remain reproducible after later changes to the live Makefile or CI guide.
 
 ## Open next questions
 
