@@ -1,0 +1,710 @@
+CHECK.txt (second Lean package)
+Toolchain leanprover/lean4:v4.33.0-rc1; Mathlib 55b7917b472489c7c56a0fa6393af05cfd536599 (an existing build of that commit, no download).
+Staged files are byte-identical copies of the checked sources (.lean); only the .md notes were edited (internal lane and path names removed).
+
+METHOD (round 1 of this package)
+ * Newly staged kernel-only files: each .lean compiled ALONE, in dependency order, one lean process at a time, `lean -j1 -o out/Nov15/X.olean Nov15/X.lean`, under a 3.5 GB RSS watcher
+   (kill if exceeded; none triggered). Fresh output directory first on LEAN_PATH, then the pinned Mathlib packages, then an existing build of the already-released first package's modules
+   and of the generated V2FloorKernel chunk files that were NOT recompiled here.
+ * Compiled here: all 41 non-chunk new files (the laws, the specs, Budget, FreeEnd, the V2FloorKernel support/data/base files, and the two final theorem files V2FloorKernel_j and V2FloorKernel_b) and a SAMPLE of 20 of the 536
+   generated chunk/base files (10 joint, 10 beta: E_*_a/_b and F_* slices). V2FloorKernel_j / V2FloorKernel_b import all chunk modules; for the other chunks the olean from the full build below was used.
+ * Full build of all 539 V2FloorKernel* files (every chunk, base, data, cost and final file): see the log at the end of this file (rows are: file, rc, wall time, peak RSS in MB, error count). Every row rc=0, 0 errors,
+   every peak <= 3,402 MB, 5,963 s summed lean time. (The two data files V2FloorKernelData_j/_b were built earlier and appear as SKIP; they were recompiled in this round, rows below.)
+ * Axioms: for each compiled module, the union of axioms of all theorems declared in it (Lean.collectAxioms), and the headline theorems individually.
+   Union over everything below: {propext, Classical.choice, Quot.sound}; NO Lean.ofReduceBool, no sorry (the only occurrences of the word are in comments saying "sorry-free").
+ * NOT rebuilt here: native/V2FloorNativeBeta.lean (verified earlier build, the run takes over an hour). The lake route (`lake build`, which would recompile ~620 files, about an hour) was not run.
+
+NATIVE BETA (not rebuilt; taken from the earlier verified build log, which holds only the axiom print):
+'V2Floor.v2floor_beta_native' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ native_check_beta._native.native_decide.ax_1_1]
+ (the last one is the native_decide axiom, via Lean.ofReduceBool; native library only)
+ The five native support files it imports (Tab, Tab2, Lists, Data, Chk) are byte-identical to the first package's copies, where they compile with standard axioms.
+
+COMPILE TABLE, this round (file, rc, wall, peak RSS, errors, sorry warnings)
+Budget rc=0 time=13s peakRSS=2.0GB errors=0 sorry_warnings=0
+FreeEnd rc=0 time=4s peakRSS=2.3GB errors=0 sorry_warnings=0
+Fusion rc=0 time=2s peakRSS=1.7GB errors=0 sorry_warnings=0
+SpecTSUR rc=0 time=4s peakRSS=2.0GB errors=0 sorry_warnings=0
+SpecCOV rc=0 time=3s peakRSS=2.0GB errors=0 sorry_warnings=0
+SpecINV rc=0 time=6s peakRSS=2.1GB errors=0 sorry_warnings=0
+Spread rc=0 time=2s peakRSS=1.6GB errors=0 sorry_warnings=0
+TCLemma rc=0 time=2s peakRSS=1.6GB errors=0 sorry_warnings=0
+WFCount rc=0 time=2s peakRSS=1.8GB errors=0 sorry_warnings=0
+StayRemove rc=0 time=2s peakRSS=1.8GB errors=0 sorry_warnings=0
+TCCharge rc=0 time=2s peakRSS=1.6GB errors=0 sorry_warnings=0
+TCDepart rc=0 time=1s peakRSS=1.6GB errors=0 sorry_warnings=0
+V2FloorKernelLemmas rc=0 time=4s peakRSS=2.4GB errors=0 sorry_warnings=0
+V2FloorCount rc=0 time=2s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernelTau rc=0 time=2s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernelCheck rc=0 time=2s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernelSound rc=0 time=4s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernelData_b rc=0 time=6s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernelBase_b rc=0 time=2s peakRSS=2.2GB errors=0 sorry_warnings=0
+V2FloorKernelBase1_b rc=0 time=3s peakRSS=2.6GB errors=0 sorry_warnings=0
+V2FloorKernelData_j rc=0 time=7s peakRSS=2.4GB errors=0 sorry_warnings=0
+V2FloorKernelBase_j rc=0 time=2s peakRSS=2.2GB errors=0 sorry_warnings=0
+V2FloorKernelBase1_j rc=0 time=4s peakRSS=2.8GB errors=0 sorry_warnings=0
+V2FloorKernelBase2_b rc=0 time=3s peakRSS=2.4GB errors=0 sorry_warnings=0
+V2FloorKernelBase2_j rc=0 time=3s peakRSS=2.5GB errors=0 sorry_warnings=0
+V2FloorKernelBase3_b rc=0 time=4s peakRSS=2.6GB errors=0 sorry_warnings=0
+V2FloorKernelBase3_j rc=0 time=4s peakRSS=3.0GB errors=0 sorry_warnings=0
+V2FloorKernelBase4_b rc=0 time=3s peakRSS=2.4GB errors=0 sorry_warnings=0
+V2FloorKernelBase4_j rc=0 time=4s peakRSS=2.8GB errors=0 sorry_warnings=0
+V2FloorKernelBase5_b rc=0 time=3s peakRSS=2.4GB errors=0 sorry_warnings=0
+V2FloorKernelBase5_j rc=0 time=3s peakRSS=2.6GB errors=0 sorry_warnings=0
+V2FloorKernelBase6_b rc=0 time=3s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernelBase6_j rc=0 time=3s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernelBaseA_b rc=0 time=2s peakRSS=2.2GB errors=0 sorry_warnings=0
+V2FloorKernelBaseA_j rc=0 time=3s peakRSS=2.2GB errors=0 sorry_warnings=0
+V2FloorKernelCost rc=0 time=48s peakRSS=2.4GB errors=0 sorry_warnings=0
+WFSlack rc=0 time=2s peakRSS=1.8GB errors=0 sorry_warnings=0
+WFUp rc=0 time=2s peakRSS=1.8GB errors=0 sorry_warnings=0
+WFPort rc=0 time=4s peakRSS=1.9GB errors=0 sorry_warnings=0
+V2FloorKernelE_j_7_a rc=0 time=11s peakRSS=2.8GB errors=0 sorry_warnings=0
+V2FloorKernelE_j_251_b rc=0 time=5s peakRSS=2.7GB errors=0 sorry_warnings=0
+V2FloorKernelE_j_508_a rc=0 time=10s peakRSS=2.9GB errors=0 sorry_warnings=0
+V2FloorKernelE_j_70_a rc=0 time=8s peakRSS=2.7GB errors=0 sorry_warnings=0
+V2FloorKernelE_j_70_b rc=0 time=8s peakRSS=2.8GB errors=0 sorry_warnings=0
+V2FloorKernelE_b_13_a rc=0 time=3s peakRSS=2.5GB errors=0 sorry_warnings=0
+V2FloorKernelE_b_251_a rc=0 time=4s peakRSS=2.5GB errors=0 sorry_warnings=0
+V2FloorKernelE_b_508_b rc=0 time=2s peakRSS=2.2GB errors=0 sorry_warnings=0
+V2FloorKernelE_b_70_a rc=0 time=4s peakRSS=2.5GB errors=0 sorry_warnings=0
+V2FloorKernelE_b_70_b rc=0 time=5s peakRSS=2.6GB errors=0 sorry_warnings=0
+V2FloorKernelF_j_1 rc=0 time=19s peakRSS=3.2GB errors=0 sorry_warnings=0
+V2FloorKernelF_j_257 rc=0 time=18s peakRSS=3.2GB errors=0 sorry_warnings=0
+V2FloorKernelF_j_505 rc=0 time=15s peakRSS=3.1GB errors=0 sorry_warnings=0
+V2FloorKernelF_j_97 rc=0 time=18s peakRSS=3.2GB errors=0 sorry_warnings=0
+V2FloorKernelF_b_1 rc=0 time=12s peakRSS=3.1GB errors=0 sorry_warnings=0
+V2FloorKernelF_b_257 rc=0 time=12s peakRSS=3.1GB errors=0 sorry_warnings=0
+V2FloorKernelF_b_505 rc=0 time=10s peakRSS=2.9GB errors=0 sorry_warnings=0
+V2FloorKernelF_b_97 rc=0 time=12s peakRSS=3.1GB errors=0 sorry_warnings=0
+V2FloorKernelE_j_100_a rc=0 time=6s peakRSS=2.6GB errors=0 sorry_warnings=0
+V2FloorKernelE_b_100_b rc=0 time=5s peakRSS=2.6GB errors=0 sorry_warnings=0
+V2FloorKernel_j rc=0 time=3s peakRSS=2.3GB errors=0 sorry_warnings=0
+V2FloorKernel_b rc=0 time=3s peakRSS=2.3GB errors=0 sorry_warnings=0
+
+AXIOMS PER MODULE (this round; theorems = number of theorem declarations in that module)
+Budget theorems=68 axioms=[Quot.sound, Classical.choice, propext]
+FreeEnd theorems=11 axioms=[Quot.sound, Classical.choice, propext]
+Fusion theorems=7 axioms=[Quot.sound, Classical.choice, propext]
+SpecTSUR theorems=89 axioms=[Quot.sound, Classical.choice, propext]
+SpecCOV theorems=30 axioms=[Quot.sound, Classical.choice, propext]
+SpecINV theorems=111 axioms=[Quot.sound, Classical.choice, propext]
+Spread theorems=45 axioms=[Quot.sound, Classical.choice, propext]
+TCLemma theorems=28 axioms=[Quot.sound, Classical.choice, propext]
+WFCount theorems=37 axioms=[Quot.sound, Classical.choice, propext]
+StayRemove theorems=65 axioms=[Quot.sound, Classical.choice, propext]
+TCCharge theorems=67 axioms=[Quot.sound, Classical.choice, propext]
+TCDepart theorems=36 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorKernelLemmas theorems=53 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorCount theorems=1 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorKernelTau theorems=25 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorKernelCheck theorems=20 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorKernelSound theorems=94 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorKernelData_b theorems=0 axioms=[]
+V2FloorKernelBase_b theorems=0 axioms=[]
+V2FloorKernelBase1_b theorems=28 axioms=[propext]
+V2FloorKernelData_j theorems=0 axioms=[]
+V2FloorKernelBase_j theorems=0 axioms=[]
+V2FloorKernelBase1_j theorems=40 axioms=[propext]
+V2FloorKernelBase2_b theorems=14 axioms=[propext]
+V2FloorKernelBase2_j theorems=20 axioms=[propext]
+V2FloorKernelBase3_b theorems=64 axioms=[propext]
+V2FloorKernelBase3_j theorems=64 axioms=[propext]
+V2FloorKernelBase4_b theorems=54 axioms=[propext]
+V2FloorKernelBase4_j theorems=80 axioms=[propext]
+V2FloorKernelBase5_b theorems=28 axioms=[propext]
+V2FloorKernelBase5_j theorems=40 axioms=[propext]
+V2FloorKernelBase6_b theorems=8 axioms=[Quot.sound, propext]
+V2FloorKernelBase6_j theorems=8 axioms=[Quot.sound, propext]
+V2FloorKernelBaseA_b theorems=12 axioms=[Quot.sound, propext]
+V2FloorKernelBaseA_j theorems=12 axioms=[Quot.sound, propext]
+V2FloorKernelCost theorems=90 axioms=[Quot.sound, Classical.choice, propext]
+WFSlack theorems=4 axioms=[Quot.sound, Classical.choice, propext]
+WFUp theorems=16 axioms=[Quot.sound, Classical.choice, propext]
+WFPort theorems=48 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorKernelE_j_7_a theorems=18 axioms=[propext]
+V2FloorKernelE_j_251_b theorems=17 axioms=[Quot.sound, propext]
+V2FloorKernelE_j_508_a theorems=18 axioms=[propext]
+V2FloorKernelE_j_70_a theorems=18 axioms=[propext]
+V2FloorKernelE_j_70_b theorems=17 axioms=[Quot.sound, propext]
+V2FloorKernelE_b_13_a theorems=18 axioms=[propext]
+V2FloorKernelE_b_251_a theorems=18 axioms=[propext]
+V2FloorKernelE_b_508_b theorems=17 axioms=[Quot.sound, propext]
+V2FloorKernelE_b_70_a theorems=18 axioms=[propext]
+V2FloorKernelE_b_70_b theorems=17 axioms=[Quot.sound, propext]
+V2FloorKernelF_j_1 theorems=16 axioms=[propext]
+V2FloorKernelF_j_257 theorems=16 axioms=[propext]
+V2FloorKernelF_j_505 theorems=14 axioms=[propext]
+V2FloorKernelF_j_97 theorems=16 axioms=[propext]
+V2FloorKernelF_b_1 theorems=16 axioms=[propext]
+V2FloorKernelF_b_257 theorems=16 axioms=[propext]
+V2FloorKernelF_b_505 theorems=14 axioms=[propext]
+V2FloorKernelF_b_97 theorems=16 axioms=[propext]
+V2FloorKernelE_j_100_a theorems=18 axioms=[propext]
+V2FloorKernelE_b_100_b theorems=17 axioms=[Quot.sound, propext]
+V2FloorKernel_j theorems=4 axioms=[Quot.sound, Classical.choice, propext]
+V2FloorKernel_b theorems=4 axioms=[Quot.sound, Classical.choice, propext]
+
+HEADLINE THEOREMS
+HEAD V2Floor.v2floor_joint_kernel: [propext, Classical.choice, Quot.sound]
+HEAD V2Floor.v2floor_beta_kernel: [propext, Classical.choice, Quot.sound]
+HEAD V2Floor.gaussian_count: [propext, Classical.choice, Quot.sound]
+HEAD V2Floor.kernel_floor: [propext, Classical.choice, Quot.sound]
+HEAD V2Floor.kernel_intFeasible: [propext, Classical.choice, Quot.sound]
+HEAD TCLemma.TC_last_read: [propext, Classical.choice, Quot.sound]
+HEAD TCCharge.pure_holder_rule: [propext, Classical.choice, Quot.sound]
+HEAD TCDepart.dirty_departure: [propext, Classical.choice, Quot.sound]
+HEAD StayRemove.stay_removable_necessary: [propext, Classical.choice, Quot.sound]
+HEAD WFPort.y_side: [propext, Classical.choice, Quot.sound]
+HEAD SpecTSUR.lemmaTS: [propext, Classical.choice, Quot.sound]
+HEAD SpecINV.UR_inv_combined: [propext, Classical.choice, Quot.sound]
+HEAD SpecCOV.COV_R35: [propext, Classical.choice, Quot.sound]
+
+FULL BUILD LOG OF ALL V2FloorKernel* FILES (rows: file rc wall peak-RSS-MB errors; earlier build, recorded for the 536 chunks that were not recompiled here)
+V2FloorKernelData_j SKIP
+V2FloorKernelData_b SKIP
+V2FloorKernelCost rc=0 time=60s peak=2512MB 0
+DONE
+V2FloorKernelBase_j rc=0 time=5s peak=2298MB 0
+V2FloorKernelBase1_j rc=0 time=7s peak=2868MB 0
+V2FloorKernelBase2_j rc=0 time=6s peak=2594MB 0
+V2FloorKernelBase3_j rc=0 time=8s peak=3113MB 0
+V2FloorKernelBase4_j rc=0 time=7s peak=2849MB 0
+V2FloorKernelBase5_j rc=0 time=7s peak=2672MB 0
+V2FloorKernelBase6_j rc=0 time=5s peak=2411MB 0
+V2FloorKernelBaseA_j rc=0 time=6s peak=2348MB 0
+V2FloorKernelE_j_7_a rc=0 time=15s peak=2944MB 0
+V2FloorKernelE_j_7_b rc=0 time=14s peak=2960MB 0
+V2FloorKernelE_j_13_a rc=0 time=7s peak=2559MB 0
+V2FloorKernelE_j_13_b rc=0 time=6s peak=2510MB 0
+V2FloorKernelE_j_14_a rc=0 time=13s peak=2892MB 0
+V2FloorKernelE_j_14_b rc=0 time=12s peak=2841MB 0
+V2FloorKernelE_j_19_a rc=0 time=10s peak=2763MB 0
+V2FloorKernelE_j_19_b rc=0 time=10s peak=2791MB 0
+V2FloorKernelE_j_21_a rc=0 time=7s peak=2599MB 0
+V2FloorKernelE_j_21_b rc=0 time=6s peak=2559MB 0
+V2FloorKernelE_j_22_a rc=0 time=7s peak=2663MB 0
+V2FloorKernelE_j_22_b rc=0 time=7s peak=2626MB 0
+V2FloorKernelE_j_25_a rc=0 time=7s peak=2607MB 0
+V2FloorKernelE_j_25_b rc=0 time=7s peak=2575MB 0
+V2FloorKernelE_j_26_a rc=0 time=9s peak=2673MB 0
+V2FloorKernelE_j_26_b rc=0 time=9s peak=2650MB 0
+V2FloorKernelE_j_28_a rc=0 time=7s peak=2622MB 0
+V2FloorKernelE_j_28_b rc=0 time=8s peak=2609MB 0
+V2FloorKernelE_j_30_a rc=0 time=6s peak=2557MB 0
+V2FloorKernelE_j_30_b rc=0 time=7s peak=2553MB 0
+V2FloorKernelE_j_35_a rc=0 time=9s peak=2687MB 0
+V2FloorKernelE_j_35_b rc=0 time=9s peak=2802MB 0
+V2FloorKernelE_j_37_a rc=0 time=8s peak=2561MB 0
+V2FloorKernelE_j_37_b rc=0 time=7s peak=2688MB 0
+V2FloorKernelE_j_38_a rc=0 time=7s peak=2579MB 0
+V2FloorKernelE_j_38_b rc=0 time=8s peak=2674MB 0
+V2FloorKernelE_j_41_a rc=0 time=9s peak=2651MB 0
+V2FloorKernelE_j_41_b rc=0 time=9s peak=2796MB 0
+V2FloorKernelE_j_44_a rc=0 time=8s peak=2608MB 0
+V2FloorKernelE_j_44_b rc=0 time=8s peak=2683MB 0
+V2FloorKernelE_j_49_a rc=0 time=9s peak=2642MB 0
+V2FloorKernelE_j_49_b rc=0 time=8s peak=2691MB 0
+V2FloorKernelE_j_50_a rc=0 time=9s peak=2623MB 0
+V2FloorKernelE_j_50_b rc=0 time=8s peak=2672MB 0
+V2FloorKernelE_j_51_a rc=0 time=7s peak=2546MB 0
+V2FloorKernelE_j_51_b rc=0 time=7s peak=2527MB 0
+V2FloorKernelE_j_52_a rc=0 time=10s peak=2730MB 0
+V2FloorKernelE_j_52_b rc=0 time=9s peak=2842MB 0
+V2FloorKernelE_j_56_a rc=0 time=8s peak=2583MB 0
+V2FloorKernelE_j_56_b rc=0 time=7s peak=2606MB 0
+V2FloorKernelE_j_67_a rc=0 time=8s peak=2656MB 0
+V2FloorKernelE_j_67_b rc=0 time=8s peak=2665MB 0
+V2FloorKernelE_j_69_a rc=0 time=9s peak=2667MB 0
+V2FloorKernelE_j_69_b rc=0 time=9s peak=2809MB 0
+V2FloorKernelE_j_70_a rc=0 time=10s peak=2782MB 0
+V2FloorKernelE_j_70_b rc=0 time=11s peak=2917MB 0
+V2FloorKernelE_j_74_a rc=0 time=10s peak=2731MB 0
+V2FloorKernelE_j_74_b rc=0 time=9s peak=2870MB 0
+V2FloorKernelE_j_75_a rc=0 time=8s peak=2603MB 0
+V2FloorKernelE_j_75_b rc=0 time=7s peak=2586MB 0
+V2FloorKernelE_j_81_a rc=0 time=12s peak=2939MB 0
+V2FloorKernelE_j_81_b rc=0 time=12s peak=3003MB 0
+V2FloorKernelE_j_82_a rc=0 time=7s peak=2546MB 0
+V2FloorKernelE_j_82_b rc=0 time=7s peak=2605MB 0
+V2FloorKernelE_j_85_a rc=0 time=7s peak=2561MB 0
+V2FloorKernelE_j_85_b rc=0 time=7s peak=2569MB 0
+V2FloorKernelE_j_88_a rc=0 time=10s peak=2642MB 0
+V2FloorKernelE_j_88_b rc=0 time=9s peak=2792MB 0
+V2FloorKernelE_j_98_a rc=0 time=10s peak=2830MB 0
+V2FloorKernelE_j_98_b rc=0 time=11s peak=2928MB 0
+V2FloorKernelE_j_100_a rc=0 time=9s peak=2661MB 0
+V2FloorKernelE_j_100_b rc=0 time=8s peak=2793MB 0
+V2FloorKernelE_j_102_a rc=0 time=7s peak=2576MB 0
+V2FloorKernelE_j_102_b rc=0 time=7s peak=2574MB 0
+V2FloorKernelE_j_120_a rc=0 time=7s peak=2559MB 0
+V2FloorKernelE_j_120_b rc=0 time=8s peak=2572MB 0
+V2FloorKernelE_j_131_a rc=0 time=9s peak=2732MB 0
+V2FloorKernelE_j_131_b rc=0 time=10s peak=2838MB 0
+V2FloorKernelE_j_133_a rc=0 time=8s peak=2609MB 0
+V2FloorKernelE_j_133_b rc=0 time=8s peak=2703MB 0
+V2FloorKernelE_j_134_a rc=0 time=8s peak=2636MB 0
+V2FloorKernelE_j_134_b rc=0 time=8s peak=2723MB 0
+V2FloorKernelE_j_137_a rc=0 time=10s peak=2774MB 0
+V2FloorKernelE_j_137_b rc=0 time=10s peak=2917MB 0
+V2FloorKernelE_j_138_a rc=0 time=8s peak=2645MB 0
+V2FloorKernelE_j_138_b rc=0 time=9s peak=2763MB 0
+V2FloorKernelE_j_140_a rc=0 time=6s peak=2506MB 0
+V2FloorKernelE_j_140_b rc=0 time=6s peak=2462MB 0
+V2FloorKernelE_j_145_a rc=0 time=11s peak=2893MB 0
+V2FloorKernelE_j_145_b rc=0 time=12s peak=3017MB 0
+V2FloorKernelE_j_152_a rc=0 time=10s peak=2747MB 0
+V2FloorKernelE_j_152_b rc=0 time=9s peak=2875MB 0
+V2FloorKernelE_j_164_a rc=0 time=9s peak=2742MB 0
+V2FloorKernelE_j_164_b rc=0 time=10s peak=2883MB 0
+V2FloorKernelE_j_168_a rc=0 time=7s peak=2598MB 0
+V2FloorKernelE_j_168_b rc=0 time=7s peak=2572MB 0
+V2FloorKernelE_j_176_a rc=0 time=7s peak=2565MB 0
+V2FloorKernelE_j_176_b rc=0 time=7s peak=2604MB 0
+V2FloorKernelE_j_191_a rc=0 time=7s peak=2523MB 0
+V2FloorKernelE_j_191_b rc=0 time=6s peak=2497MB 0
+V2FloorKernelE_j_193_a rc=0 time=9s peak=2748MB 0
+V2FloorKernelE_j_193_b rc=0 time=9s peak=2859MB 0
+V2FloorKernelE_j_194_a rc=0 time=9s peak=2720MB 0
+V2FloorKernelE_j_194_b rc=0 time=9s peak=2816MB 0
+V2FloorKernelE_j_196_a rc=0 time=7s peak=2596MB 0
+V2FloorKernelE_j_196_b rc=0 time=7s peak=2600MB 0
+V2FloorKernelE_j_200_a rc=0 time=9s peak=2682MB 0
+V2FloorKernelE_j_200_b rc=0 time=8s peak=2800MB 0
+V2FloorKernelE_j_224_a rc=0 time=8s peak=2624MB 0
+V2FloorKernelE_j_224_b rc=0 time=8s peak=2696MB 0
+V2FloorKernelE_j_239_a rc=0 time=8s peak=2710MB 0
+V2FloorKernelE_j_239_b rc=0 time=8s peak=2686MB 0
+V2FloorKernelE_j_247_a rc=0 time=10s peak=2859MB 0
+V2FloorKernelE_j_247_b rc=0 time=11s peak=2969MB 0
+V2FloorKernelE_j_251_a rc=0 time=9s peak=2639MB 0
+V2FloorKernelE_j_251_b rc=0 time=8s peak=2694MB 0
+V2FloorKernelE_j_253_a rc=0 time=9s peak=2723MB 0
+V2FloorKernelE_j_253_b rc=0 time=9s peak=2823MB 0
+V2FloorKernelE_j_254_a rc=0 time=14s peak=3050MB 0
+V2FloorKernelE_j_254_b rc=0 time=14s peak=3146MB 0
+V2FloorKernelE_j_259_a rc=0 time=8s peak=2709MB 0
+V2FloorKernelE_j_259_b rc=0 time=6s peak=2256MB 0
+V2FloorKernelE_j_261_a rc=0 time=9s peak=2718MB 0
+V2FloorKernelE_j_261_b rc=0 time=5s peak=2271MB 0
+V2FloorKernelE_j_262_a rc=0 time=16s peak=3126MB 0
+V2FloorKernelE_j_262_b rc=0 time=5s peak=2317MB 0
+V2FloorKernelE_j_268_a rc=0 time=9s peak=2683MB 0
+V2FloorKernelE_j_268_b rc=0 time=5s peak=2257MB 0
+V2FloorKernelE_j_273_a rc=0 time=15s peak=3011MB 0
+V2FloorKernelE_j_273_b rc=0 time=5s peak=2283MB 0
+V2FloorKernelE_j_274_a rc=0 time=8s peak=2650MB 0
+V2FloorKernelE_j_274_b rc=0 time=5s peak=2303MB 0
+V2FloorKernelE_j_276_a rc=0 time=12s peak=2864MB 0
+V2FloorKernelE_j_276_b rc=0 time=5s peak=2222MB 0
+V2FloorKernelE_j_280_a rc=0 time=13s peak=2944MB 0
+V2FloorKernelE_j_280_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_j_290_a rc=0 time=23s peak=3330MB 0
+V2FloorKernelE_j_290_b rc=0 time=5s peak=2271MB 0
+V2FloorKernelE_j_292_a rc=0 time=13s peak=2920MB 0
+V2FloorKernelE_j_292_b rc=0 time=5s peak=2263MB 0
+V2FloorKernelE_j_296_a rc=0 time=12s peak=2818MB 0
+V2FloorKernelE_j_296_b rc=0 time=5s peak=2276MB 0
+V2FloorKernelE_j_304_a rc=0 time=15s peak=3019MB 0
+V2FloorKernelE_j_304_b rc=0 time=5s peak=2280MB 0
+V2FloorKernelE_j_319_a rc=0 time=9s peak=2679MB 0
+V2FloorKernelE_j_319_b rc=0 time=5s peak=2294MB 0
+V2FloorKernelE_j_321_a rc=0 time=19s peak=3094MB 0
+V2FloorKernelE_j_321_b rc=0 time=6s peak=2255MB 0
+V2FloorKernelE_j_322_a rc=0 time=13s peak=2935MB 0
+V2FloorKernelE_j_322_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_j_324_a rc=0 time=19s peak=3167MB 0
+V2FloorKernelE_j_324_b rc=0 time=6s peak=2268MB 0
+V2FloorKernelE_j_328_a rc=0 time=12s peak=2906MB 0
+V2FloorKernelE_j_328_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_j_351_a rc=0 time=11s peak=2787MB 0
+V2FloorKernelE_j_351_b rc=0 time=5s peak=2281MB 0
+V2FloorKernelE_j_352_a rc=0 time=15s peak=2959MB 0
+V2FloorKernelE_j_352_b rc=0 time=5s peak=2269MB 0
+V2FloorKernelE_j_367_a rc=0 time=11s peak=2777MB 0
+V2FloorKernelE_j_367_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_j_375_a rc=0 time=19s peak=3150MB 0
+V2FloorKernelE_j_375_b rc=0 time=6s peak=2294MB 0
+V2FloorKernelE_j_379_a rc=0 time=15s peak=2967MB 0
+V2FloorKernelE_j_379_b rc=0 time=6s peak=2258MB 0
+V2FloorKernelE_j_381_a rc=0 time=17s peak=2916MB 0
+V2FloorKernelE_j_381_b rc=0 time=5s peak=2247MB 0
+V2FloorKernelE_j_382_a rc=0 time=15s peak=2916MB 0
+V2FloorKernelE_j_382_b rc=0 time=6s peak=2260MB 0
+V2FloorKernelE_j_385_a rc=0 time=15s peak=2983MB 0
+V2FloorKernelE_j_385_b rc=0 time=5s peak=2281MB 0
+V2FloorKernelE_j_386_a rc=0 time=13s peak=2866MB 0
+V2FloorKernelE_j_386_b rc=0 time=5s peak=2301MB 0
+V2FloorKernelE_j_388_a rc=0 time=14s peak=2926MB 0
+V2FloorKernelE_j_388_b rc=0 time=6s peak=2303MB 0
+V2FloorKernelE_j_392_a rc=0 time=11s peak=2833MB 0
+V2FloorKernelE_j_392_b rc=0 time=6s peak=2283MB 0
+V2FloorKernelE_j_415_a rc=0 time=12s peak=2813MB 0
+V2FloorKernelE_j_415_b rc=0 time=5s peak=2304MB 0
+V2FloorKernelE_j_416_a rc=0 time=17s peak=3102MB 0
+V2FloorKernelE_j_416_b rc=0 time=5s peak=2271MB 0
+V2FloorKernelE_j_431_a rc=0 time=13s peak=2848MB 0
+V2FloorKernelE_j_431_b rc=0 time=5s peak=2305MB 0
+V2FloorKernelE_j_443_a rc=0 time=15s peak=2942MB 0
+V2FloorKernelE_j_443_b rc=0 time=5s peak=2299MB 0
+V2FloorKernelE_j_445_a rc=0 time=15s peak=3012MB 0
+V2FloorKernelE_j_445_b rc=0 time=5s peak=2281MB 0
+V2FloorKernelE_j_446_a rc=0 time=10s peak=2725MB 0
+V2FloorKernelE_j_446_b rc=0 time=5s peak=2296MB 0
+V2FloorKernelE_j_448_a rc=0 time=10s peak=2716MB 0
+V2FloorKernelE_j_448_b rc=0 time=5s peak=2282MB 0
+V2FloorKernelE_j_463_a rc=0 time=13s peak=2866MB 0
+V2FloorKernelE_j_463_b rc=0 time=5s peak=2313MB 0
+V2FloorKernelE_j_471_a rc=0 time=13s peak=2865MB 0
+V2FloorKernelE_j_471_b rc=0 time=6s peak=2281MB 0
+V2FloorKernelE_j_475_a rc=0 time=12s peak=2943MB 0
+V2FloorKernelE_j_475_b rc=0 time=6s peak=2298MB 0
+V2FloorKernelE_j_477_a rc=0 time=13s peak=2767MB 0
+V2FloorKernelE_j_477_b rc=0 time=6s peak=2282MB 0
+V2FloorKernelE_j_478_a rc=0 time=12s peak=2707MB 0
+V2FloorKernelE_j_478_b rc=0 time=6s peak=2288MB 0
+V2FloorKernelE_j_491_a rc=0 time=17s peak=3021MB 0
+V2FloorKernelE_j_491_b rc=0 time=6s peak=2275MB 0
+V2FloorKernelE_j_493_a rc=0 time=15s peak=2531MB 0
+V2FloorKernelE_j_493_b rc=0 time=7s peak=2306MB 0
+V2FloorKernelE_j_499_a rc=0 time=10s peak=2704MB 0
+V2FloorKernelE_j_499_b rc=0 time=6s peak=2302MB 0
+V2FloorKernelE_j_501_a rc=0 time=19s peak=2930MB 0
+V2FloorKernelE_j_501_b rc=0 time=6s peak=2283MB 0
+V2FloorKernelE_j_502_a rc=0 time=16s peak=2961MB 0
+V2FloorKernelE_j_502_b rc=0 time=6s peak=2297MB 0
+V2FloorKernelE_j_505_a rc=0 time=16s peak=3040MB 0
+V2FloorKernelE_j_505_b rc=0 time=6s peak=2280MB 0
+V2FloorKernelE_j_506_a rc=0 time=10s peak=2755MB 0
+V2FloorKernelE_j_506_b rc=0 time=5s peak=2292MB 0
+V2FloorKernelE_j_508_a rc=0 time=14s peak=2958MB 0
+V2FloorKernelE_j_508_b rc=0 time=5s peak=2270MB 0
+V2FloorKernelF_j_1 rc=0 time=22s peak=3340MB 0
+V2FloorKernelF_j_9 rc=0 time=22s peak=3304MB 0
+V2FloorKernelF_j_17 rc=0 time=22s peak=3296MB 0
+V2FloorKernelF_j_25 rc=0 time=22s peak=3354MB 0
+V2FloorKernelF_j_33 rc=0 time=21s peak=3300MB 0
+V2FloorKernelF_j_41 rc=0 time=21s peak=3359MB 0
+V2FloorKernelF_j_49 rc=0 time=22s peak=3273MB 0
+V2FloorKernelF_j_57 rc=0 time=21s peak=3336MB 0
+V2FloorKernelF_j_65 rc=0 time=22s peak=3262MB 0
+V2FloorKernelF_j_73 rc=0 time=24s peak=3361MB 0
+V2FloorKernelF_j_81 rc=0 time=26s peak=3254MB 0
+V2FloorKernelF_j_89 rc=0 time=24s peak=3304MB 0
+V2FloorKernelF_j_97 rc=0 time=24s peak=3294MB 0
+V2FloorKernelF_j_105 rc=0 time=24s peak=3253MB 0
+V2FloorKernelF_j_113 rc=0 time=22s peak=3383MB 0
+V2FloorKernelF_j_121 rc=0 time=23s peak=3257MB 0
+V2FloorKernelF_j_129 rc=0 time=23s peak=3387MB 0
+V2FloorKernelF_j_137 rc=0 time=22s peak=3313MB 0
+V2FloorKernelF_j_145 rc=0 time=21s peak=3300MB 0
+V2FloorKernelF_j_153 rc=0 time=24s peak=3315MB 0
+V2FloorKernelF_j_161 rc=0 time=23s peak=3238MB 0
+V2FloorKernelF_j_169 rc=0 time=21s peak=3252MB 0
+V2FloorKernelF_j_177 rc=0 time=25s peak=3075MB 0
+V2FloorKernelF_j_185 rc=0 time=21s peak=3331MB 0
+V2FloorKernelF_j_193 rc=0 time=20s peak=3307MB 0
+V2FloorKernelF_j_201 rc=0 time=23s peak=3196MB 0
+V2FloorKernelF_j_209 rc=0 time=22s peak=3310MB 0
+V2FloorKernelF_j_217 rc=0 time=27s peak=3355MB 0
+V2FloorKernelF_j_225 rc=0 time=21s peak=3224MB 0
+V2FloorKernelF_j_233 rc=0 time=20s peak=3291MB 0
+V2FloorKernelF_j_241 rc=0 time=21s peak=3309MB 0
+V2FloorKernelF_j_249 rc=0 time=22s peak=3333MB 0
+V2FloorKernelF_j_257 rc=0 time=21s peak=3388MB 0
+V2FloorKernelF_j_265 rc=0 time=21s peak=3376MB 0
+V2FloorKernelF_j_273 rc=0 time=21s peak=3265MB 0
+V2FloorKernelF_j_281 rc=0 time=23s peak=3392MB 0
+V2FloorKernelF_j_289 rc=0 time=20s peak=3329MB 0
+V2FloorKernelF_j_297 rc=0 time=21s peak=3303MB 0
+V2FloorKernelF_j_305 rc=0 time=23s peak=3354MB 0
+V2FloorKernelF_j_313 rc=0 time=24s peak=3325MB 0
+V2FloorKernelF_j_321 rc=0 time=25s peak=3283MB 0
+V2FloorKernelF_j_329 rc=0 time=24s peak=3363MB 0
+V2FloorKernelF_j_337 rc=0 time=24s peak=3313MB 0
+V2FloorKernelF_j_345 rc=0 time=23s peak=3302MB 0
+V2FloorKernelF_j_353 rc=0 time=22s peak=3341MB 0
+V2FloorKernelF_j_361 rc=0 time=22s peak=3342MB 0
+V2FloorKernelF_j_369 rc=0 time=25s peak=3352MB 0
+V2FloorKernelF_j_377 rc=0 time=24s peak=3364MB 0
+V2FloorKernelF_j_385 rc=0 time=23s peak=3348MB 0
+V2FloorKernelF_j_393 rc=0 time=22s peak=3401MB 0
+V2FloorKernelF_j_401 rc=0 time=24s peak=3331MB 0
+V2FloorKernelF_j_409 rc=0 time=26s peak=3353MB 0
+V2FloorKernelF_j_417 rc=0 time=25s peak=3286MB 0
+V2FloorKernelF_j_425 rc=0 time=25s peak=3321MB 0
+V2FloorKernelF_j_433 rc=0 time=26s peak=3388MB 0
+V2FloorKernelF_j_441 rc=0 time=26s peak=3342MB 0
+V2FloorKernelF_j_449 rc=0 time=28s peak=3319MB 0
+V2FloorKernelF_j_457 rc=0 time=29s peak=3318MB 0
+V2FloorKernelF_j_465 rc=0 time=28s peak=3402MB 0
+V2FloorKernelF_j_473 rc=0 time=26s peak=3328MB 0
+V2FloorKernelF_j_481 rc=0 time=24s peak=3400MB 0
+V2FloorKernelF_j_489 rc=0 time=23s peak=3398MB 0
+V2FloorKernelF_j_497 rc=0 time=23s peak=3371MB 0
+V2FloorKernelF_j_505 rc=0 time=20s peak=3139MB 0
+V2FloorKernel_j rc=0 time=6s peak=2336MB 0
+DONE
+V2FloorKernelBase_b rc=0 time=5s peak=2293MB 0
+V2FloorKernelBase1_b rc=0 time=6s peak=2621MB 0
+V2FloorKernelBase2_b rc=0 time=6s peak=2448MB 0
+V2FloorKernelBase3_b rc=0 time=6s peak=2733MB 0
+V2FloorKernelBase4_b rc=0 time=7s peak=2619MB 0
+V2FloorKernelBase5_b rc=0 time=6s peak=2438MB 0
+V2FloorKernelBase6_b rc=0 time=5s peak=2407MB 0
+V2FloorKernelBaseA_b rc=0 time=6s peak=2297MB 0
+V2FloorKernelE_b_13_a rc=0 time=6s peak=2518MB 0
+V2FloorKernelE_b_13_b rc=0 time=6s peak=2536MB 0
+V2FloorKernelE_b_14_a rc=0 time=7s peak=2635MB 0
+V2FloorKernelE_b_14_b rc=0 time=8s peak=2617MB 0
+V2FloorKernelE_b_19_a rc=0 time=9s peak=2718MB 0
+V2FloorKernelE_b_19_b rc=0 time=9s peak=2686MB 0
+V2FloorKernelE_b_22_a rc=0 time=7s peak=2576MB 0
+V2FloorKernelE_b_22_b rc=0 time=7s peak=2577MB 0
+V2FloorKernelE_b_26_a rc=0 time=7s peak=2636MB 0
+V2FloorKernelE_b_26_b rc=0 time=8s peak=2594MB 0
+V2FloorKernelE_b_28_a rc=0 time=7s peak=2633MB 0
+V2FloorKernelE_b_28_b rc=0 time=8s peak=2615MB 0
+V2FloorKernelE_b_30_a rc=0 time=6s peak=2555MB 0
+V2FloorKernelE_b_30_b rc=0 time=6s peak=2516MB 0
+V2FloorKernelE_b_35_a rc=0 time=7s peak=2570MB 0
+V2FloorKernelE_b_35_b rc=0 time=7s peak=2629MB 0
+V2FloorKernelE_b_37_a rc=0 time=7s peak=2543MB 0
+V2FloorKernelE_b_37_b rc=0 time=7s peak=2643MB 0
+V2FloorKernelE_b_38_a rc=0 time=6s peak=2489MB 0
+V2FloorKernelE_b_38_b rc=0 time=7s peak=2562MB 0
+V2FloorKernelE_b_41_a rc=0 time=7s peak=2622MB 0
+V2FloorKernelE_b_41_b rc=0 time=8s peak=2680MB 0
+V2FloorKernelE_b_44_a rc=0 time=8s peak=2603MB 0
+V2FloorKernelE_b_44_b rc=0 time=8s peak=2723MB 0
+V2FloorKernelE_b_49_a rc=0 time=8s peak=2582MB 0
+V2FloorKernelE_b_49_b rc=0 time=8s peak=2658MB 0
+V2FloorKernelE_b_50_a rc=0 time=6s peak=2532MB 0
+V2FloorKernelE_b_50_b rc=0 time=6s peak=2544MB 0
+V2FloorKernelE_b_51_a rc=0 time=5s peak=2458MB 0
+V2FloorKernelE_b_51_b rc=0 time=6s peak=2506MB 0
+V2FloorKernelE_b_52_a rc=0 time=6s peak=2492MB 0
+V2FloorKernelE_b_52_b rc=0 time=6s peak=2487MB 0
+V2FloorKernelE_b_56_a rc=0 time=6s peak=2480MB 0
+V2FloorKernelE_b_56_b rc=0 time=7s peak=2519MB 0
+V2FloorKernelE_b_69_a rc=0 time=6s peak=2490MB 0
+V2FloorKernelE_b_69_b rc=0 time=7s peak=2547MB 0
+V2FloorKernelE_b_70_a rc=0 time=7s peak=2576MB 0
+V2FloorKernelE_b_70_b rc=0 time=8s peak=2653MB 0
+V2FloorKernelE_b_74_a rc=0 time=9s peak=2673MB 0
+V2FloorKernelE_b_74_b rc=0 time=9s peak=2812MB 0
+V2FloorKernelE_b_75_a rc=0 time=7s peak=2508MB 0
+V2FloorKernelE_b_75_b rc=0 time=8s peak=2560MB 0
+V2FloorKernelE_b_81_a rc=0 time=8s peak=2654MB 0
+V2FloorKernelE_b_81_b rc=0 time=9s peak=2777MB 0
+V2FloorKernelE_b_85_a rc=0 time=7s peak=2492MB 0
+V2FloorKernelE_b_85_b rc=0 time=7s peak=2558MB 0
+V2FloorKernelE_b_88_a rc=0 time=7s peak=2565MB 0
+V2FloorKernelE_b_88_b rc=0 time=8s peak=2606MB 0
+V2FloorKernelE_b_98_a rc=0 time=7s peak=2583MB 0
+V2FloorKernelE_b_98_b rc=0 time=7s peak=2613MB 0
+V2FloorKernelE_b_100_a rc=0 time=9s peak=2609MB 0
+V2FloorKernelE_b_100_b rc=0 time=8s peak=2682MB 0
+V2FloorKernelE_b_102_a rc=0 time=7s peak=2509MB 0
+V2FloorKernelE_b_102_b rc=0 time=6s peak=2544MB 0
+V2FloorKernelE_b_120_a rc=0 time=6s peak=2491MB 0
+V2FloorKernelE_b_120_b rc=0 time=7s peak=2522MB 0
+V2FloorKernelE_b_131_a rc=0 time=6s peak=2505MB 0
+V2FloorKernelE_b_131_b rc=0 time=7s peak=2490MB 0
+V2FloorKernelE_b_133_a rc=0 time=7s peak=2573MB 0
+V2FloorKernelE_b_133_b rc=0 time=8s peak=2579MB 0
+V2FloorKernelE_b_134_a rc=0 time=7s peak=2588MB 0
+V2FloorKernelE_b_134_b rc=0 time=8s peak=2591MB 0
+V2FloorKernelE_b_138_a rc=0 time=7s peak=2632MB 0
+V2FloorKernelE_b_138_b rc=0 time=8s peak=2628MB 0
+V2FloorKernelE_b_145_a rc=0 time=7s peak=2567MB 0
+V2FloorKernelE_b_145_b rc=0 time=8s peak=2629MB 0
+V2FloorKernelE_b_152_a rc=0 time=7s peak=2499MB 0
+V2FloorKernelE_b_152_b rc=0 time=6s peak=2539MB 0
+V2FloorKernelE_b_164_a rc=0 time=9s peak=2546MB 0
+V2FloorKernelE_b_164_b rc=0 time=7s peak=2569MB 0
+V2FloorKernelE_b_168_a rc=0 time=6s peak=2524MB 0
+V2FloorKernelE_b_168_b rc=0 time=7s peak=2497MB 0
+V2FloorKernelE_b_176_a rc=0 time=6s peak=2480MB 0
+V2FloorKernelE_b_176_b rc=0 time=6s peak=2448MB 0
+V2FloorKernelE_b_191_a rc=0 time=6s peak=2475MB 0
+V2FloorKernelE_b_191_b rc=0 time=6s peak=2458MB 0
+V2FloorKernelE_b_193_a rc=0 time=8s peak=2613MB 0
+V2FloorKernelE_b_193_b rc=0 time=8s peak=2692MB 0
+V2FloorKernelE_b_194_a rc=0 time=7s peak=2495MB 0
+V2FloorKernelE_b_194_b rc=0 time=7s peak=2502MB 0
+V2FloorKernelE_b_196_a rc=0 time=7s peak=2539MB 0
+V2FloorKernelE_b_196_b rc=0 time=8s peak=2631MB 0
+V2FloorKernelE_b_200_a rc=0 time=8s peak=2596MB 0
+V2FloorKernelE_b_200_b rc=0 time=9s peak=2738MB 0
+V2FloorKernelE_b_224_a rc=0 time=6s peak=2491MB 0
+V2FloorKernelE_b_224_b rc=0 time=6s peak=2497MB 0
+V2FloorKernelE_b_239_a rc=0 time=7s peak=2517MB 0
+V2FloorKernelE_b_239_b rc=0 time=6s peak=2508MB 0
+V2FloorKernelE_b_247_a rc=0 time=8s peak=2599MB 0
+V2FloorKernelE_b_247_b rc=0 time=7s peak=2657MB 0
+V2FloorKernelE_b_251_a rc=0 time=8s peak=2566MB 0
+V2FloorKernelE_b_251_b rc=0 time=7s peak=2640MB 0
+V2FloorKernelE_b_253_a rc=0 time=8s peak=2654MB 0
+V2FloorKernelE_b_253_b rc=0 time=8s peak=2768MB 0
+V2FloorKernelE_b_254_a rc=0 time=8s peak=2598MB 0
+V2FloorKernelE_b_254_b rc=0 time=8s peak=2688MB 0
+V2FloorKernelE_b_259_a rc=0 time=8s peak=2688MB 0
+V2FloorKernelE_b_259_b rc=0 time=5s peak=2303MB 0
+V2FloorKernelE_b_261_a rc=0 time=9s peak=2761MB 0
+V2FloorKernelE_b_261_b rc=0 time=5s peak=2300MB 0
+V2FloorKernelE_b_262_a rc=0 time=14s peak=2937MB 0
+V2FloorKernelE_b_262_b rc=0 time=5s peak=2305MB 0
+V2FloorKernelE_b_268_a rc=0 time=7s peak=2688MB 0
+V2FloorKernelE_b_268_b rc=0 time=5s peak=2278MB 0
+V2FloorKernelE_b_273_a rc=0 time=10s peak=2789MB 0
+V2FloorKernelE_b_273_b rc=0 time=5s peak=2278MB 0
+V2FloorKernelE_b_274_a rc=0 time=7s peak=2641MB 0
+V2FloorKernelE_b_274_b rc=0 time=5s peak=2278MB 0
+V2FloorKernelE_b_276_a rc=0 time=9s peak=2717MB 0
+V2FloorKernelE_b_276_b rc=0 time=5s peak=2280MB 0
+V2FloorKernelE_b_280_a rc=0 time=10s peak=2762MB 0
+V2FloorKernelE_b_280_b rc=0 time=5s peak=2299MB 0
+V2FloorKernelE_b_290_a rc=0 time=18s peak=3127MB 0
+V2FloorKernelE_b_290_b rc=0 time=5s peak=2264MB 0
+V2FloorKernelE_b_292_a rc=0 time=9s peak=2700MB 0
+V2FloorKernelE_b_292_b rc=0 time=5s peak=2277MB 0
+V2FloorKernelE_b_296_a rc=0 time=9s peak=2765MB 0
+V2FloorKernelE_b_296_b rc=0 time=5s peak=2283MB 0
+V2FloorKernelE_b_304_a rc=0 time=12s peak=2943MB 0
+V2FloorKernelE_b_304_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_b_321_a rc=0 time=9s peak=2758MB 0
+V2FloorKernelE_b_321_b rc=0 time=6s peak=2259MB 0
+V2FloorKernelE_b_322_a rc=0 time=10s peak=2785MB 0
+V2FloorKernelE_b_322_b rc=0 time=5s peak=2293MB 0
+V2FloorKernelE_b_324_a rc=0 time=10s peak=2817MB 0
+V2FloorKernelE_b_324_b rc=0 time=6s peak=2227MB 0
+V2FloorKernelE_b_328_a rc=0 time=9s peak=2687MB 0
+V2FloorKernelE_b_328_b rc=0 time=5s peak=2278MB 0
+V2FloorKernelE_b_351_a rc=0 time=9s peak=2689MB 0
+V2FloorKernelE_b_351_b rc=0 time=5s peak=2278MB 0
+V2FloorKernelE_b_352_a rc=0 time=10s peak=2794MB 0
+V2FloorKernelE_b_352_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_b_367_a rc=0 time=11s peak=2847MB 0
+V2FloorKernelE_b_367_b rc=0 time=5s peak=2256MB 0
+V2FloorKernelE_b_375_a rc=0 time=12s peak=2929MB 0
+V2FloorKernelE_b_375_b rc=0 time=6s peak=2229MB 0
+V2FloorKernelE_b_379_a rc=0 time=7s peak=2645MB 0
+V2FloorKernelE_b_379_b rc=0 time=5s peak=2275MB 0
+V2FloorKernelE_b_381_a rc=0 time=15s peak=3055MB 0
+V2FloorKernelE_b_381_b rc=0 time=5s peak=2226MB 0
+V2FloorKernelE_b_382_a rc=0 time=10s peak=2774MB 0
+V2FloorKernelE_b_382_b rc=0 time=5s peak=2256MB 0
+V2FloorKernelE_b_385_a rc=0 time=9s peak=2765MB 0
+V2FloorKernelE_b_385_b rc=0 time=5s peak=2291MB 0
+V2FloorKernelE_b_386_a rc=0 time=10s peak=2801MB 0
+V2FloorKernelE_b_386_b rc=0 time=5s peak=2270MB 0
+V2FloorKernelE_b_388_a rc=0 time=9s peak=2771MB 0
+V2FloorKernelE_b_388_b rc=0 time=5s peak=2225MB 0
+V2FloorKernelE_b_392_a rc=0 time=9s peak=2726MB 0
+V2FloorKernelE_b_392_b rc=0 time=5s peak=2270MB 0
+V2FloorKernelE_b_415_a rc=0 time=9s peak=2716MB 0
+V2FloorKernelE_b_415_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_b_416_a rc=0 time=9s peak=2774MB 0
+V2FloorKernelE_b_416_b rc=0 time=5s peak=2293MB 0
+V2FloorKernelE_b_431_a rc=0 time=11s peak=2752MB 0
+V2FloorKernelE_b_431_b rc=0 time=5s peak=2264MB 0
+V2FloorKernelE_b_443_a rc=0 time=11s peak=2819MB 0
+V2FloorKernelE_b_443_b rc=0 time=6s peak=2228MB 0
+V2FloorKernelE_b_445_a rc=0 time=13s peak=2882MB 0
+V2FloorKernelE_b_445_b rc=0 time=5s peak=2293MB 0
+V2FloorKernelE_b_446_a rc=0 time=8s peak=2670MB 0
+V2FloorKernelE_b_446_b rc=0 time=5s peak=2279MB 0
+V2FloorKernelE_b_463_a rc=0 time=15s peak=3051MB 0
+V2FloorKernelE_b_463_b rc=0 time=5s peak=2296MB 0
+V2FloorKernelE_b_471_a rc=0 time=14s peak=2981MB 0
+V2FloorKernelE_b_471_b rc=0 time=6s peak=2269MB 0
+V2FloorKernelE_b_475_a rc=0 time=9s peak=2672MB 0
+V2FloorKernelE_b_475_b rc=0 time=5s peak=2280MB 0
+V2FloorKernelE_b_477_a rc=0 time=9s peak=2685MB 0
+V2FloorKernelE_b_477_b rc=0 time=5s peak=2280MB 0
+V2FloorKernelE_b_491_a rc=0 time=13s peak=2882MB 0
+V2FloorKernelE_b_491_b rc=0 time=5s peak=2304MB 0
+V2FloorKernelE_b_493_a rc=0 time=8s peak=2645MB 0
+V2FloorKernelE_b_493_b rc=0 time=6s peak=2297MB 0
+V2FloorKernelE_b_499_a rc=0 time=7s peak=2637MB 0
+V2FloorKernelE_b_499_b rc=0 time=6s peak=2268MB 0
+V2FloorKernelE_b_501_a rc=0 time=10s peak=2735MB 0
+V2FloorKernelE_b_501_b rc=0 time=5s peak=2293MB 0
+V2FloorKernelE_b_502_a rc=0 time=11s peak=2769MB 0
+V2FloorKernelE_b_502_b rc=0 time=5s peak=2281MB 0
+V2FloorKernelE_b_505_a rc=0 time=11s peak=2805MB 0
+V2FloorKernelE_b_505_b rc=0 time=5s peak=2271MB 0
+V2FloorKernelE_b_506_a rc=0 time=10s peak=2766MB 0
+V2FloorKernelE_b_506_b rc=0 time=6s peak=2229MB 0
+V2FloorKernelE_b_508_a rc=0 time=15s peak=2863MB 0
+V2FloorKernelE_b_508_b rc=0 time=6s peak=2270MB 0
+V2FloorKernelF_b_1 rc=0 time=16s peak=3223MB 0
+V2FloorKernelF_b_9 rc=0 time=16s peak=3074MB 0
+V2FloorKernelF_b_17 rc=0 time=16s peak=3104MB 0
+V2FloorKernelF_b_25 rc=0 time=16s peak=3094MB 0
+V2FloorKernelF_b_33 rc=0 time=16s peak=2979MB 0
+V2FloorKernelF_b_41 rc=0 time=16s peak=3120MB 0
+V2FloorKernelF_b_49 rc=0 time=16s peak=3048MB 0
+V2FloorKernelF_b_57 rc=0 time=16s peak=3109MB 0
+V2FloorKernelF_b_65 rc=0 time=16s peak=3152MB 0
+V2FloorKernelF_b_73 rc=0 time=16s peak=3102MB 0
+V2FloorKernelF_b_81 rc=0 time=16s peak=3148MB 0
+V2FloorKernelF_b_89 rc=0 time=16s peak=3170MB 0
+V2FloorKernelF_b_97 rc=0 time=15s peak=3135MB 0
+V2FloorKernelF_b_105 rc=0 time=16s peak=3193MB 0
+V2FloorKernelF_b_113 rc=0 time=16s peak=3174MB 0
+V2FloorKernelF_b_121 rc=0 time=17s peak=3177MB 0
+V2FloorKernelF_b_129 rc=0 time=16s peak=3198MB 0
+V2FloorKernelF_b_137 rc=0 time=17s peak=3103MB 0
+V2FloorKernelF_b_145 rc=0 time=18s peak=3142MB 0
+V2FloorKernelF_b_153 rc=0 time=19s peak=3112MB 0
+V2FloorKernelF_b_161 rc=0 time=18s peak=3170MB 0
+V2FloorKernelF_b_169 rc=0 time=23s peak=3157MB 0
+V2FloorKernelF_b_177 rc=0 time=19s peak=3129MB 0
+V2FloorKernelF_b_185 rc=0 time=19s peak=3168MB 0
+V2FloorKernelF_b_193 rc=0 time=16s peak=3140MB 0
+V2FloorKernelF_b_201 rc=0 time=17s peak=3138MB 0
+V2FloorKernelF_b_209 rc=0 time=16s peak=3126MB 0
+V2FloorKernelF_b_217 rc=0 time=15s peak=3133MB 0
+V2FloorKernelF_b_225 rc=0 time=16s peak=3199MB 0
+V2FloorKernelF_b_233 rc=0 time=16s peak=3108MB 0
+V2FloorKernelF_b_241 rc=0 time=15s peak=3143MB 0
+V2FloorKernelF_b_249 rc=0 time=16s peak=3238MB 0
+V2FloorKernelF_b_257 rc=0 time=17s peak=3220MB 0
+V2FloorKernelF_b_265 rc=0 time=15s peak=3133MB 0
+V2FloorKernelF_b_273 rc=0 time=16s peak=3165MB 0
+V2FloorKernelF_b_281 rc=0 time=16s peak=3184MB 0
+V2FloorKernelF_b_289 rc=0 time=15s peak=3138MB 0
+V2FloorKernelF_b_297 rc=0 time=16s peak=3255MB 0
+V2FloorKernelF_b_305 rc=0 time=15s peak=3097MB 0
+V2FloorKernelF_b_313 rc=0 time=16s peak=3149MB 0
+V2FloorKernelF_b_321 rc=0 time=16s peak=3159MB 0
+V2FloorKernelF_b_329 rc=0 time=18s peak=3039MB 0
+V2FloorKernelF_b_337 rc=0 time=19s peak=3133MB 0
+V2FloorKernelF_b_345 rc=0 time=19s peak=3132MB 0
+V2FloorKernelF_b_353 rc=0 time=18s peak=3144MB 0
+V2FloorKernelF_b_361 rc=0 time=18s peak=3158MB 0
+V2FloorKernelF_b_369 rc=0 time=17s peak=3156MB 0
+V2FloorKernelF_b_377 rc=0 time=18s peak=3192MB 0
+V2FloorKernelF_b_385 rc=0 time=16s peak=3076MB 0
+V2FloorKernelF_b_393 rc=0 time=15s peak=3211MB 0
+V2FloorKernelF_b_401 rc=0 time=18s peak=3144MB 0
+V2FloorKernelF_b_409 rc=0 time=17s peak=3210MB 0
+V2FloorKernelF_b_417 rc=0 time=16s peak=3071MB 0
+V2FloorKernelF_b_425 rc=0 time=17s peak=3190MB 0
+V2FloorKernelF_b_433 rc=0 time=17s peak=3011MB 0
+V2FloorKernelF_b_441 rc=0 time=16s peak=2953MB 0
+V2FloorKernelF_b_449 rc=0 time=16s peak=3083MB 0
+V2FloorKernelF_b_457 rc=0 time=15s peak=3147MB 0
+V2FloorKernelF_b_465 rc=0 time=19s peak=3099MB 0
+V2FloorKernelF_b_473 rc=0 time=17s peak=2806MB 0
+V2FloorKernelF_b_481 rc=0 time=17s peak=3154MB 0
+V2FloorKernelF_b_489 rc=0 time=16s peak=3116MB 0
+V2FloorKernelF_b_497 rc=0 time=14s peak=3197MB 0
+V2FloorKernelF_b_505 rc=0 time=16s peak=2934MB 0
+V2FloorKernel_b rc=0 time=8s peak=2327MB 0
+DONE

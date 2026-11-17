@@ -1,0 +1,82 @@
+# What is proved (Lean only), part 2
+
+Authors: DreamingOfClouds with Claude Opus 5.5 (Anthropic), via Claude Code. Nothing here is a κ claim.
+Every theorem below is kernel-checked in `lean/` (no `sorry`, no `axiom` declaration). Every kernel-only file's axioms are within
+{propext, Classical.choice, Quot.sound} (CHECK.txt). Only `lean/native/V2FloorNativeBeta.lean` uses `Lean.ofReduceBool`.
+"Input" means the Lean statement takes it as a hypothesis or as data; Lean proves nothing about it.
+This package adds to the first Lean package (the floors/bridge release, PR #7632); files that package already contains are
+listed in `SHIPPED.txt` and are byte-identical copies.
+
+## The model in one paragraph
+Words are programs in the TokenCancel op model (`TokenCancel.lean`, already released): registers hold rows over a field in initial-row coordinates;
+events are born / init / move / add (a "read": `r += a·j`) / scale / clear / copy; a chart is an element of a preorder (`c ≤ R` means "c ⊆ R").
+A **helper** `h` is a register whose row carries the token `e_h`; receivers get `e_h` content by ADD-reading `h`. The **contamination cone** of a chart R is
+the set of charts `≤ R`: the laws below say where every holder of `e_h` must sit if the run ends clean (no `e_h` outside `h`), and what that forces
+(stays, descents, owned generators, ports). Public moves ascend; owned moves go anywhere. Hypotheses such as "ND" (no escape by CLEAR/COPY) are explicit in every statement.
+
+## 1. Kernel-only V2-FLOOR cover (files V2FloorKernel_*, V2FloorKernelSound, V2FloorKernelLemmas, V2FloorCount, 536 generated check files)
+Setting: the relaxed relay (JB) model of the first package: plans `E` are finite sets of strict containments `X < Y` of subspaces of F₂⁹ (dimensions 1..8),
+priced by `wcut θ (fdim X) (fdim Y)`; "E realises pair p" is `Reach E (Lsub (LBj p)) (Usub (UHj p))` (resp. `LBb`, `UHb`), the same `Reach` as `V2FloorCert`.
+- `V2Floor.v2floor_joint_kernel`: for every `E` with `∀ e ∈ E, e.1 < e.2` and `hreal` (every one of the 2,625 joint pairs is realised),
+  `987754236107 / 2^30 ≤ Σ_{e ∈ E} wcut (79793/1048576) (fdim e.1) (fdim e.2)`, i.e. cost ≥ 919.9178 (JB units, θ = 79793/2^20).
+- `V2Floor.v2floor_beta_kernel`: same for θ = 1 and the 1,822 beta pairs: cost ≥ `941971821916 / 2^30` = 877.2796.
+- Proof shape: a hyperplane cover (rows `(h, a, b)` for all 511 hyperplanes when `dim X ≥ 3`; exact enumeration of planes and lines for `dim X ≤ 2`), rows in the
+  τ form of the Gaussian top-M rule (`tau_bound`), soundness `kernel_intFeasible` ⇒ `kernel_floor` through `V2FloorBound.floor_F2`. Every data check is `decide +kernel`
+  in its own declaration; Lean re-derives every row and does not read the certificate file.
+- `V2Floor.gaussian_count` (`count_le'`): `#{U ⊇ Y : dim U = d} ≤ Mt (dim Y) d` (the Gaussian-binomial count lemma, double counting).
+- **Inputs:** the pair lists (D_joint / D_beta, as in `V2FloorData`), `hreal`, the cost table. **Not covered:** any statement about words. This floor is a floor of the
+  JB lattice LP, and it is numerically weaker than the native-route floors (1,713.38 joint, 1,431.05 beta), which verify the per-edge dual inequality over all subspaces rather than through a hyperplane cover. It is not composed with `V2Bridge`
+  in any staged file, so it is **not** a helper-D0 bound.
+
+## 2. Native beta (`lean/native/V2FloorNativeBeta.lean`, opt-in)
+`V2FloorNativeBeta.v2floor_beta_native`: same shape as `V2FloorFinal.floor_beta`, `IntFeasible` discharged by `native_decide` on `fullCheck`:
+1,536,575,200,417 / 2^30 = 1,431.05 ≤ cost(E) for the beta pairs. Depends on `Lean.ofReduceBool` (axiom `native_check_beta._native.native_decide.ax_1_1`). Same input list as §1.
+Kernel-only files never import it. The compile was a verified earlier build and was not rerun here (CHECK.txt).
+
+## 3. Structural laws (TokenCancel op model, any field unless stated)
+- **TCLemma** (`held_back`, `held_run`, `TC_prefix`, `TC_last_read`, `cancel_only_by_read`). Hypotheses: `LegalA` (co-presence; births/INITs of absent registers; every move goes to a chart `≥` the old one,
+  non-strict ascent; nonzero SCALE), `ND h` (an event that overwrites a register `i ≠ h` does so only if `row_i[h] = 0`), final cleanliness (every `r ≠ h` ends with e_h-coefficient 0).
+  Conclusion: at every prefix every register holding `e_h` sits at a chart `≤ R`, where R bounds the charts of h's reads; with R = chart of the last read of h the read bound is automatic (`TC_last_read`).
+  An event driving `row_r[h]` from nonzero to zero is an ADD reading h or a register already holding `e_h`. Covered only: all registers public; an owned register is covered only if it never holds `e_h`. Registers `r = h` are outside the support.
+- **TCCharge** (`insertion_rows`, `charge_single`, `pure_holder_rule`, `ins_invariant`, `column_pinned`, `neutral_add`, `neutral_scale`). Exact insertion identity: inserting `u += d·s'` changes the final row of r by `d · row_{s'}(t) · resp_r`.
+  `pure_holder_rule` (single insertion): with `μ_h = 1`, if ℓ's reading of column h changes, then the receiver is ℓ-live and `X_{s'}(t)·μ ≠ 0`. For any number of insertions, each μ-neutral at its moment in the *modified* run, every register's μ-charge is unchanged.
+  Not covered: condition (ii) of the charge scan, the scan data, inserted ops other than ADD (SCALE only in the strong form), legality of insertions.
+- **TCDepart** (`dirty_departure`, `cancel_in_window`, `clean_departure`, `forced_stay`, `forced_stays_count`). Timed model; hypotheses `LegalA`, `ND h`, helper `h`, receiver `r ≠ h`, "dirty after import" and final cleanliness.
+  Dirty departure to chart c' with `¬ c' ≤ R` forces a read of h outside R after the departure (the cone climb). A clean departure forces a stay `add r h _ F` at F in the window, or a *third* register `j ≠ h, r` resident at F carrying `e_h` (the cover).
+  `forced_stays_count`: #reads of h ≥ #imports when the windows of same-receiver imports are pairwise disjoint and each import is `CoverFail`. Not covered: cargo separability, overlapping windows, D0 prices.
+- **StayRemove** (`stay_removable_necessary`, `stay_removable`, `stay_removable_last_read`). A split helper at chart c: every continuation that is `LegalA` (ascending for ALL registers after the split), ND, reads h only at charts `≤ c` and ends e_h-free
+  forces `Held h c` at the split moment, i.e. EVERY holder (public or owned) sits at a chart `≤ c`. Not covered: sufficiency, pricing, separability of cargo.
+- **WFCount** (`cov_step`, `cov_run`, `CS_run`, `born_mem_gens`, `gens_birth`, `entry_gen_own`, `descent_count`, `descent_entries_owned`). Chart-span: every row ever at a chart in D lies in the span of the generators (births in D plus rows moved across the boundary); no order or ownership used.
+  `descent_count`: regions `D q` (q in a finite index type), a linear map π killing every birth row born inside any `D q`, and for each q a register finally in `D q` with `π(row) = δ_q` ⇒ number of entries ≥ |ι| (rank argument). For down-closed regions with ascending public moves every such entry is owned.
+  Method credit: none stated in the source note.
+- **WFUp** (`stay_step`, `stay_run`, `pub_gens`, `up_entry`): a public register in an up-closed U stays in U; with F = span of the final rows of the public residents (assumed independent: data) and Bsp = units of registers born in U, `#owned (births in U + entries into U) ≥ def(U)`. Uses non-strict ascent.
+- **WFSlack** (`slack_decomp`, `slack_rank_model`): `I = F ⊕ E ⊕ Kc` for `F, E ≤ I`, `F ∩ E = 0`; with `I = gspan(gens)`, `#gens ≤ dim F + dim E + σ` ⇒ `dim Kc ≤ σ`. The count identity enters as the hypothesis `hcount`, discharged in WFPort.
+- **WFPort** (`hcount_full`, `slack_full`, `charge`, `port_entry`, `y_side`, `forced_stops`, `y_side_sum`, `antichain_needed`). For a convex region D, `#gens ≤ dim F + dim E + sigma` with sigma = passers + owned generators (independence of finals: data).
+  Port lemma: slack 0 at `H = q^⊥` forces a PUBLIC register to enter H strictly from `c0 < H`, carrying `λ δ_q`. `y_side`: ports with an injective ANTICHAIN of port charts satisfy `#ports ≤ Σ_{C ∈ T} σ_C`.
+  `forced_stops`: `Σσ ≥ n`, owned part ≤ m ⇒ passers ≥ n − m, where m counts owned MOVEs and owned BIRTHS. Not covered: finals' independence, odd-weight ports, numerics, the dual (X2) side.
+- **FreeEnd** (`chD0_eq_sum_w0`, `chD0_nonneg`, `oneMove_D0`, `floor3_collapse`, `sum_w0_sub_corr`, `B1_pos`). On an ascending chain `chD0 = Σ_moves w0 − w0(d0,e)` for every θ; D0 ≥ 0; a one-move helper born at L moving to U with `dim L < dim U` has D0 = 0.
+  `floor3_collapse`: if helpers may be born and end at any charts, the pair-realisation relaxation has value 0. So a pair-realisation floor alone forces no stay; it needs an extra constraint such as the extraction hypothesis H2 of the first package. (This turns the free-endpoint remark of that package into a Lean theorem.)
+- **Spread** (`val_step`, `spread_identity`, `spread_neutral`, `no_hrow_neutral`): in the window with NO h-read (λ constant), `zt_end − zt_0 − Σ other = −λ (r_end − r_0)`; content-neutral if `r_end = r_0`.
+- **Fusion** (`fusion_obstruction`, `fusion_obstruction_regs`, `gain_carriers`, `span_carriers_le`, `two_carriers`): `finrank(R + span{A,B}) = finrank R + 2` ⇒ no single x with A, B ∈ R + span{x}. Statement at one instant/chart; it does not forbid a time-multiplexed bus. True as written in the source.
+
+## 4. Spec-break lemmas (matrices over a field K; jobs `1 − x yᵀ`; scope exactly as the audits state)
+Scope: the kills concern the audited candidate lists (the family with N = 10 and J = 6 jobs plus U units, U ≤ 4 where stated). Nothing here says anything about other N or J, and "md = 4 ⇒ dead" holds only inside that family; the Lean results give `U ≥ 5` (or the rank bound) and say nothing about md.
+- **SpecTSUR** (`pp_eq`, `ZN_eq`, `lemmaTS`, `tight_needed`, `UR_upper`, `UR_lower`, `UR_combined`, `r26_10`, `r26_arith`). TS: char ≠ 2, product of m jobs = diag s with exactly m flipped coordinates (tight) ⇒ Gram `y_i·x_j = 2 δ_ij`, jobs vanish on unflipped coordinates, `range(I − D) = span(x_i)`. UR: `rank(ev w − J) ≤ #units` (upper) and `rank(D − J) ≥ d + |k − r₁|` (lower), with J the ordered product of ALL active jobs; combined: `U ≥ d + |k − r₁|`. `r26_10`: (d, k, r₁) = (1, 3, 0) ⇒ U ≥ 4, so U = 3 is impossible for kills #10-#14; kill #8 has the same arithmetic with (2, 3, 1).
+- **SpecINV** (`inv_rank`, `inv_DJ`, `UR_inv_combined`, `six_survivors`, SPLIT: `hub_data`, `split_key`, `split_det`, `split_rank_ge`, `split_DJ_rank`, `split_R26_2_3`, `two_by_two_invol`, `split_U4`, `split_U4_basis`, `split_U4_free`, `inv_needs_transvection`, `inv_needs_char`).
+  INV: char ≠ 2, only the FIRST factor a transvection (`y_0·x_0 = 0`), `g² = 1` ⇒ `rank(1 − g) ≤ U − 1`; `UR_inv_combined`: `d + |k − r₁| ≤ U − 1`, so both bound-4 patterns, (1,3,0) and (2,3,1), give `U ≥ 5`. SPLIT: with the stated pairing/character hypotheses, `rank(D − J) ≥ d + [x_H term] + [det term]`, killing U = 3, and `split_U4_free` (basis-free) gives `U ≠ d + 2`, so U ≥ 5 for kills #2 and #3.
+  Hypotheses taken from the source notes, not proved: the tight-set pairing, hub active or not, character data (ε, σ, k, d, dim V₁), the block forms of D and J, units being transvections. Both INV hypotheses (transvection, char ≠ 2) are necessary (counterexamples).
+- **SpecCOV** (`char_syl`, `cover_dim`, `finrank_le_cover`, `COV_flag`, `COV_R35`, `cov_needs_span`): `2n + 2·#overlaps ≤ Σ(r_i + k_i + u_i) + 2·#uncovered jobs + 2U·[no character has units active]`. Hypotheses: the factors' x, y span V, per-character product and rank bound, overlap = a shared factor with nonzero x and y. No char/tightness/pairing hypothesis. Not formalised: the survivor arithmetic.
+- **Budget** (new file here; self-contained, includes the Sylvester-type lemmas used by SpecCOV): `budget_identity`, `piece_neg_on_private`, `span_bound`, `beta_ge_d_ge_two`, `b1c`, `b1d_c3`, `b1d_c4`, `cayley_one_sub`, `cayley_one_add`, `h1s`. Hypotheses taken from the notes: Lemma S, the twisted factorisation, supports and confinement.
+
+## Additions (late round)
+- **V2KernelBridge** (`v2kernel_helperD0_joint`, `_joint_0V`, `_beta`, `_beta_V`): the kernel-only cover floors composed with V2Bridge, with no `native_decide` and no IntFeasible hypothesis. 919.92 ≤ helperD0 + Σ hcorr (θ = 79793/2^20); 919.92 ≤ helperD0 when every helper runs 0→9; 877.28 ≤ helperD0 + B1·#line-born (θ = 1, helpers ending at V). `hreal` stays a named data hypothesis.
+- **SpecKills**: `L3_U`, `SYL_U`, `Ureq_lower` (char ≠ 2); `kill9` (survivor #9 needs U ≥ 3 > mindef 2); `kill1` (survivor #1 needs U ≥ 4). Character data, TS block forms and flip tables are hypotheses.
+- **W0Cancel**: `vblind`, `w0_cancel` (joint/rank form: junk whose arrival off-S_V parts are independent must be cancelled below V), `defer_rows_in_S`, `defer_perturbation_in_S`, `defer_nonV_unchanged`.
+- **PrefixPin**: `exit_unique`, `exit_formula` (Exit = A⁻¹(Final − B·Inj)), `prefix_unique`, under A_rest invertible + finals fixed + V fixed; `free_mix_not_unique` shows the V-fixed hypothesis is needed. `loaded_pairs_ge_ports`: rank of the final W0 block ≥ p ⇒ loaded pairs ≥ p.
+- **SpecJordan**: `jordan_le` (m ≤ U − 1 for U ≥ 1), `jordan_a`, `jordan_even` (even U: m = U − 1 ⇒ a single 2-block at −1, rank(I − g) = U); `unit_core2` (order-free, transvection units); `orderfree_form`, `two_refl_kill`, `kill_core`, `kill1_all`: survivor #1 has no realisation at U = 4 for ANY job order (character data as hypotheses). With `kill1` (U ≤ 3) and the mindef bound, #1 is dead at every U in the N = 10, J = 6 scope.
+- **CallerBorrow** (abstract caller model, units 1 − 2xyᵀ, mask projectors): Lemma E and its dual (block-diagonal prefix at a piece cut, thins explicit); Lemma R (per cut and line class; `singleton_dead`); boundary addendum (`bd_involution`, rank-2 twist bound); Lemma OS (the shear preserves commutation when every unit between cut and stage is a stage with no pre part; forces Kπ = 0); the shear algebra for blocks of any size (needs [p, KL] = 0, which fails for generic K, L). These are obstructions to caller "borrowing"; no κ claim.
+- **FrameSep** (frames as submodules; public steps ascend by inclusion, owned steps arbitrary): `exit_owned` (leaving a frame containing u needs an owned drop), `X_Y_never_share` (below V an X_a register never shares a frame with Y_a), `reader_never_meets_Y_after`, and `delivery_needs_ferry` / `landing_ne_final`: if no owned destination equals Y's final frame, any u-holder there arrived by an owned move followed by a strict public climb.
+- **CallerBorrow2**: D-isolation (G = −F⁻¹ block-diagonal), Lemma I (a block touched by a single prefix/suffix unit is untouched), Lemma L (L = 0 ⇒ K = 0 ⇒ later shears are the identity), Theorem O first/last-piece form, with ρ = 2 and t ≠ −1 as explicit rank hypotheses. Together with CallerBorrow these are the algebraic steps behind closing caller "borrowing" for the two priced leader layouts; mask enumeration and the final counting hand-off are not modelled.
+- **RelaySandwich**: if a relay chart c equals the join of its residents' arrival charts and the meet of their departure charts, then c is the only chart keeping every resident's route ascending (`admissible_unique`), so no common collapse onto a neighbour chart exists (`no_neighbour_collapse`, `route_collapse`). Cost identity `stopCost_fL`: a 0→e helper with k equal-gap stops costs e·ln(k + 1) under f(r) = r ln r, strictly increasing in k.
+- **CarrierForce** (frame model, public routes, content as membership): `no_two_lines`, `chart_eq_plane`, `two_port_exit` (leaving a rank-≤2 chart that holds content of two port lines forces a stop at their plane plus one carrier ascending from each line), `line_pin`. Needs "no owned register" (`owned_passes_two_lines`) and a rank-≤2 exit (`no_plane_if_rank3`).
+- **ContentPin**: `sub_delta` (re-sourcing a read from h1 to h2 changes each final q by exactly coef_q·c·(row h2 − row h1)); `content_pin` (finals unchanged modulo an observation map π iff every (coef_q·c)·π(δ) = 0); `no_reassign` (with row h1 having its own token, row h2 not, and some final reached, the swap changes that final at the token coordinate by −coef·c). Hypotheses REACH and "row h2 has no h1 token" are both necessary (`dead_reader_preserves`, `copy_equalises`).

@@ -1,0 +1,4 @@
+# Fusion: fusion rank obstruction, kernel-checked
+File: Nov15/Fusion.lean (finite-dim vector space over a field; ZMod p covers the mod-2^61-1 census). Axioms standard; no sorry.
+R = span of Rest rows. `fusion_obstruction`: finrank(R + span{A,B}) = finrank R + 2 => no single x with A, B both in R + span{x}. `fusion_obstruction_regs`: no x with R + span{A,B} <= R + span{x}. General `gain_carriers`/`span_carriers_le`: m carriers add at most m directions. Sharp: `two_carriers` (A and B themselves suffice).
+Paper statement (a bus-obstruction note, section 2) is TRUE as written, in the form "one register cannot hold both". Note scope: it is a statement at one instant/chart; it forbids replacing A and B by a single carrier with Rest unchanged, not a time-multiplexed bus (that needs a time-varying Rest, which is the planner escape). Rank equalities in the census were sampled only at 4 of 33 pairs (note section 3).
