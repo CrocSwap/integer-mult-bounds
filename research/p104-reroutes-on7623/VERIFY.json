@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "python": "3.12",
+  "requirements": [],
+  "inputs": [
+    "scripts/compare_recursive_invoices.py",
+    "scripts/evaluate_recursive_power.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "core"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Vendored #7623 word bytes and new word hash; header identical except initial[457] 3->281 and initial[461] 3->285; interior events (MOVE/INIT/CLEAR and ADD/COPY/SCALE at dims 1..8) = #7623's with the 23 deletions and 12 insertions of data/edits.json; exact arbitrary-input replay and legality of both words; all 1,569 rows and end charts equal #7623's; helpers identity, owned rows empty; owned MOVEs (47), 180 lifetimes, peak 50 and 68 labels unchanged; exactly the 7 edited registers change chains, as listed; 5 new strictly nested MOVE pairs; 5-smooth coefficients; native paid delta {1:-2, 2:-3, 3:-5, 5:+1, 6:+2} and helper target delta {6:+2, 9:-2} per call; S 1424; invoice and kappa 0.0036667343458950 recomputed; #7623 crossing reproduced. Prints PASS_CORE_ON_7623."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "certificates"
+      ],
+      "timeout_seconds": 180,
+      "checks": "Exact CLEAR certificates for all 180 CLEARs of the new word (#7620's verify_certificates rule: keys live, not the cleared field, exact sum; zero rows take the empty certificate), with two rejecting controls. Prints PASS_CERTIFICATES_ON_7623."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "controls"
+      ],
+      "timeout_seconds": 480,
+      "checks": "14 negative controls (each edit's new op dropped or its coefficient changed, rebirth undone in the header, stop re-taken, ownership flag, V-mix coefficient doubled, {0}-prefix op dropped, bare 902 stop drop on #7623 without re-settle) all rejected by exact replay or row/end-chart checks; the new and #7623 words accepted. Prints PASS_CONTROLS_ON_7623."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "columns1"
+      ],
+      "timeout_seconds": 150,
+      "checks": "Gaussian column tests (512 forward + 512 adjoint, signed Pauli action, absolute phase, exact rank, wrong-phase rejection) on the even-indexed half of the 981-pair affected census (#7623's 964 plus 17 pairs on the old or new routes of the 7 changed registers; none dropped), with rejecting controls. Prints PASS_COLUMNS_ON_7623_1."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/check.py",
+        "columns2"
+      ],
+      "timeout_seconds": 150,
+      "checks": "Same column tests on the odd-indexed half of the 981-pair census. Prints PASS_COLUMNS_ON_7623_2."
+    },
+    {
+      "argv": [
+        "{python}",
+        "-I",
+        "-B",
+        "{package}/price.py"
+      ],
+      "timeout_seconds": 60,
+      "checks": "Repository tools: uniformly_better against #7623; new_cost_lower at C=0.0036667343458, 0.0036624027915 (#7623) and 0.003665731276 (#7627); new_cost_higher at C=0.0036667343459. Prints PASS_PRICE."
+    }
+  ]
+}
