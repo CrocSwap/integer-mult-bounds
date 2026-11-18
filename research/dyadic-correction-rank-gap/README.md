@@ -3,8 +3,8 @@
 The exact field minimum in [PR #7654](https://github.com/CrocSwap/integer-mult-bounds/pull/7654)
 need not be attainable with a dyadic inverse. This package classifies
 rank(P-I) for every normalized two-role dyadic row/column contract.
-For m prescribed pairs, the contract P*e_i=4e_i+f_i and
-f_i^T*P=e_i^T has minimum **m over Q and 2m over Z[1/2]**.
+For m prescribed pairs, the contract `P*e_i=4e_i+f_i` and
+`f_i^T*P=e_i^T` has minimum **m over Q and 2m over Z[1/2]**.
 The lower bound permits arbitrary coupling with any extra coordinates.
 At m=1 the field-minimum matrix has integer entries but determinant 3.
 A three-ADD word per pair attains the dyadic minimum with determinant one.

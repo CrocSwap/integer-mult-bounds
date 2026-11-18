@@ -1,8 +1,8 @@
 # When a two-role field-rank optimum is dyadic
 
 Put D=Z[1/2]. Let a=(a1,a2) be a row in D^2 and b=(b1,b2)^T a
-column in D^2 with a*b=1. Seek P in GL_2(D) with a*P=e1^T and
-P*e1=b. Rank means rank over Q. The objective is rank(P-I).
+column in D^2 with `a*b=1`. Seek P in GL_2(D) with `a*P=e1^T` and
+`P*e1=b`. Rank means rank over Q. The objective is rank(P-I).
 
 [PR #7654](https://github.com/CrocSwap/integer-mult-bounds/pull/7654)
 proves the general minimum over a field and leaves dyadic attainment open.
@@ -25,8 +25,8 @@ det(P(t)-I) = (1-a1)*t + 1-b1.
 ```
 
 The first endpoint fixes the first column. The second column is in the
-one-dimensional kernel of a, so it is t*(-a2,a1)^T. Its determinant is
-t*(a*b)=t. A dyadic matrix has a dyadic inverse exactly when its
+one-dimensional kernel of a, so it is `t*(-a2,a1)^T`. Its determinant is
+`t*(a*b)=t`. A dyadic matrix has a dyadic inverse exactly when its
 determinant is a dyadic unit. This proves the parameterization in this
 setting and its converse.
 
@@ -55,13 +55,13 @@ The field table also equals the specialization of PR #7654's formula:
 1[a != e1^T] + 1[b != e1] - min(1[a1 != 1], 1[b1 != 1]).
 ```
 
-Here pi=a, g=e1^T and d(e1)=b-e1. Thus pi*d=1-a1 and
-g*d=b1-1. The finite check compares this separate formula with the table.
+Here pi=a, g=e1^T and d(e1)=b-e1. Thus `pi*d=1-a1` and
+`g*d=b1-1`. The finite check compares this separate formula with the table.
 
 ## A strict gap with integral coefficients
 
 Take a=e2^T=(0,1) and b=4e1+e2=(4,1)^T. Both are primitive and
-a*b=1. The compatible matrices are
+`a*b=1`. The compatible matrices are
 
 ```text
 P(t) = [ 4  -t ],       det(P(t)-I)=t-3.
@@ -76,8 +76,8 @@ and has determinant one. Thus legal dyadic completion exists, while
 its minimum correction rank is strictly larger than the field minimum.
 This is not an infeasible or nonprimitive input contract.
 
-The fixed line of the rank-one candidate is F=Q*(e1+e2).
-The modules D*e1, D*(4e1+e2), and D*(e1+e2) are each saturated.
+The fixed line of the rank-one candidate is `F=Q*(e1+e2)`.
+The modules `D*e1`, `D*(4e1+e2)`, and `D*(e1+e2)` are each saturated.
 However the source basis [e1,e1+e2] has determinant 1, while the target
 basis [4e1+e2,e1+e2] has determinant 3. The latter spans a submodule
 with quotient D/3D. Saturation of the individual modules does not make
@@ -110,8 +110,8 @@ determinant remains nonzero, so the reduced matrix Pbar is invertible.
 Let F=ker(Pbar-I). The dual equations imply F is contained in
 H={ (x,y,z):x=y }, whose dimension is n-m. The reduced prescribed
 image of X is B={ (x,x,0) }, an m-dimensional subspace of H.
-If v in F lies in B, write v=Pbar*s with s in X. Then Pbar*v=v and
-Pbar*s=v; injectivity gives s=v. But X intersects B only at zero.
+If v in F lies in B, write `v=Pbar*s` with s in X. Then `Pbar*v=v` and
+`Pbar*s=v`; injectivity gives s=v. But X intersects B only at zero.
 Thus F intersects B only at zero. The dimension formula in H gives
 
 ```text
@@ -141,7 +141,7 @@ x <- x+3*y
 ```
 
 The successive pairs are (x0-y0,y0), (x0-y0,x0), and
-(4*x0-y0,x0). Thus the word is exactly P(1). It uses three ADDs,
+`(4*x0-y0,x0)`. Thus the word is exactly P(1). It uses three ADDs,
 with coefficients -1,1,3. Its inverse uses the reversed list with
 negated coefficients. No extra field, zero input, SCALE, odd division
 or native MOVE is used. Extra coordinates are unchanged in this
