@@ -117,8 +117,8 @@ entire half-grid L, on both colors. Q preserves each square ring and
 exchanges colors. We will make M commute with Q.
 
 On a single ring of radius R0/2, use the cyclic successor in the same
-index order as above, on every vertex of both colors. This is a unit-
-neighbor permutation, and its inverse is the cyclic predecessor.
+index order as above, on every vertex of both colors. This permutation
+uses unit neighbors, and its inverse is the cyclic predecessor.
 It commutes with Q. On either source color, `g=Q M` has order R0 or
 2R0. Therefore its order divides m whenever R0 divides m and 4 divides m.
 Every edge is tangential and its absolute radial gap is less than

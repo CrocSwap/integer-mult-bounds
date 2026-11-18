@@ -48,8 +48,8 @@ PASS_GAUSSIAN_FINITE_ITERATE_OPTIMUM
 The complete grid checks compare the local map with a separate arc
 generator, follow every cycle, verify the stated iterate identity,
 check both colors and inverses, and attain each exact bound. Twenty
-distinct critical cutoffs from five through 61 have complete lower-
-boundary checks. The Gaussian inputs include every component parity
+distinct critical cutoffs from five through 61 have complete checks of
+their lower boundaries. The Gaussian inputs include every component parity
 and eight iterate choices. All comparisons use integers and certified
 square-root intervals. The proof establishes the all-input and all-m
 claims; these finite domains corroborate them.
