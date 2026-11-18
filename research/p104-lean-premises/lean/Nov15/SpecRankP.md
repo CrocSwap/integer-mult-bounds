@@ -1,0 +1,12 @@
+# Nov15/SpecRankP.lean 
+Formalises SPEC-B RB4 item 1 (internal notes), a general rank lemma. Kernel-only: no sorry, no native_decide; 4 `#print axioms` all [propext, Classical.choice, Quot.sound]. 11-22 s / 2.0 GB, Mathlib sub-imports only (`import Mathlib` hits the 3.5 GB guard).
+
+## Proved (paper statement TRUE as written; the proof matches RB4's)
+- `rank_ge` (abstract, any field with 2 != 0, finite-dim W): S a subspace with Delta = -1 on S; e1 not in S with Delta e1 = e1; V contains e1, dim V <= 2; (P - 1) w in V for all w; det P = 1. Then dim S <= rank(Delta - P). Note: only "Delta = -1 on S, Delta e1 = e1, e1 not in S" is used (no complement T, no S+ structure needed); dim S arbitrary.
+- `rank_ge_four` (matrix form in the RB1 coordinates, index Unit + Fin 4 + iota; Delta = `Dl` = diag(+1 on e1, -1 on the four S coordinates, +1 on ancillas); e1 = Pi.single (inl ()) 1): same hypotheses => 4 <= Matrix.rank (Dl - P). This is "U = 3 dead for any such P".
+- `det_neg_one`: the d = 1 step (f|V = 0 forces P|V = diag(-1, 1), det P = -1) as a stand-alone lemma via `LinearMap.det_eq_det_mul_det` (P induces identity on W/V).
+- `det_needed`: counterexample over Q (2x2, P = Delta = diag(-1,1), V = everything, det P = -1, rank(Delta - P) = 0 < dim S = 1) showing `det P = 1` cannot be dropped.
+- Proof route (Lean): f = Delta - P; f s = -2s - (P s - s) on S, so f s in V => s in V (char != 2); f e1 in V; dim(S cap V) <= 1 (e1 in V \ S). Either f|S injective (rank >= dim S), or some s0 != 0 in S has f s0 = 0, then S cap V = <s0>, f(S) cap V = 0, f e1 != 0 (else det P = -1), f e1 not in f(S), so rank >= (dim S - 1) + 1.
+
+## NOT proved: Theorem B consequence at U = 4 (two reflections, rank <= 4 => P Delta P = Delta)
+Not formalised. RB4 item 4 rests on Singular radical tests over GL-normalised n = 7 strata (and the RB3 perfect-pairing by-hand argument), and RB4 itself records that the statement is FALSE for the general (u1,u2,q) family in the degenerate stratum q(v) = 0 (rank-4 non-involutions gen10/gen11). A Lean proof would need the hypotheses: P = (I - x_a y_a^T)(I - x_b y_b^T), y_i . x_i = 2, x's in V (dim 2, e1 in V), y's in Y (e1* in Y), plus the pairing condition; the abstract rank lemma alone does not give involutivity (the two-reflection structure is essential). Equality-case facts from the proof that a future Theorem B proof can start from: rank = dim S forces, when S cap V = 0, f e1 = 0 (P e1 = e1) and f(V-component) = 0; when S cap V = <s0>, P s0 = -s0 and f e1 != 0.
