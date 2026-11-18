@@ -41,7 +41,7 @@ From the repository root with CPython 3.12 and its standard library:
 ```sh
 python3.12 -B scripts/research_package.py --package research/banked-native-row-order
 python3.12 -I -B -W error research/banked-native-row-order/verify.py
-python3.12 -I -B research/banked-native-row-order/verify.py --certificate > /tmp/banked-native-row-order.tsv
+python3.12 -I -B research/banked-native-row-order/verify.py --certificate
 ```
 
 The final command emits all assignments in event order. Event zero contains all entrance copies. Each later line identifies the row and its reserved bank. Its TSV SHA-256 is `16de610956122d9f2c68f05d955b5484a0ee31bf201b69546a092495bf97dd86`. The default replay checks the receipt against the graph, verifier and complete allocation hashes. Normal and optimized runs use the same owner checks.
