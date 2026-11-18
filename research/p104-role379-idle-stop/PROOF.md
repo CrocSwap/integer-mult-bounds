@@ -77,8 +77,30 @@ new invoice with two directed pricing methods.
 
 The numerical brackets rely on the retained caller residual and on the
 applicable native, erasure, compiler, precision/tape and analytic
-recovery premises. Applying the result to the full signed caller also
-requires its actual boundary, conversion and resource checks.
+recovery premises. The [#7658 application evidence](application-evidence/README.md)
+instantiates the signed caller, outer gate and finite resource model
+for the candidate under those premises. The registered signed replay
+rebuilds that caller, checks the transposed native endpoint and
+recomputes all signed catalogue, boundary and outer predicates. It
+authenticates the underlying paired native, CLEAR and exact grid
+receipts, which have separate reproduction commands. The #7636 fixed-tape literal
+requires the separately checked two-ADD lowering. A full native
+and signed application of that lowered pair remains open.
+
+## Rounded arithmetic at the inherited boundary
+
+At #7658 candidate clock 100503 role 457 moves from chart 966 to 218.
+Clock 100504 applies `ADD 210,457,-1/2` in chart 218. The parent clocks
+are 100504 and 100505. If a coordinate of role 457 is represented by
+integer grid numerator (z), the exact same-grid addend requires even
+(z). A one-tick perturbation (z+1) is odd and makes the operation
+undefined for an exact-halving service. The all-width supplier must
+prove the requisite componentwise congruence and range bounds for each
+admitted state at that boundary, or implement and charge a total rounded
+ADD on the admitted domain with the corresponding error bound. The
+finite exact-grid and norm-envelope checks establish the instantiated
+arithmetic and magnitude bounds. The componentwise congruence of all
+rounded states is an additional supplier obligation.
 
 ## Predecessor credit
 
