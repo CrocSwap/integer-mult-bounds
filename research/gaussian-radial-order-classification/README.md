@@ -39,7 +39,9 @@ on all 66 maps. All 2244 exterior edges have cost strictly above the
 optimal threshold and direct Gaussian error one. The two critical squares
 retain their complete boundary costs. Sixteen finite-order gaps and the
 source's attaining four-cycle pass exact integer checks. Collision,
-forbidden outward-edge and strict-threshold controls pass.
+forbidden outward-edge and strict-threshold controls pass. A credited
+affine control checks 625 inputs and shows that the fourth-power class
+is strictly larger than the square-to-swap class.
 
 The all-ring result follows from the written proof. The finite cycle is
 not a standalone global upper construction; that conclusion uses the

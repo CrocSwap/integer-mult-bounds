@@ -157,6 +157,24 @@ def verify():
         need(direct_error(a,b)==4,'Retained attaining cycle error')
         need(beta_category(sum(x*x for x in a),sum(x*x for x in b))<=0,'Retained attaining cycle radial cost')
     need([sum(x*x for x in z) for z in upper_cycle]==[13,19,13,19],'Attaining squared norms')
+    def affine(value):
+        a,b,c,d=value;sx,sy=a+c,b+d;dx,dy=a-c,b-d
+        center=(sx+sy)%2;ex,ey=-dy+center,dx-center
+        numerators=(sx+ex,sy+ey,sx-ex,sy-ey)
+        need(all(v%2==0 for v in numerators),'Affine integer halves')
+        out=tuple(v//2 for v in numerators)
+        ideal2=(sx-dy,sy+dx,sx+dy,sy-dx)
+        need(sum((2*u-v)**2 for u,v in zip(out,ideal2))==4*center,'Affine control exact error')
+        need((out[0]+out[2],out[1]+out[3])==(sx,sy),'Affine control exact sum')
+        return out
+    affine_cases=0
+    for value in product(range(-2,3),repeat=4):
+        after=value
+        for _ in range(4):after=affine(after)
+        need(after==value,'Affine fourth power')
+        affine_cases+=1
+    witness=(1,0,0,0)
+    need(affine(affine(witness))==witness and witness!=witness[2:]+witness[:2],'Proper weakening of square-to-swap')
     bad={z:(0,0) for z in [(1,-1),(-1,1)]}
     try:cycles(bad)
     except ValueError:pass
@@ -166,8 +184,8 @@ def verify():
     result={'status':'PASS_GAUSSIAN_RADIAL_ORDER_CLASSIFICATION','claim':'Every optimal sum-one map has ring orders R or 2R; no finite global order; sharp fourth-power slack sqrt(19)-sqrt(13)',
             'complete_ring_domains':ring_rows,'ring_classifications':len(ring_rows),'ring_matchings':2*len(ring_rows),'exterior_edges':boundary_edges,'ring_maps_sha256':digest.hexdigest(),
             'critical_ring_maps':critical,'critical_square_boundaries':critical_boundaries,'finite_order_gap_checks':finite_order,'beta_bracket':[LOW,HIGH,SCALE],
-            'retained_attaining_four_cycle':upper_cycle,'upper_proof_source':'CubeJerry PR7570@053c42c68165cf24fd4e8bc33c2b20d6ac3d399b:proof/PROOF.md; full predecessor replay not run',
-            'controls':['colliding target map','forbidden outward edge at rho','strict beta boundary; equality is allowed']}
+            'retained_attaining_four_cycle':upper_cycle,'proper_weakening_affine_cases':affine_cases,'affine_fixed_witness':witness,'upper_proof_source':'CubeJerry PR7570@053c42c68165cf24fd4e8bc33c2b20d6ac3d399b:proof/PROOF.md; full predecessor replay not run',
+            'controls':['colliding target map','forbidden outward edge at rho','strict beta boundary; equality is allowed','fourth power does not force square-to-swap']}
     return json.loads(json.dumps(result))
 
 

@@ -34,3 +34,9 @@ method, half-grid transform or upper construction is claimed as new.
 [PR #7572](https://github.com/CrocSwap/integer-mult-bounds/pull/7572) concerns
 affine translation periods. That is a different condition from F^m=id;
 it was checked for overlap and is not a mathematical dependency here.
+
+The proper-weakening control uses the minimum-error affine center family
+in Ali Romman's [PR #6509](https://github.com/CrocSwap/integer-mult-bounds/pull/6509),
+[pinned proof](https://github.com/aliromman/integer-mult-bounds/blob/a4173e810c4d34a1d13b9745af123ad0ec6cfed5/research/conservative-gaussian-rounding/PROOF.md).
+The particular parity-only center is used only to show that F^4=id does
+not imply F^2=swap. No first affine rounding construction is claimed.

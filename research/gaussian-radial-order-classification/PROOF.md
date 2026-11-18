@@ -179,6 +179,18 @@ critical ring at equality, so the proof must use a strict lower-threshold
 hypothesis. The finite cycle is not, by itself, evidence for a global
 upper map; that conclusion uses the pinned all-input construction.
 
+The weaker class is strictly larger. As a control, put c(s)=0 for
+equal-parity sums and c(s)=1 for mixed sums, then set
+`f(d)=i*(d-c(s))+c(s)`. This is the minimum-error affine family from
+[PR #6509](https://github.com/CrocSwap/integer-mult-bounds/pull/6509),
+[pinned center proof](https://github.com/aliromman/integer-mult-bounds/blob/a4173e810c4d34a1d13b9745af123ad0ec6cfed5/research/conservative-gaussian-rounding/PROOF.md).
+The parity rule gives integral outputs; the error is |c(s)|<=1.
+The sum and center stay fixed, so four iterations give identity, with
+the negative rotation as inverse. But (1,0) is fixed, whereas wire swap
+sends it to (0,1). Thus fourth power does not force square-to-swap even
+within the exact-sum, error-one class. This prior affine family is a
+proper-weakening control, not the new attaining upper construction.
+
 ## 5. Evidence and limits
 
 The verifier enumerates every perfect matching in each of 33 complete
@@ -192,7 +204,8 @@ with beta. Both ten-point maps are explicit in RESULT.json.
 Sixteen prescribed orders from 4 through 64 check the quantitative gap
 and the incompatible large-ring orders. The source's attaining four-cycle
 has direct sum, error and radial checks. Collision, forbidden central
-outward-edge and strict-boundary controls pass. All arithmetic is integral.
+outward-edge and strict-boundary controls pass. The affine control checks
+625 inputs through four steps and retains its square-to-swap failure. All arithmetic is integral.
 These finite checks corroborate the all-ring argument, not a search-based
 claim about arbitrary maps.
 
