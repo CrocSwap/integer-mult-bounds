@@ -1,0 +1,29 @@
+# Conditional application of the single relay
+
+Let $T_U$ denote the normalized-to-physical chart transformation for an ordered binary frame $U$. Write $A$, $B$, and $C$ for the ordered frames at charts 476, 878 and 127. Their underlying spans are strictly nested. The literal sender at 95828 is the normalized combination $-h_{89449}-h_{89561}-h_{95823}+h_{95825}$, all available in chart 476. The complete form of 104442 consists of $h_{95828}$ with coefficient one. No other paid or terminal row reads that snapshot. None of the 235 source CLEAR certificates needs it. [Reconstructed graph](data/PARENT-GRAPH.json.gz) · [Full operator and controls](evidence/OPERATOR.json)
+
+Move the original sender form to stable raw key 104442 and drop 95828. In the new schedule the retained key advances from ordinal 4,114 to 3,310. The other 7,643 surviving rows retain their relative order. The new direct map satisfies $T_C T_A^{-1}=(T_C T_B^{-1})(T_B T_A^{-1})$. This identity includes the ordered Fourier phases, conjugation in the adjoint, and arbitrary input arrays. The native check evaluates the pair that the old paid inventory did not need. The four original donors are still available before the retained sender. Every recipient after 104442 sees its previous array for every assignment of the independent public inputs. Positive or adjoint invocations therefore implement the same external operator. [Construction](CONSTRUCTION.md) · [Native verification](NATIVE.md)
+
+Folding the supplied program preserves its observed scalar rows and their normalized CLEAR equations. The executable supplier uses distinct private banks, charged whole-view copies and explicit retirement. Its physical implementation uses its own exact product grid, liveness, selection, movement and overwrite costs. It never needs a live off-chart read to clear an old raw register. The 1,501 entrances and terminals, paid snapshots, pending sender and four arithmetic homes fit within 15,290 numerical homes, with four guarded streams. Applicable caller and recursive contexts retain their allocated backing and pay the ordinary operations of the model. [Bank implementation and cost](PHYSICAL.md) · [Physical replay](evidence/PHYSICAL.json)
+
+At a completed bank row, each available donor occupies its own typed extent. On the common root grid its contents equal the exact linear form for that donor, expressed in its ordered chart, for every public input. The public inputs survive in separate homes. During a recursive transfer the caller retains its sender, backing and spectators until the child and both adapters return. The next row may then read the completed result. After the final installations the only observable homes are the specified public owners. The charged terminal scan overwrites each private extent and restores its guards. This induction uses the selected owned-erasure law on allocated private storage and the selected fixed-tape movement law on the complete view. It does not infer the ability to discard an arbitrary external state from a normalized CLEAR identity. [Selected ownership contract](../../certificates/selected-result.json) · [Charged operations and failure controls](PHYSICAL.md)
+
+## Signed price and finite compiler
+
+For a saving $k$, write $H_r(k)=r^{1-k}$. The sixteen calls surrender 32 rank-three payments and add 16 rank-six payments. Both the fixed outer-wrapper charges and productive-target multiset are preserved. The resulting increase in the full target-minus-paid moment is
+
+$$16(2H_3(k)-H_6(k)).$$
+
+The change preserves linear rank mass at $k=0$. For $0<k<1$, strict concavity gives a positive increment. Candidate admission also needs a positive margin on the whole invoice at the claimed point. Independent directed calculations bracket the candidate and parent crossings, and the candidate lower point exceeds each comparator upper. Adding a single raw rank-one payment would already exhaust the margin at the supplied upper. [Signed caller](CALLER.md) · [Exact price and outer checks](evidence/PRICE.json)
+
+The reported point is 0.0037300417. The finite compiler is tested at 0.00373004170007 using its charged storage, the case-specific price and the conservative BIT saving 0.00376669. The ordinary charges include both directions of the applicable bank and boundary services. The outer check accounts for all 54 strict inequalities and all four functional constraints. The raw root is a ceiling for this fixed paid and productive profile. The conditional lower point retains positive headroom below that ceiling. [Reproduction](VERIFY.json) · [Complete bill](evidence/CALLER.json)
+
+## Scope of the comparison
+
+| Object | Source-backed scope |
+|---|---|
+| #7700, upper 0.00372934317807 | Exact supplied normalized word and finite supplied invoice. The present package reconstructs its banked invoice from the actual signed caller for the comparison. Its author leaves raw-word rounded execution and physical admission open. |
+| #7697, upper 0.0037266288770 | Earlier qualified sixteen-call banked application with the same literal caller and charged common-root, full-extent private-bank contract. Its chart-595 split belongs to a different native graph. |
+| This relay | One change of paid route on the #7700 folded graph under the explicit banked application. Its 21,152 productive targets include all 3,536 root owners and all 17,616 stage-specific helper owners. |
+
+The five inherited assumptions are native realization on all columns, owned erasure, the compiler, fixed-tape precision and movement, and analytic recovery. The finite source, costs and resource bounds in this package give the substitution into those laws. A materialized all-size rounded multiplier, a formal-kernel proof and independent maintainer acceptance remain open. [Selected application review](../../docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md)
