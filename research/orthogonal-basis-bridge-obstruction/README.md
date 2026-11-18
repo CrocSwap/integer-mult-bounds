@@ -8,7 +8,7 @@ incidences with all old projectors are one. Coordinate old projectors
 are allowed. Every type must occur; extra types are excluded.
 
 Let k be the actual off-diagonal pattern dimension. Over the
-paid-generated torsion-free exponent group, a word with at most k
+paid-generated torsion-free abelian exponent group, a word with at most k
 saturated exponent relations and a full diagonal monomial endpoint
 has one consecutive cancelling bridge block. That block can be deleted
 on all ambient inputs. Physical target exponents are sums of disjoint
