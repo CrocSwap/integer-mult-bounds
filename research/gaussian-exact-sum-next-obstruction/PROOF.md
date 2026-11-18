@@ -1,7 +1,7 @@
 # Exact-sum rounding needs forward slack at least sqrt(13)-3
 
 Let G=Z[i]. For x,y in G, put s=x+y, d=x-y and
-C_+(x,y)=((s+i*d)/2,(s-i*d)/2). Use the Euclidean norm on G^2.
+`C_+(x,y)=((s+i*d)/2,(s-i*d)/2)`. Use the Euclidean norm on G^2.
 Let F:G^2 -> G^2 be injective, preserve s exactly, and satisfy
 ||F(z)-C_+(z)|| <= 1 at every input. Define its forward slack as
 sup_z max(0,||F(z)||-||z||).
@@ -19,11 +19,11 @@ The equality certificate covers all 22 inputs of the larger finite domain.
 
 ## Complete candidate sets
 
-In the sum-one fiber write x=a+i*b and y=1-x. The squared pair norm is
-N(a,b)=a^2+(1-a)^2+2*b^2. The first ideal output is
-(1/2-b)+i*(a-1/2). Exact sum makes the second output one minus the first.
-If the first output is c+i*e, the pair error squared is
-((2*c-1+2*b)^2+(2*e-2*a+1)^2)/2.
+In the sum-one fiber write `x=a+i*b` and y=1-x. The squared pair norm is
+`N(a,b)=a^2+(1-a)^2+2*b^2`. The first ideal output is
+`(1/2-b)+i*(a-1/2)`. Exact sum makes the second output one minus the first.
+If the first output is `c+i*e`, the pair error squared is
+`((2*c-1+2*b)^2+(2*e-2*a+1)^2)/2`.
 Both terms inside the squares are odd integers. Error at most one holds
 exactly when both terms have absolute value one. Thus the complete legal
 candidate set is {-b,1-b} x {a-1,a}. All four candidates have error one.
@@ -91,9 +91,9 @@ suffice without trusting a maximum-matching implementation.
 
 ## Exact comparison and scope
 
-For integers A,B>=0 and positive p/q, set r=(B-A)*q^2-p^2.
+For integers A,B>=0 and positive p/q, set `r=(B-A)*q^2-p^2`.
 Then sqrt(B)-sqrt(A)<=p/q exactly when r<=0 or
-r^2<=4*A*p^2*q^2. This follows by moving the nonnegative radical term
+`r^2<=4*A*p^2*q^2`. This follows by moving the nonnegative radical term
 and squaring only when its other side is positive.
 The verifier brackets beta between
 605551275463989293/10^18 and 605551275463989294/10^18.
