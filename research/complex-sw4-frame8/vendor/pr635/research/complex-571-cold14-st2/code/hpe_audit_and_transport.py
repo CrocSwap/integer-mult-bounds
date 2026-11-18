@@ -1,6 +1,13 @@
 """Rebuild arbitrary-dirt compensation and transport a changed local word.
 
-Prepared for icekylinx with GPT-6 Astra assistance. Apache-2.0.
+Production integer-row acceleration from research/hpe-audit-fast-seed93
+(Wronskode, incorporated tooling). Control flow, assertions, messages and
+outputs match the pairwise Fraction-dict auditor. Scalar rows use exact
+integer numerators over one positive row denominator; gate copies are
+structural (deepcopy fallback for non-JSON-scalar shapes). See
+research/hpe-audit-integer-production/.
+
+Prepared for icekylinx with substantial AI assistance. Apache-2.0.
 Adapted from PR425/433 (icekylinx), PR484's audit_gk.py
 (DreamingOfClouds), and Round19's 112-port transport. This auditor does not
 import a constructor, a nominated compensation table, or a global price.
@@ -14,6 +21,10 @@ import json
 import time
 from collections import Counter
 from fractions import Fraction as Q
+from math import gcd
+
+_SCALAR = (int, str, type(None))
+_NORMALIZE_BITS = 128
 from pathlib import Path
 
 
@@ -27,7 +38,31 @@ def content_hash(path):
     return hashlib.sha256(gzip.decompress(data) if path.suffix == '.gz' else data).hexdigest()
 
 
+_BASIS = {}
+_Q = {}
+
+
 def basis(vs):
+    """Memoized for tuples of ints; any other input takes the pinned uncached path."""
+    if type(vs) is tuple and all(type(x) is int for x in vs):
+        out = _BASIS.get(vs)
+        if out is None:
+            out = _BASIS[vs] = _basis(vs)
+        return out
+    return _basis(vs)
+
+
+def coefficient(a, b):
+    """Q(a, b), shared for int pairs (Fractions are immutable); errors are raised by Q itself."""
+    if type(a) is int and type(b) is int and b:
+        q = _Q.get((a, b))
+        if q is None:
+            q = _Q[a, b] = Q(a, b)
+        return q
+    return Q(a, b)
+
+
+def _basis(vs):
     pivots = {}
     for x in vs:
         for k in sorted(pivots, reverse=True):
@@ -42,26 +77,88 @@ def basis(vs):
     return tuple(pivots[k] for k in sorted(pivots, reverse=True))
 
 
+def _copy(e):
+    """Value-equal copy of a gate; nested objects are never shared with the input."""
+    if type(e) is not list:
+        return copy.deepcopy(e)
+    out = list(e)
+    for i, x in enumerate(out):
+        if type(x) is list:
+            if not all(type(y) is int for y in x):
+                return copy.deepcopy(e)
+            out[i] = list(x)
+        elif type(x) not in _SCALAR:
+            return copy.deepcopy(e)
+    return out
+
+
+def rows_identity(n):
+    """Row r is [denominator, {column: numerator}] and represents {column: numerator/denominator}."""
+    return [[1, {r: 1}] for r in range(n)]
+
+
+def _normalize(row):
+    d, m = row
+    g = d
+    for x in m.values():
+        g = gcd(g, x)
+        if g == 1:
+            return
+    row[0] = d // g
+    for j in m:
+        m[j] //= g
+
+
+def row_fractions(row):
+    d, m = row
+    return {j: Q(x, d) for j, x in m.items()}
+
+
 def apply(e, rows):
     if e[0] == 'scale':
         _, target, a, b, *_ = e
-        q = Q(a, b)
+        q = coefficient(a, b)
         assert q
-        rows[target] = {j: q*x for j, x in rows[target].items()}
+        d, m = rows[target]
+        qn = q.numerator
+        rows[target] = row = [d*q.denominator, {j: qn*x for j, x in m.items()}]
     else:
         _, target, source, a, b, *_ = e
         assert target != source
-        q = Q(a, b)
-        for j, x in list(rows[source].items()):
-            value = rows[target].get(j, Q(0)) + q*x
+        q = coefficient(a, b)
+        td, tm = rows[target]
+        sd, sm = rows[source]
+        den = q.denominator*sd
+        g = gcd(td, den)
+        lcm = td//g*den
+        ft, fs = lcm//td, q.numerator*(lcm//den)
+        if ft != 1:
+            for j in tm:
+                tm[j] *= ft
+        for j, x in list(sm.items()):
+            value = tm.get(j, 0) + fs*x
             if value:
-                rows[target][j] = value
+                tm[j] = value
             else:
-                rows[target].pop(j, None)
+                tm.pop(j, None)
+        row = rows[target]
+        row[0] = lcm
+    if row[0].bit_length() > _NORMALIZE_BITS:
+        _normalize(row)
+
+
+def rows_equal(rows, expected):
+    """rows (integer form) equals expected (dicts of Fractions), entry by entry."""
+    if len(rows) != len(expected):
+        return False
+    for (d, m), x in zip(rows, expected):
+        if m.keys() != x.keys() or any(m[j] != x[j]*d for j in m):
+            return False
+    return True
 
 
 def inverse(e):
-    e = copy.deepcopy(e)
+    e = _copy(e)
     if e[0] == 'add':
         e[3] *= -1
     else:
@@ -78,10 +175,10 @@ def dual(e):
 
 def state_maps(prefix, n):
     """P = exact state map of the prefix (precondition + compensation + A + cut + B), and P^-1 (rows as sparse dicts)."""
-    P = [{r: Q(1)} for r in range(n)]
+    P = rows_identity(n)
     for e in prefix:
         apply(e, P)
-    Pinv = [{r: Q(1)} for r in range(n)]
+    Pinv = rows_identity(n)
     for e in reversed(prefix):
         apply(inverse(e), Pinv)
     return P, Pinv
@@ -99,8 +196,8 @@ def cone_violations(P, Pinv, hpe, mapping, endB, final, frames):
     viol = []
     for h in hpe:
         U = final[mapping[h]]
-        viol += [('row', h, g) for g, x in sorted(Pinv[h].items()) if x and not inside(endB[mapping[g]], U)]
-        viol += [('column', h, g) for g in range(len(P)) if g != h and P[g].get(h) and not inside(endB[mapping[g]], U)]
+        viol += [('row', h, g) for g, x in sorted(Pinv[h][1].items()) if x and not inside(endB[mapping[g]], U)]
+        viol += [('column', h, g) for g in range(len(P)) if g != h and P[g][1].get(h) and not inside(endB[mapping[g]], U)]
     return viol
 
 
@@ -114,16 +211,16 @@ def run(raw_path, routing_path, out):
     main = word['A'] + word['cut'] + word['B']
     assert all(not v <= e[2] < 2*v for e in word['A'] + word['B']
                if e[0] == 'add' and not v <= e[1] < 2*v)
-    matrix = ident()
+    matrix = rows_identity(n)
     for e in main:
         apply(e, matrix)
-    dirty = [{} for _ in range(n)]
+    dirty = [[1, {}] for _ in range(n)]
     for r in range(v, 2*v):
-        dirty[r] = {j: x for j, x in matrix[r].items() if j >= 2*v}
+        dirty[r] = [matrix[r][0], {j: x for j, x in matrix[r][1].items() if j >= 2*v}]
     for e in word['precondition']:
         apply(e, dirty)
     compensation = [['add', r, j, -q.numerator, q.denominator, []]
-                    for r in range(v, 2*v) for j, q in sorted(dirty[r].items())]
+                    for r in range(v, 2*v) for j, q in sorted(row_fractions(dirty[r]).items())]
     entering = set(map(int, word.get('start_extra', {})))
     assert all(e[2] not in entering for e in compensation), 'zero-frame compensation reads an entering helper'
     cleanup = [inverse(e) for e in reversed(word['A'] + word['B'])
@@ -162,13 +259,13 @@ def run(raw_path, routing_path, out):
     rest = [e for i, e in enumerate(word['cleanup']) if i not in set(early_idx)]
     program = word['precondition'] + compensation + main + tail + rest
     for backward in (False, True):
-        actual = ident()
+        actual = rows_identity(n)
         for e in program:
             apply(dual(e) if backward else e, actual)
         expected = ident()
         for t in range(v):
             expected[t if backward else v+t][v+t if backward else t] = Q(-1 if backward else 1)
-        assert actual == expected, ('arbitrary-dirt endpoint', backward)
+        assert rows_equal(actual, expected), ('arbitrary-dirt endpoint', backward)
     # The native scalar compiler allows dyadic additions and signed binary scales.
     for e in program:
         q = Q(e[3], e[4]) if e[0] == 'add' else Q(e[2], e[3])
@@ -194,7 +291,7 @@ def run(raw_path, routing_path, out):
         return frame_ids[frame]
 
     def transform(e):
-        e = copy.deepcopy(e)
+        e = _copy(e)
         e[1] = mapping[e[1]]
         if e[0] == 'add':
             e[2] = mapping[e[2]]
