@@ -1,5 +1,5 @@
 /-
-REBUILD-V2 r6 descent price, Source: internal notes §2.
+Descent price. Source: internal notes.
 See DescentPrice.md.
 
 Invoice model (abstract): a register's path is the list of chart dimensions it visits; each MOVE is

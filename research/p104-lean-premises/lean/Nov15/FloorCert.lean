@@ -1,6 +1,6 @@
 /-
 FloorCert : the RANKSTEINER R4 dual certificate for the class-K junk floor
-(780 paid stops = 1,081.31 D0/call), checked in Lean by kernel evaluation (`decide +kernel`, no
+(780 paid stops = 780 · 2 ln 2 ≈ 1,081.3096 D0/call), checked in Lean by kernel evaluation (`decide +kernel`, no
 `native_decide`, so no `Lean.ofReduceBool`). See FloorCert.md.
 
 The LP is the support sub-LP of rslp.py's LP (only rows with positive dual: 892 rows, 18,868
@@ -127,7 +127,7 @@ theorem stops_ge_780 {σ : Type*} (x : Fin nCols → 𝕜) (hx : ∀ j, 0 ≤ x 
   (lp_floor x hx hAx).trans hobj
 
 /-- **Cost form** (FloorGlue.global_floor_of_certificate with the checked certificate): per-stop
-cost ≥ κ gives total cost ≥ 780 κ. With 𝕜 = ℝ and κ = 2 ln 2 this is 1,081.31 D0/call. -/
+cost ≥ κ gives total cost ≥ 780 κ. With 𝕜 = ℝ and κ = 2 ln 2 this is ≈ 1,081.3096 D0/call. -/
 theorem cost_ge_780 {σ : Type*} (x : Fin nCols → 𝕜) (hx : ∀ j, 0 ≤ x j)
     (hAx : ∀ i, b i ≤ ∑ j, A i j * x j) (stays : Finset σ) (cost : σ → 𝕜) (κ : 𝕜) (hκ0 : 0 ≤ κ)
     (hκ : ∀ s ∈ stays, κ ≤ cost s) (hobj : ∑ j, c j * x j ≤ stays.card) :

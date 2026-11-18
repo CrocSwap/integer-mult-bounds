@@ -489,7 +489,7 @@ theorem range_restrict (f : Reg → Reg → K) (G1 : Finset Reg) :
 def VMix (X Rf : Reg → Reg → K) (G1 : Finset Reg) : Prop :=
   VMixM (Matrix.of fun g : G1 => X g) (Matrix.of fun g : G1 => Rf g)
 
-/-- **RANK law (REBUILD-CORE, RESULT §7).** Run a legal word (V-hub ops deleted, SCALE factors
+/-- **RANK law (internal notes).** Run a legal word (V-hub ops deleted, SCALE factors
 nonzero) from a state whose rows span its tokens. Let `G1` end at V; assume every other register
 already ends at its target (`hNon`), and the target end state has full token rank (`hTgt`).
 Let `U` be the "zero-W0" subspace (T_X + tokens): it contains the V targets (`hRU`) and meets the

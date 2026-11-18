@@ -1,5 +1,5 @@
 /-
-Class-K junk floor (780 stops = 1,081.31 D0/call), Sources: internal notes (F1, F2, F3 certificate, F4),
+Class-K junk floor (780 stops ≈ 1,081.3096 D0/call), Sources: internal notes (F1, F2, F3 certificate, F4),
          internal notes (R0(a,b,c), R1, R2, R3, R4 certificate).
 
 Everything is stated per chart / per build over an arbitrary field, with the op-model facts

@@ -1,5 +1,5 @@
 /-
-REBUILD-ALT joint-hub derivation (alt/r2, ROUNDLOG ALT r1/r2), See HubSettle.md.
+Joint-hub derivation (internal notes). See HubSettle.md.
 
 Build: imports the olean of RankLaw (which imports TokenCancel):
   lake env lean -o .lake/build/lib/lean/Nov15/TokenCancel.olean Nov15/TokenCancel.lean

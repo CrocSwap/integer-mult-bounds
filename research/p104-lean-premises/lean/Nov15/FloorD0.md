@@ -8,7 +8,7 @@ Axioms: the 13 printed theorems use exactly [propext, Classical.choice, Quot.sou
 - Native word: helper r (public, not a main) gives T[dim final(r) − dim initial(r)]; every MOVE a → b gives P[|dim b − dim a|].
 - D0 = Σ_r (T_r − P_r)·f(r), f(r) = r ln r (`Dsum`; it sums r > 1 only, which is the same since f(0) = f(1) = 0).
 - **÷17.** `histD0_invoice`: D0(invoice) = D0(caller) + L·D0(native), exactly. So "D0/call" of the helper layer is the word's own helper D0:
-  `helperD0 = Σ_{h∈H} [f(dim fin h − dim ini h) − Σ_{MOVEs of h} f(|Δ dim|)]` (`regD0`, `helperD0`). This is the gap map's "helpers 9,946.29 D0/call" quantity, and FloorCert's 1,081.31 is in the same unit.
+  `helperD0 = Σ_{h∈H} [f(dim fin h − dim ini h) − Σ_{MOVEs of h} f(|Δ dim|)]` (`regD0`, `helperD0`). This is the gap map's "helpers 9,946.29 D0/call" quantity, and FloorCert's ≈ 1,081.3096 is in the same unit.
 - Model data beyond FloorEndToEnd: `dim : C → ℕ` with a < b ⇒ dim a < dim b. For the verifier's chart order (a < b iff span a ⊊ span b, frames = bases) this is a fact, not data.
 - the price checker's T uses W['final']; `regD0` uses the run's final location. They agree whenever the exit-frame check passes (replay `exit-frames`).
 - The official repo has no D0. Its figure of merit is the κ crossing, and the price checker reproduces those crossings bit-exactly (the price checker/RESULT §1). D0 is the lab's first-order unit.

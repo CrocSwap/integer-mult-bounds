@@ -1,5 +1,5 @@
 /-
-REBUILD-CORE psi findings (RC8, RC9) formalised, See PsiLaw.md.
+Psi findings (internal notes) formalised. See PsiLaw.md.
 Kernel only: no sorry, no native_decide.
 Build: lake env lean Nov15/PsiLaw.lean   (imports the HubSettle olean)
 -/
