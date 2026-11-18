@@ -1,13 +1,13 @@
-# K372-2 / 5080 composition: conditional κ ≥ 0.0037218793483
+# Compatible EARLY and bypass composition: conditional κ ≥ 0.0037218793483
 
 This is the exact **ee251f6005d2a92b887c5b804bd7aac05989d278b2c9ccb3c3091b50d533b08d** candidate, not the later K372-4 research. The declared 16-call invoice has a directed 256-bit crossing in **(0.0037218793483, 0.0037218793484)**. It is cheaper at κ=.00372, not at .00374. This is a conditional computational research contribution, not a complete multiplication theorem or a change to the selected frontier.
 
 ## Change
 
-The supplied predecessor is Mac K372-2, canonical `3dd1199d95291ee96e6c0aeb6f55f86244a569b1d4975840bf0207e2dcf9c025`, retaining five EARLY edits. The 5080 combination adds:
+The supplied predecessor is K372-2, canonical `3dd1199d95291ee96e6c0aeb6f55f86244a569b1d4975840bf0207e2dcf9c025`, retaining five EARLY edits. This composition adds:
 
-1. Owned role 1517 goes directly 549→593 instead of 549→115→593. The actual Mac source row is (input770−input607)/4. A new lifetime of role1551 at chart115 preserves input770; G/F boundary corrections and corrections at roles1279/614 restore the required operator. See `evidence/ROLE770-BUILD.json` and `ROLE770-PROBE.json` for measured rows, coefficients, chronology and the source-bound recipe.
-2. The Mac 940/1141 edits share `236 += 1000/4`, which conflicts with simply inserting the earlier 5080 swap. With x=236,y=544,z=1000, the new sequence uses `x+=z/4; z-=2x` at265, `y+=z/2; z+=2y` at751, and `y-=x; x+=y/2` at927. The three values are restored at the local boundary. This costs three additional ADDs and changes two MOVE routes. `evidence/BUILD.json` gives both local tapes and their exact matrix.
+1. Owned role 1517 goes directly 549→593 instead of 549→115→593. The actual predecessor source row is (input770−input607)/4. A new lifetime of role1551 at chart115 preserves input770; G/F boundary corrections and corrections at roles1279/614 restore the required operator. See `evidence/ROLE770-BUILD.json` and `ROLE770-PROBE.json` for measured rows, coefficients, chronology and the source-bound recipe.
+2. The EARLY 940/1141 edits share `236 += 1000/4`, which conflicts with simply inserting the earlier bypass edit. With x=236,y=544,z=1000, the new sequence uses `x+=z/4; z-=2x` at265, `y+=z/2; z+=2y` at751, and `y-=x; x+=y/2` at927. The three values are restored at the local boundary. This costs three additional ADDs and changes two MOVE routes. `evidence/BUILD.json` gives both local tapes and their exact matrix.
 
 `EDIT.json` is the complete, readable source-bound edit: 12 blocks, seven removed events and120 inserted events, net113. All non-program fields are unchanged. It is a reconstruction recipe for this published candidate, not a new optimization search or a requirement for other researchers. `replay.py` applies the exact preimages and independently checks the resulting complete operator. The earlier exploratory search code is deliberately not bundled; the exact edit, input, certificates and scoped replay are self-contained.
 
@@ -41,4 +41,4 @@ K372-4 and Ali Romman's later #7663 helper-boundary/private-bank work use change
 
 ## Credit and license
 
-Preserve SYLforge #7637, DreamingOfClouds #7641/#7658, Clear1nsight's24-bit coefficient-splitting contribution, 5080 role379/325/1087 work and Mac EARLY composition. Rohan Arun #7113 supplies the caller and upstream signed-accounting lineage, with CubeJerry, Douglas Colkitt and other source contributors credited in the source records. This composition and package were prepared for SYLforge with substantial OpenAI Codex assistance. Apache-2.0; see LICENSE and PROVENANCE.md. Review or merge does not by itself scientifically validate the conditional claim.
+Preserve SYLforge #7637, DreamingOfClouds #7641/#7658, Clear1nsight's24-bit coefficient-splitting contribution, role379/325/1087 work and EARLY composition. Rohan Arun #7113 supplies the caller and upstream signed-accounting lineage, with CubeJerry, Douglas Colkitt and other source contributors credited in the source records. This composition and package were prepared for SYLforge with substantial OpenAI Codex assistance. Apache-2.0; see LICENSE and PROVENANCE.md. Review or merge does not by itself scientifically validate the conditional claim.
