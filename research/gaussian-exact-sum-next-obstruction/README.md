@@ -37,11 +37,13 @@ or claimed. Independent human and formal-kernel review remain open.
 
 The package starts from canonical main
 `e54523517d0f03e58352e647c403a5af3e525a57`, with priority revision 8 and
-selected PR #7000 unchanged. [SOURCES.json](SOURCES.json) pins the task,
-selected record and the predecessor question. The predecessor is
+selected PR #7000 unchanged. [SOURCES.json](SOURCES.json) pins the task and selected record.
+[PREDECESSOR.json](PREDECESSOR.json) pins the exact retained source question
+and its credit. The predecessor is
 [PR #7652 at 317fecee459888f4e4fecd8ca62adeb7583f696d](https://github.com/petalas/integer-mult-bounds/blob/317fecee459888f4e4fecd8ca62adeb7583f696d/research/gaussian-exact-sum-forward-slack/README.md).
 Its candidate formula is derived again in the proof; no source code is
-copied. The verifier needs no predecessor file at run time.
+copied. The exact predecessor README is retained in this package, with a hash
+check and license. No external Git object is needed at run time.
 
 The overlap pass covered 972 open PR bodies, 6175 closed PR bodies and
 7603 Discussion records, with complete remote pagination on 2026-11-18.

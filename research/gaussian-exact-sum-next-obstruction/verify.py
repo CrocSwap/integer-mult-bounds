@@ -6,6 +6,7 @@ Ali Romman, with substantial OpenAI Codex assistance. Apache-2.0.
 from collections import Counter
 from copy import deepcopy
 from itertools import product
+import hashlib
 import json
 from pathlib import Path
 
@@ -95,6 +96,14 @@ def maximum_matching(vertices, edges):
 
 
 def verify():
+    source = (ROOT/'predecessor/README.md').read_bytes()
+    manifest = json.loads((ROOT/'PREDECESSOR.json').read_text())
+    require(hashlib.sha256(source).hexdigest() == manifest['sha256'] ==
+            '2261b26dee2a3b6c698428ba52c80fdf5cd196b697f49e1d53c9a388fe72a7b4',
+            'predecessor source bytes')
+    require(hashlib.sha1(b'blob '+str(len(source)).encode()+b'\0'+source).hexdigest()
+            == manifest['git_blob'] == '3fe489cbb6a3373952a7ff0d10749e2470184520',
+            'predecessor Git blob')
     require((3*DEN+LOW)**2 < 13*DEN**2 < (3*DEN+HIGH)**2, 'root bracket')
     require(all(sum(H[k][i]*H[k][j] for k in range(4)) == (4 if i == j else 0)
                 for i in range(4) for j in range(4)), 'ideal pair isometry')
