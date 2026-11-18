@@ -69,7 +69,7 @@ At its terminal the clean flag spans the full group. Use the basis vectors intro
 (365,156)  (401,237)  (380,200)  (409,329)  (296,251)  (376,162)
 ~~~
 
-These are choices of proof coordinates. Independently, the initial 410 chronological basis vectors can be recovered by taking all original unit roles except 332 and 340, adding $e_{332}+e_{333}$ and $e_{340}+e_{375}$, and sorting by each vector's latest terminal bank. All 410 latest banks are distinct. [Primary charge computation](flags.py) Ã‚Â· [Independent terminal reconstruction](crosscheck.py)
+These are choices of proof coordinates. Independently, the initial 410 chronological basis vectors can be recovered by taking all original unit roles except 332 and 340, adding $e_{332}+e_{333}$ and $e_{340}+e_{375}$, and sorting by each vector's latest terminal bank. All 410 latest banks are distinct. [Primary charge computation](flags.py) · [Independent terminal reconstruction](crosscheck.py)
 
 At $t=q$, multiply prices by 27. The integer prices of ranks 1, 2, 4 and 8 become 27, 45, 75 and 125. Add each terminal charge to the nonterminal maxima on the same coordinate. The table gives the maximum resulting numerator per coordinate. Boundary pairs are named in the forward direction on both sides.
 
@@ -117,7 +117,7 @@ For $q\le t\le1$, every maximizing tuple has zero large-group component. On the 
 
 Thus, away from the switch in the envelope's range, **2,242 forward tuples and 10 transposed tuples** attain the maximum. At the switch these counts double. Direct enumeration checks every small-block subspace and its actual removed banks. These counts distinguish subspaces of relations. Different generating bases for the same subspace are identified.
 
-The paired caller uses two invocations at each of 18 stages. Each occurrence has fresh helper coordinates. The unchanged root, QUERY and idle terms cancel in the signed difference, so multiplication by 36 gives the complete caller envelope. The source recount has 107,352 paid calls, 19,950 productive targets and integer rank surplus 1,506. Whole-call implementation, tape costs and the other framework obligations keep their original scope. [Caller and group counts](RESULT.json) Ã‚Â· [Selected application review](../../docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md)
+The paired caller uses two invocations at each of 18 stages. Each occurrence has fresh helper coordinates. The unchanged root, QUERY and idle terms cancel in the signed difference, so multiplication by 36 gives the complete caller envelope. The source recount has 107,352 paid calls, 19,950 productive targets and integer rank surplus 1,506. Whole-call implementation, tape costs and the other framework obligations keep their original scope. [Caller and group counts](RESULT.json) · [Selected application review](../../docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md)
 
 ## 5. Global optimum for the signed BIT invoice
 
