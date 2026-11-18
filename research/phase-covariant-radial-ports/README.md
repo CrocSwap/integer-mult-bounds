@@ -19,18 +19,18 @@ Read [PROOF.md](PROOF.md), [RESULT.json](RESULT.json), the
 
 ## Radial and implementation contract
 
-For N=8^f, put D=f*h*sqrt(N)/2. A complete native call changes the field
+For N=8^f, put `D=f*h*sqrt(N)/2`. A complete native call changes the field
 norm by at most D in absolute value. For entry-bank norms X,Y, the full
 k-call forward port has output norms at most X+D and Y+3X+(k+2)D.
 The reverse port has bounds X+D and Y+3X+(k-1)D. The per-layer bound is
 sharp; the complete-call and port bounds are sufficient, with no claim
-of optimality. Approximation error remains f*h*sqrt(N/2) per call.
+of optimality. Approximation error remains `f*h*sqrt(N/2)` per call.
 
 The pair implementation uses fixed comparisons, signs, parities and exact
 halves. It uses no variable data division or growing lookup. Stored words
 use the retained signed width w; a constant number of w+6 auxiliary words
 suffice. Their work and storage are included. The complete indexed bounds
-are O(fN*(w+f)) bit work and O(N*(w+f)) stored bits, with every native pair,
+are `O(fN*(w+f))` bit work and `O(N*(w+f))` stored bits, with every native pair,
 source wrapper, addition, range check and owned route/auxiliary cleanup.
 These are not exact tape-transition counts or a measured speedup.
 
