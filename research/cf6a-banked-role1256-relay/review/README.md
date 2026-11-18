@@ -1,0 +1,17 @@
+# Independent replay of the role-1256 relay
+
+The independent replay checked the exact #7700 word at commit `7d84799a447867d36137d12ef7ca5646154d763c`, the folded parent `72705b094d83d2ba24006661bbb031786a691b776bedb94515b1321e1535105f` and the relay child `8e7b755bd2d2d387bc3d3adfe48100985adf74775ca5acbb143170a3d16b5ccf`. It uses its own scalar basis replay, banked row checks, chart convolution and directed price arithmetic. [Independent result](../evidence/INDEPENDENT.json) · [Supplied #7700 word](https://github.com/CrocSwap/integer-mult-bounds/pull/7700)
+
+- The four sender terms of paid MOVE 95828 are available by child ordinal 2468. Its sole paid reader in the parent is the identity row at 104442. The direct transfer keeps key 104442, moves from parent ordinal 4114 to child ordinal 3310, and is available before its first reader at 6862. The other 7,643 rows keep their relative order. The exact replay checks 5,708,090 source coefficient products, all 235 raw CLEAR relations and every normalized public return. It rejects an added cocharted reader, an early placement before a donor, a changed identity sign, a self-CLEAR, a public erasure and the omission of a live CLEAR operand.
+- The forward and adjoint checks compute all 512 columns of the direct 476→127 map and the ordered old 476→878→127 product. They reject a quarter-phase shift and reversed orientation. Banked rows keep the same ordered charts and all 1,501 independent public owners, including the retained role 1256 return.
+- The actual signed 16-call invoice has 32 fewer rank-three payments and 16 more rank-six payments. All 21,152 productive targets remain. An independent rational enclosure places the raw root between `0.00373004177032` and `0.00373004177033`. At the outer probe `0.00373004170007` the signed moment is about `0.00002482090814436`. Adding one rank-one payment makes it negative at the #7700 raw upper. Restoring one of the two deleted rank-three families also defeats the round price control.
+- The exact joined evidence recomputes 9,151 parent numerical homes and 9,150 child numerical homes per native stage against the inherited cap of 15,290. The guide, dummy and four guarded staging streams are accounted for separately. It checks the physical and caller receipt hashes joined into the directed price. The complete ordinary charges include addressed overwrite, selector, copy and scalar work, and the common precision guard gives `14083 < H` at `H = 14571800000000000000`. The join rejects an altered compiler bound and an omitted full copy charge. [Independent join result](JOIN.json) · [Physical contract](../PHYSICAL.md) · [Outer qualification](../CALLER.md)
+
+The conditional lower point `0.0037300417` exceeds the exact invoice upper of #7700 by `0.00000069852193` and that of #7697 by `0.0000034128230`. The independent replay checks the finite construction and invoice, recalculates the stock and precision arithmetic, and reads the frozen outer predicate receipt for the same input bytes. The five standing assumptions cover native realization on all columns, owned erasure, the compiler, fixed-tape precision and movement, and analytic recovery. Independent human maintainer review remains open. [Earlier #7697 comparator](https://github.com/CrocSwap/integer-mult-bounds/pull/7697)
+
+From the package directory, run both checks with CPython 3.12 and fresh output paths.
+
+```sh
+python3.12 -I -B review/check.py --out /tmp/cf6a-independent.json
+python3.12 -I -B review/check_join.py --out /tmp/cf6a-independent-join.json
+```
