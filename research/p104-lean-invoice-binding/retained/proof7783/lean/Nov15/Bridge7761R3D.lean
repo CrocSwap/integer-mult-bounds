@@ -1,0 +1,4 @@
+-- generated (bridgegen/gen6.py logic): main-field bitset of #7761
+namespace Bridge7761
+def MB : Nat := 0x3ffff7fffbffffef7eeffef7fffffff7ffffffeffff8eeff57ffb80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffdfffefffdfffff7bffdfbff7ffffdfffefffdfffff7bffdfbff7
+end Bridge7761
