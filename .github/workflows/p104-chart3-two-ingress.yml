@@ -1,0 +1,29 @@
+name: Replay P104 chart-3 two-ingress certificates
+on:
+  pull_request:
+    paths:
+      - 'research/p104-chart3-two-ingress/**'
+      - '.github/workflows/p104-chart3-two-ingress.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: P104 exact chart-3 certificates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          sparse-checkout: research/p104-chart3-two-ingress
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Replay both probes and independent exact certificates
+        working-directory: research/p104-chart3-two-ingress
+        run: |
+          python -IB verify_pulses.py
+          python -IB verify_certificate.py
+          python -IB verify_primal.py
