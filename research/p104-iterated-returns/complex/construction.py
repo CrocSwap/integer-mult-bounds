@@ -146,6 +146,127 @@ def chains(cache, word, layout, plan):
     return word, dict(stages=records, all_forward_and_adjoint_rows_each=n, productive_delta={})
 
 
+def rotated_splits(cache, word, layout, plan):
+    need(plan["schema"] == "p104-rotated-splits/1" and plan["stages"], "rotated-split declaration")
+    source = plan["source"]
+    mark_pair(word, layout, (source["word_sha256"], source["layout_sha256"]), "rotated-split predecessor")
+    source_root = cache / "source"
+    network, puncture = projection.engines(source_root)
+    import bank_split
+    import public_split
+
+    donor = source_root.resolve() / projection.ENGINE
+    need(Path(public_split.__file__).resolve() == donor / "public_split.py"
+         and Path(bank_split.__file__).resolve() == donor / "bank_split.py", "use verified split modules")
+    current = network_for(network, word)
+    hosted = layout["hosted"]
+    main = set(layout["live"]) | {i + 112 for i in layout["live"]} | set(hosted["X2"]) | set(hosted["Y2"])
+    count = len(current.initial)
+    need(len(main) == 400 and count == len(current.final) == layout["public"]
+         == len(set(layout["source_labels"])), "rotated-split public owner inventory")
+    main_placement = {i: (current.initial[i], current.final[i]) for i in main}
+
+    def inventory(net, frames):
+        paid = Counter(projection.rank(frames, leg) for leg in net.moves.values())
+        productive = Counter(projection.rank(frames, (a, b), productive=True)
+                             for i, (a, b) in enumerate(zip(net.initial, net.final, strict=True)) if i not in main)
+        return paid, productive
+
+    endpoints = projection.endpoints(current), projection.endpoints(current.transpose())
+    paid, productive = inventory(current, word["frames"])
+    rotations, rescalings, continuation = [], [], []
+    steps = [("rotation", step, rotations) for step in plan["stages"]]
+    steps += [("paid_rescaling", step, rescalings) for step in plan.get("paid_rescalings", [])]
+    steps += [(step["kind"], step, continuation) for step in plan.get("continuation", [])]
+    for kind, stage, records in steps:
+        before = dict(word_sha256=projection.digest(word), layout_sha256=projection.digest(layout))
+        frames = word["frames"] + stage.get("frames", [])
+        if kind == "rotation":
+            event = stage["event"]
+            need(set(event) == {"old", "new", "transposed", "arrivals", "sends", "rotations", "generators", "removed_paid"}
+                 and type(event["transposed"]) is bool and event["rotations"], "literal rotated-split event")
+            projection.rank(frames, (event["old"], event["new"]))
+            changed = public_split.split(current, event)
+            added_paid = sorted(g["slot"] for g in event["generators"])
+            removed_paid = sorted(event["removed_paid"])
+            details = {}
+        elif kind == "paid_rescaling":
+            slot, scalar = stage["slot"], stage["scale"]
+            scale = Fraction(scalar)
+            need(type(slot) is int and slot in current.moves and type(scalar) is str
+                 and str(scale) == scalar and scale not in (0, 1), "nontrivial rational internal paid rescaling")
+            forms = current.forms.copy()
+            forms[slot] = {i: q * scale for i, q in current.forms[slot].items()}
+            readers = sorted(i for i, row in current.forms.items() if slot in row)
+            need(readers, "rescaled paid scalar has retained readers")
+            for i in readers:
+                row = current.forms[i]
+                forms[i] = {**row, slot: row[slot] / scale}
+            changed = network.Network(current.first_output, current.initial, current.final, current.moves, forms)
+            added_paid, removed_paid = [], []
+            details = dict(slot=slot, scale=scalar, readers=readers)
+        elif kind == "birth":
+            from birth_event import apply_split
+            from portable_chain import edit, operator_check
+
+            need(Path(sys.modules[apply_split.__module__].__file__).resolve() == donor / "birth_event.py",
+                 "use the verified birth engine")
+            role = stage["event"]["role"]
+            need(type(role) is int and 0 <= role < count and role not in main
+                 and type(stage["reverse"]) is bool and stage["event"]["pulse"], "one existing helper to split")
+            changed = edit(current, stage, apply_split)
+            need(all((changed.initial[i], changed.final[i]) == (current.initial[i], current.final[i])
+                     for i in range(count) if i != role), "all other old owner charts after helper birth")
+            endpoints = tuple(rows + [{count: Fraction(1)}] for rows in endpoints)
+            count += 1
+            labels = layout["source_labels"]
+            layout = dict(layout, public=count, source_labels=labels + [max(labels) + 1])
+            added_paid = sorted(leg["new_key"] for leg in stage["paid_subdivisions"])
+            removed_paid = []
+            controls = {}
+            faults = ["no_pulse"]
+            event = stage["event"]
+            if event.get("fresh_source_chart", event["split_chart"]) == event["split_chart"]:
+                faults.append("fresh_into_old")
+            for fault in faults:
+                broken = edit(current, stage, apply_split, fault=fault)
+                forward = operator_check(broken, endpoints[0])
+                adjoint = operator_check(broken.transpose(), endpoints[1])
+                need(forward is not None and adjoint is not None, f"observable helper-birth fault {fault}")
+                controls[fault] = dict(forward=forward, adjoint=adjoint)
+            details = dict(split_role=role, independent_new_owner=count - 1, controls=controls,
+                           omission=omission(changed, added_paid, puncture),
+                           opposite_omission=omission(changed.transpose(), added_paid, puncture))
+        else:
+            raise ValueError(f"unknown rotated continuation step {kind}")
+
+        next_word = projection.dump_graph(changed, frames)
+        layout = dict(layout, frames=frames)
+        mark = mark_pair(next_word, layout, (stage["word_sha256"], stage["layout_sha256"]), kind)
+        need(len(changed.initial) == len(changed.final) == count == layout["public"]
+             and all((changed.initial[i], changed.final[i]) == leg for i, leg in main_placement.items()),
+             "all main head placements and public slots remain fixed")
+        if kind == "paid_rescaling":
+            need(all(next_word[key] == word[key] for key in ("frames", "initial", "final", "first_output", "moves", "schedule")),
+                 "internal rescaling preserves every paid route, public owner and clock")
+        need(added_paid == sorted(changed.moves.keys() - current.moves.keys())
+             and removed_paid == sorted(current.moves.keys() - changed.moves.keys()), "literal added and removed paid legs")
+        new_paid, new_productive = inventory(changed, frames)
+        paid_delta = counter_difference(new_paid, paid)
+        productive_delta = counter_difference(new_productive, productive)
+        expected_delta = ({}, {}) if kind == "paid_rescaling" else (stage["paid_delta"], stage["productive_delta"])
+        need((paid_delta, productive_delta) == expected_delta, "every realized paid and independent productive rank change")
+        need(endpoints == (projection.endpoints(changed), projection.endpoints(changed.transpose())),
+             f"all exact forward and adjoint endpoint rows after {kind}")
+        records.append(mark | dict(kind=kind, preimage=before, added_paid=added_paid, removed_paid=removed_paid,
+                                   paid_delta=paid_delta, productive_delta=productive_delta) | details)
+        current, word, paid, productive = changed, next_word, new_paid, new_productive
+    final = plan["final"]
+    mark = mark_pair(word, layout, (final["word_sha256"], final["layout_sha256"]), "rotated-split final word")
+    return word, layout, dict(final=mark, stages=rotations, paid_rescalings=rescalings, continuation=continuation,
+                              all_forward_and_adjoint_rows_each=count)
+
+
 def construct(cache, word_path, layout_path, out, first_only=False):
     run(HERE.parent / "prepare_sources.py", cache)
     journal = {name: pin(name, digest) for name, digest in PINS.items()}
@@ -198,6 +319,14 @@ def construct(cache, word_path, layout_path, out, first_only=False):
         need("continued_births" in stages, "post-birth paid changes require the continued productive word")
         final, stages["post_birth_chains"] = chains(cache, final, layout, post_birth)
         final_mark = stages["post_birth_chains"]["stages"][-1]
+    claim = projection.load(HERE.parent / "CLAIM.json")
+    rotation_path = HERE / "ROTATED-SPLITS.json"
+    if rotation_path.exists() or "rotated_splits_sha256" in claim:
+        need("post_birth_chains" in stages and "rotated_splits_sha256" in claim, "claimed post-birth rotated splits")
+        rotations = projection.load(pin(rotation_path.name, claim["rotated_splits_sha256"]))
+        final, layout, stages["rotated_splits"] = rotated_splits(cache, final, layout, rotations)
+        final_mark = mark_pair(final, layout, (claim["complex_word"], claim["layout"]), "claimed rotated word")
+        need((final, layout) == read_pair(HERE), "claimed rotated word and layout match packaged files")
     write_pair(out, final, layout)
     report = dict(schema="p104-complex-construction-replay/1", base=base, control=control,
                   final=final_mark, stages=stages)
