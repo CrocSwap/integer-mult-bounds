@@ -1,5 +1,6 @@
 """Replay one independent part of the 36-call and 48-call research checkpoint."""
 import argparse
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -15,6 +16,26 @@ def run(script, *args):
     subprocess.run([sys.executable, "-I", "-B", str(script), *map(str, args)], check=True)
 
 
+def canonical_hash(path):
+    with gzip.open(path, "rt", encoding="utf-8") as reader:
+        value = json.load(reader)
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def same_word(path, archive, pin):
+    if canonical_hash(path) != pin or canonical_hash(archive) != pin:
+        raise ValueError(f"constructed and published word must both have digest {pin}")
+
+
+def operator_receipt(path):
+    report = json.loads(path.read_bytes())
+    # Different zlib versions may encode the generated comparator and control
+    # archives differently. Their canonical graph and layout digests are checked.
+    for generated in (report["base"], report["incremental_comparison"]["source"]):
+        del generated["word_file_sha256"], generated["layout_file_sha256"]
+    return report
+
+
 def main(args):
     cache, out = args.cache.resolve(), args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -22,8 +43,8 @@ def main(args):
     claim = json.loads((HERE / "CLAIM.json").read_bytes())
     c, b = HERE / "complex", HERE / "binary"
     if args.part == "binary-construction":
-        run(b / "replay.py", "--source-root", cache / "source", "--parent-word", cache / "parent/binary/WORD.json.gz",
-            "--journal", b / "BIRTHS.json", "--out", out)
+        run(b / "construction.py", "--cache", cache, "--out", out)
+        same_word(out / "WORD.json.gz", b / "WORD.json.gz", claim["binary_word"])
         return
     if args.part == "binary-finite":
         output = out / "finite.json"
@@ -36,21 +57,24 @@ def main(args):
         parent = out / "comparator"
         run(cache / "parent/verify.py", "--cache", cache, "--out", parent, "--part", "construction")
         word, layout = parent / "free/WORD.json.gz", parent / "free/LAYOUT.json.gz"
+        stages = out / "stages"
+        run(c / "construction.py", "--cache", cache, "--word", word, "--layout", layout,
+            "--out", stages, *(["--first-only"] if args.part == "operator" else []))
         if args.part == "construction":
-            projected = out / "projected"
-            run(c / "paid_projection.py", "--source-root", cache / "source", "--word", word, "--layout", layout,
-                "--journal", c / "PROJECTIONS.json", "--word-sha", claim["comparator_complex"],
-                "--layout-sha", claim["comparator_layout"], "--expected", claim["projected"], "--out", projected)
-            run(c / "births.py", "--cache", cache, "--word", projected / "WORD.json.gz", "--layout", projected / "LAYOUT.json.gz",
-                "--journal", c / "BIRTHS.json", "--parent-layout", claim["comparator_layout"],
-                "--child-layout", claim["layout"], "--out", out / "candidate")
+            same_word(stages / "WORD.json.gz", c / "WORD.json.gz", claim["complex_word"])
+            same_word(stages / "LAYOUT.json.gz", c / "LAYOUT.json.gz", claim["layout"])
             return
         fault_args = [arg for item in claim["controls"] for arg in ("--fault", item)]
         run(c / "independent.py", "--cache", cache, "--base-graph", word, "--base-layout", layout,
+            "--control-word", stages / "first/WORD.json.gz", "--control-layout", stages / "first/LAYOUT.json.gz",
+            "--control-sha", claim["control_word"], "--control-layout-sha", claim["control_layout"],
             "--candidate", c / "WORD.json.gz", "--layout", c / "LAYOUT.json.gz", "--sha", claim["complex_word"],
             "--layout-sha", claim["layout"], "--binary-finite", b / "FINITE.json",
             "--binary-finite-sha", hashlib.sha256((b / "FINITE.json").read_bytes()).hexdigest(),
-            "--binary-word", claim["binary_word"], "--ordinary", "--charts", *fault_args, "--out", out / "operator.json")
+            "--binary-word", claim["binary_word"], "--ordinary", "--charts", "--scoped-faults",
+            *fault_args, "--out", out / "operator.json")
+        if operator_receipt(out / "operator.json") != operator_receipt(HERE / "evidence/operator.json"):
+            raise ValueError("independent operator, negative controls or finite compiler changed")
         return
     output = out / "application.json"
     extra = ["--shard", args.part[-1]] if args.part.startswith("charts-") else []

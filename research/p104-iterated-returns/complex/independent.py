@@ -225,50 +225,108 @@ def held_replay(reader, graph, layout, expected, sold=(), inserted=()):
             "guards_preserved": True}
 
 
-def coefficient_fault(reader, graph, layout, expected, node, donor, input_row, pulse):
-    """Delete one actual nonzero literal and replay both complete orientations."""
+def source_column(graph, source):
+    """Evaluate a single exact unit input on the actual modified tape."""
+    values = {~source: Fraction(1)}
+    terminals = {}
+    for node in graph.order:
+        value = sum(q * values[d] for d, q in graph.forms[node] if d in values)
+        if value:
+            if node in graph.moves:
+                values[node] = value
+            else:
+                terminals[node - graph.first] = value
+    return terminals
+
+
+def terminal_row(graph, terminal):
+    """Pull a single exact terminal covector through the actual modified tape."""
+    pending = {graph.first + terminal: Fraction(1)}
+    for node in reversed(graph.order):
+        value = pending.pop(node, 0)
+        if value:
+            for donor, q in graph.forms[node]:
+                pending[donor] = pending.get(donor, 0) + q * value
+    return {~node: value for node, value in pending.items() if value}
+
+
+def axis_digest(reader, vector):
+    return reader.digest([[i, str(v)] for i, v in sorted(vector.items())])
+
+
+def coefficient_fault(reader, graph, layout, expected, node, donor, input_row, pulse, scoped):
+    """Delete one actual nonzero literal and test its exact rank-one defect."""
     form = dict(graph.forms[node])
     need(donor in form and input_row and pulse, f"nontrivial control at {node}:{donor}")
     coefficient = form.pop(donor)
     faulty = replace(graph, forms={**graph.forms, node: tuple(form.items())})
     faulty.validate_causality()
-    predicted = [row.copy() for row in expected]
-    for terminal, sensitivity in pulse.items():
-        for source, gain in input_row.items():
-            out = predicted[terminal]
-            value = out.get(source, 0) - coefficient * sensitivity * gain
-            if value:
-                out[source] = value
-            else:
-                out.pop(source, None)
-    observed, _ = reader.forward(faulty)
-    columns, _ = reader.adjoint(faulty)
-    need(observed != expected and observed == predicted and columns == reader.transpose(predicted),
-         f"removed actual rational contact gives the predicted defect in both directions {node}:{donor}")
     terminal, source = min(pulse), min(input_row)
+    control = {}
+    if scoped:
+        old_col = {i: row[source] for i, row in enumerate(expected) if source in row}
+        old_row = expected[terminal]
+        new_col, new_row = old_col.copy(), old_row.copy()
+        for i, q in pulse.items():
+            new_col[i] = new_col.get(i, 0) - coefficient * q * input_row[source]
+        for i, q in input_row.items():
+            new_row[i] = new_row.get(i, 0) - coefficient * pulse[terminal] * q
+        new_col = {i: q for i, q in new_col.items() if q}
+        new_row = {i: q for i, q in new_row.items() if q}
+        actual_col, actual_row = source_column(faulty, source), terminal_row(faulty, terminal)
+        need(actual_col == new_col and actual_row == new_row and new_col != old_col and new_row != old_row,
+             f"modified tape gives the exact defect on the witnessed column and covector {node}:{donor}")
+        coefficient_after = actual_col.get(terminal, 0)
+        control = {"scope": "one exact source column and one exact terminal adjoint covector on modified word",
+                   "entries_per_orientation": graph.size, "mutated_source_column_sha256": axis_digest(reader, actual_col),
+                   "mutated_terminal_covector_sha256": axis_digest(reader, actual_row)}
+    else:
+        predicted = [row.copy() for row in expected]
+        for i, sensitivity in pulse.items():
+            for j, gain in input_row.items():
+                out = predicted[i]
+                value = out.get(j, 0) - coefficient * sensitivity * gain
+                if value:
+                    out[j] = value
+                else:
+                    out.pop(j, None)
+        observed, _ = reader.forward(faulty)
+        columns, _ = reader.adjoint(faulty)
+        need(observed != expected and observed == predicted and columns == reader.transpose(predicted),
+             f"removed actual rational contact gives the predicted defect in both directions {node}:{donor}")
+        coefficient_after = observed[terminal].get(source, 0)
+        control = {"scope": "all exact forward rows and adjoint columns on modified word",
+                   "faulty_forward_sha256": reader.row_digest(observed),
+                   "faulty_adjoint_sha256": reader.row_digest(columns)}
     return {"node": node, "donor": donor, "removed_coefficient": str(coefficient),
             "affected_terminal_address": terminal, "affected_terminal_label": layout["source_labels"][terminal],
             "source_address": source, "source_label": layout["source_labels"][source],
             "normal_coefficient": str(expected[terminal].get(source, 0)),
-            "faulty_coefficient": str(observed[terminal].get(source, 0)),
-            "faulty_forward_sha256": reader.row_digest(observed),
-            "faulty_adjoint_sha256": reader.row_digest(columns)}
+            "faulty_coefficient": str(coefficient_after), **control}
 
 
-def fresh_input_fault(reader, graph, layout, expected, address):
+def fresh_input_fault(reader, graph, layout, expected, address, scoped):
     """Remove a fresh independent entrance at every actual incidence."""
     changes = {k: tuple((d, q) for d, q in form if d != ~address)
                for k, form in graph.forms.items() if any(d == ~address for d, _ in form)}
     need(changes, f"visible independent fresh input {address}")
     faulty = replace(graph, forms={**graph.forms, **changes})
+    record = {"source_address": address, "source_label": layout["source_labels"][address],
+              "omitted_at_live_nodes": sorted(changes)}
+    need(expected[address] == {address: 1}, "original fresh identity")
+    if scoped:
+        column, row = source_column(faulty, address), terminal_row(faulty, address)
+        need(not column and not row, f"loss of fresh source {address} erases its own independent return")
+        return {**record, "scope": "exact source column and terminal covector of the omitted fresh field",
+                "entries_per_orientation": graph.size, "mutated_source_column_sha256": axis_digest(reader, column),
+                "mutated_terminal_covector_sha256": axis_digest(reader, row)}
     rows, _ = reader.forward(faulty)
     columns, _ = reader.adjoint(faulty)
     want = expected.copy()
     want[address] = {}
-    need(expected[address] == {address: 1} and rows == want and columns == reader.transpose(want),
+    need(rows == want and columns == reader.transpose(want),
          f"loss of fresh source {address} erases its own return exactly")
-    return {"source_address": address, "source_label": layout["source_labels"][address],
-            "omitted_at_live_nodes": sorted(changes),
+    return {**record, "scope": "all exact forward rows and adjoint columns on modified word",
             "mutated_forward_sha256": reader.row_digest(rows), "mutated_adjoint_sha256": reader.row_digest(columns)}
 
 
@@ -429,11 +487,23 @@ def verify(args):
          all(expected1[i] == {i: Fraction(1)} for i in range(base.size, new.size)),
          "all old independent owner operators plus distinct fresh identity rows")
     paid = move_changes(base, new)
+    comparison, comparison_layout, compared_expected, compared_ranks, control_pin = (
+        base, layout0, expected0, ranks0, pin0)
+    if args.control_word:
+        _, comparison, comparison_layout, _, compared_expected, cmains, compared_ranks, control_pin = read_case(
+            r, args.control_word, args.control_layout, args.control_sha, args.control_layout_sha)
+        need(cmains == mains0 and comparison.size >= base.size and compared_expected[:base.size] == expected0,
+             "incremental predecessor preserves the inherited owner operator")
+        boundary_changes(base, layout0, comparison, comparison_layout, mains0)
+    comparison_pairs, comparison_births = boundary_changes(comparison, comparison_layout, new, layout1, mains0)
+    comparison_paid = move_changes(comparison, new)
     changed_forms = [k for k in new.terminals if dict(base.forms.get(k, ())) != dict(new.forms[k])]
-    changed_terminals = set(changed_forms) | {row["node"] for row in (*pairs, *births)}
-    paid_watch = set(paid["inserted"]) | set(paid["recharted"]) | set(paid["retained_changed_form_keys"])
-    direct = set(args.fault) | {(k, None) for k in paid["inserted"]}
-    direct.update((row["node"], None) for row in (*pairs, *births))
+    altered_forms = {k for k in new.terminals if dict(comparison.forms.get(k, ())) != dict(new.forms[k])}
+    changed_terminals = altered_forms | {row["node"] for row in (*comparison_pairs, *comparison_births)}
+    paid_watch = set(comparison_paid["inserted"]) | set(comparison_paid["recharted"]) | set(
+        comparison_paid["retained_changed_form_keys"])
+    direct = set(args.fault) | {(k, None) for k in comparison_paid["inserted"]}
+    direct.update((row["node"], None) for row in (*comparison_pairs, *comparison_births))
     if changed_terminals and not direct:
         direct.add((min(changed_terminals), None))
     for k, donor in direct:
@@ -451,7 +521,7 @@ def verify(args):
     for k, picked in sorted(direct, key=lambda a: (a[0], a[1] is None, a[1] or 0)):
         # Omit a changed donor where possible. A replaced terminal namespace has
         # no prior row, so its literal input is a valid additional witness.
-        donor_old = dict(base.forms.get(k, ()))
+        donor_old = dict(comparison.forms.get(k, ()))
         viable = [d for d, q in new.forms[k] if inputs[d] and donor_old.get(d) != q]
         if picked is None:
             if any(n == k and d is not None for n, d in direct):
@@ -460,11 +530,17 @@ def verify(args):
             need(viable, f"observable nonzero contact on changed row {k}")
             picked = viable[0]
         pulse = outputs[k] if k in new.moves else {k - new.first: Fraction(1)}
-        defects.append(coefficient_fault(r, new, layout1, expected1, k, picked, inputs[picked], pulse))
-    fresh_controls = [fresh_input_fault(r, new, layout1, expected1, d["address"]) for d in births]
+        defects.append(coefficient_fault(r, new, layout1, expected1, k, picked, inputs[picked], pulse,
+                                         args.scoped_faults))
+    fresh_controls = [fresh_input_fault(r, new, layout1, expected1, d["address"], args.scoped_faults)
+                      for d in comparison_births]
     print("Checking held-home clearing and unchanged signed caller.", flush=True)
     held0 = held_replay(r, base, layout0, expected0, sold=paid["retired"])
     held1 = held_replay(r, new, layout1, expected1, inserted=set(paid["inserted"]) | set(paid["recharted"]))
+    held_comparison = None
+    if args.control_word:
+        held_comparison = held_replay(r, comparison, comparison_layout, compared_expected,
+                                      sold=comparison_paid["retired"])
     labels = {**layout1, "source_labels": layout1["source_labels"].copy()}
     labels["source_labels"][-1] = labels["source_labels"][0]
     r.reject(lambda: r.public_operator(new, labels, [r.span(frame) for frame in new.frames]),
@@ -474,13 +550,14 @@ def verify(args):
     need((p0, t0) == (p1, t1) and caller0["readback"] == caller1["readback"],
          "fixed signed caller census and original emitted instructions")
     print("Regenerating both complete signed rank histograms.", flush=True)
+    powers = cache(power.power_bounds)
     before, after, invoice = signed_invoices(
-        r, ranks0, ranks1, (p1, t1), cache(power.power_bounds), args.target)
+        r, ranks0, ranks1, (p1, t1), powers, args.target)
     archived_invoice = prior["application"]["invoice"]
     need(before == tuple({int(k): v for k, v in archived_invoice[key].items()} for key in ("paid", "targets")),
          "submitted full invoice agrees with independent literal regeneration")
     receipt = {
-        "schema": "p104-7781-independent-successor/v1", "reviewer_sha256": CHECKER_SHA,
+        "schema": "p104-7781-independent-successor/v2", "reviewer_sha256": CHECKER_SHA,
         "source_lock_sha256": SOURCE_LOCK,
         "locked_source_files_verified": file_count, "base_public_head": BASE_HEAD,
         "base": old, "candidate": candidate,
@@ -492,6 +569,19 @@ def verify(args):
         "caller": {"base": caller0, "candidate": caller1, "paid": p1, "targets": t1},
         "full_invoice": invoice,
     }
+    if args.control_word:
+        intermediate = r.invoice(compared_ranks, (p1, t1))
+        prior_band, prior_endpoints = raw_bracket(r, intermediate, powers)
+        margin0, margin1 = (r.interval(*histograms, powers, args.target) for histograms in (intermediate, after))
+        receipt["incremental_comparison"] = {
+            "source": control_pin, "changed_owner_boundaries": comparison_pairs,
+            "fresh_independent_owners": comparison_births, "paid_changes": comparison_paid,
+            "changed_terminal_forms": [endpoint_address(new, layout1, k) for k in sorted(altered_forms)],
+            "cleanup_before_change": held_comparison,
+            "prior_raw_bracket": prior_band, "prior_raw_endpoint_margins": prior_endpoints,
+            "paid_delta": diff(intermediate[0], after[0]), "target_delta": diff(intermediate[1], after[1]),
+            "directed_saving_at_target": r.decimal_bounds((margin1[0] - margin0[1], margin1[1] - margin0[0])),
+        }
     if args.ordinary:
         print("Recomputing complete ordinary, compiler and precision-tape charges.", flush=True)
         bit_path = args.binary_finite or public / "binary/FINITE.json"
@@ -524,18 +614,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state", type=Path)
     for option in ("cache", "package", "sources", "base-graph", "base-layout", "candidate", "layout",
-                   "binary-finite", "out"):
+                   "control-word", "control-layout", "binary-finite", "out"):
         parser.add_argument(f"--{option}", type=Path, required=option == "out")
-    for option in ("sha", "layout-sha", "binary-finite-sha", "binary-word"):
+    for option in ("sha", "layout-sha", "control-sha", "control-layout-sha", "binary-finite-sha", "binary-word"):
         parser.add_argument(f"--{option}")
     parser.add_argument("--target", default=TARGET)
     parser.add_argument("--fault", type=fault_spec, action="append", default=[])
     parser.add_argument("--ordinary", action="store_true")
     parser.add_argument("--charts", action="store_true")
+    parser.add_argument("--scoped-faults", action="store_true",
+                        help="test each modified word in one complete exact source column and terminal covector")
     args = parser.parse_args()
     need(__debug__, "run with assertions enabled")
     need(bool(args.candidate) == bool(args.sha) and bool(args.layout) == bool(args.layout_sha),
          "each explicit candidate path requires its content pin")
+    controls = (args.control_word, args.control_layout, args.control_sha, args.control_layout_sha)
+    need(all(controls) or not any(controls), "supply both paths and both hashes for an immediate predecessor")
     args.out.write_text(json.dumps(verify(args), indent=2, sort_keys=True) + "\n")
     print(f"Saved {args.out}", flush=True)
 
