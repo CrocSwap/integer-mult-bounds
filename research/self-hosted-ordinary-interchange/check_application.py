@@ -105,6 +105,7 @@ def compute():
     repair = read(ROOT/"docs/research/pr-intake-evidence/pr7000-admission/bit-ambient.log")
     native_a = read(ROOT/"research/shared-wire-split-composition/FULL-RESULT.json")
     pending = read(HERE/"retained/pending-bit.json")
+    primary = read(HERE/"retained/pending-primary.json")
     native_b = json.loads(gzip.decompress((HERE/"retained/pending-application.json.gz").read_bytes()))
     need(pending["word_sha256"] == native_b["binary_word"], "pending BIT source")
     need(repair["H"] == 296630000000000 and repair["corrected_log_power"] == 617,
@@ -114,7 +115,33 @@ def compute():
     need(pending["finite"]["H"] == 298610000000000, "pending independent template")
     a, b = Q(selected["covered_BIT_saving"]), Q(pending["covered_fraction"])
     need(a == Q(raw_a["covered_saving"]) and b == Q(".003879907846154"), "covered source")
+    primary_price = Q(primary["covered"])
+    need(primary["word_sha256"] == pending["word_sha256"] and
+         primary["targets"] == pending["complete_productive"] and
+         primary["paid"] == pending["complete_paid"], "primary signed word")
+    need(Q(primary["ordinary_admitted"]) == Q(native_b["binary_ordinary"]) < primary_price,
+         "actual ordinary price of the pending multiplier")
+    loss = Q(primary["delayed_cover_loss"])
+    independent = pending["finite"]
+    sharper = primary["independent_directed_compiler"]
+    need(loss == Q(primary["uniform_loss"]) == Q(1, 10**10), "two finite compiler losses")
+    for profile, covered in ((independent, b), (sharper, primary_price)):
+        need(Q(profile["trial"])-2*loss == covered and Q(profile["normalized_separation_slack"][0]) > 0,
+             "source finite certification at the stated trial")
+        need((profile["ambient_base"],profile["product_exponent"],profile["cutoff"],profile["productive_floor"])
+             == (134,768,15,16), "paid compiler, ambient and productive floor")
+        need(profile["H"]*loss == 29861 and 1+Q(64,2**45) < 2, "full good plus bad moment")
+    need(primary["uniform"]["H"] == sharper["H"] and
+         Q(primary["uniform"]["uniform_saving"]) == primary_price+loss, "primary uniform certificate")
     r, s = Q(99, 100), Q(1, 250)
+    need(0 < b < primary_price < min(s, 1-s), "full fixed-block service guards")
+    # The frozen cover also has slack for a finite predecessor comparison.
+    raised_test = primary_price + loss/2
+    need(primary["uniform"]["H"]*(loss/2) > 1 and 1+Q(64,2**45) < 2,
+         "same cover at half its exponent debit")
+    finite_primary_margin = (1-s**4)*raised_test - primary_price
+    need(finite_primary_margin > 0 and raised_test < min(s,1-s),
+         "four stages with a repriced fixed cover")
     price_a = ((1-r)*a + r*(1-s)*b)/(1-r*s)
     price_b = ((1-s)*b + s*(1-r)*a)/(1-r*s)
     need(price_a == (1-r)*a+r*price_b and price_b == (1-s)*b+s*price_a,
@@ -151,7 +178,8 @@ def compute():
     need(fixed["finite_binding"]["native_main_bindings"] == 19200, "pending main bindings")
     gates = {}
     for label, price in (("selected_entry", price_a), ("pending_entry", price_b),
-                         ("neutral_entry", neutral), ("neutral_companion", coupled_b)):
+                         ("neutral_entry", neutral), ("neutral_companion", coupled_b),
+                         ("fixed_blocks_independent", b), ("fixed_blocks_primary", primary_price)):
         # Install exactly the service derived above, as the original driver installs its backend.
         pending_gate.BIT_PIN = str(price)
         gates[label] = {
@@ -202,6 +230,12 @@ def compute():
          "separate enrolled target and historical ordinary service")
     return dict(covered=[str(a), str(b)], atom_powers=[str(r), str(s)],
                 cycle=[str(price_a), str(price_b)], neutral=[str(neutral), str(coupled_b)],
+                fixed_blocks={"block_count": 2, "independent_both_entries": str(b),
+                              "primary_both_entries": str(primary_price),
+                              "source_primary_ordinary": primary["ordinary_admitted"],
+                              "finite_comparison_margin": str(finite_primary_margin),
+                              "full_cover_fallback_multiplier_upper": str(1+Q(64,2**45)),
+                              "log2_N_to_cover_loss": 29861},
                 selected_raw_upper=str(raw_upper), selected_excess=str(price_a-raw_upper),
                 homogeneous_separator=str(cut), separator_deficit=[str(cut_low), str(cut_high)],
                 selected_coarse_guard=list(map(str, guard_a)), pending_coarse_guard=list(map(str, guard_b)),
@@ -213,4 +247,4 @@ def compute():
 if __name__ == "__main__":
     evidence = compute()
     need(evidence == read(HERE/"RESULT.json"), "scientific receipt mismatch")
-    print("PASS_TWO_CALLERS entries=4 applications=8 strict=54 functional=4")
+    print("PASS_TWO_CALLERS prices=6 applications=12 strict=54 functional=4")

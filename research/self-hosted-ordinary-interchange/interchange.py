@@ -141,19 +141,39 @@ def atom_width(e, numerator, denominator):
     return high
 
 
+def swap_blocks(port, data, width):
+    """Issue each proper digit block, preserving the full bit volume."""
+    for start in range(0, port.width, width):
+        length = min(width, port.width-start)
+        part = Port(port.q, length, port.prefix*port.q**start,
+                    port.gap*port.q**(port.width-length),
+                    port.suffix*port.q**(port.width-start-length))
+        data = yield Request(part, data)
+    return data
+
+
 def block_word(numerator, denominator) -> OpenWord:
-    """Build a cover-free entry that swaps disjoint consecutive digit blocks."""
+    """Build an entry with a fixed power for its block width."""
     def word(port, data):
+        if port.width < 2:
+            return elementary(port, data)
         width = atom_width(port.width, numerator, denominator)
         if width == port.width:
             return elementary(port, data)
-        for start in range(0, port.width, width):
-            length = min(width, port.width-start)
-            part = Port(port.q, length, port.prefix*port.q**start,
-                        port.gap*port.q**(port.width-length),
-                        port.suffix*port.q**(port.width-start-length))
-            data = yield Request(part, data)
-        return data
+        return (yield from swap_blocks(port, data, width))
+    return word
+
+
+def fixed_block_word(blocks) -> OpenWord:
+    """Build an entry issuing at most this many complete block swaps."""
+    if blocks < 2:
+        raise ValueError("fixed block count must be at least two")
+
+    def word(port, data):
+        if port.width < 2:
+            return elementary(port, data)
+        width = (port.width+blocks-1)//blocks
+        return (yield from swap_blocks(port, data, width))
     return word
 
 

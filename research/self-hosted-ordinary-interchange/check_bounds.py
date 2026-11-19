@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from interchange import Port, atom_width, block_word
+from interchange import Port, atom_width, block_word, fixed_block_word
 
 
 def require(ok, label):
@@ -92,8 +92,37 @@ def width_checks():
         require(start == e and e % u > 0, "missing remainder")
 
 
+def fixed_count_checks():
+    checked = 0
+    for e in range(2, 514):
+        for k in (2, 3, 7):
+            port = Port(2, e, 1, 3, 2)
+            token = object()
+            issuer = fixed_block_word(k)(port, token)
+            widths = []
+            try:
+                request = next(issuer)
+                while True:
+                    width = request.port.width
+                    require(request.source is token and request.port.volume == port.volume,
+                            "fixed block lost the previous complete return")
+                    require(0 < width < e and request.port.gap >= 2, "missing free spectator")
+                    widths.append(width)
+                    token = object()
+                    request = issuer.send(token)
+            except StopIteration as end:
+                require(end.value is token, "last block output was discarded")
+            require(len(widths) <= k and sum(widths) == e and max(widths) == (e+k-1)//k,
+                    "incomplete fixed-count decomposition")
+            require(((max(widths)+2)//3) == (e+3*k-1)//(3*k), "composed ceiling")
+            checked += 1
+    return checked
+
+
 if __name__ == "__main__":
     tree_checks()
     shapes = geometry_checks()
     width_checks()
-    print(f"PASS_WIDTH_BOUNDS tree_widths=2049 volume_shapes={shapes} block_policies=3")
+    fixed = fixed_count_checks()
+    print(f"PASS_WIDTH_BOUNDS tree_widths=2049 volume_shapes={shapes} block_policies=3 "
+          f"fixed_count_shapes={fixed}")

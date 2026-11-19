@@ -6,7 +6,8 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from interchange import Port, Request, Slabs, block_word, close_cycle, elementary, exchange_range
+from interchange import (Port, Request, Slabs, block_word, close_cycle, elementary,
+                         exchange_range, fixed_block_word)
 
 
 def require(condition, message):
@@ -161,9 +162,21 @@ def run_tests():
                     for p,h,g,d,s in product(range(2), range(size), range(3),
                                              range(size), range(2))]
         require(answer == expected, "non-power public range or binary padding")
-    return totals, max(d for _, _, d in seen), shards
+    fixed_positions = 0
+    for counts in ((2,), (2, 3)):
+        stages = tuple(fixed_block_word(k) for k in counts) + (ordinary_fixture,)
+        for q, width, prefix, gap, suffix in ((2, 5, 3, 2, 3), (2, 7, 1, 1, 3), (3, 4, 2, 1, 1)):
+            port = Port(q, width, prefix, gap, suffix)
+            labels = tuple(range(port.volume))
+            expected = address_oracle(port, labels, swap)
+            for entry in range(len(stages)):
+                output = close_cycle(stages, entry, port, labels, cutoff=2, fanout=5)
+                require(output == expected, "fixed block count, ragged tail or successor tag")
+                fixed_positions += port.volume
+    return totals, max(d for _, _, d in seen), shards, fixed_positions
 
 
 if __name__ == "__main__":
-    entries, depth, shards = run_tests()
-    print(f"PASS_STREAM_CLOSURE entries={entries} nested_depth={depth} ragged_slabs={shards}")
+    entries, depth, shards, fixed = run_tests()
+    print(f"PASS_STREAM_CLOSURE entries={entries} nested_depth={depth} ragged_slabs={shards} "
+          f"fixed_block_positions={fixed}")
