@@ -34,6 +34,21 @@ At 3, compare the restrictions to the simple plus and minus orthogonal subgroups
 
 The global argument now gives the raw $R$-left inverse. Given a target row at width 15, tensor it with the linear functional $\operatorname{vec}(U_a)^*/32$ for each extra slot. This preserves its value one on the target and zero on the others, and it also shows that a left inverse at any width below 14 would give one at 14. Width 14 already has a nonzero complex kernel of dimension 6,954,742,423,552 by #7806. Since base change to $\mathbb C$ preserves a left inverse, this proves the lower bound as well. [Pinned width-14 kernel](https://github.com/apoursh/integer-mult-bounds/blob/b42e665721e76e69d05f24a19bdabee0e0f77c04/research/clifford-five-qubit-threshold/PROOF.md)
 
+## A universal lower bound for the fixed dimension
+
+The same data give a quantitative result. For every finite-dimensional $G$-module $M$ in odd characteristic, let $d=\dim M$, $b=\dim M^C$ and $t$ be the Brauer trace at $c_2$. Then
+$$
+ b\ \ge\ \frac{6}{6919}d.
+$$
+To see this at 3, the 39 plus-group Brauer rows satisfy $31t+d\ge32b$ and the 35 minus-group rows satisfy $1309t+67d\le29920b$, including the respective zero rows. All three quantities are additive on restriction and passage to composition factors. Canceling the shared trace gives
+$$
+ 768d=31(1309t+67d)-1309(31t+d)
+ \le (31\cdot29920-1309\cdot32)b=885632b.
+$$
+The coefficient is sharp for the relaxation that matches only degree and the two shear traces across restrictions. For the plus group take $168\varphi_1+223\varphi_4$, and for the minus group take $6\varphi_{13}+7\varphi_7$. Their common triple is $(193732,-6076,1060)$ with $b=168$, attaining $6/6919$. Whether a symplectic-group module attains that fraction at 3 remains open.
+
+Away from the group order the ordinary minimum of $b/d$ is $15/5797$. The same minimum holds in characteristics 5, 11, 17 and 31. In characteristic 7 it is $45/40393$. These are minima over all nonzero modules because every module has a composition series and $b/d$ is a dimension-weighted average of the simple ratios. Each of these minima exceeds $6/6919$. Extending the ground field to its algebraic closure preserves both dimensions since $e$ is an idempotent with image $M^C$.
+
 ## Reconstructing the finite table calculation
 
 Write $O$ for the three selected columns of the ordinary character table, $D$ for the ordinary-to-modular decomposition matrix and $B$ for the same three columns of the table of irreducible Brauer characters. The three classes are regular for every odd prime, so $D B=O$. The numerical evidence stores $O$ and the positive entries of $D$, indexed from one. For each of the seven tables a sequence of integer pivots recovers all unknown rows of $B$. Substitution into every ordinary row checks the complete overdetermined system. Ordinary column orthogonality separately checks each group's order, the two centralizers and the vanishing cross products.

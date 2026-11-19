@@ -79,16 +79,37 @@ def ordinary_control(group, rows):
     return [restrictions(row)[0] for row in rows]
 
 
+def quantitative_three(tables):
+    plus, minus = tables[PLUS], tables[MINUS]
+    # These inequalities include the zero-fixed rows, where both sides vanish.
+    for d, t, u in plus:
+        require(31*t+d >= 32*restrictions([d, t, u])[0], "Plus trace inequality")
+    for d, t, u in minus:
+        require(1309*t+67*d <= 29920*restrictions([d, t, u])[0], "Minus trace inequality")
+    lower = Fraction(31*67-1309, 31*29920-1309*32)
+    require(lower == Fraction(6, 6919), "Universal fixed fraction")
+
+    # A pair of subgroup modules attains the linear relaxation on (1,c2,c4).
+    pos = [168*a+223*b for a, b in zip(plus[0], plus[3], strict=True)]
+    neg = [6*a+7*b for a, b in zip(minus[12], minus[6], strict=True)]
+    require(pos == neg == [193732, -6076, 1060] and
+            Fraction(restrictions(pos)[0], pos[0]) == lower, "Tight restriction witness")
+    print("PASS universal dimension fraction 6/6919; tight on the three shared columns")
+
+
 def verify(data, gap_rows=None):
     require(list(data) == list(EXPECTED), "Unexpected groups")
     if gap_rows is not None:
         external = iter(gap_rows)
     bad_three = {}
+    orthogonal = {}
     for group, counts in EXPECTED.items():
         ordinary = data[group]["ordinary"]
         fixed = ordinary_control(group, ordinary)
         if group == SP:
             require(min(fixed) == fixed.count(1) == 1, "Ordinary symplectic positivity")
+            require(min(Fraction(b, r[0]) for b, r in zip(fixed, ordinary, strict=True)) ==
+                    Fraction(15, 5797), "Ordinary fixed fraction")
         tables = data[group]["reduction"]
         require({int(p) for p in tables} == set(counts), "Missing prime")
         for p, count in counts.items():
@@ -98,12 +119,16 @@ def verify(data, gap_rows=None):
                 require(rows == next(external), "Mismatch against native GAP Brauer values")
             fixed = [restrictions(row)[0] for row in rows]
             if p == 3:
+                orthogonal[group] = rows
                 bad_three[group] = [(i, r) for i, (r, f) in enumerate(zip(rows, fixed), 1) if f == 0]
                 print(f"{group} p=3  rows={count}  zero seed rows={bad_three[group]}")
             else:
                 require(min(fixed) == fixed.count(1) == 1 and min(fixed[1:]) == 15,
                         "Unexpected modular fixed dimensions")
-                print(f"{group} p={p}  rows={count}  minimum nontrivial fixed dimension=15")
+                fraction = min(Fraction(b, r[0]) for b, r in zip(fixed, rows, strict=True))
+                expected = Fraction(45, 40393) if p == 7 else Fraction(15, 5797)
+                require(fraction == expected and fraction > Fraction(6, 6919), "Modular fixed fraction")
+                print(f"{group} p={p}  rows={count}  minimum nontrivial dimension=15  fixed fraction={fraction}")
     if gap_rows is not None:
         require(next(external, None) is None, "Extra GAP table")
     require(bad_three[PLUS] == [(4, [868,-28,4]), (10, [13888,-448,64])] and
@@ -111,6 +136,7 @@ def verify(data, gap_rows=None):
     ratios = {g: {Fraction(r[1], r[0]) for _, r in bad_three[g]} for g in (PLUS, MINUS)}
     require(ratios == {PLUS: {Fraction(-1,31)}, MINUS: {Fraction(-67,1309)}} and
             ratios[PLUS].isdisjoint(ratios[MINUS]), "Restrictions do not exclude an obstruction")
+    quantitative_three(orthogonal)
     print("PASS five-qubit width 15: 931 symplectic and 74 orthogonal Brauer rows")
 
 

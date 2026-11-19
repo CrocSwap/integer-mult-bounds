@@ -4,6 +4,8 @@
 
 The obstruction is a simple symplectic-group module with no fixed vector for the same group of 64 shears. The published tables rule this out at 5, 7, 11, 17 and 31 in all 931 cases. At 3, the two orthogonal subgroups give incompatible trace ratios for an obstruction. Their tables have only three possible zero rows between them. Together with the ordinary calculation at primes away from the group order, these checks lift the subgroup-average identity to $\mathbb Z[i,1/2]$. The proof establishes existence of an exact raw inverse. A usable decoding circuit, a noise bound, the cost of its observations and any effect on the selected multiplication bound remain open.
 
+The fixed space has dimension at least $6\dim(M)/6919$ for **every** finite-dimensional symplectic-group module in odd characteristic. The coefficient is sharp when matching the two orthogonal restrictions only on the identity and both shear classes. [Quantitative bound and matching witness](PROOF.md#a-universal-lower-bound-for-the-fixed-dimension)
+
 ## Reproduce the certificate
 
 From the repository root run the registered CPython 3.12 checks. Their inputs are the compact numerical evidence and the code in this directory.
