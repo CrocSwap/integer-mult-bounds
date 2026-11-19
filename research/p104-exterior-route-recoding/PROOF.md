@@ -70,7 +70,7 @@ $$
 
 One direct send per copy attains this bound. For one copy with arbitrary deterministic encoders the same inequality follows from the distinguishing path traversing each of the seven cuts. At the enrolled strictly increasing, strictly concave $p(g)=g^{1-0.00387981257853}$, all positive-grade inequalities are strict except a rank-two to rank-nine jump. For one copy only chart 278 can start such a distinguishing jump, and the receiver must get it, so the unique optimum positive-grade topology is $278\to127$. For independent copies joint linear coding has no tariff advantage. Special correlations among inputs of an actual caller are outside the independent-copy argument.
 
-For the separate signed paid-port accounting of the 48 rational calls, retirement removes either $48p(1)$ or $48p(5)$. Replacing it by $48p(7)$ gives
+For the separate signed paid-port accounting of the 48 rational calls, retirement removes either $48p(1)$ or $48p(5)$. The verifier recomputes the complete grade-one through grade-eight count vector $(3842,792,487,230,314,40,3,1)$ on all 5,709 baseline sends and compares both repaired words. Each moves one count from its retired grade to grade seven. Replacing that slot by $48p(7)$ gives
 
 $$
 285.472830172972358520270568 < 48[p(7)-p(1)] < 285.472830172972358520270569,

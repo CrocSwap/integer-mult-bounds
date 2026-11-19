@@ -1,4 +1,5 @@
 """Build each port retirement and two complete repaired words, comparing every output."""
+from collections import Counter
 from fractions import Fraction
 from pathlib import Path
 import sys
@@ -91,11 +92,20 @@ def main():
             'original port endpoints and grades')
     require(old[A] == {94217: 1, 94218: -1, 95884: -1} and
             old[B] == {94217: -1, 94218: 1, 95884: 1, 100334: 1}, 'native pair on ingress')
+    def profile(paid):
+        return Counter(abs(len(w['frames'][u]) - len(w['frames'][v])) for u, v in paid.values())
+
+    baseline = Counter({1:3842, 2:792, 3:487, 4:230, 5:314, 6:40, 7:3, 8:1})
+    require(profile(routes) == baseline, 'complete original paid profile')
     for retired in (A, B):
         word, forms, moves = merge(w, old, routes, retired)
         compare(w, old, word, forms, moves, ends, retired, [])
         word, forms, moves, ids = repair(w, old, routes, retired, (278, 127))
         compare(w, old, word, forms, moves, ends, retired, ids)
+        expected = baseline.copy()
+        expected[1 if retired == A else 5] -= 1
+        expected[7] += 1
+        require(profile(moves) == expected, 'complete repaired paid profile')
     print('PASS both funded-port deletions preserve 387 exterior outputs and change exactly two receiver rows.')
     print('PASS two direct repairs are causal and recover all 1,289 exact terminal operators.')
 
