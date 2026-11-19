@@ -1,0 +1,134 @@
+import All
+/-! Axiom audit of every headline theorem (run by `check.sh`).
+Expected for each: `[propext, Classical.choice, Quot.sound]` or a subset; never `sorryAx` / `Lean.ofReduceBool`. -/
+-- (W) #7761 witness: the full premise set inhabited in the kernel
+#print axioms Bridge7761.kappa7761_lt_banner_head
+#print axioms Bridge7761.kappa7761_lt_banner_hO
+#print axioms Bridge7761.kappa7761_lt_banner
+#print axioms Bridge7761.hO7761
+#print axioms Bridge7761.τ7761
+#print axioms Bridge7761.hcov7761G
+#print axioms Bridge7761.gflow7761
+#print axioms Bridge7761.gW7761
+#print axioms Bridge7761.hin7761
+#print axioms Bridge7761.hout7761
+#print axioms Bridge7761.hcov7761
+#print axioms Bridge7761.Con7761
+#print axioms Bridge7761.G7761
+#print axioms Bridge7761.HS7761
+#print axioms Bridge7761.descMass7761
+#print axioms Bridge7761.xd7761
+#print axioms Bridge7761.caller7761
+-- (H) Banner, κ < 2381707/250000000 (= .009526828) for the banked class
+#print axioms BankBannerHead.bank_kappa_lt_banner_head
+#print axioms BankMed.bank_kappa_lt_banner_tiedS_loc
+#print axioms BankPrem.bank_kappa_lt_banner_spec
+#print axioms BankTie.bank_kappa_lt_banner_tiedS
+#print axioms BankTie.bank_kappa_lt_banner_tied
+#print axioms BankBanner.bank_kappa_lt_banner
+#print axioms BankBanner.bank_kappa_lt_banner_xbal
+#print axioms BankBanner.bank_kappa_lt_banner_of_cert
+#print axioms BankBanner.price_hsX
+#print axioms BankBanner.excess_ge_112
+#print axioms BankBanner.xbal_bank
+-- (P) Invoice premises: P-1S' discharged, P-CALLER' reduced to Valid
+#print axioms BankPrem.bankPrice_le_specInvoice
+#print axioms BankPrem.hcaller_of_valid
+#print axioms BankPrem.totalPaid_const
+#print axioms BankPrem.totalCredit_const
+#print axioms BankPrem.bank_kappa_lt_flag_spec
+#print axioms BankPrem.consts7761
+-- (M) Mediation (last-descent split) and the graph-to-chain tie
+#print axioms BankMed.last_descent_split
+#print axioms BankMed.mediatedS_of_loc
+#print axioms BankMed.mediated_of_loc
+#print axioms BankTie.realises
+#print axioms BankTie.realisesS
+#print axioms BankTie.layout_desc_le
+#print axioms BankTie.tie_desc_ge_56
+#print axioms BankTie.tie_desc_ge_56S
+#print axioms BankTie.xbal_tied
+#print axioms BankNC0.dRec_read
+#print axioms BankNC0.outVec_out
+-- (L) Ladder rungs below the banner
+#print axioms BankFitHS.bank_kappa_lt_hs
+#print axioms BankFitHS.bank_kappa_lt_hs_of_cert
+#print axioms BankFit.bank_kappa_lt_of_cert
+#print axioms BankFit.bank_kappa_lt_flag
+#print axioms BankFit.bank_kappa_lt_flag_tight
+#print axioms BankFitB.nonvacuous
+#print axioms BankFitD.nonvacuous_hs
+-- (C) Chain-row lemma (CE1-ALT), D ≥ 56, Theorem W
+#print axioms ChainRow.RelayChain.chain_row
+#print axioms ChainRow.pairing_rank_le_drop
+#print axioms ChainRow.ChainLayout.isDecoder
+#print axioms ChainRow.ChainLayout.mass_le
+#print axioms ChainRow.chains_ge_8
+#print axioms ChainRow.chain_mass_ge_56
+#print axioms ChainRow.chain_mass_ge_56'
+#print axioms ChainRow.chain_mass_ge_56_rank8
+#print axioms ChainRow.ZData.exists_split
+#print axioms ChainRow.zlayout_mass_ge_56
+#print axioms ChainRow.zlayout_mass_ge_56_rank8
+#print axioms ChainRow.ZigChain.zig_row
+#print axioms ChainRow.ZigChain.potential
+#print axioms ChainRow.zig_mass_ge_56
+#print axioms ChainRow.zig_mass_ge_56_rank8
+#print axioms ChainRow.branch_mass_ge_56
+#print axioms ChainRow.merge_mass_ge_56
+-- (X) Height balance X = 2D + W
+#print axioms XBal.Model.telescope
+#print axioms XBal.Model.X_eq
+#print axioms XBal.Model.X_ge
+#print axioms XBal.Model.W_zero_X
+-- (D) Decoder facts
+#print axioms DFR.D56_8rows_unc
+#print axioms DFR.dyadicRigidity8
+#print axioms DW7.D56_rank8_anyk
+#print axioms DW6.rigid_gram
+-- (B) #7761 kernel facts (packed final-graph data)
+#print axioms Bridge7761.flow7761
+#print axioms Bridge7761.W7761
+#print axioms Bridge7761.D7761
+#print axioms Bridge7761.A7761
+#print axioms Bridge7761.climb7761
+#print axioms Bridge7761.X7761
+#print axioms Bridge7761.chain_count
+#print axioms Bridge7761.chain0
+#print axioms Bridge7761.chain1
+#print axioms Bridge7761.chain2
+#print axioms Bridge7761.chain3
+#print axioms Bridge7761.chain4
+#print axioms Bridge7761.chain5
+#print axioms Bridge7761.chain6
+#print axioms Bridge7761.chain7
+#print axioms Bridge7761.pos_card
+#print axioms Bridge7761.pos_nodup
+#print axioms Bridge7761.src_nodup
+#print axioms Bridge7761.dst_nodup
+#print axioms Bridge7761.beta_ne
+#print axioms Bridge7761.nDesc
+#print axioms Bridge7761.minors7761
+#print axioms Bridge7761.hsupp7761
+#print axioms Bridge7761.piF_inj
+#print axioms Bridge7761.Ehi_card
+#print axioms Bridge7761.Elo_card
+#print axioms Bridge7761.hi_h7761
+#print axioms Bridge7761.lo_h7761
+#print axioms Bridge7761.nz_hi7761
+#print axioms Bridge7761.nz_lo7761
+#print axioms Bridge7761.computes7761
+#print axioms Bridge7761.cdist
+#print axioms Bridge7761.leP_le
+#print axioms Bridge7761.nest_chk
+#print axioms Bridge7761.nest7761
+#print axioms Bridge7761.climbA7761
+#print axioms Bridge7761.card_Mn7761
+#print axioms Bridge7761.main8_7761
+#print axioms Bridge7761.sc_fld7761
+#print axioms Bridge7761.sc_ref7761
+#print axioms Bridge7761.sc_out7761
+#print axioms Bridge7761.Net7761
+#print axioms Bridge7761.Net7761_nest
+#print axioms Bridge7761.Net7761_climb
+#print axioms Bridge7761.Net7761_minors
