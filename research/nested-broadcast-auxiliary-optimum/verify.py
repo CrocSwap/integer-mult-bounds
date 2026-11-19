@@ -164,8 +164,8 @@ def contraction_census():
         for pair in positions:
             for cap in (1, 3, 9):
                 steps, final, drop = contract_auxiliaries(edges, TERMINALS+pair, cap)
-                row = dict(edges=edges, auxiliary=list(map(str, pair)), cap=cap,
-                           steps=steps, final_edges=final)
+                row = dict(edges=[list(edge) for edge in edges], auxiliary=list(map(str, pair)), cap=cap,
+                           steps=steps, final_edges=[list(edge) for edge in final])
                 digest.update(json.dumps(row, sort_keys=True, separators=(',', ':')).encode()+b'\n')
                 if not samples or drop > maximum_drop:
                     samples.append(row)
