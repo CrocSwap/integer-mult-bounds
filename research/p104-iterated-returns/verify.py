@@ -52,6 +52,12 @@ def main(args):
             "--word", b / "WORD.json.gz", "--word-sha", claim["binary_word"], "--out", output)
         if json.loads(output.read_bytes()) != json.loads((b / "FINITE.json").read_bytes()):
             raise ValueError("published finite binary receipt differs from replay")
+        independent = out / "second-finite.json"
+        run(b / "verify_target.py", "--word", b / "WORD.json.gz", "--source-root", cache / "source",
+            "--independent", cache / "parent/binary/independent", "--out", independent)
+        if json.loads(independent.read_bytes()) != json.loads((b / "INDEPENDENT.json").read_bytes()):
+            raise ValueError("the second finite binary certificate differs from replay")
+        run(b / "physical.py", "--cache", cache, "--out", out / "physical.json")
         return
     if args.part in ("construction", "operator"):
         parent = out / "comparator"

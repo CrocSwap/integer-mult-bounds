@@ -108,9 +108,9 @@ def omission(net, keys, puncture):
 
 
 def chains(cache, word, layout, plan):
-    need(plan["schema"] == "p104-paid-chain-sequence/1" and plan["stages"] and
-         (plan["source_word_sha256"], plan["layout_sha256"]) == (BOUNDARY, THREE[1]),
-         "paid-chain declaration and predecessor")
+    need(plan["schema"] == "p104-paid-chain-sequence/1" and plan["stages"], "paid-chain declaration")
+    layout_sha = plan["layout_sha256"]
+    mark_pair(word, layout, (plan["source_word_sha256"], layout_sha), "paid-chain predecessor")
     network, puncture = projection.engines(cache / "source")
     source_net = network_for(network, word)
     old_net = source_net
@@ -120,7 +120,7 @@ def chains(cache, word, layout, plan):
         need(journal["schema_version"] == 1, "literal sparse paid-chain journal schema")
         next_word = restore(word, journal)
         need(restore(next_word, journal, reverse=True) == word, "reversible exact paid-chain journal")
-        claim = mark_pair(next_word, layout, (stage["word_sha256"], THREE[1]), "paid chain")
+        claim = mark_pair(next_word, layout, (stage["word_sha256"], layout_sha), "paid chain")
         changed = network_for(network, next_word)
         old_positions, new_positions = set(old_net.moves), set(changed.moves)
         added, removed = sorted(new_positions - old_positions), sorted(old_positions - new_positions)
@@ -130,12 +130,12 @@ def chains(cache, word, layout, plan):
         new_ranks = Counter(projection.rank(frames, leg) for leg in changed.moves.values())
         delta = counter_difference(new_ranks, old_ranks)
         need(delta == stage["paid_delta"], "complete signed paid-chain delta")
-        require_width = max(max(abs(q.numerator).bit_length(), q.denominator.bit_length())
+        changed_width = max(max(abs(q.numerator).bit_length(), q.denominator.bit_length())
                             for key, row in changed.forms.items()
                             if old_net.forms.get(key) != row for q in row.values())
-        need(require_width <= 24, "paid-chain changed scalar bit width")
+        need(changed_width <= 24, "paid-chain changed scalar bit width")
         records.append(claim | dict(added_paid=added, removed_paid=removed, paid_delta=delta,
-                                    max_changed_scalar_bits=require_width,
+                                    max_changed_scalar_bits=changed_width,
                                     omission=omission(changed, added, puncture),
                                     opposite_omission=omission(changed.transpose(), added, puncture)))
         word, old_net = next_word, changed
@@ -194,6 +194,10 @@ def construct(cache, word_path, layout_path, out, first_only=False):
         final, layout = read_pair(continued)
         final_mark = mark_pair(final, layout, (addition["word_sha256"], addition["layout_sha256"]), "continued birth")
         stages["continued_births"] = projection.load(continued / "REPLAY.json")
+    if post_birth := plan.get("post_birth_chains"):
+        need("continued_births" in stages, "post-birth paid changes require the continued productive word")
+        final, stages["post_birth_chains"] = chains(cache, final, layout, post_birth)
+        final_mark = stages["post_birth_chains"]["stages"][-1]
     write_pair(out, final, layout)
     report = dict(schema="p104-complex-construction-replay/1", base=base, control=control,
                   final=final_mark, stages=stages)
