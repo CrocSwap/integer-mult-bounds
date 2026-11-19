@@ -1,0 +1,18 @@
+-- Root of the bank-banner package: import closure of every headline (see build-order.txt, Check.lean).
+import Nov15.BankBannerHead
+import Nov15.BankTieD
+import Nov15.ChainRowW2
+import Nov15.ChainRowW3
+import Nov15.BankFitB
+import Nov15.BankFitC
+import Nov15.BankFitD
+import Nov15.Bridge7761F3
+import Nov15.Bridge7761G3
+import Nov15.Bridge7761R2
+import Nov15.Bridge7761R5
+import Nov15.Bridge7761O1
+import Nov15.Bridge7761O2
+import Nov15.Bridge7761S2
+import Nov15.Bridge7761P
+import Nov15.Bridge7761T4
+import Nov15.DecoderWall6G
