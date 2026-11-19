@@ -40,7 +40,7 @@ The replay accepts canonical JSON or gzip and binds the decoded graph to the def
 ## Checks
 
 - Rebuild the frozen native predecessor and independently recount its paid and productive ranks. Authenticate the caller expansion, baseline physical receipt, comparison invoice and qualification source files.
-- Lower each changed chart transfer from the canonical frame. Check absolute phase, signed Pauli action and every one of the 512 exact Gaussian columns in both directions. Perturb the global phase as a rejection control.
+- Lower each changed chart transfer from the canonical frame. Check absolute phase, signed Pauli action and every one of the 512 exact Gaussian columns in both directions. Of the 2,942 applicant pairs, 2,926 appear in the hash-bound 2,946-pair parent catalogue. The replay checks all 16 new pairs plus three changed pairs that already had catalogue entries. Perturb the global phase as a rejection control.
 - Replay the full applicant integer-grid native map on all independent owners and the held schedule with protected inputs, sender alias rejection and guarded `CLEAR`. Recompute exact scalar services and the fixed caller’s 2,048-call ownership, ordinary phase adapters, primitive component envelopes and common root.
 - Rebuild both full signed invoices and ordinary budgets. Compare productive and paid ranks and itemize changed ordinary costs. Recheck the baseline compiler and applicant's directed price, depth guard, selected BIT margin, 54 strict inequalities and four functional outer predicates.
 

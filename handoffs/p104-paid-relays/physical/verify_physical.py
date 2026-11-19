@@ -28,6 +28,7 @@ PARENT_PINS = {
     "PRICE.json": "01322abb90aa91f7844ec91f66b61e68aa08a8ddd18f5eb5613f7f4c2f2d2014",
     "evidence/application.json": "e6c64909c6dbc68bb041a3c9b80610375f2dbc0357652c1204bd2ffc42d039fa",
     "evidence/expansion.json": "70f2ab97769bdd39e8b31605a693407973124c6e39e81a602be5703296e2b155",
+    "evidence/native-source-replay.json": "5dbd74f941ae174144535cdb362828e70ae4a47b4777fcf9fef25a9901d26999",
     "evidence/price.json": "9d7cb0ebcf4a83b9ffa2596c4a1c178b79c9fa91a6a54b195be3083b411726f6",
     "PR7756-SOURCES.json": "ade91c7697192df63fd68ee50f5dd3132f59b7413139090807a94151d50cf53d",
 }
@@ -186,10 +187,21 @@ def physical_replay(package, candidate, graph_pin, qualify):
          and baseline_app["graph_sha256"] == PARENT_GRAPH
          and baseline_price["raw_bracket"] == baseline_points["bracket"], "public #7761 baseline binding")
     baseline_native = baseline_app["retained_native"]["native"]
-    previous_paid, previous_targets, _ = jobs(baseline, interface[0], old_moves)
+    previous_paid, previous_targets, previous_pairs = jobs(baseline, interface[0], old_moves)
     normalized = qualify.normalized
     need(normalized(previous_paid) == baseline_native["paid_native_ranks"]
          and normalized(previous_targets) == baseline_native["positive_helper_ranks"], "rebuilt baseline native counts")
+    catalogue = json.loads((package / "evidence/native-source-replay.json").read_bytes())
+    old_physics = catalogue["exact_results"]
+    partitions = old_physics["phased_partitions"]
+    need(catalogue["status"] == "passed" and catalogue["public_head"] == qualify.SOURCE_HEAD
+         and catalogue["native_bindings"]["graph_sha256"] == PARENT_GRAPH
+         and old_physics["native_physical"] == baseline_native
+         and old_physics["total_chart_pairs"] == len(previous_pairs)
+         and [row["shard"] for row in partitions] == [0, 1, 2]
+         and all(row["checked_pairs"] == len(range(i, len(previous_pairs), 3))
+                 and row["total_pairs"] == len(previous_pairs) for i, row in enumerate(partitions)),
+         "inherited source-pinned catalogue and native physical replay")
 
     moves = {key: (a, b) for key, a, b in candidate["moves"]}
     rows = {key: [(donor, Fraction(q)) for donor, q in row] for key, row in candidate["forms"]}
@@ -199,10 +211,12 @@ def physical_replay(package, candidate, graph_pin, qualify):
          and all([donor for donor, _ in row] == sorted({donor for donor, _ in row}) for row in rows.values()),
          "complete unique applicant bank graph")
     native = physical.graph_bounds(candidate, moves, rows, interface[0])
-    paid, productive, _ = jobs(candidate, interface[0], moves)
+    paid, productive, applicant_pairs = jobs(candidate, interface[0], moves)
     need(paid == native["paid_native_ranks"] and productive == native["positive_helper_ranks"],
          "independent paid and productive native counts")
     charts = changed_routes(baseline, candidate, digest)
+    need(applicant_pairs - previous_pairs <= {tuple(row["pair"]) for row in charts},
+         "coverage of all new route pairs")
     print("PHYSICAL ROUTES", len(charts), flush=True)
 
     grid = native["path_grid"]
@@ -251,6 +265,8 @@ def physical_replay(package, candidate, graph_pin, qualify):
     return dict(
         public_condition_names=assumptions, native=native, chart_qualifications=charts,
         native_scalar_cases=scalars, clear_control=clear, components=components, signed_caller=signed,
+        route_coverage=dict(baseline_catalogue_pairs=len(previous_pairs), applicant_pairs=len(applicant_pairs),
+                            inherited_pairs=len(applicant_pairs & previous_pairs), new_pairs=len(applicant_pairs - previous_pairs)),
         caller_proof=caller_proof, common_root=root, ordinary=ordinary,
         ordinary_delta=ordinary_delta(old_ordinary, ordinary), candidate_invoice=new_bill,
         baseline=dict(invoice=old_bill, ordinary=old_ordinary, compiler=old_compiler),
