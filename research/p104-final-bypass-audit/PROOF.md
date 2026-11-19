@@ -56,7 +56,7 @@ determinant = -1.
 ```
 
 Consider the two-parameter family that changes the row-34002 recoding
-from u/2 to lambda*u and scales slot 80's payload to rho*u, leaving
+from u/2 to `lambda*u` and scales slot 80's payload to `rho*u`, leaving
 all other final forms and contacts fixed. The donors 76 and 77 precede
 node 34002, so u is unaffected by either change. Slot 80 has terminal
 readers only. Linearity therefore gives the full matrix error
@@ -72,7 +72,7 @@ The newly independent output 1282 forces the recoding coefficient;
 checking only selected old outputs would miss that obligation.
 
 In particular, omitting slot 80 while retaining the correct recoding
-gives E=-z*u. This has rank one and exactly 16*17=272 nonzero entries.
+gives `E=-z*u`. This has rank one and exactly `16*17=272` nonzero entries.
 Its entry (488,22) is +1/2, as stated in the source handoff. The adjoint
 has the transposed error and the same +1/2 witness. The checker tests
 each parameter pair on a complete input column and a separately
