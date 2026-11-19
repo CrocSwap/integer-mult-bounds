@@ -1,0 +1,37 @@
+name: Replay P104 iterated returns
+on:
+  pull_request:
+    paths:
+      - 'research/p104-iterated-returns/**'
+      - '.github/workflows/p104-iterated-returns.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: P104 iterated returns / ${{ matrix.part }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        part: [binary-construction, binary-finite, construction, operator, application, charts-0, charts-1, charts-2,
+               continued-construction, continued-operator, continued-comparators, continued-application,
+               continued-charts-0, continued-charts-1, continued-charts-2, continued-audit]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          sparse-checkout: research/p104-iterated-returns
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Verify pinned comparator and compiler sources
+        run: python -IB research/p104-iterated-returns/prepare_sources.py "$RUNNER_TEMP/sources" --fetch
+      - name: Replay the construction or qualification
+        env:
+          PART: ${{ matrix.part }}
+        run: python -IB research/p104-iterated-returns/verify.py --part "$PART" --cache "$RUNNER_TEMP/sources" --out "$RUNNER_TEMP/result"
