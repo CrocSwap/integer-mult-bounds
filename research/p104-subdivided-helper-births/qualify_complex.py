@@ -162,4 +162,3 @@ if __name__ == "__main__":
     args.out.parent.mkdir(parents=True,exist_ok=True)
     args.out.write_text(json.dumps(result,indent=2,sort_keys=True)+"\n")
     print("PASS", result.get("finite_lower", "physical chart shard"))
-

@@ -1,0 +1,38 @@
+name: P104 paid subdivision replay
+
+on:
+  pull_request:
+    paths:
+      - research/p104-subdivided-helper-births/**
+      - .github/workflows/p104-subdivided-helper-births.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: P104 paid subdivisions / ${{ matrix.part }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        part: [binary, construction, operator, application, charts-0, charts-1, charts-2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          sparse-checkout: research/p104-subdivided-helper-births
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Fetch and verify the peer source commits
+        run: python -IB research/p104-subdivided-helper-births/prepare_sources.py "$RUNNER_TEMP/sources" --fetch
+      - name: Rebuild and independently check the selected part
+        env:
+          REPLAY_PART: ${{ matrix.part }}
+        run: |
+          python -IB research/p104-subdivided-helper-births/verify.py \
+            --cache "$RUNNER_TEMP/sources" --out "$RUNNER_TEMP/result" --part "$REPLAY_PART"
