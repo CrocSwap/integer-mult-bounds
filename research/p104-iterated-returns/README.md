@@ -1,5 +1,7 @@
 # Rotated rational transfers and the rooted binary supplier for P104
 
+The continued rational returns are recorded in a separate, independently replayable checkpoint that builds on the source word below. [Current finite comparison, journal and replay commands](continuation/README.md)
+
 The complete finite multiplier gives **conditional κ ≥ 0.00387827242155**. Its lower bound exceeds **0.00386981257853**, the directed raw upper endpoint for the submitted #7781 rational word, by **0.00000845984302**. This comparison also holds when #7781 receives the stronger binary supplier. The donation target of 0.00387981257853 leaves a gap of 0.00000154015698. The maintained selection at the pinned main commit is 0.00363005817. [Predecessor #7781](https://github.com/CrocSwap/integer-mult-bounds/pull/7781) · [Exact applications](evidence/application.json) · [Selected result](https://github.com/CrocSwap/integer-mult-bounds/blob/e54523517d0f03e58352e647c403a5af3e525a57/certificates/selected-result.json)
 
 | Complete signed tariff, H(r) = r^(1−κ) | Binary | Rational |

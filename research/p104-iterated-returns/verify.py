@@ -39,6 +39,10 @@ def operator_receipt(path):
 def main(args):
     cache, out = args.cache.resolve(), args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
+    if args.part.startswith("continued-"):
+        run(HERE / "continuation/replay.py", "--cache", cache, "--out", out,
+            "--part", args.part.removeprefix("continued-"))
+        return
     sources(cache)
     claim = json.loads((HERE / "CLAIM.json").read_bytes())
     c, b = HERE / "complex", HERE / "binary"
@@ -102,5 +106,8 @@ if __name__ == "__main__":
     p.add_argument("--cache", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--part", choices=("construction", "operator", "binary-construction", "binary-finite",
-                                     "charts-0", "charts-1", "charts-2", "application"), required=True)
+                                     "charts-0", "charts-1", "charts-2", "application", "continued-construction",
+                                     "continued-operator", "continued-comparators", "continued-application",
+                                     "continued-charts-0", "continued-charts-1", "continued-charts-2",
+                                     "continued-audit"), required=True)
     main(p.parse_args())

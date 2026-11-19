@@ -147,7 +147,10 @@ def chains(cache, word, layout, plan):
 
 
 def rotated_splits(cache, word, layout, plan):
-    need(plan["schema"] == "p104-rotated-splits/1" and plan["stages"], "rotated-split declaration")
+    rotated = plan["schema"] == "p104-rotated-splits/1" and plan["stages"]
+    continued = (plan["schema"] == "p104-continued-births/1" and not plan["stages"]
+                 and plan["continuation"] and all(step["kind"] == "birth" for step in plan["continuation"]))
+    need(rotated or continued, "nonempty rotated-split or continued-birth declaration")
     source = plan["source"]
     mark_pair(word, layout, (source["word_sha256"], source["layout_sha256"]), "rotated-split predecessor")
     source_root = cache / "source"
