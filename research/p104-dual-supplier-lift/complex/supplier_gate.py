@@ -99,11 +99,12 @@ def gate(invoice,claim,tested,lo,hi,bit_pin=BIT_PIN):
   if wins(m):h=m
   else:l=m
  assert wins(h) and not wins(h-1)
- # Monotonicity: upper derivative bound on [0, cap].
+ # Bound the derivative through the BIT ceiling and both complex endpoints.
+ end=max(cap,hi)
  derivative=(0,0)
  for rr in T.keys()|P.keys():
   c=T.get(rr,0)-P.get(rr,0);r=int(rr)
-  term=mul(power(r,cap if c>=0 else 0),log(r));derivative=add(derivative,smul(term,-c))
+  term=mul(power(r,end if c>=0 else 0),log(r));derivative=add(derivative,smul(term,-c))
  assert derivative[1]<0
  result=dict(claim=str(claim),tested=str(tested),raw_bracket=[str(lo),str(hi)],moment_margins={k:show(v) for k,v in margins.items()},moment_margin_float={k:value(v) for k,v in margins.items()},derivative_upper=float(F(derivative[1],B)),alpha=value(alpha),gamma=value(gamma),delta=value(delta),minimum_log_power=lp,written_log_power=written,compiler_gap=str(gap),H=str(step*h),BIT_pin=str(cap),BIT_margin=str(cap-tested))
  # Outer formulas evaluated independently after algebraically substituting

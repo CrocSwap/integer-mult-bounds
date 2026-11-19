@@ -153,7 +153,7 @@ def verify_caller(caller, graph, layout, phase_bases):
     return signed, guard, proof, coefficients
 
 
-def apply(native, signed, guard, coefficients, native_bits, physical, claim, tested, lower, upper, bit_cap):
+def apply(native, signed, guard, coefficients, conversion, physical, claim, tested, lower, upper, bit_cap):
     """Bind the supplied native proof and BIT cap at the selected price points."""
     weights = {}
     for side, field, fixed in (('T', 'positive_helper_ranks', 'fixed_root_targets'),
@@ -161,7 +161,8 @@ def apply(native, signed, guard, coefficients, native_bits, physical, claim, tes
         total = Counter({int(r): CALLS * n for r, n in native[field].items()})
         total.update({int(r): n for r, n in signed[fixed].items()})
         weights[side] = total
-    bits = max(native_bits, *(max(abs(c.numerator).bit_length(), c.denominator.bit_length()) for c in coefficients))
+    bits = max(conversion["scalar_cases"]["coefficient_bits"],
+               *(max(abs(c.numerator).bit_length(), c.denominator.bit_length()) for c in coefficients))
     need(bits <= 24, 'padded scalar component width')
     for c in coefficients:
         for k in (-127, -1, 0, 1, 19, 2**68 + 1):
@@ -169,6 +170,10 @@ def apply(native, signed, guard, coefficients, native_bits, physical, claim, tes
             width = max(abs(x).bit_length(), abs(y).bit_length()) + 3
             need(physical.scalar_service(x, c, width) == y, 'ordinary scalar component service')
     ordinary = ordinary_for_batch(native, signed, bits)
+    # Allow one scalar service per factor on every native and caller conversion.
+    scalars = ordinary["raw_scalar_incidence_allowance_before_factor_32"]
+    scalars["additional_odd_factor_steps"] = (len(conversion["odd_factors"]) - 1) * ordinary["odd_conversions"]
+    ordinary["scalar_services"] = 32 * sum(scalars.values())
     need(sum(weights['T'].values()) == ordinary['raw_productive_targets'] and
          sum(weights['P'].values()) == ordinary['raw_paid_positions'], 'complete physical invoice')
     compiler = gate(weights, claim, tested, lower, upper, bit_cap)
