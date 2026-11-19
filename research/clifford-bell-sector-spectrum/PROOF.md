@@ -6,7 +6,7 @@ sharp stability contract. It does not construct a physical decoder.
 ## Result
 
 Use the full Gaussian-dyadic four-qubit Clifford group G, natural module
-V of dimension 16, Pauli subgroup P and scalar subgroup Z=<iI>. Write
+V of dimension 16, Pauli subgroup P and scalar subgroup `Z=<iI>`. Write
 S=G/P=Sp(8,2) and N=|G/Z|=12,128,668,876,800. Choose one unitary U_a
 per scalar coset. The normalized tensor map A_f has columns
 vec(U_a^(tensor f))/16^(f/2). Its Gram matrix is
