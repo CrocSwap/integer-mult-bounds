@@ -61,6 +61,18 @@ python3 -I -W error -B research/three-axis-extremal-source-rank/review/check_int
 python3 -B scripts/research_package.py --package research/three-axis-extremal-source-rank
 ```
 
+The direct checks use the vendored, authenticated source texts. The
+registered provenance gate additionally needs both pending source heads
+in the local Git object store. If a fresh checkout lacks them, fetch only
+the exact pinned histories:
+
+```sh
+git fetch --depth=1 --filter=blob:none https://github.com/CubeJerry/integer-mult-bounds.git 0a6315b71a47b37a4faa2a4f555c5bc4e9e87811
+git fetch --depth=1 --filter=blob:none https://github.com/CubeJerry/integer-mult-bounds.git 702c7616667c5f4e583eb73687944d148b7a1ccf
+```
+
+These are explicit dependencies, not asserted ancestors of this branch.
+
 Both direct scripts are read-only. The primary script authenticates four
 retained source inputs, evaluates all 40,320 determinants over a proved
 prime field, checks the strict-box symbolic column identities, and
@@ -85,6 +97,11 @@ quantifiers. The prime fixtures corroborate only the declared local
 source guards, not a complete producer or outer multiplication caller.
 Two independently implemented arithmetic algorithms in one AI worker
 are not independent human or formal-kernel acceptance.
+
+The separate root [review](REVIEW.md) checks the mathematical transfer
+and supplies a third complete certificate at a different integer point
+and prime. Its checker also derives the literal source exponents directly.
+This is independent model-assisted work, not human peer review.
 
 ## Scope and cost
 
