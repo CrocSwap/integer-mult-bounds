@@ -1,0 +1,11 @@
+# Historical tariff and erasure comparison
+
+The checker takes the literal original #7605 word, the frozen candidate, and the candidate's gate invoice. It authenticates the archived words and invoices by their Git blobs before comparing every rank. It computes each ordered erased linear form by traversing the literal program backward from that CLEAR to the public inputs over the rationals. Supply the signed application's result with `--signed` to bind its complete measured invoice as well.
+
+```sh
+python3.12 -I -B compare.py --candidate /path/to/candidate.json.gz --source7605 /path/to/7605-word.json.gz --gate /path/to/GATE.json --out /path/to/comparison.json
+```
+
+Clear1nsight's #7612 used the same 16 paid ranks and 18 productive ranks. On unit input 902, its zero-based CLEAR 44 saw zero. This construction and #7605 give −3/2 to field 1557 at chart 595. The other 73 erased forms agree. DreamingOfClouds' #7617 already combined the 134/329 contact and 226/990 courier with a second 532/1464 courier on 113 lifetimes. The archived words, their published invoices and predecessor notices accompany the independent comparison. [#7612 scientific release](https://github.com/CrocSwap/integer-mult-bounds/tree/e814828ee5b869c9468282d57ba28c364b07d130/research/p104-contact134-329-on7611) · [#7617 scientific release](https://github.com/CrocSwap/integer-mult-bounds/tree/12f6626e194808fa38f473a3e84b2f81e169e3d3/research/p104-couriers-on7616)
+
+The pending 532/1464 transfer has a specific paid obligation on the frozen word. At clock 41366, role 1464 leaves chart 744 directly for 916. At 41388, role 532 is first read at 746. The #7617 W2 source already had a 746 stop on role 1464. DreamingOfClouds' #7615 introduced the missing stop on a changed-CLEAR44 source and shared it with role 1250. On this original-74 word, test the legal 744→746→916 stop, first co-present reads for 532 and 1464, and both returns. If admitted, the three old ranks (3,3,4) would become (6,3,1). The strict concavity comparison favors that repaired invoice whenever the power lies in (0,1). The construction still needs its own costs and checks. [#7615 funded stop](https://github.com/CrocSwap/integer-mult-bounds/blob/2c0b47496c37afa1146ed748c8ecae9e277014b4/research/p104-four-couriers-on7613/README.md)
