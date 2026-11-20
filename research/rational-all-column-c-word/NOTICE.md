@@ -1,0 +1,3 @@
+Apache-2.0. Prepared for Jerry Chen / @CubeJerry with substantial OpenAI assistance.
+
+Credit Ali Romman and the retained repository authors for #7834 all-column semantics, Vandermonde separation, startup and physical row recursion, and #7828 compiler context. The selected #7000 numerical audit and all native/ownership/tape/analytic predecessor notices remain effective. Files in inputs/ are exact attributed source copies listed in SOURCES.json and are reference text, not imported runtime implementations. Root code and independent review implementations are new. Common denominators, exact binary arithmetic, tensor linearity and Vandermonde independence are classical.
