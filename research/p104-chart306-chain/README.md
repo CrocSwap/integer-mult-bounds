@@ -1,5 +1,7 @@
 # P104 chart-306 paid-chain contraction
 
+The mixed-rank BIT supplier gives conditional κ ≥ 0.00387992803556 when paired with the #7830 rational word. Its two paid cutoffs reduce the tensor from 832 to 480 factors compared with #7835. The separate package contains the complete application and an independent replay. [Mixed-rank supplier and review](../p104-mixed-rank-supplier/README.md)
+
 **Combined continuation:** [DOUBLE.md](DOUBLE.md) records a second exact contraction and conditional finite lower 0.00387990740712, above the round target under the inherited premises. The original first-contraction evidence below is retained for reproducibility.
 
 The saved finite application gives **conditional κ ≥ 0.00387978824626** on the 48-call rational and unchanged 36-call binary supplier, under the five inherited premises. This is 0.00000034813558 above the previous #7786 finite lower of 0.00387944011068, and 0.00000034813549 above its directed upper 0.00387944011077. The enrolled goal of 0.00387981257853 remains 0.00000002433227 above the new lower. These are conditional finite comparisons, not maintainer selection or a proof of the five premises.
