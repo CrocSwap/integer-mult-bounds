@@ -1,0 +1,29 @@
+--- reviewed/verify_independent.py
++++ packaged/verify_independent.py
+@@ -15,7 +15,7 @@
+ import time
+ 
+ ROOT = Path(__file__).resolve().parent
+-SOURCE = ROOT.parent / "gaussian-all-order-quantitative"
++SOURCE = ROOT.parents[1]
+ RADIX = 9
+ BITS = 25
+ PLANE = RADIX ** 3
+@@ -223,6 +223,7 @@
+ def main():
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--limit", type=int, default=0)
++    parser.add_argument("--receipt", type=Path, help="Optional fresh receipt; default replay is read-only.")
+     args = parser.parse_args()
+     filenames = ("PROOF.md", "classify_leading.py", "leading-classification.json",
+                  "classification-result.json", "check_mixed_columns.py")
+@@ -296,7 +297,8 @@
+         require(result["counts"] == claimed_result["counts"], "reported class census differs")
+         require(all(sha256((SOURCE / name).read_bytes()).hexdigest() == value
+                     for name, value in source_hashes.items()), "source changed during review")
+-        (ROOT / "RESULT.json").write_text(json.dumps(result, indent=2) + "\n")
++        if args.receipt is not None:
++            args.receipt.write_text(json.dumps(result, indent=2) + "\n")
+     print(json.dumps(result, indent=2), flush=True)
+ 
+ 
