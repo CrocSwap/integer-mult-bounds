@@ -1,5 +1,7 @@
 # P104 chart-306 paid-chain contraction
 
+**Combined continuation:** [DOUBLE.md](DOUBLE.md) records a second exact contraction and conditional finite lower 0.00387990740712, above the round target under the inherited premises. The original first-contraction evidence below is retained for reproducibility.
+
 The saved finite application gives **conditional κ ≥ 0.00387978824626** on the 48-call rational and unchanged 36-call binary supplier, under the five inherited premises. This is 0.00000034813558 above the previous #7786 finite lower of 0.00387944011068, and 0.00000034813549 above its directed upper 0.00387944011077. The enrolled goal of 0.00387981257853 remains 0.00000002433227 above the new lower. These are conditional finite comparisons, not maintainer selection or a proof of the five premises.
 
 ## Exact change
@@ -10,7 +12,7 @@ Across 48 calls the signed paid histogram changes by P1 −48, P2 −48, P3 +48;
 
 ## Evidence and limitations
 
-`APPLICATION.json` is the saved #7786 bounded-scalar application replay on the frozen candidate. It checks the shared caller, exact native source columns, addressed retirement, guarded scalar conversion, paid and target histograms, ordinary cost, the common root envelope and the outer predicates under the inherited assumptions. The recorded run used CPython 3.12, 32.87 CPU seconds and about 197 MiB peak RSS. `evidence/AUDIT.json` is the separate expanded application audit, including the actual-grid fixture, source and invoice recount and width/depth checks. `evidence/EXACT.json` and `evidence/FROZEN-REVIEW.json` preserve independent source-stock and literal-delta reviews. Separate AI checks are not human review or formal verification. The full round target and independent human/maintainer review remain open.
+`APPLICATION.json` is the saved #7786 bounded-scalar application replay on the frozen candidate. It checks the shared caller, exact native source columns, addressed retirement, guarded scalar conversion, paid and target histograms, ordinary cost, the common root envelope and the outer predicates under the inherited assumptions. The recorded run used CPython 3.12, 32.87 CPU seconds and about 197 MiB peak RSS. `evidence/AUDIT.json` is the separate expanded application audit, including the actual-grid fixture, source and invoice recount and width/depth checks. `evidence/EXACT.json` and `evidence/FROZEN-REVIEW.json` preserve independent source-stock and literal-delta reviews. Separate AI checks are not human review or formal verification. This first candidate does not reach the round target; see the combined continuation. Independent human/maintainer review remains open.
 
 ## Reproduction
 
@@ -27,7 +29,7 @@ python3.12 -IB "$pred/prepare_sources.py" /tmp/p104-sources --fetch
 python3.12 -IB "$pred/continuation/qualify.py" --cache /tmp/p104-sources --package "$pred" --word "$pkg/CANDIDATE.json.gz" --word-sha 320847d42f2655c3cc0fd29fe670ae77277e9c2f377c1c92f33d7df050872f54 --layout "$pred/continuation/LAYOUT.json.gz" --layout-sha f7de788c4a559282d35a9fce42f841a0e8de5a4015db871e718f9245569b0aa7 --out /tmp/p104-chain-application.json
 ```
 
-The predecessor source preparer checks its locked bytes. The candidate application command independently binds the candidate and layout hashes and locked supplier inputs. The original local execution used the equivalent already prepared source cache; network acquisition and the commands above are reproduction instructions, not a claim that a fresh download was executed for this archive. The qualifier authenticates its historical source receipt and binary inputs as described by the predecessor. Compare the semantic outputs, not incidental runtime fields. See the predecessor's continuation README for the expanded audit and premises.
+The predecessor source preparer checks its locked bytes. The candidate application command independently binds the candidate and layout hashes and locked supplier inputs. The original local execution used the equivalent already prepared source cache; the dedicated hosted workflow also fetched and authenticated the pinned supplier sources for the earlier exact-head scientific replay. The qualifier authenticates its historical source receipt and binary inputs as described by the predecessor. Compare the semantic outputs, not incidental runtime fields. See the predecessor's continuation README for the expanded audit and premises.
 
 ## Credit
 
