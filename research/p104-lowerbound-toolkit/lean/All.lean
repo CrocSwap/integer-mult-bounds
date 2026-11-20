@@ -6,6 +6,7 @@ import Nov15.BlockLaw2
 import Nov15.BudH
 import Nov15.BudH7Cert
 import Nov15.BudH8Cert
+import Nov15.CallerHP
 import Nov15.CallerRC2
 import Nov15.CallerSGram
 import Nov15.CarrierTree
@@ -38,6 +39,18 @@ import Nov15.NetContract
 import Nov15.NetDoubling
 import Nov15.NetNG
 import Nov15.Price7
+import Nov15.PriceHI10
+import Nov15.PriceHI11
+import Nov15.PriceHI12
+import Nov15.PriceHI13
+import Nov15.PriceHI14
+import Nov15.PriceHI15
+import Nov15.PriceHI4
+import Nov15.PriceHI5
+import Nov15.PriceHI6
+import Nov15.PriceHI7
+import Nov15.PriceHI8
+import Nov15.PriceHI9
 import Nov15.PriceHMain
 import Nov15.PriceHRung
 import Nov15.RungWordH
