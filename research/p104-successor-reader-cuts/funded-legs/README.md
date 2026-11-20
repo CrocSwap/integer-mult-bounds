@@ -1,0 +1,15 @@
+# What an existing funded transfer would have to restore
+
+The rational public cut requires a fifth arrival at chart 282. Its source can compute the old 90369 measurement from chart-3 public inputs in time. Redirecting a paid transfer still leaves the original destination with an obligation. Across the 181 eligible sends from chart 3, each first old reader requires a row independent of the remaining stock. Seventy-four of these transfers preserve grade three. The other two early transfers in the 183-send roster were already committed to the proposed retargets. [Exact source, price and roster summary](SUMMARY.json)
+
+For transfer 95681, chart 3 to 508 at clock 813, its first old reader 97760 needs the missing payload at 1858. Releasing all its downstream messages at the original endpoints and clocks still leaves three public outputs. For each, adjoining the required row increases the rank of the pooled exterior from 1148 to 1149. The output proof covers this one donor. Redirecting a funded same-grade send would leave about 38.44887 rational units of headroom at the enrolled target if the old receiver were restored without charge. [Fixed-order public cut](PUBLIC-CONE.json)
+
+The comparable binary route needs public coordinate 252 at chart 266. For peer 326, packet 2292 reaches the peer at clock 7027, after the relevant chart-266 outputs at 4525–4546. For peer 475, an earlier route would put the coordinate on grade-two packet 1755 from chart 0 to 225 at 3892, then send 1758 to 475 at 3904. Chart 225 must first reproduce its old packet 1756 to chart 283 at 3897. Its other stock has neither of the required coordinates. The five-peer screen also prices 275 eligible same-grade reassignments into four upstream producers, checking the old receiver in each case. Its hypothetical grade-preserving solution has binary margin +31.8821241206629461. A new grade-one leg on each of the 36 calls gives −4.1178758793370539. [Literal binary cases and protected demands](BINARY.json)
+
+## Next experiment
+
+Allow the downstream messages of funded grade-three donor 100187, chart 3 to 1098 at clock 1010, to change. Its first receiver bank otherwise has only 100188. Release old readers 100622, 100222, 100610 and 100619 at their original clocks and compute the exterior rank for its 208 affected public terminal coefficients. A public row outside that span would close this donor. If they all lie in the span, actual clock-ordered payloads, old terminal and CLEAR restoration and the complete joint price still require verification. The binary shortfall is a separate requirement.
+
+## Reproduction
+
+Run `sh reproduce.sh` in this directory with Python 3.11 or later. It uses the inputs already in the parent package. The script recreates the complete rational donor roster and checks its SHA-256, then reproduces the literal public-cut and binary receipts. The source audit follows #7795 on the #7830 word. Clear1nsight conducted the screens with substantial OpenAI Codex assistance. The independently reviewed public-only chart-282 cut is in the [parent addendum](../public-cut/README.md).
