@@ -1,0 +1,58 @@
+name: Replay P104 chart-306 chain
+on:
+  pull_request:
+    paths:
+      - 'research/p104-chart306-chain/**'
+      - '.github/workflows/p104-chart306-chain.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    name: Exact chain and finite application
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          sparse-checkout: research/p104-chart306-chain
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Clear1nsight/integer-mult-bounds
+          ref: 89a67c404226d51028e135de2b9169e9020d57af
+          path: predecessor
+          persist-credentials: false
+          sparse-checkout: research/p104-iterated-returns
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Verify predecessor and exact graph delta
+        run: |
+          test "$(git -C predecessor rev-parse HEAD)" = 89a67c404226d51028e135de2b9169e9020d57af
+          python -IB research/p104-chart306-chain/verify_delta.py --source-word predecessor/research/p104-iterated-returns/continuation/WORD.json.gz
+      - name: Authenticate supplier sources
+        run: python -IB predecessor/research/p104-iterated-returns/prepare_sources.py "$RUNNER_TEMP/p104-sources" --fetch
+      - name: Replay full finite application
+        run: |
+          pred=predecessor/research/p104-iterated-returns
+          pkg=research/p104-chart306-chain
+          python -IB "$pred/continuation/qualify.py" --cache "$RUNNER_TEMP/p104-sources" --package "$pred" --word "$pkg/CANDIDATE.json.gz" --word-sha 320847d42f2655c3cc0fd29fe670ae77277e9c2f377c1c92f33d7df050872f54 --layout "$pred/continuation/LAYOUT.json.gz" --layout-sha f7de788c4a559282d35a9fce42f841a0e8de5a4015db871e718f9245569b0aa7 --out "$RUNNER_TEMP/application.json"
+      - name: Replay expanded independent audit
+        run: |
+          pred=predecessor/research/p104-iterated-returns
+          pkg=research/p104-chart306-chain
+          python -IB "$pred/continuation/audit_expanded.py" --cache "$RUNNER_TEMP/p104-sources" --word "$pkg/CANDIDATE.json.gz" --layout "$pred/continuation/LAYOUT.json.gz" --word-sha 320847d42f2655c3cc0fd29fe670ae77277e9c2f377c1c92f33d7df050872f54 --layout-sha f7de788c4a559282d35a9fce42f841a0e8de5a4015db871e718f9245569b0aa7 --receipt "$RUNNER_TEMP/application.json" --binary-receipt "$pred/binary/INDEPENDENT.json" --reference-application "$pred/evidence/application.json" --out "$RUNNER_TEMP/audit.json"
+      - name: Verify exact second adjoint contraction
+        run: python -IB research/p104-chart306-chain/verify_second.py
+      - name: Replay double-contraction finite application
+        run: |
+          pred=predecessor/research/p104-iterated-returns
+          pkg=research/p104-chart306-chain
+          python -IB "$pkg/qualify_capped.py" --cache "$RUNNER_TEMP/p104-sources" --package "$pred" --word "$pkg/DOUBLE-CANDIDATE.json.gz" --word-sha 7660985e0b618cdbee13e4190a4c6d5f91fbdf01a8f7a5186fdde8b980c19b48 --layout "$pred/continuation/LAYOUT.json.gz" --layout-sha f7de788c4a559282d35a9fce42f841a0e8de5a4015db871e718f9245569b0aa7 --out "$RUNNER_TEMP/double-application.json"
+      - name: Replay double-contraction expanded independent audit
+        run: |
+          pred=predecessor/research/p104-iterated-returns
+          pkg=research/p104-chart306-chain
+          python -IB "$pred/continuation/audit_expanded.py" --cache "$RUNNER_TEMP/p104-sources" --word "$pkg/DOUBLE-CANDIDATE.json.gz" --layout "$pred/continuation/LAYOUT.json.gz" --word-sha 7660985e0b618cdbee13e4190a4c6d5f91fbdf01a8f7a5186fdde8b980c19b48 --layout-sha f7de788c4a559282d35a9fce42f841a0e8de5a4015db871e718f9245569b0aa7 --receipt "$RUNNER_TEMP/double-application.json" --binary-receipt "$pred/binary/INDEPENDENT.json" --reference-application "$pred/evidence/application.json" --out "$RUNNER_TEMP/double-audit.json"
