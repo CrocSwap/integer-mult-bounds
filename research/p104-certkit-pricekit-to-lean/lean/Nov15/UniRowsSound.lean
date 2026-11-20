@@ -1,0 +1,493 @@
+/-
+UniRowsSound (lane ROWS, Nov 19).  Soundness of the reverse-mode row checker (UniRowsDefs) for Uni traces.
+For a Model M (UniInhabitSound) and a leaf tree T (one `Lf` per register code j < N):
+  Φ M s T o = Σ_{j<N} svv(g_j)(o) • s.row (reg j) + svv(a_j)(o) • e_{reg j}        (svv = sparse value, D-scaled)
+  RelL M s T : every register's loc is the leaf's loc code.
+* `bstep_sound` : a successful BACKWARD step preserves Φ and carries RelL back over one legal event.
+* `brun_sound`  : the same over a legal trace (checker run on the reversed event list).
+* `rows_of_brun`: from init, D • row_o = Σ_j svv(a⁰_j)(o) • e_{reg j}  (the end tree seeds g_o = [(o, D)]).
+Kernel only: no sorry, no native_decide, no new axioms.
+-/
+import Nov15.UniInhabitSound
+import Nov15.UniRowsDefs
+
+set_option linter.unusedSectionVars false
+
+namespace UniRows
+open Uni WordModel Finset UniInhabit
+
+/-! ## sparse values -/
+
+def svv : SV → ℕ → ℚ
+  | [], _ => 0
+  | (i, x) :: xs, o => (if i = o then (x : ℚ) else 0) + svv xs o
+
+theorem svv_nil (o : ℕ) : svv [] o = 0 := rfl
+
+theorem svv_append (xs ys : SV) (o : ℕ) : svv (xs ++ ys) o = svv xs o + svv ys o := by
+  induction xs with
+  | nil => simp [svv]
+  | cons x xs ih => obtain ⟨i, v⟩ := x; simp only [List.cons_append, svv, ih]; ring
+
+theorem mq_cast {p : Int} {q : Nat} {x : Int} (hq : q ≠ 0) (h : x * p % (q : Int) = 0) :
+    ((mq p q x : Int) : ℚ) = (x : ℚ) * ((p : ℚ) / (q : ℚ)) := by
+  unfold mq
+  have hd : (q : Int) ∣ x * p := Int.dvd_of_emod_eq_zero h
+  rw [Int.cast_div hd (by exact_mod_cast hq)]
+  push_cast; ring
+
+theorem dvdAll_cons {p : Int} {q : Nat} {i : Nat} {x : Int} {xs : SV} (h : dvdAll p q ((i, x) :: xs) = true) :
+    x * p % (q : Int) = 0 ∧ dvdAll p q xs = true := by
+  simp only [dvdAll, Bool.and_eq_true, beq_iff_eq] at h; exact h
+
+theorem svv_scl {p : Int} {q : Nat} (hq : q ≠ 0) : ∀ (xs : SV), dvdAll p q xs = true → ∀ o,
+    svv (scl p q xs) o = ((p : ℚ) / (q : ℚ)) * svv xs o
+  | [], _, o => by simp [scl, svv]
+  | (i, x) :: xs, h, o => by
+    obtain ⟨h1, h2⟩ := dvdAll_cons h
+    simp only [scl, svv, svv_scl hq xs h2 o, mq_cast hq h1]
+    split_ifs <;> ring
+
+theorem svv_mrg {p : Int} {q : Nat} (hq : q ≠ 0) : ∀ (f : ℕ) (xs ys : SV), dvdAll p q xs = true → ∀ o,
+    svv (mrg p q f xs ys) o = svv ys o + ((p : ℚ) / (q : ℚ)) * svv xs o := by
+  intro f
+  induction f with
+  | zero => intro xs ys h o; simp only [mrg, svv_append, svv_scl hq xs h o]; ring
+  | succ f ih =>
+    intro xs ys h o
+    match xs, ys with
+    | [], ys => simp [mrg, svv]
+    | (i, x) :: xs, [] => simp only [mrg, svv_scl hq _ h o, svv_nil]; ring
+    | (i, x) :: xs, (j, y) :: ys =>
+      obtain ⟨h1, h2⟩ := dvdAll_cons h
+      have hx := mq_cast hq h1
+      simp only [mrg]
+      by_cases a : i < j
+      · have : Nat.blt i j = true := (blt_iff _ _).2 a
+        simp only [this, cond_true, svv, ih xs ((j, y) :: ys) h2 o, hx]
+        split_ifs <;> ring
+      · have na : Nat.blt i j = false := by
+          cases h : Nat.blt i j; rfl; exact absurd ((blt_iff _ _).1 h) a
+        simp only [na, cond_false]
+        by_cases b : j < i
+        · have : Nat.blt j i = true := (blt_iff _ _).2 b
+          simp only [this, cond_true, svv, ih ((i, x) :: xs) ys h o]
+          split_ifs <;> ring
+        · have nb : Nat.blt j i = false := by
+            cases h : Nat.blt j i; rfl; exact absurd ((blt_iff _ _).1 h) b
+          have hij : i = j := by omega
+          subst hij
+          simp only [nb, cond_false]
+          by_cases z : y + mq p q x = 0
+          · have : (y + mq p q x == 0) = true := by simp [z]
+            simp only [this, cond_true, ih xs ys h2 o, svv]
+            have zq : (y : ℚ) + (x : ℚ) * ((p : ℚ) / (q : ℚ)) = 0 := by
+              rw [← hx]; exact_mod_cast z
+            split_ifs
+            · linear_combination (-1 : ℚ) * zq
+            · ring
+          · have : (y + mq p q x == 0) = false := by simp [z]
+            simp only [this, cond_false, svv, ih xs ys h2 o]
+            split_ifs
+            · push_cast; rw [hx]; ring
+            · ring
+
+/-! ## trees -/
+
+theorem lft_nd {α : Type} (l r : Tr α) : Tr.lft (.nd l r) = l := rfl
+theorem rgt_nd {α : Type} (l r : Tr α) : Tr.rgt (.nd l r) = r := rfl
+
+theorem gtA_stA {α : Type} (z : α) (d : ℕ) : ∀ (t : Tr α) (j j' : ℕ) (x : α), j < 2 ^ d → j' < 2 ^ d →
+    gtA z d (stA d t j x) j' = if j' = j then x else gtA z d t j' := by
+  induction d with
+  | zero =>
+    intro t j j' x hj hj'
+    have : j = 0 := by simpa using hj
+    have : j' = 0 := by simpa using hj'
+    subst j; subst j'; simp [gtA, stA, Tr.val]
+  | succ d ih =>
+    intro t j j' x hj hj'
+    have hj2 : j / 2 < 2 ^ d := by rw [pow_succ] at hj; omega
+    have hj2' : j' / 2 < 2 ^ d := by rw [pow_succ] at hj'; omega
+    have key : j' = j ↔ (j' % 2 = j % 2 ∧ j' / 2 = j / 2) := by omega
+    by_cases a : j % 2 = 0 <;> by_cases b : j' % 2 = 0
+    · have ea : Nat.beq (j % 2) 0 = true := (beq_iff _ _).2 a
+      have eb : Nat.beq (j' % 2) 0 = true := (beq_iff _ _).2 b
+      simp only [gtA, stA, ea, eb, cond_true, lft_nd]
+      rw [ih _ _ _ _ hj2 hj2']
+      by_cases h : j' / 2 = j / 2
+      · rw [if_pos h, if_pos (key.2 ⟨by omega, h⟩)]
+      · rw [if_neg h, if_neg (fun e => h (key.1 e).2)]
+    · have ea : Nat.beq (j % 2) 0 = true := (beq_iff _ _).2 a
+      have eb : Nat.beq (j' % 2) 0 = false := by
+        cases h : Nat.beq (j' % 2) 0; rfl; exact absurd ((beq_iff _ _).1 h) b
+      simp only [gtA, stA, ea, eb, cond_true, cond_false, rgt_nd]
+      rw [if_neg (fun e => b (by omega))]
+    · have ea : Nat.beq (j % 2) 0 = false := by
+        cases h : Nat.beq (j % 2) 0; rfl; exact absurd ((beq_iff _ _).1 h) a
+      have eb : Nat.beq (j' % 2) 0 = true := (beq_iff _ _).2 b
+      simp only [gtA, stA, ea, eb, cond_true, cond_false, lft_nd]
+      rw [if_neg (fun e => a (by omega))]
+    · have ea : Nat.beq (j % 2) 0 = false := by
+        cases h : Nat.beq (j % 2) 0; rfl; exact absurd ((beq_iff _ _).1 h) a
+      have eb : Nat.beq (j' % 2) 0 = false := by
+        cases h : Nat.beq (j' % 2) 0; rfl; exact absurd ((beq_iff _ _).1 h) b
+      simp only [gtA, stA, ea, eb, cond_false, rgt_nd]
+      rw [ih _ _ _ _ hj2 hj2']
+      by_cases h : j' / 2 = j / 2
+      · rw [if_pos h, if_pos (key.2 ⟨by omega, h⟩)]
+      · rw [if_neg h, if_neg (fun e => h (key.1 e).2)]
+
+/-! ## the invariant -/
+
+section Model
+variable {R : Type} [Fintype R] [DecidableEq R]
+
+def gA (S : BS) (j : ℕ) : SV := gtA [] 11 S.a j
+
+def trm (M : Model R) (s : St R) (S : BS) (o j : ℕ) : R → ℚ :=
+  svv (gG S j) o • s.row (M.reg j) + svv (gA S j) o • (Pi.single (M.reg j) 1 : R → ℚ)
+
+/-- the D-scaled invariant at output o. -/
+def Phi (M : Model R) (s : St R) (S : BS) (o : ℕ) : R → ℚ := ∑ j ∈ range M.N, trm M s S o j
+
+def RelL (M : Model R) (s : St R) (S : BS) : Prop := ∀ j < M.N, s.loc (M.reg j) = M.locOf (gt 11 S.t j)
+
+def ZInv (S : BS) : Prop := ∀ j < 2 ^ 11, Nat.testBit S.z j = false → gG S j = []
+
+variable {M : Model R}
+
+theorem gate_two (s : St R) {r a : R} {c : Ch} (k : ℚ) (hr : s.loc r = .sit c) (ha : s.loc a = .sit c)
+    (hne : a ≠ r) :
+    ∑ t ∈ univ.filter (fun t => s.loc t = .sit c), (Pi.single r 1 + Pi.single a k : R → ℚ) t • s.row t =
+      s.row r + k • s.row a := by
+  simp only [Pi.add_apply, add_smul, Finset.sum_add_distrib, Pi.single_apply, ite_smul, zero_smul, one_smul,
+    Finset.sum_ite_eq', Finset.mem_filter, Finset.mem_univ, true_and, hr, ha, if_true]
+
+theorem gate_one (s : St R) {r : R} {c : Ch} (k : ℚ) (hr : s.loc r = .sit c) :
+    ∑ t ∈ univ.filter (fun t => s.loc t = .sit c), (Pi.single r k : R → ℚ) t • s.row t = k • s.row r := by
+  simp only [Pi.single_apply, ite_smul, zero_smul, Finset.sum_ite_eq', Finset.mem_filter, Finset.mem_univ,
+    true_and, hr, if_true]
+
+theorem sgn_div (e : PE) : coefQ e = ((sgn e : Int) : ℚ) / ((e.den : Nat) : ℚ) := by
+  unfold coefQ sgn; cases e.neg <;> simp <;> ring
+
+theorem reg_ne (hM : M.OK) {i j : ℕ} (hi : i < M.N) (hj : j < M.N) (h : i ≠ j) : M.reg i ≠ M.reg j :=
+  fun e => h (hM.inj _ _ hi hj e)
+
+theorem nbeq {a b : ℕ} (h : Nat.beq a b = false) : a ≠ b := fun e => by subst e; simp [Nat.beq_refl] at h
+
+/-- one site m: everything outside m is unchanged (state and leaves). -/
+theorem single_site (hM : M.OK) {s s' : St R} {S S' : BS} {m : ℕ} (hm : m < M.N)
+    (hT : ∀ j < M.N, j ≠ m → gt 11 S.t j = gt 11 S'.t j)
+    (hG : ∀ j < M.N, j ≠ m → gG S j = gG S' j) (hA : ∀ j < M.N, j ≠ m → gA S j = gA S' j)
+    (hloc : ∀ j < M.N, j ≠ m → s'.loc (M.reg j) = s.loc (M.reg j))
+    (hrow : ∀ j < M.N, j ≠ m → s'.row (M.reg j) = s.row (M.reg j))
+    (hR : RelL M s' S') (hlocm : s.loc (M.reg m) = M.locOf (gt 11 S.t m))
+    (htrm : ∀ o, trm M s' S' o m = trm M s S o m) :
+    RelL M s S ∧ ∀ o, Phi M s' S' o = Phi M s S o := by
+  refine ⟨fun j hj => ?_, fun o => Finset.sum_congr rfl (fun j hj => ?_)⟩
+  · by_cases h : j = m
+    · subst h; exact hlocm
+    · rw [hT j hj h, ← hloc j hj h]; exact hR j hj
+  · rw [Finset.mem_range] at hj
+    by_cases h : j = m
+    · subst h; exact htrm o
+    · simp only [trm, hG j hj h, hA j hj h, hrow j hj h]
+
+theorem gG_st (S : BS) (j : ℕ) (t : Tr Nat) (z : ℕ) : gG ⟨t, z, S.g, S.a⟩ j = gG S j := rfl
+
+theorem gt_st_ne {t : Tr Nat} {r j x : ℕ} (hr : r < 2 ^ 11) (hj : j < 2 ^ 11) (h : j ≠ r) :
+    gt 11 (st 11 t r x) j = gt 11 t j := by rw [gt_st 11 t r j x hr hj, if_neg h]
+theorem gt_st_eq {t : Tr Nat} {r x : ℕ} (hr : r < 2 ^ 11) : gt 11 (st 11 t r x) r = x := by
+  rw [gt_st 11 t r r x hr hr, if_pos rfl]
+theorem gtA_stA_ne {α : Type} {z : α} {t : Tr α} {r j : ℕ} {x : α} (hr : r < 2 ^ 11) (hj : j < 2 ^ 11) (h : j ≠ r) :
+    gtA z 11 (stA 11 t r x) j = gtA z 11 t j := by rw [gtA_stA z 11 t r j x hr hj, if_neg h]
+theorem gtA_stA_eq {α : Type} {z : α} {t : Tr α} {r : ℕ} {x : α} (hr : r < 2 ^ 11) :
+    gtA z 11 (stA 11 t r x) r = x := by rw [gtA_stA z 11 t r r x hr hr, if_pos rfl]
+
+theorem zinv_clear {S : BS} (hZ : ZInv S) {r : ℕ} (hr : r < 2 ^ 11) (t : Tr Nat) (a : Tr SV) :
+    ZInv ⟨t, S.z, stA 11 S.g r [], a⟩ := by
+  intro j hj hb
+  show gtA [] 11 (stA 11 S.g r []) j = []
+  by_cases h : j = r
+  · subst h; exact gtA_stA_eq hr
+  · rw [gtA_stA_ne hr hj h]; exact hZ j hj hb
+
+theorem zinv_set {S : BS} (hZ : ZInv S) {r : ℕ} (hr : r < 2 ^ 11) (hb : Nat.testBit S.z r = true) (t : Tr Nat)
+    (x : SV) (a : Tr SV) : ZInv ⟨t, S.z, stA 11 S.g r x, a⟩ := by
+  intro j hj hb'
+  show gtA [] 11 (stA 11 S.g r x) j = []
+  by_cases h : j = r
+  · subst h; simp_all
+  · rw [gtA_stA_ne hr hj h]; exact hZ j hj hb'
+
+theorem zinv_or {S : BS} (hZ : ZInv S) {a : ℕ} (ha : a < 2 ^ 11) (t : Tr Nat) (x : SV) (b : Tr SV) :
+    ZInv ⟨t, S.z ||| 2 ^ a, stA 11 S.g a x, b⟩ := by
+  intro j hj hb
+  simp only [Nat.testBit_or, Bool.or_eq_false_iff, Nat.testBit_two_pow] at hb
+  show gtA [] 11 (stA 11 S.g a x) j = []
+  have h : j ≠ a := fun e => by subst e; simp at hb
+  rw [gtA_stA_ne ha hj h]; exact hZ j hj hb.1
+
+theorem bstep_sound (hM : M.OK) {NR : ℕ} (hNR : NR ≤ M.N) {s : St R} {S S' : BS} {e : PE}
+    (hok : (M.toEv e).ok M.pb s) (hst : bstep NR S' e = some S) (hR : RelL M ((M.toEv e).apply s) S')
+    (hZ : ZInv S') :
+    RelL M s S ∧ ZInv S ∧ ∀ o, Phi M ((M.toEv e).apply s) S' o = Phi M s S o := by
+  have hN := hM.hN
+  unfold bstep at hst
+  dsimp only at hst
+  generalize hh : Nat.testBit S'.z e.r = hot at hst
+  obtain ⟨h1, h2⟩ := cond_some hst
+  have hr : e.r < M.N := lt_of_lt_of_le ((blt_iff _ _).1 h1) hNR
+  have hr2 : e.r < 2 ^ 11 := by omega
+  have hne : ∀ j < M.N, j ≠ e.r → M.reg j ≠ M.reg e.r := fun j hj h => reg_ne hM hj hr h
+  have hcold : hot = false → gG S' e.r = [] := fun h => hZ _ hr2 (hh ▸ h)
+  have hloc_ne : ∀ (l : Loc) (j : ℕ), j < M.N → j ≠ e.r →
+      Function.update s.loc (M.reg e.r) l (M.reg j) = s.loc (M.reg j) :=
+    fun l j hj h => Function.update_of_ne (hne j hj h) _ _
+  have hrow_ne : ∀ (v : R → ℚ) (j : ℕ), j < M.N → j ≠ e.r →
+      Function.update s.row (M.reg e.r) v (M.reg j) = s.row (M.reg j) :=
+    fun v j hj h => Function.update_of_ne (hne j hj h) _ _
+  have hTs : ∀ x j, j < M.N → j ≠ e.r → gt 11 (st 11 S'.t e.r x) j = gt 11 S'.t j :=
+    fun x j hj h => gt_st_ne hr2 (by omega) h
+  have hGs : ∀ (g : Tr SV) x j, j < M.N → j ≠ e.r → gtA [] 11 (stA 11 g e.r x) j = gtA [] 11 g j :=
+    fun g x j hj h => gtA_stA_ne hr2 (by omega) h
+  by_cases o0 : e.op = 0
+  · have : Nat.beq e.op 0 = true := (beq_iff _ _).2 o0
+    simp only [this, cond_true] at h2
+    cases h2
+    have hev : M.toEv e = .birthPub (M.reg e.r) (M.ch e.c) := by simp [Model.toEv, o0]
+    rw [hev] at hok hR ⊢
+    have hl : s.loc (M.reg e.r) = M.locOf (gt 11 (st 11 S'.t e.r 0) e.r) := by
+      rw [hok.1, gt_st_eq hr2]; simp [Model.locOf]
+    cases hot
+    · have hc := hcold rfl
+      simp only [cond_false]
+      have key := single_site (s := s) (S' := S') (S := ⟨st 11 S'.t e.r 0, S'.z, S'.g, S'.a⟩) hM hr (hTs 0) (fun _ _ _ => rfl)
+        (fun _ _ _ => rfl) (fun j hj h => hloc_ne _ j hj h) (fun j hj h => hrow_ne _ j hj h) hR hl
+        (fun o => by simp only [trm, gG_st, hc, svv_nil, zero_smul, zero_add, gA])
+      exact ⟨key.1, hZ, key.2⟩
+    · simp only [cond_true]
+      have key := single_site
+        (S := ⟨st 11 S'.t e.r 0, S'.z, stA 11 S'.g e.r [], stA 11 S'.a e.r (gG S' e.r ++ gtA [] 11 S'.a e.r)⟩)
+        hM hr (hTs 0) (fun j hj h => hGs _ _ j hj h) (fun j hj h => hGs _ _ j hj h)
+        (fun j hj h => hloc_ne _ j hj h) (fun j hj h => hrow_ne _ j hj h) hR hl
+        (fun o => by
+          simp only [trm, gG, gA, gtA_stA_eq hr2, Ev.apply, Function.update_self, svv_append, svv_nil, zero_smul,
+            zero_add, add_smul])
+      exact ⟨key.1, zinv_clear hZ hr2 _ _, key.2⟩
+  have n0 : Nat.beq e.op 0 = false := by cases h : Nat.beq e.op 0; rfl; exact absurd ((beq_iff _ _).1 h) o0
+  simp only [n0, cond_false] at h2
+  by_cases o1 : e.op = 1
+  · have : Nat.beq e.op 1 = true := (beq_iff _ _).2 o1
+    simp only [this, cond_true] at h2
+    cases h2
+    have hev : M.toEv e = .birthOwn (M.reg e.r) (M.ch e.c) := by simp [Model.toEv, o1]
+    rw [hev] at hok hR ⊢
+    have hl : s.loc (M.reg e.r) = M.locOf (gt 11 (st 11 S'.t e.r 0) e.r) := by
+      rw [hok.1, gt_st_eq hr2]; simp [Model.locOf]
+    cases hot
+    · have hc := hcold rfl
+      simp only [cond_false]
+      have key := single_site (s := s) (S' := S') (S := ⟨st 11 S'.t e.r 0, S'.z, S'.g, S'.a⟩) hM hr (hTs 0) (fun _ _ _ => rfl)
+        (fun _ _ _ => rfl) (fun j hj h => hloc_ne _ j hj h) (fun j hj h => hrow_ne _ j hj h) hR hl
+        (fun o => by simp only [trm, gG_st, hc, svv_nil, zero_smul, zero_add, gA])
+      exact ⟨key.1, hZ, key.2⟩
+    · simp only [cond_true]
+      have key := single_site (s := s) (S' := S') (S := ⟨st 11 S'.t e.r 0, S'.z, stA 11 S'.g e.r [], S'.a⟩)
+        hM hr (hTs 0) (fun j hj h => hGs _ _ j hj h) (fun _ _ _ => rfl)
+        (fun j hj h => hloc_ne _ j hj h) (fun j hj h => hrow_ne _ j hj h) hR hl
+        (fun o => by
+          simp only [trm, gG, gA, gtA_stA_eq hr2, Ev.apply, Function.update_self, svv_nil, zero_smul, smul_zero])
+      exact ⟨key.1, zinv_clear hZ hr2 _ _, key.2⟩
+  have n1 : Nat.beq e.op 1 = false := by cases h : Nat.beq e.op 1; rfl; exact absurd ((beq_iff _ _).1 h) o1
+  simp only [n1, cond_false] at h2
+  by_cases o23 : e.op = 2 ∨ e.op = 3
+  · -- gates: locs unchanged
+    have hRs : RelL M s S' := fun j hj => by
+      have := hR j hj
+      rcases o23 with o | o <;> simp only [Model.toEv, o] at this <;> simpa [Ev.apply] using this
+    -- cold gate: nothing changes, and the target co-row is empty
+    have cold_gate : ∀ coef, M.toEv e = .gate (M.reg e.r) (M.ch e.c) coef → hot = false → S = S' →
+        RelL M s S ∧ ZInv S ∧ ∀ o, Phi M ((M.toEv e).apply s) S' o = Phi M s S o := by
+      intro coef hev hc hS
+      subst hS
+      have hg := hcold hc
+      refine ⟨hRs, hZ, fun o => Finset.sum_congr rfl (fun j hj => ?_)⟩
+      rw [Finset.mem_range] at hj
+      rw [hev]
+      by_cases h : j = e.r
+      · subst h; simp [trm, hg, svv_nil]
+      · simp only [trm, Ev.apply, hrow_ne _ j hj h]
+    rcases o23 with o2 | o3
+    · have : Nat.beq e.op 2 = true := (beq_iff _ _).2 o2
+      simp only [this, cond_true] at h2
+      have hev : M.toEv e = .gate (M.reg e.r) (M.ch e.c)
+          (Pi.single (M.reg e.r) 1 + Pi.single (M.reg e.a) (coefQ e)) := by simp [Model.toEv, o2]
+      cases hot
+      · simp only [cond_false] at h2; cases h2; exact cold_gate _ hev rfl rfl
+      simp only [cond_true] at h2
+      obtain ⟨h3, h4⟩ := cond_some h2
+      cases h4
+      simp only [Bool.and_eq_true, blt_iff, Bool.not_eq_true', beq_iff] at h3
+      obtain ⟨⟨⟨⟨ha, hnea⟩, hla⟩, hq⟩, hdv⟩ := h3
+      have hnea := nbeq hnea
+      have hq := nbeq hq
+      have haN : e.a < M.N := lt_of_lt_of_le ha hNR
+      have ha2 : e.a < 2 ^ 11 := by omega
+      rw [hev] at hok ⊢
+      have hne' : M.reg e.a ≠ M.reg e.r := reg_ne hM haN hr hnea
+      have hlocA : s.loc (M.reg e.a) = .sit (M.ch e.c) := by rw [hRs e.a haN, hla]; simp [Model.locOf]
+      have hrowr : (Ev.apply s (.gate (M.reg e.r) (M.ch e.c)
+          (Pi.single (M.reg e.r) 1 + Pi.single (M.reg e.a) (coefQ e)))).row =
+          Function.update s.row (M.reg e.r) (s.row (M.reg e.r) + coefQ e • s.row (M.reg e.a)) := by
+        simp only [Ev.apply]; rw [gate_two s _ hok hlocA hne']
+      refine ⟨hRs, zinv_or hZ ha2 _ _ _, fun o => ?_⟩
+      have hsv := svv_mrg (p := sgn e) hq ((gG S' e.r).length + (gG S' e.a).length + 1)
+        (gG S' e.r) (gG S' e.a) hdv o
+      rw [← sgn_div] at hsv
+      have eA : ∀ j ∈ range M.N, trm M (Ev.apply s (.gate (M.reg e.r) (M.ch e.c)
+          (Pi.single (M.reg e.r) 1 + Pi.single (M.reg e.a) (coefQ e)))) S' o j =
+          (svv (gG S' j) o • s.row (M.reg j) + svv (gA S' j) o • (Pi.single (M.reg j) 1 : R → ℚ))
+          + if j = e.r then (svv (gG S' e.r) o * coefQ e) • s.row (M.reg e.a) else 0 := by
+        intro j hj; rw [Finset.mem_range] at hj
+        unfold trm; rw [hrowr]
+        by_cases h : j = e.r
+        · subst h; rw [if_pos rfl, Function.update_self, smul_add, smul_smul]; abel
+        · rw [hrow_ne _ j hj h, if_neg h, add_zero]
+      have eB : ∀ j ∈ range M.N, trm M s ⟨S'.t, S'.z ||| 2 ^ e.a, stA 11 S'.g e.a
+          (mrg (sgn e) e.den ((gG S' e.r).length + (gG S' e.a).length + 1) (gG S' e.r) (gG S' e.a)), S'.a⟩ o j =
+          (svv (gG S' j) o • s.row (M.reg j) + svv (gA S' j) o • (Pi.single (M.reg j) 1 : R → ℚ))
+          + if j = e.a then (svv (gG S' e.r) o * coefQ e) • s.row (M.reg e.a) else 0 := by
+        intro j hj; rw [Finset.mem_range] at hj
+        unfold trm
+        by_cases h : j = e.a
+        · subst h; rw [if_pos rfl]
+          simp only [gG, gA, gtA_stA_eq ha2] at hsv ⊢
+          rw [hsv, add_smul, mul_comm (coefQ e)]; abel
+        · rw [if_neg h, add_zero]; simp only [gG, gA, gtA_stA_ne ha2 (by omega) h]
+      unfold Phi
+      rw [Finset.sum_congr rfl eA, Finset.sum_congr rfl eB]
+      simp only [Finset.sum_add_distrib, Finset.sum_ite_eq', Finset.mem_range, hr, haN, if_true]
+    · have n2 : Nat.beq e.op 2 = false := by
+        cases h : Nat.beq e.op 2; rfl; exact absurd ((beq_iff _ _).1 h) (by omega)
+      have : Nat.beq e.op 3 = true := (beq_iff _ _).2 o3
+      simp only [n2, this, cond_false, cond_true] at h2
+      have hev : M.toEv e = .gate (M.reg e.r) (M.ch e.c) (Pi.single (M.reg e.r) (coefQ e)) := by
+        simp [Model.toEv, o3]
+      cases hot
+      · simp only [cond_false] at h2; cases h2; exact cold_gate _ hev rfl rfl
+      simp only [cond_true] at h2
+      obtain ⟨h3, h4⟩ := cond_some h2
+      cases h4
+      simp only [Bool.and_eq_true, Bool.not_eq_true'] at h3
+      obtain ⟨hq, hdv⟩ := h3
+      have hq := nbeq hq
+      rw [hev] at hok hR ⊢
+      have key := single_site (s := s) (S' := S') (s' := Ev.apply s (.gate (M.reg e.r) (M.ch e.c) (Pi.single (M.reg e.r) (coefQ e))))
+        (S := ⟨S'.t, S'.z, stA 11 S'.g e.r (scl (sgn e) e.den (gG S' e.r)), S'.a⟩)
+        hM hr (fun _ _ _ => rfl) (fun j hj h => hGs _ _ j hj h) (fun _ _ _ => rfl)
+        (fun j hj h => rfl) (fun j hj h => by simp only [Ev.apply]; exact hrow_ne _ j hj h) hR (hRs e.r hr)
+        (fun o => by
+          simp only [trm, gG, gA, gtA_stA_eq hr2, Ev.apply, Function.update_self]
+          rw [gate_one s _ hok, svv_scl hq (gtA [] 11 S'.g e.r) hdv o, ← sgn_div, smul_smul,
+            mul_comm (svv (gtA [] 11 S'.g e.r) o)])
+      exact ⟨key.1, zinv_set hZ hr2 hh _ _ _, key.2⟩
+  have n23 : Nat.beq e.op 2 = false ∧ Nat.beq e.op 3 = false := by
+    constructor
+    · cases h : Nat.beq e.op 2; rfl; exact absurd (Or.inl ((beq_iff _ _).1 h)) o23
+    · cases h : Nat.beq e.op 3; rfl; exact absurd (Or.inr ((beq_iff _ _).1 h)) o23
+  simp only [n23.1, n23.2, cond_false] at h2
+  push Not at o23
+  by_cases o4 : e.op = 4
+  · have : Nat.beq e.op 4 = true := (beq_iff _ _).2 o4
+    simp only [this, cond_true] at h2
+    cases h2
+    have hl : ∀ d, s.loc (M.reg e.r) = .sit (M.ch e.c) → s.loc (M.reg e.r) = M.locOf (gt 11 (st 11 S'.t e.r d) e.r) →
+        True := fun _ _ _ => trivial
+    by_cases hp : e.r < M.P.NP
+    · have hev : M.toEv e = .movePub (M.reg e.r) (M.ch e.c) (M.ch e.d) := by simp [Model.toEv, o4, hp]
+      rw [hev] at hok hR ⊢
+      have key := single_site (s := s) (S' := S') (s' := Ev.apply s (.movePub (M.reg e.r) (M.ch e.c) (M.ch e.d))) (S := ⟨st 11 S'.t e.r (e.c + 2), S'.z, S'.g, S'.a⟩) hM hr (hTs _) (fun _ _ _ => rfl)
+        (fun _ _ _ => rfl) (fun j hj h => hloc_ne _ j hj h) (fun j hj h => rfl) hR
+        (by rw [hok.1, gt_st_eq hr2]; simp [Model.locOf])
+        (fun o => by simp only [trm, gG_st, gA, Ev.apply])
+      exact ⟨key.1, hZ, key.2⟩
+    · have hev : M.toEv e = .moveOwn (M.reg e.r) (M.ch e.c) (M.ch e.d) := by simp [Model.toEv, o4, hp]
+      rw [hev] at hok hR ⊢
+      have key := single_site (s := s) (S' := S') (s' := Ev.apply s (.moveOwn (M.reg e.r) (M.ch e.c) (M.ch e.d))) (S := ⟨st 11 S'.t e.r (e.c + 2), S'.z, S'.g, S'.a⟩) hM hr (hTs _) (fun _ _ _ => rfl)
+        (fun _ _ _ => rfl) (fun j hj h => hloc_ne _ j hj h) (fun j hj h => rfl) hR
+        (by rw [hok.1, gt_st_eq hr2]; simp [Model.locOf])
+        (fun o => by simp only [trm, gG_st, gA, Ev.apply])
+      exact ⟨key.1, hZ, key.2⟩
+  have n4 : Nat.beq e.op 4 = false := by cases h : Nat.beq e.op 4; rfl; exact absurd ((beq_iff _ _).1 h) o4
+  simp only [n4, cond_false] at h2
+  by_cases o5 : e.op = 5
+  · have : Nat.beq e.op 5 = true := (beq_iff _ _).2 o5
+    simp only [this, cond_true] at h2
+    cases h2
+    have hev : M.toEv e = .clearOwn (M.reg e.r) (M.ch e.c) := by
+      simp [Model.toEv, o0, o1, o23.1, o23.2, o4, o5]
+    rw [hev] at hok hR ⊢
+    have hl : s.loc (M.reg e.r) = M.locOf (gt 11 (st 11 S'.t e.r (e.c + 2)) e.r) := by
+      rw [hok.1, gt_st_eq hr2]; simp [Model.locOf]
+    cases hot
+    · have hc := hcold rfl
+      simp only [cond_false]
+      have key := single_site (s := s) (S' := S') (S := ⟨st 11 S'.t e.r (e.c + 2), S'.z, S'.g, S'.a⟩) hM hr (hTs _) (fun _ _ _ => rfl)
+        (fun _ _ _ => rfl) (fun j hj h => hloc_ne _ j hj h) (fun j hj h => hrow_ne _ j hj h) hR hl
+        (fun o => by simp only [trm, gG_st, hc, svv_nil, zero_smul, zero_add, gA])
+      exact ⟨key.1, hZ, key.2⟩
+    · simp only [cond_true]
+      have key := single_site (s := s) (S' := S') (S := ⟨st 11 S'.t e.r (e.c + 2), S'.z, stA 11 S'.g e.r [], S'.a⟩)
+        hM hr (hTs _) (fun j hj h => hGs _ _ j hj h) (fun _ _ _ => rfl)
+        (fun j hj h => hloc_ne _ j hj h) (fun j hj h => hrow_ne _ j hj h) hR hl
+        (fun o => by
+          simp only [trm, gG, gA, gtA_stA_eq hr2, Ev.apply, Function.update_self, svv_nil, zero_smul, smul_zero])
+      exact ⟨key.1, zinv_clear hZ hr2 _ _, key.2⟩
+  have n5 : Nat.beq e.op 5 = false := by cases h : Nat.beq e.op 5; rfl; exact absurd ((beq_iff _ _).1 h) o5
+  simp only [n5, cond_false] at h2
+  cases h2
+
+/-! ## runs -/
+
+theorem brun_append (NR : ℕ) : ∀ (S : BS) (l1 l2 : List PE),
+    brun NR S (l1 ++ l2) = (brun NR S l1).bind (fun S1 => brun NR S1 l2)
+  | S, [], l2 => by simp [brun]
+  | S, e :: l1, l2 => by
+    simp only [List.cons_append, brun]
+    cases bstep NR S e with
+    | none => rfl
+    | some S1 => exact brun_append NR S1 l1 l2
+
+/-- **brun_sound**: over a legal trace segment, a successful backward run carries RelL / ZInv from the end
+state back to the start and preserves Φ. -/
+theorem brun_sound (hM : M.OK) {NR : ℕ} (hNR : NR ≤ M.N) : ∀ (es : List PE) (s : St R) (S' S : BS),
+    LegalFrom M.pb s (es.map M.toEv) → RelL M (run s (es.map M.toEv)) S' → ZInv S' →
+    brun NR S' es.reverse = some S →
+    RelL M s S ∧ ZInv S ∧ ∀ o, Phi M (run s (es.map M.toEv)) S' o = Phi M s S o := by
+  intro es
+  induction es with
+  | nil => intro s S' S _ hR hZ h; simp [brun] at h; subst h; exact ⟨hR, hZ, fun _ => rfl⟩
+  | cons e es ih =>
+    intro s S' S hL hR hZ h
+    simp only [List.map_cons, LegalFrom] at hL
+    simp only [List.reverse_cons, brun_append] at h
+    cases h1 : brun NR S' es.reverse with
+    | none => rw [h1] at h; cases h
+    | some S1 =>
+      rw [h1] at h
+      simp only [Option.bind_some, brun] at h
+      cases h2 : bstep NR S1 e with
+      | none => rw [h2] at h; cases h
+      | some S0 =>
+        rw [h2] at h; simp only [brun] at h; cases h
+        simp only [List.map_cons, run, List.foldl_cons] at hR ⊢
+        obtain ⟨r1, z1, p1⟩ := ih _ S' S1 hL.2 hR hZ h1
+        obtain ⟨r0, z0, p0⟩ := bstep_sound hM hNR hL.1 h2 r1 z1
+        exact ⟨r0, z0, fun o => (p1 o).trans (p0 o)⟩
+
+end Model
+
+end UniRows

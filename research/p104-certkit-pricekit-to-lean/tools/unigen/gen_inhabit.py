@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""UNI-INHABIT generator (OUR Python, 1 proc): t7669 as packed Lean data.
+Register code j (json order): 0..1500 public, 1501..1735 owned LIFETIMES (one per INIT), 1736..1751 = phantom x2/y2 of the 8 non-D ports.
+Event slot (96 bits): op 0-2 | r 3-13 | a 14-24 | c 25-35 | d 36-46 | sign 47 | num 48-71 | den 72-95.
+op: 0 birthPub, 1 INIT, 2 ADD, 3 SCALE, 4 MOVE, 5 CLEAR.  Trace = births (public j at initial[j], j ascending) ++ program.
+usage: gen_inhabit.py word.json.gz outdir"""
+import gzip, json, sys, os
+from fractions import Fraction as Q
+W = json.load(gzip.open(sys.argv[1])); out = sys.argv[2]
+n = W['public']; NO = W['owned_fields']; P = W['program']; F = W['frames']
+live = W['live']; h = W['hosted']; Dp = h['Dports']
+nonD = [p for p in range(104) if p not in Dp]
+assert len(live) == 104 and n == 1501 and W['owned_fields'] == 68
+# owned LIFETIMES: each INIT starts a fresh owned register (WordModel births need unborn; CLEAR is final)
+life = {}; NO = 0; P2 = []
+for e in P:
+    e = list(e)
+    if e[0] == 'INIT': life[e[1]] = n + NO; NO += 1
+    if e[1] >= n: e[1] = life[e[1]]
+    if e[0] == 'ADD' and e[2] >= n: e[2] = life[e[2]]
+    P2.append(e)
+P = P2
+# register codes: kind 0 x,1 y,2 x2,3 y2,4 h,5 o ; param
+kind = {}
+for p, r in enumerate(live): kind[r] = (0, p); kind[r + 112] = (1, p)
+for k, p in enumerate(Dp): kind[h['X2'][k]] = (2, p); kind[h['Y2'][k]] = (3, p)
+hl = [r for r in range(n) if r not in kind]; assert len(hl) == 1101
+for i, r in enumerate(hl): kind[r] = (4, i)
+for i in range(NO): kind[n + i] = (5, i)
+for i, p in enumerate(nonD): kind[n + NO + 2*i] = (2, p); kind[n + NO + 2*i + 1] = (3, p)
+NR = n + NO + 16; assert len(kind) == NR == 1752, (NR, len(kind))
+# frames -> 512-bit masks, echelon bases
+def span(b):
+    S = {0}
+    for v in b: S |= {x ^ v for x in S}
+    return S
+def ech(b):
+    B = []
+    for v in b:
+        for g in B:
+            if v ^ g < v: v ^= g
+        if v:
+            B = [g ^ v if g ^ v < g else g for g in B] if False else B
+            B.append(v); B.sort(reverse=True)
+    return B
+masks = []; bases = []
+for f in F:
+    S = span(f); m = 0
+    for x in S: m |= 1 << x
+    masks.append(m)
+    E = []
+    for v in f:  # greedy echelon with distinct leading bits
+        for g in E:
+            if v ^ g < v: v ^= g
+        if v: E.append(v); E.sort(reverse=True)
+    def red(v):
+        for g in E:
+            if v ^ g < v: v ^= g
+        return v
+    assert all(red(x) == 0 for x in S) and len(S) == 1 << len(E)
+    bases.append(E)
+NF = len(F); assert NF <= 2048
+# events
+def slot(op, r, a=0, c=0, d=0, co=Q(0)):
+    s = 1 if co < 0 else 0; nu = abs(co.numerator); de = co.denominator
+    assert r < 2048 and a < 2048 and c < 2048 and d < 2048 and nu < 1 << 24 and de < 1 << 24
+    return op | r << 3 | a << 14 | c << 25 | d << 36 | s << 47 | nu << 48 | de << 72
+evs = [slot(0, j, c=W['initial'][j]) for j in range(n)]
+for e in P:
+    op = e[0]
+    if op == 'INIT': evs.append(slot(1, e[1], c=e[2]))
+    elif op == 'ADD': evs.append(slot(2, e[1], a=e[2], c=e[4], co=Q(e[3])))
+    elif op == 'SCALE': evs.append(slot(3, e[1], c=e[3], co=Q(e[2])))
+    elif op == 'MOVE': evs.append(slot(4, e[1], c=e[2], d=e[3]))
+    elif op == 'CLEAR': evs.append(slot(5, e[1], c=e[2]))
+    else: raise ValueError(op)
+CH = 250
+chunks = [evs[i:i+CH] for i in range(0, len(evs), CH)]
+def packl(l, w):
+    v = 0
+    for x in reversed(l): v = (v << w) | x
+    return v
+def tree(vals, depth, fmt):
+    if depth == 0: return f'.lf {fmt(vals[0] if vals else 0)}'
+    return f'(.nd ({tree(vals[0::2], depth-1, fmt)}) ({tree(vals[1::2], depth-1, fmt)}))'
+# --- python mirror of Par.step (loc codes) ---
+NPUB, NRR, NFF = n, n + NO, NF
+def ssub(c, d):
+    mc, md = masks[c], masks[d]; return (mc & md) == mc and mc != md and md < 1 << 512
+def step(L, x):
+    op, r, a, c, d = x & 7, x >> 3 & 2047, x >> 14 & 2047, x >> 25 & 2047, x >> 36 & 2047
+    assert r < NRR and c < NFF
+    l = L[r]
+    if op == 0: assert l == 0 and r < NPUB; L[r] = c + 2
+    elif op == 1: assert l == 0 and r >= NPUB; L[r] = c + 2
+    elif op in (2, 3): assert l == c + 2
+    elif op == 4:
+        assert l == c + 2 and d < NFF and (ssub(c, d) if r < NPUB else (ssub(c, d) or ssub(d, c))); L[r] = d + 2
+    elif op == 5: assert l == c + 2 and r >= NPUB; L[r] = 1
+    else: raise ValueError
+SEG = int(os.environ.get('SEG', '24'))
+segs = [list(range(i, min(i + SEG, len(chunks)))) for i in range(0, len(chunks), SEG)]
+L = [0] * 2048; cks = [list(L)]; mvs = []
+for sg in segs:
+    mv = []
+    for ci in sg:
+        for x in chunks[ci]:
+            if x & 7 == 4: mv.append((x >> 25 & 2047, x >> 36 & 2047))
+            step(L, x)
+    cks.append(list(L)); mvs.append(mv)
+assert all(L[j] >= 2 for j in range(n)) and all(L[j] in (0, 1) for j in range(n, 2048))
+assert [L[j] - 2 for j in range(n)] == W['final']
+os.makedirs(out, exist_ok=True)
+hdr = '/- GENERATED by Nov15/unigen/gen_inhabit.py (lane UNI-INHABIT) from GEN/STACK/t7669.json.gz. DATA. -/\n'
+with open(os.path.join(out, 'UniInhabitEvs.lean'), 'w') as fo:
+    fo.write(hdr + 'namespace UniInhabit.Evs\n\n')
+    fo.write(f'def NEV : Nat := {len(evs)}\n\n')
+    for i, c in enumerate(chunks): fo.write(f'def c{i} : Nat := 0x{packl(c, 96):x}\n')
+    fo.write('\nend UniInhabit.Evs\n')
+with open(os.path.join(out, 'UniInhabitTabs.lean'), 'w') as fo:
+    fo.write(hdr + 'import Nov15.UniInhabitDefs\nimport Nov15.UniInhabitEvs\nnamespace UniInhabit.Tabs\nopen UniInhabit\n\n')
+    fo.write(f'def NF : Nat := {NF}\n')
+    fo.write('/-- frame masks (bit v set iff label v in the span of the frame), depth-11 tree. -/\n')
+    fo.write('def maskT : Tr Nat := ' + tree(masks + [0]*(2048-NF), 11, lambda m: f'0x{m:x}') + '\n\n')
+    fo.write(f'def P : Par := ⟨1501, {n + NO}, NF, maskT⟩\n\n')
+    codes = [kind[j][0] * 2048 + kind[j][1] for j in range(NR)]
+    fo.write(f'/-- register code kind*2048+param (kind 0 x,1 y,2 x2,3 y2,4 h,5 o), j < {NR}, 14 bits each. -/\ndef regCode : Nat := 0x{packl(codes, 14):x}\n')
+    fo.write('/-- echelon bases of the frames (closure certificate). -/\ndef basesL : List (List Nat) := [' + ', '.join('[' + ','.join(map(str, b)) + ']' for b in bases) + ']\n')
+    fo.write('def initialL : List Nat := [' + ','.join(map(str, W['initial'])) + ']\n')
+    fo.write('def finalL : List Nat := [' + ','.join(map(str, W['final'])) + ']\n')
+    fo.write('/-- frame dimensions. -/\ndef dimL : List Nat := [' + ','.join(str(len(f)) for f in F) + ']\n')
+    for k, sg in enumerate(segs):
+        fo.write(f'def seg{k} : List (Nat × Nat) := [' + ', '.join(f'({len(chunks[ci])}, Evs.c{ci})' for ci in sg) + ']\n')
+    fo.write(f'def NSEG : Nat := {len(segs)}\n')
+    fo.write('/-- all chunks in trace order. -/\ndef segs : List (List (Nat × Nat)) := [' + ', '.join(f'seg{k}' for k in range(len(segs))) + ']\n')
+    for k, c in enumerate(cks):
+        fo.write(f'def ck{k} : Tr Nat := ' + tree(c, 11, str) + '\n')
+    for k, mv in enumerate(mvs):
+        fo.write(f'def mv{k} : List (Nat × Nat) := [' + ', '.join(f'({a},{b})' for a, b in mv) + ']\n')
+    fo.write('\nend UniInhabit.Tabs\n')
+print('events', len(evs), 'chunks', len(chunks), 'frames', NF, 'segments', len(segs), 'moves', sum(map(len, mvs)))
+# --- Tabs2: inverse register tables, frame dims, initial/final frames ---
+inv = {}
+for j in range(NR): inv[kind[j]] = j
+xI = [inv[(0, p)] for p in range(104)]; yI = [inv[(1, p)] for p in range(104)]
+x2I = [inv[(2, p)] for p in range(104)]; y2I = [inv[(3, p)] for p in range(104)]
+hI = [inv[(4, i)] for i in range(1101)]
+with open(os.path.join(out, 'UniInhabitTabs2.lean'), 'w') as fo:
+    fo.write(hdr + 'import Nov15.UniInhabitDefs\nnamespace UniInhabit.Tabs\nopen UniInhabit\n\n')
+    fo.write(f'def NOW : Nat := {NO}\n')
+    for nm, l in [('xI', xI), ('yI', yI), ('x2I', x2I), ('y2I', y2I), ('hI', hI), ('initP', W['initial']), ('finP', W['final'])]:
+        fo.write(f'def {nm} : Nat := 0x{packl(l, 11):x}\n')
+    fo.write('/-- frame dimensions, depth-11 tree. -/\ndef dimT : Tr Nat := ' + tree([len(f) for f in F] + [0]*(2048-NF), 11, str) + '\n')
+    fo.write('\nend UniInhabit.Tabs\n')
+print('NO lifetimes', NO)

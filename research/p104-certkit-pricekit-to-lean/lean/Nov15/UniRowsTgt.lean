@@ -1,0 +1,46 @@
+/-
+UniRowsTgt (lane ROWS, Nov 19).  The #7113 caller targets as sparse COLUMNS (generic in the register coding `idx`):
+`colE cl D idx k` = D · (column k of the target matrix: o ↦ tgt cl o k), as an SV over output codes.
+`svv_colE` : for every PUBLIC output r and every register k, svv (colE k) (idx r) = D · tgt cl r k  (idx injective, D even).
+Any word under the #7113 caller (t7669, w_s4, …) reuses this file.
+Kernel only: no sorry, no native_decide, no new axioms.
+-/
+import Nov15.UniRowsSound
+
+set_option linter.unusedSectionVars false
+
+namespace UniRows
+open WordModel
+
+/-- two entries, sorted by output code (the checker's lists are ascending). -/
+def s2 (i : ℕ) (x : Int) (j : ℕ) (y : Int) : SV := if i < j then [(i, x), (j, y)] else [(j, y), (i, x)]
+
+theorem svv_s2 (i : ℕ) (x : Int) (j : ℕ) (y : Int) (o : ℕ) :
+    svv (s2 i x j y) o = (if i = o then (x : ℚ) else 0) + (if j = o then (y : ℚ) else 0) := by
+  unfold s2; split <;> simp only [svv] <;> ring
+
+section
+variable {Pt Hl Ow : Type} [Fintype Pt] [DecidableEq Pt] [DecidableEq Hl] [DecidableEq Ow]
+
+def colE (cl : Caller Pt) (D H : ℕ) (idx : Reg Pt Hl Ow → ℕ) : Reg Pt Hl Ow → SV
+  | .x p => s2 (idx (.x p)) D (idx (.y p)) (if cl.isD p then (D : Int) else (H : Int))
+  | .y p => if cl.isD p then [(idx (.y p), (D : Int))] else s2 (idx (.x p)) (-(D : Int)) (idx (.y p)) (H : Int)
+  | .x2 p => if cl.isD p then [(idx (.x2 p), (D : Int))] else []
+  | .y2 p => if cl.isD p then s2 (idx (.x2 p)) (-(D : Int)) (idx (.y2 p)) (D : Int) else []
+  | .h i => [(idx (.h i), (D : Int))]
+  | .o _ => []
+
+theorem svv_colE (cl : Caller Pt) (D H : ℕ) (hD : 2 * H = D) (idx : Reg Pt Hl Ow → ℕ)
+    (hinj : Function.Injective idx) (r k : Reg Pt Hl Ow) (hp : pub cl r = true) :
+    svv (colE cl D H idx k) (idx r) = (D : ℚ) * tgt cl r k := by
+  have hD2 : ((H : ℤ) : ℚ) = (D : ℚ) / 2 := by
+    have : ((2 * H : ℕ) : ℚ) = (D : ℚ) := by rw [hD]
+    push_cast at this ⊢; linarith
+  have ie : ∀ a b : Reg Pt Hl Ow, (idx a = idx b ↔ a = b) := fun a b => hinj.eq_iff
+  cases k <;> cases r <;> simp only [colE, tgt, pub, e] at hp ⊢ <;> (try split_ifs at hp ⊢) <;>
+    simp_all [svv, svv_s2, Pi.single_apply] <;> (try push_cast) <;> (try ring_nf) <;> (try simp_all) <;>
+    (try (split_ifs <;> subst_vars <;> simp_all)) <;> (try (intro hpp; subst hpp; simp_all))
+
+end
+
+end UniRows
