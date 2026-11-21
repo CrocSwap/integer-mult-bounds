@@ -131,7 +131,9 @@ def verify_normalization(peer, work, previous, accepted):
     run('normalized/independent/accept.py', '--peer', peer, '--prior-run', previous,
         '--run', signed, '--primary', primary, '--independent', independent, '--out', acceptance)
     authenticate(acceptance, EXPECTED['normalized/independent/ACCEPT.json'])
-    print('PASS_PAIRED_NORMALIZED_COVER', result['claim'], result['difference'])
+    print('PASS_PAIRED_NORMALIZED_COVER', result['claim'], result['difference'], flush=True)
+    run('weighted/verify.py', '--peer', peer, '--cover-run', previous, '--normalized-run', signed,
+        '--normalized-accept', acceptance, '--work', work/'weighted')
 
 
 def main():
