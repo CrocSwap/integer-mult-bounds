@@ -1,6 +1,6 @@
 # Sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804531**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804538**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
@@ -13,7 +13,12 @@ Under the same premises as #7863, the deterministic fixed-multitape multiplier f
 | Minimum integer power for the fixed comparison law at 1ef5792e | 0.00387992804502 |
 | Second moment of the actual paid jobs at 47f5718d | 0.00387992804505 |
 | Paid ranks bounded on a sixteenth grid at 18718411 | 0.00387992804518 |
-| Power 23 from the 451-factor paid tensor moments | **0.00387992804531** |
+| Power 23 from the 451-factor paid tensor moments at cb73879f | 0.00387992804531 |
+| Least integer power for this paid-moment bound, 21 | **0.00387992804538** |
+
+At the fixed scale 1804 and mean bound 3/4, the power-20 limiting ratio is greater than 0.0001937619, above the capacity upper bound of 0.0001888873. This excludes powers up through 20 for this moment comparison. For power 21 all 22 coefficients pass at height zero, certifying every height. The uniform loss falls from 904/H to 825/H. The complete signed replay tests 0.00387992804545 against ordinary cap 0.00387992804546187. The gain over power 23 is 0.00000000000007, exactly (700/387992804531)% or approximately 0.00000000180415716948%. The cumulative gain over #7863 is 0.00000000000192, exactly (3200/64665467391)% or approximately 0.0000000494854538150%. zxv had already proved power 21 on a different 227-factor construction. [Independent minimum proof](tensor/MINIMUM.md) · [Exact receipt](tensor/MINIMUM.json) · [Earlier 227-factor benchmark](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/BENCHMARKS.json)
+
+## Tensor moments at power 23
 
 The paid-rank support and mean bound the first 23 completed moments, including the full excess paid mass. At scale 1804, direct evaluation on 452 binomial atoms matches the independent Stirling expansion. All 24 coefficients pass at every height. The uniform loss falls from 1061/H to 904/H. Seven strict stages give ordinary cap 0.00387992804539617 and the signed consumer tests 0.00387992804538. The gain over the preceding grid proof is **0.00000000000013**, or **0.00000000335057760056911%**, exactly (650/193996402259)%. Over the independently reproduced external peer #7863, the gain is **0.00000000000185**, or **0.0000000476812966446209%**, exactly (9250/193996402173)%. [Proof and source credits](tensor/PROOF.md) · [Independent receipt](tensor/RESULT.json)
 
@@ -71,6 +76,8 @@ The third registered command reproduces all three weighted proofs. Look for `PAS
 
 The fourth registered command reconstructs the grid weights, checks the boundary powers and reruns the complete signed application and its invoice controls. Its final marker is `PASS_COMPLETE_DYADIC_GRID`. The application and audit SHA-256 values are `9300f140d1ad01f3e0177402b5f361619191229a22e353a2e36de5a597895db2` and `a0d962f26dc7a623a8636b1e8670690227e627588b2d34b952edcff164ff9326`.
 
+The same command then reconstructs the 20/21 boundary and emits `PASS_COMPLETE_TENSOR_MINIMUM` after replaying the power-21 application. Its application and audit SHA-256 values are `43a9c277ebd2578286cf9d3147db662684bbdad070ac69613622389c5e721073` and `3e206ace6bd05b3c39c0ec153888282ed70537ce7378d58fe741ceac87eb54c0`.
+
 The archived source has SHA-256 `5f9d9c378a1bddccb2e42ac6453716fa950f19bd71f6181a9606f5eb68b022b3`. The verifier checks all 202 entries in its source manifest. The regenerated application and audit hashes are `e0a28d730e5a63070221a170c3e5e10abdf4ed552d67fbd47d1f4ec157b736ad` and `51963b588680e3150b97b156a461c9002368c40752b73bc4a6b03f94aca97c0b`. [Exact predecessor archive](https://github.com/CrocSwap/integer-mult-bounds/blob/b3e4412fe01f07dc58305616fabf96345f49a781/research/p104-bit-451-factor-schedule/replay.tar.gz)
 
 The fifth command emits `PASS_COMPLETE_TENSOR_MOMENTS` after the independent power-23 replay. Its application SHA-256 is `4b1b348ef8fcb0fb3ea4d9c0224925b1448516c9f8aceb2181ca82713c3159c9`. Its expanded audit SHA-256 is `6a2addc5684f3370f640bfcd84316f90d399fed1909b050e123b21204090a8c6`.
@@ -83,4 +90,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-Can power 21 improve the complete rate at scale 1804? Check the power-20 limiting ratio as a control, then price power 21 and test all 22 of its coefficients. Both powers remain open in this package. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
+Can the source-bound mean of the paid ranks reopen power 20? At scale 1804, first verify the raw and completed mean bound 749/1000 on the original 451-factor word. Test the limiting ratio and full price before computing up to 21 coefficients, with a 60-second discovery cap. Power 20 remains open under this stronger mean bound. [Original tensor moment theorem](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)

@@ -102,6 +102,7 @@ def main():
         base = json.loads(rebuilt.read_bytes())
         legacy["supplier"](base)
         run(source,work,legacy,stages,base)
+        runpy.run_path(str(HERE/"minimum.py"))["run"](source,work,legacy,stages,base)
 
 
 if __name__ == "__main__":
