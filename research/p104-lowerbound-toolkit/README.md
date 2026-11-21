@@ -65,10 +65,32 @@ Each row is a proved implication; it is NOT a claim about legal words or callers
 
 Instances are included for statements that carry hypotheses: toy networks, `LinToy`, `LinP104FreeInst.nonvac_instance`, `DataId.nonvac_E8`, `Doubling` `inst_tight`/`inst_master`, `TensorPot` `inst_tight`, `HalvingLaw.halving_nonvacuous`, `CFRelayE8` (relay-free, R = 56 attained), `CFRelayQ5` (n = 4, the only hot-relay instance, R = 2), `WordShapeHToy` (a real 12-event legal word at h = 8), `BridgeNet.toy_bridge`, `CallerWord.toy_nonvac`, `CallerAsmToy` (legal word, n = 2, k = 1), `CallerQZero.c1_nonvac` and `EasyWireC.c1_hp_full` (legal Q = 0 word, k = 3, hypothesis-free `cHat <= HP(3)`), `EasyWireFS4.fs4_nonvac`, `hid_nonvac`, `CallerTight.hostK2`, `CallerLeaf.inst_tight`, `CallerExtraThin.inst_deficit_tight`, `CallerHP.hubC_nonvac`, `CallerHP.nonvac_77`, `BudH9.bud9_pos_at_ceiling`, `nonvac_*` in `HCutGenMain`, `PriceHMain`, `LemmaT`, `AllOrNothing`. Gaps: `net8` has no `NetW` instance; K7 has arithmetic non-vacuity only and no instance of `hJ`; no kernel `Word` instance exists for the bridge (C6); no legal Q = 0 word in the HP window (k >= 5); no word-level instance with k >= 2 of K16 (frame-level `CallerBridge.inst_leaves` and `CallerJA.toy_*` only).
 
+## CERTIFIED COMPUTATIONS
+
+This is a SAT/DRAT result, **not a Lean claim**: nothing in this section is kernel-checked, and it is not in `lean/` or in the C/K tables.
+
+**Result [C, DRAT].** Every tight B-linear half-integer P104 decoder (class of NONLIN: one side linear mod 4, entries `v` in {0, +-1}, at most 16 rows on Z16 after merging, the other side `W` arbitrary) costs >= 56 (sum of row prices; E8 attains 56). Budget 55 is UNSAT in all 1001 cubes: 1001 / 1001 kissat UNSAT and drat-trim VERIFIED (backward mode). Scope: this is the tight class only, not loose rows (`y` beyond Z16), not A-linear loose rows, not the general decoder, so it does not prove Wall56.
+
+**Reproduce.** `drat/` is self-contained (Python standard library only, no pickles, no solver needed for the first two commands; about 270 KB):
+- `python3 drat/check.py` (about 40 s): re-derives the covering clauses from the Z4 definition, tight vectors = +-Z16, the price formula, the 384 symmetries (group; each realised by T in GL(9,2) with ports permuted, Q invariant, covering clauses mapped), CNF-fidelity spot checks, cube structure, split exhaustiveness, and the **partition completeness** check (exhaustive search over all 65536 inactive sets: exactly 993 admit a d satisfying all 384 lex-leader constraints, all 993 are covered by the cubes; the earlier partition that only covered indicator-orbit-lexmax sets is shown unsound on two witnesses and was repaired by 591 extra cubes). It regenerates 100 CNFs and compares sha256 with `drat/hashes.tsv`; `--full` regenerates all 1001 (a few minutes). Last full run: all 1001 hashes reproduce.
+- `drat/gen.py` regenerates the base CNF and every cube byte-identically (`gen.py cube ID OUT.cnf`); `drat/cubes.txt` lists each cube (inactive set and split units).
+- `drat/run_drat.sh ID...` (optional, needs `kissat` and `drat-trim`; not run by `verify.py` or `check.py`) regenerates a cube, checks its sha256, runs kissat with a DRAT proof and drat-trim, then deletes the proof.
+DRAT proofs are not stored (about tens of GB; up to 3 GB for the hardest cubes); each is reproducible with `drat/run_drat.sh` (kissat + drat-trim), and the CNFs / proofs we checked are pinned by sha256 in `drat/hashes.tsv` (CNFs by full sha256, proofs by the first 16 hex digits; a rerun of kissat is expected, not guaranteed, to give a byte-identical proof, and the drat-trim verdict is what counts).
+
+**Trusted base (exactly what the DRAT proofs do not give).**
+1. Class reduction and merge to <= 16 rows: a paper argument, not machine-checked. Rows with `y_l = +-y_k` merge into one row `w_k +- w_l` without raising the cost, because `rank Q[D u D', S] <= rank Q[D,S] + rank Q[D',S]`; tight vectors are +-Z16 (re-checked by `check.py`, 32 vectors).
+2. One-side-linear implies the Gram form `M = Gamma/2` (Lemma M0), and decodability is a per-port Z4 covering condition (port `t` needs `c_t` in span of the rows whose support contains `t`): a paper argument; the 104 covering clause sets are re-derived from the Z4 definition by `check.py`, not from the theory.
+3. Price formula `price_z = dim U_z - [n_z in U_z]`: the hyperplane / beta-perp fact is checked for all 16 rows, the rest is linear algebra; allowing `U_z` arbitrary in the encoding only over-charges.
+4. Normalization (price-0 rows `U = <n_z>` replaced by `U = 0`): `n_z` is not a port label (checked), so such a row serves no port.
+5. Symmetry and partition: the group is verified; the lex-leader constraint is standard; cube coverage of every admissible inactive set is checked exhaustively by `check.py` (its search is an independent implementation; all witnesses are verified directly).
+6. CNF encoding fidelity: the generator is the specification; `check.py` gives randomized representability / membership / totalizer / lex-leader spot checks, not a formal equivalence proof. Cost <= 55 is the cardinality constraint `sum(used) + sum(nin) >= 89` (16 rows x 9 = 144).
+7. kissat 4.0.4 (DRAT output) and drat-trim are unverified C programs; no LRAT or formally verified checker was used.
+
 ## Layout and checking
 
 - `lean/Nov15/` 448 modules (build order in `lean/build-order.txt`, root `lean/All.lean`), `lean/Check.lean`
   (`#print axioms` of the 394 declarations the new modules print), `CHECK-axioms.txt` (result of loading the built closure).
+- `drat/`: DRAT-certified tight-class result (see CERTIFIED COMPUTATIONS): `gen.py`, `check.py`, `run_drat.sh`, `cubes.txt`, `hashes.tsv`, `data/`.
 - `tools/framecert/`, `data/frame/`: generator and inputs of `FrameCert.lean`; `python3 -I tools/framecert/asm.py OUT.lean`
   rebuilds it byte-identically (checked in `verify.py`).
 - `verify.py`: package integrity (sha256 pins both ways, token bans outside comments, topological build order equal to
