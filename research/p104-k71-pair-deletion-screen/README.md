@@ -8,7 +8,7 @@ Observed validation. The owner's observed 05:40:28 UTC replay used check.py and 
 
 The source archive contains the exact pins, proof, licenses, commands and control outcomes.
 
-Archive SHA-256 `4365578692c4cc79f803e945d17098e45e1fb35515c86eb32014cdbef79b5b2c`.
+Archive SHA-256 `fdbb5239e53b9590d2d8602b0b2b9b583348d13aa033c7e107192c188fa64066`.
 
 Unpack in a clean directory, validate `sha256sum -c MANIFEST.sha256`, and run the extracted README.md commands.
 
