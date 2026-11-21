@@ -124,21 +124,23 @@ def consumer(root, result, component, *, cap=CAP, expected_claim="0.003879928043
     damaged = paid.copy()
     damaged[1] += 1
     controls = [
-        (lambda: r.directed_invoice(damaged,target,r.RATIONAL_BRACKET,r.TARGET),
+        ("extra_rank_1_charge_rejected", lambda: r.directed_invoice(damaged,target,r.RATIONAL_BRACKET,r.TARGET),
          "directed signs at raw crossing endpoints"),
-        (lambda: r.outer_margins(Q(claim),Q(1,10**14),Q(claim)+Q(4,10**14)-Q(1,10**15)),
+        ("low_cap_rejected", lambda: r.outer_margins(Q(claim),Q(1,10**14),Q(claim)+Q(4,10**14)-Q(1,10**15)),
          "all strict and functional outer conditions"),
     ]
-    for run,expected_error in controls:
+    rejected = []
+    for name,run,expected_error in controls:
         try:
             run()
         except ValueError as error:
             check(str(error)==expected_error,"unexpected control failure")
+            rejected.append(name)
         else:
             raise ValueError("corruption accepted")
     hashes = {path.relative_to(result).as_posix(): digest(path)
               for path in result.rglob("*") if path.is_file()}
-    binding = dict(cap=cap,claim=claim,tested=tested,output_sha256=hashes)
+    binding = dict(cap=cap,claim=claim,tested=tested,output_sha256=hashes,controls=rejected)
     (result/"receipt.json").write_text(json.dumps(binding,sort_keys=True)+"\n")
     return dict(claim=claim,tested=tested,delta=str(Q(claim)-Q(before["claim"])),
                 percent_gain=str(100*(Q(claim)-Q(before["claim"]))/Q(before["claim"])))
