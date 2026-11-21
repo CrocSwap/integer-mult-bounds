@@ -367,8 +367,8 @@ import All
 #print axioms CallerBridge.word_hpq
 #print axioms CallerBridge.word_lawQ
 #print axioms CallerBridge.cHatQ_q0
-#print axioms CallerBridge.Host.inst_leaves
-#print axioms CallerBridge.Host.inst_count
+#print axioms CallerBridge.inst_leaves
+#print axioms CallerBridge.inst_count
 -- Q >= 1 caller law for legal type-A words (JASCHEMA)
 #print axioms CallerJA.word_hpq_A
 #print axioms CallerJA.word_lawQ_gen
