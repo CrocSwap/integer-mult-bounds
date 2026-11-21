@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Rebuild the fixed 451-factor supplier and certify both logarithmic majorants."""
+"""Rebuild the fixed 451-factor supplier and certify its logarithmic majorants."""
 from fractions import Fraction as Q
 import json
 import os
@@ -27,6 +27,14 @@ NORMALIZED_HASHES = {
 }
 
 
+ENDPOINT_CAP = "0.00387992804430335"
+ENDPOINT_CLAIM = "0.00387992804422"
+ENDPOINT_HASHES = {
+    "APPLICATION.json": "d8afd25d84dd2721549686ee5a03ce5bddcf2a7957037d700e43e23b04f56f7e",
+    "AUDIT.json": "af789e7e42411cfbadf411488de43626e6e23a44ccfb7d2027d488066db3691d",
+}
+
+
 def ordinary_bound(base, check):
     uniform = base["uniform"]
     h = uniform["H"]
@@ -44,22 +52,23 @@ def ordinary_bound(base, check):
     return {"installed": cap, "old_fixed_loss_ceiling": str(ceiling)}
 
 
-def normalized_bound(base, check):
+def normalized_bound(base, check, *, scale, numerator, old_numerator, cap, claim):
     uniform = base["uniform"]
     carrier_log = uniform["H"]
-    scale, power, numerator = 1024, 60, 2406
+    power = 60
     paid, productive, ambient = 11**451, 16**451, 134**451
     check(paid**15 < productive**13, "normalized exit")
     check(2**(2*scale)*paid**15 <= ambient**13, "normalized shift")
-    check(ambient > 2**(2*scale) and Q(uniform["ambient_power"][1]) < 3**power,
+    log_ambient_lower = ambient.bit_length() - 1
+    check(Q(uniform["ambient_power"][1]) < Q(scale + log_ambient_lower, scale)**power,
           "normalized base endpoint for all ranks")
     check(Q(13, 15)**power < Q(uniform["eta"][0]), "normalized capacity")
     loss = Q(numerator, carrier_log)
     check((scale+carrier_log)**power < scale**power * 2**numerator and
           (scale+carrier_log)*loss > 2*power, "normalized terminal and tail")
-    cap = seven_stage_bound(base, loss, NORMALIZED_CAP, check)
-    ceiling = Q(base["raw_crossing"][1]) - Q(2969, carrier_log) - Q(7, 10**14)
-    check(Q(NORMALIZED_CLAIM) > ceiling, "separation from fractional-majorant ceiling")
+    seven_stage_bound(base, loss, cap, check)
+    ceiling = Q(base["raw_crossing"][1]) - Q(old_numerator, carrier_log) - Q(7, 10**14)
+    check(Q(claim) > ceiling, "separation from predecessor majorant ceiling")
     return {"installed": cap, "old_fixed_loss_ceiling": str(ceiling)}
 
 
@@ -116,13 +125,30 @@ def main():
               "fractional predecessor receipt")
         check(digest(HERE/"normalized/SHIFTED-LOG.md") ==
               "04eba2e0a2a6cdd4ee512254142cbe45e647a73b66ad67b2c1c0a62e0883238a", "normalized theorem")
-        normalized = verify_application(source, work/"normalized", old, normalized_bound(base, check),
+        normalized_component = normalized_bound(base, check, scale=1024, numerator=2406, old_numerator=2969,
+                                                cap=NORMALIZED_CAP, claim=NORMALIZED_CLAIM)
+        normalized = verify_application(source, work/"normalized", old, normalized_component,
                                         NORMALIZED_CLAIM, NORMALIZED_HASHES, HERE/"normalized/audit.py",
                                         HERE/"normalized/RESULT.json")
         increment = Q(normalized["claim"]) - Q(full["claim"])
         check(increment == Q(47, 10**14), "gain over complete fractional-majorant replay")
         print("PASS_COMPLETE_NORMALIZED_MAJORANT", f"claim={normalized['claim']}",
               f"delta_vs_fractional={increment}", f"delta_vs_7863={normalized['delta']}", flush=True)
+        check(digest(HERE/"normalized/RESULT.json") ==
+              "bb3f7384b8c17a396256c32d78cf8efa6a0270bb82988fa694a950f17b7f0bed", "normalized predecessor")
+        # The exact shift inequality bounds the entire positive integer scale family.
+        maximum_scale = (((134**451)**13 // (11**451)**15).bit_length()-1)//2
+        carrier_log = base["uniform"]["H"]
+        minimal_numerator = ((maximum_scale+carrier_log)**60 // maximum_scale**60).bit_length()
+        check((maximum_scale, minimal_numerator) == (9012, 2218), "integer family endpoints")
+        endpoint_component = normalized_bound(base, check, scale=maximum_scale, numerator=minimal_numerator,
+                                              old_numerator=2406, cap=ENDPOINT_CAP, claim=ENDPOINT_CLAIM)
+        endpoint = verify_application(source, work/"endpoint", old, endpoint_component, ENDPOINT_CLAIM,
+                                      ENDPOINT_HASHES, HERE/"normalized/endpoint.py", HERE/"normalized/ENDPOINT.json")
+        change = Q(endpoint["claim"]) - Q(normalized["claim"])
+        check(change == Q(16, 10**14), "endpoint gain over the preceding complete application")
+        print("PASS_COMPLETE_INTEGER_SCALE_ENDPOINT", f"claim={endpoint['claim']}",
+              f"delta_vs_normalized={change}", f"delta_vs_7863={endpoint['delta']}", flush=True)
 
 
 if __name__ == "__main__":
