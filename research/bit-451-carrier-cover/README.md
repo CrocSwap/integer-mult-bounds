@@ -1,15 +1,18 @@
-# A sharper cover bound for the 451-factor multiplier
+# Two sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804356**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804359**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
 | #7863, independently reproduced against #7973 | 0.00387992804346 |
-| This proof | 0.00387992804356 |
-| Absolute increase | 0.00000000000010 |
-| Relative increase | 0.0000000025773673862% rounded; exactly (500/193996402173)% |
+| Prior #8026 cover proof at 355f3218 | 0.00387992804356 |
+| Cover and fractional majorant | 0.00387992804359 |
 
-The original uniform carrier has N = 2^H with H = 1202400000000000. The retained delayed-cover theorem charges the full fallback by a factor below 1 + 2^−46. Taking d = 1/(H·2^44) gives N^d > 1 + 2^−45. The complete normalized moment is therefore strictly below one after this smaller loss. Evaluating all seven ordinary stages supports the installed BIT cap 0.00387992804364799. The 48-call rational application tests 0.00387992804363 and certifies the complete rate above. [Proof and strict stage checks](PROOF.md) · [Machine-readable receipt](RESULT.json) · [Delayed-cover theorem, §7](https://github.com/CrocSwap/integer-mult-bounds/blob/e54523517d0f03e58352e647c403a5af3e525a57/research/p104-shared-native-helper-splits/retained/compiler/bit-audit/retained/DELAYED-COVER-BRIDGE.md#7-moment-and-row-stock-consequences)
+The complete rate increases by 0.00000000000013 over #7863, exactly (650/193996402173)% or approximately 0.00000000335057760205%. The increment over the prior #8026 head is 0.00000000000003, exactly (75/96998201089)% or approximately 0.000000000773210215839%. The new argument applies the existing real-power leaf-count induction to the same physical schedule. It reduces the uniform loss from 3006/H to 2969/H. The ordinary cap is 0.00387992804367877 and the full outer compiler tests 0.00387992804366. [Fixed-word proof](MAJORANT.md) · [Independent exact receipt](MAJORANT.json)
+
+## Original cover proof
+
+The original uniform carrier has N = 2^H with H = 1202400000000000. The retained delayed-cover theorem charges the full fallback by a factor below 1 + 2^−46. Taking d = 1/(H·2^44) gives N^d > 1 + 2^−45. The complete normalized moment is therefore strictly below one after this smaller loss. Evaluating all seven ordinary stages supports the installed BIT cap 0.00387992804364799. The 48-call rational application tests 0.00387992804363 and certifies its original complete rate of 0.00387992804356. [Proof and strict stage checks](PROOF.md) · [Machine-readable receipt](RESULT.json) · [Delayed-cover theorem, §7](https://github.com/CrocSwap/integer-mult-bounds/blob/e54523517d0f03e58352e647c403a5af3e525a57/research/p104-shared-native-helper-splits/retained/compiler/bit-audit/retained/DELAYED-COVER-BRIDGE.md#7-moment-and-row-stock-consequences)
 
 The native signed crossing is still enclosed by [0.003879928046154, 0.003879928046155]. Giving the predecessor its upper endpoint and deducting only its two fixed losses yields a ceiling of 0.003879928043555 on the old proof. The new complete claim exceeds even this ceiling by 0.000000000000005. Both proofs use the original paid and productive positions, ordinary word, full fallback work, selected prime and excluded catalogue, stock recursion, restored ownership, 451-factor compiler and precision obligations. Improved asymptotic estimates may require larger fixed proof thresholds. The explicit physical realization of #7863's seven stages and nested seed remains conditional. Main selects #7000 separately.
 
@@ -21,7 +24,9 @@ Use CPython 3.12 from a clean repository checkout. The package uses the standard
 python3.12 -IB scripts/research_package.py --package research/bit-451-carrier-cover
 ```
 
-The first scientific marker is `PASS_ORIGINAL_451_SUPPLIER_AND_ACTUAL_CARRIER_COVER`. It requires byte-identical regeneration of the predecessor's complete BIT receipt, including the native signed census and all 36 caller uses. The final marker, `PASS_COMPLETE_SIGNED_APPLICATION`, requires the expanded rational audit, 54 strict conditions, four functional checks and agreement with an independent arithmetic proof and separately regenerated application and audit. Controls cover a missing CLEAR, an extra paid term, an insufficient BIT cap, a non-strict ordinary stage and an insufficient cover bound.
+The first scientific marker is `PASS_ORIGINAL_451_SUPPLIER_AND_ACTUAL_CARRIER_COVER`. It requires byte-identical regeneration of the predecessor's complete BIT receipt, including the native signed census and all 36 caller uses. The original cover marker, `PASS_COMPLETE_SIGNED_APPLICATION`, requires the expanded rational audit, 54 strict conditions, four functional checks and agreement with an independent arithmetic proof and separately regenerated application and audit. Controls cover a missing CLEAR, an extra paid term, an insufficient BIT cap, a non-strict ordinary stage and an insufficient cover bound.
+
+The second registered command emits `PASS_COMPLETE_FRACTIONAL_MAJORANT` after reconstructing the supplier, replaying the full application and checking the independent fractional-majorant certificate. Its application SHA-256 is `2d46b81b9f009ec80a21ae1545f975cdf68abcfe4ea2f3f3a6becaf43e107ebf` and its expanded audit SHA-256 is `df50d7caf1239edaad65ed5394e483e9f5b1e804495435d4386c8068cb0d8d97`.
 
 The archived source has SHA-256 `5f9d9c378a1bddccb2e42ac6453716fa950f19bd71f6181a9606f5eb68b022b3`. The verifier checks all 202 entries in its source manifest. The regenerated application and audit hashes are `e0a28d730e5a63070221a170c3e5e10abdf4ed552d67fbd47d1f4ec157b736ad` and `51963b588680e3150b97b156a461c9002368c40752b73bc4a6b03f94aca97c0b`. [Exact predecessor archive](https://github.com/CrocSwap/integer-mult-bounds/blob/b3e4412fe01f07dc58305616fabf96345f49a781/research/p104-bit-451-factor-schedule/replay.tar.gz)
 
@@ -33,4 +38,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-Can the existing uniform compiler prove a smaller log-power loss at the same N? First solve the shifted exit and majorant inequalities with the actual maximal paid rank and minimal productive rank. Keep the same charged template unless its new routes and stock are established independently. Any further improvement must survive the complete consumer and the finite proof-ceiling comparison.
+The next bounded test is the normalized-log estimate from #4480 with h=1024 on the same carrier. Check the small-input endpoints and shifted exit before replaying any candidate. [Normalized majorant](https://github.com/CrocSwap/integer-mult-bounds/pull/4480)
