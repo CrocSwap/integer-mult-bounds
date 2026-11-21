@@ -22,6 +22,14 @@ HASHES = {
     "adapter/binary/FINITE.json": "32c38a55b268278754fb257ae9f8c46ed08129df7d3f9275c90e62ab4b3fc1ef",
 }
 
+MIN_CAP = "0.00387992804510259"
+MIN_CLAIM = "0.00387992804502"
+MIN_HASHES = {
+    "APPLICATION.json": "352b7a0f315109de8aeac4e5d2658e113e059223375dda89e854aedbe147512c",
+    "AUDIT.json": "1117059e87a68af9f12e5fc756bd067efe2bbac88a1e368be1a24eebba8f3660",
+    "adapter/binary/FINITE.json": "c0d0d59aab0cab2e0e014010b3c73ba25c9c6adfe8426a5195f3d27ce178387e",
+}
+
 
 def falling_ratios(p, q, a, b, beta):
     # Stirling numbers convert the ordinary powers to falling factorials.
@@ -80,6 +88,48 @@ def component(base, prior, proof, seven_stages, check):
     return {"installed": CAP, "old_fixed_loss_ceiling": str(ceiling)}
 
 
+
+def minimum_component(base, prior, proof, seven_stages, check):
+    p, h, g = 32, prior["h"], 5
+    q, a, b, beta = map(Q, (prior["q"],prior["A_bar"],prior["B_under"],prior["beta"]))
+    eta_low, eta_high = map(Q,base["uniform"]["eta"])
+    check((p,h,g) == (proof["p_minimum"],proof["normalization"],proof["negative_height"]) and
+          proof["tail_shift"] == 0 and proof["failed_previous_power"] == p-1, "fixed minimum-power test")
+    check(0 < q < 1 and 0 < a and a+1 < b and beta >= 1,
+          "every normalized realization lies between zero and one for every height")
+    ratios = falling_ratios(p,q,a,b,beta)
+    largest = max(ratios)
+    check(not proof["prefix_ratios"] and len(ratios) == 33 and ratios == list(map(Q,proof["shifted_ratios"])),
+          "33 unshifted Stirling and Newton coefficients agree")
+    check(eta_low == Q(proof["eta_lower"]) and largest == Q(proof["uniform_contraction_bound"]) and
+          ratios.index(largest) == 6 and largest < eta_low, "maximum contraction ratio")
+    # At this particular height a failing ratio at p-1 excludes all smaller
+    # nonnegative powers because every realized normalized base is in (0,1).
+    n = g+1
+    failure = sum(comb(n,k)*q**k*(1-q)**(n-k)*((a+k)/(b+beta*g))**(p-1) for k in range(n+1))
+    check(failure == Q(proof["negative_ratio"]) and
+          failure > eta_high == Q(proof["eta_upper"]), "preceding power fails at height five")
+    H = base["uniform"]["H"]
+    ambient = 134**451
+    check(Q(h+ambient.bit_length()-1,h)**p > Q(base["uniform"]["ambient_power"][1]), "entire base interval")
+    top, bottom = (H+h)**p, h**p
+    J = (top//bottom).bit_length()
+    loss = Q(J,H)
+    check(J == proof["uniform_J"] == proof["minimum_loss_at_this_power"] == 1257 and
+          (bottom << (J-1)) <= top < (bottom << J) and loss == Q(proof["uniform_loss"]) and
+          (H+h)*loss > 2*p, "minimal integral charge and all widths above carrier")
+    check(Q(prior["uniform_loss"]) == Q(1768,H), "predecessor power-45 fixed loss")
+    seven_stages(base,loss,MIN_CAP,check)
+    ceiling = Q(base["raw_crossing"][1]) - Q(1768,H) - Q(7,10**14)
+    old, claim = Q(prior["candidate_grid_claim"]), Q(MIN_CLAIM)
+    check(Q(proof["cap"]) == Q(MIN_CAP) and Q(proof["candidate_grid_claim"]) == claim and
+          ceiling == Q(proof["old_cover_forgiven_upper"]) and claim > ceiling > old and
+          claim-ceiling == Q(proof["separation"]), "directed comparison with p=45")
+    check(claim-old == Q(proof["absolute_gain"]) == Q(43,10**14) and
+          100*(claim-old)/old == Q(proof["exact_relative_percent"]), "exact prior improvement")
+    return {"installed": MIN_CAP, "old_fixed_loss_ceiling": str(ceiling)}
+
+
 def main():
     if sys.version_info[:2] != (3,12) or not __debug__:
         raise RuntimeError("use CPython 3.12 with assertions")
@@ -114,6 +164,22 @@ def main():
               Q(full["delta"]) == Q(113,10**14), "signed consumer comparison with #7863")
         print("PASS_COMPLETE_WEIGHTED_EXITS", f"claim={full['claim']}",
               f"delta_vs_endpoint={expected['absolute_gain']}", f"delta_vs_7863={full['delta']}", flush=True)
+
+        check(digest(HERE/"RESULT.json") == "f2218a9eb212ef7f0ae1c993297df50c401bb6b24537318c2570cea54d6d2b92",
+              "complete power-45 predecessor at #8026 a24daf62")
+        minimum = json.loads((HERE/"MINIMUM.json").read_bytes())
+        min_bound = minimum_component(base,expected,minimum,seven_stages,check)
+        min_out = work/"minimum-consumer"
+        result = old["consumer"](source,min_out,min_bound,cap=MIN_CAP,expected_claim=MIN_CLAIM,
+                                 expected_hashes=MIN_HASHES)
+        min_audit = work/"minimum.json"
+        subprocess.run([sys.executable,"-IB",HERE/"minimum_audit.py",source,HERE/"RESULT.json",min_audit,
+                        "--power","32","--shift","0","--failed-height","5","--outer",min_out],check=True)
+        check(json.loads(min_audit.read_bytes()) == minimum and
+              Q(result["tested"]) == Q(minimum["candidate_tested"]) and
+              Q(result["delta"]) == Q(156,10**14), "independent minimum-power result and signed consumer")
+        print("PASS_COMPLETE_WEIGHTED_MINIMUM", f"claim={result['claim']}",
+              f"delta_vs_power45={minimum['absolute_gain']}", f"delta_vs_7863={result['delta']}", flush=True)
 
 
 if __name__ == "__main__":

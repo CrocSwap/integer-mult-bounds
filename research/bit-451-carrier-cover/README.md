@@ -1,6 +1,6 @@
 # Sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804459**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804502**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
@@ -9,7 +9,12 @@ Under the same premises as #7863, the deterministic fixed-multitape multiplier f
 | Cover and fractional majorant at 80fcb342 | 0.00387992804359 |
 | Cover and normalized majorant at f1649c6d | 0.00387992804406 |
 | Complete integer-scale endpoint at 2f82ecc8 | 0.00387992804422 |
-| Weighted paid exits | 0.00387992804459 |
+| Weighted paid exits at a24daf62 | 0.00387992804459 |
+| Minimum integer power for the fixed comparison law | 0.00387992804502 |
+
+For the fixed weighted Bernoulli comparison, p=32 is the smallest admissible positive integer power. The actual height G=5 rules out p=31 for this upper estimate and monotonicity excludes every smaller integer power. All 33 coefficients pass at p=32. The resulting uniform loss is 1257/H and ordinary cap is 0.00387992804510259. The exact gain over p=45 is 0.00000000000043, or (4300/387992804459)%, approximately 0.0000000110826797574%. The total gain over #7863 is 0.00000000000156, or (2600/64665467391)%, approximately 0.0000000402069312247%. The exclusion applies to the Bernoulli comparison with these constants. [Minimum-power proof](weighted/MINIMUM.md) · [Independent receipt](weighted/MINIMUM.json)
+
+## Weighted paid exits
 
 The actual paid ranks support a tighter estimate of the leaf count. At p=45 and h=1804, the directed mean including split charges is at most 0.748475924225778. All 46 coefficient bounds hold at every recursion depth. This reduces the uniform charge from 2218/H to 1768/H and gives ordinary cap 0.00387992804467760. The complete consumer tests 0.00387992804466. The incremental gain is 0.00000000000037 over the integer-scale endpoint, exactly (1850/193996402211)% or approximately 0.00000000953625932706%. The cumulative increase over #7863 is 0.00000000000113, exactly (5650/193996402173)% or approximately 0.0000000291242514640%. [Weighted proof and source attribution](weighted/PROOF.md) · [Independent coefficients and receipt](weighted/RESULT.json)
 
@@ -57,4 +62,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-For the weighted mean bound at fixed h=1804, how small can the positive integer log power be? First test the limiting large-depth coefficient and base endpoint, then check finite-depth domination. Keep the signed split, carrier, cover and physical transfer fixed. [Weighted exit theorem](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/WEIGHTED-EXITS.md)
+The first open case is power 31 at height five. Charge the post-split second log moment on the original paid jobs, then check whether that extra information restores contraction at the failing height and every other depth. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
