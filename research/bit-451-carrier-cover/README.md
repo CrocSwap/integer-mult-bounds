@@ -1,6 +1,6 @@
 # Sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804502**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804505**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
@@ -10,7 +10,12 @@ Under the same premises as #7863, the deterministic fixed-multitape multiplier f
 | Cover and normalized majorant at f1649c6d | 0.00387992804406 |
 | Complete integer-scale endpoint at 2f82ecc8 | 0.00387992804422 |
 | Weighted paid exits at a24daf62 | 0.00387992804459 |
-| Minimum integer power for the fixed comparison law | 0.00387992804502 |
+| Minimum integer power for the fixed comparison law at 1ef5792e | 0.00387992804502 |
+| Second moment of the actual paid jobs | 0.00387992804505 |
+
+The original 451-factor word bounds the second moment of the completed paid log ranks by 3/5, including the full split surcharge. This admits power 31 at height five and at every other integer height. All 32 coefficient bounds pass. The largest coefficient ratio occurs at index four and is below 0.000058149, against capacity greater than 0.0001888872. The uniform loss falls from 1257/H to 1218/H. The ordinary cap is 0.00387992804513502 and the complete signed consumer tests 0.00387992804512. The exact gain over power 32 is 0.00000000000003, or (50/64665467417)%, approximately 0.000000000773210215548%. The cumulative gain over #7863 is 0.00000000000159, or (2650/64665467391)%, approximately 0.0000000409801414405%. [Proof and source credits](weighted/SECOND.md) · [Independent receipt](weighted/SECOND.json)
+
+## Fixed mean comparison
 
 For the fixed weighted Bernoulli comparison, p=32 is the smallest admissible positive integer power. The actual height G=5 rules out p=31 for this upper estimate and monotonicity excludes every smaller integer power. All 33 coefficients pass at p=32. The resulting uniform loss is 1257/H and ordinary cap is 0.00387992804510259. The exact gain over p=45 is 0.00000000000043, or (4300/387992804459)%, approximately 0.0000000110826797574%. The total gain over #7863 is 0.00000000000156, or (2600/64665467391)%, approximately 0.0000000402069312247%. The exclusion applies to the Bernoulli comparison with these constants. [Minimum-power proof](weighted/MINIMUM.md) · [Independent receipt](weighted/MINIMUM.json)
 
@@ -52,6 +57,8 @@ The h=1024 scientific marker is `PASS_COMPLETE_NORMALIZED_MAJORANT`. The normali
 
 The pointwise endpoint marker is `PASS_COMPLETE_INTEGER_SCALE_ENDPOINT`. The endpoint application SHA-256 is `d8afd25d84dd2721549686ee5a03ce5bddcf2a7957037d700e43e23b04f56f7e` and the expanded audit SHA-256 is `af789e7e42411cfbadf411488de43626e6e23a44ccfb7d2027d488066db3691d`.
 
+The third registered command reproduces all three weighted proofs. Look for `PASS_COMPLETE_WEIGHTED_EXITS`, `PASS_COMPLETE_WEIGHTED_MINIMUM` and `PASS_COMPLETE_SECOND_MOMENT`. The last application SHA-256 is `038a693200287638feae8d6888d4834577e3eb4b2d95cd75ea607605f1c989a0` and the expanded audit SHA-256 is `bf063d3cee7cdde73575265d2e73f430f71dd98abf611bd63cddcbc8ed0e78e1`.
+
 The archived source has SHA-256 `5f9d9c378a1bddccb2e42ac6453716fa950f19bd71f6181a9606f5eb68b022b3`. The verifier checks all 202 entries in its source manifest. The regenerated application and audit hashes are `e0a28d730e5a63070221a170c3e5e10abdf4ed552d67fbd47d1f4ec157b736ad` and `51963b588680e3150b97b156a461c9002368c40752b73bc4a6b03f94aca97c0b`. [Exact predecessor archive](https://github.com/CrocSwap/integer-mult-bounds/blob/b3e4412fe01f07dc58305616fabf96345f49a781/research/p104-bit-451-factor-schedule/replay.tar.gz)
 
 ## Credit and overlap
@@ -62,4 +69,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-The first open case is power 31 at height five. Charge the post-split second log moment on the original paid jobs, then check whether that extra information restores contraction at the failing height and every other depth. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
+The next test is whether a single rational distribution on the 1/16 grid can dominate the complete tilted paid log ranks and admit a power below 31. Bound the raw 451-fold tail at the 15 interior thresholds, charge every split, then check the all-height inequalities. Lower powers under this new comparison remain open. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)

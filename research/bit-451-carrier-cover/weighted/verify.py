@@ -181,6 +181,9 @@ def main():
         print("PASS_COMPLETE_WEIGHTED_MINIMUM", f"claim={result['claim']}",
               f"delta_vs_power45={minimum['absolute_gain']}", f"delta_vs_7863={result['delta']}", flush=True)
 
+        second = runpy.run_path(str(HERE/"second.py"))
+        second["run"](source, work, old, seven_stages, base)
+
 
 if __name__ == "__main__":
     main()
