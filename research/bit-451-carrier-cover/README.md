@@ -1,6 +1,6 @@
 # Sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804422**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804459**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
@@ -8,7 +8,12 @@ Under the same premises as #7863, the deterministic fixed-multitape multiplier f
 | Prior #8026 cover proof at 355f3218 | 0.00387992804356 |
 | Cover and fractional majorant at 80fcb342 | 0.00387992804359 |
 | Cover and normalized majorant at f1649c6d | 0.00387992804406 |
-| Complete integer-scale endpoint | 0.00387992804422 |
+| Complete integer-scale endpoint at 2f82ecc8 | 0.00387992804422 |
+| Weighted paid exits | 0.00387992804459 |
+
+The actual paid ranks support a tighter estimate of the leaf count. At p=45 and h=1804, the directed mean including split charges is at most 0.748475924225778. All 46 coefficient bounds hold at every recursion depth. This reduces the uniform charge from 2218/H to 1768/H and gives ordinary cap 0.00387992804467760. The complete consumer tests 0.00387992804466. The incremental gain is 0.00000000000037 over the integer-scale endpoint, exactly (1850/193996402211)% or approximately 0.00000000953625932706%. The cumulative increase over #7863 is 0.00000000000113, exactly (5650/193996402173)% or approximately 0.0000000291242514640%. [Weighted proof and source attribution](weighted/PROOF.md) · [Independent coefficients and receipt](weighted/RESULT.json)
+
+## Fixed integer-scale endpoint
 
 At fixed p=60 and θ=13/15, the shift and base guards admit exactly the positive integer scales 1 through 9012. Scale 9012 attains the minimum integer carrier loss numerator, 2218. It gives the ordinary cap 0.00387992804430335, tested at 0.00387992804429. The complete rate rises by 0.00000000000016 over the normalized proof, exactly (800/193996402203)% or approximately 0.00000000412378781728%. The cumulative increase over #7863 is 0.00000000000076, exactly (3800/193996402173)% or approximately 0.0000000195879921351%. [Endpoint proof](normalized/ENDPOINT.md) · [Exact receipt](normalized/ENDPOINT.json)
 
@@ -40,7 +45,7 @@ The second registered command emits `PASS_COMPLETE_FRACTIONAL_MAJORANT` after re
 
 The h=1024 scientific marker is `PASS_COMPLETE_NORMALIZED_MAJORANT`. The normalized application and expanded audit hashes are `cac0e76c9eb370729f35974088b70a57c48238153f99fca69cb113593bc6163b` and `e68fc5f619a25881fb1d6f064f45a4cf8f161545d63c0dd7f550c1f7d48d3aaa`.
 
-The final marker is `PASS_COMPLETE_INTEGER_SCALE_ENDPOINT`. The endpoint application SHA-256 is `d8afd25d84dd2721549686ee5a03ce5bddcf2a7957037d700e43e23b04f56f7e` and the expanded audit SHA-256 is `af789e7e42411cfbadf411488de43626e6e23a44ccfb7d2027d488066db3691d`.
+The pointwise endpoint marker is `PASS_COMPLETE_INTEGER_SCALE_ENDPOINT`. The endpoint application SHA-256 is `d8afd25d84dd2721549686ee5a03ce5bddcf2a7957037d700e43e23b04f56f7e` and the expanded audit SHA-256 is `af789e7e42411cfbadf411488de43626e6e23a44ccfb7d2027d488066db3691d`.
 
 The archived source has SHA-256 `5f9d9c378a1bddccb2e42ac6453716fa950f19bd71f6181a9606f5eb68b022b3`. The verifier checks all 202 entries in its source manifest. The regenerated application and audit hashes are `e0a28d730e5a63070221a170c3e5e10abdf4ed552d67fbd47d1f4ec157b736ad` and `51963b588680e3150b97b156a461c9002368c40752b73bc4a6b03f94aca97c0b`. [Exact predecessor archive](https://github.com/CrocSwap/integer-mult-bounds/blob/b3e4412fe01f07dc58305616fabf96345f49a781/research/p104-bit-451-factor-schedule/replay.tar.gz)
 
@@ -52,4 +57,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-Can the distribution of actual paid exits improve the pointwise exit estimate? First recover the paid log moment on the unchanged 451-factor split, charging all full slabs and remainders. Keep the source complement, catalogue, physical stock and precision hypotheses fixed. [Weighted exit theorem](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/WEIGHTED-EXITS.md)
+For the weighted mean bound at fixed h=1804, how small can the positive integer log power be? First test the limiting large-depth coefficient and base endpoint, then check finite-depth domination. Keep the signed split, carrier, cover and physical transfer fixed. [Weighted exit theorem](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/WEIGHTED-EXITS.md)
