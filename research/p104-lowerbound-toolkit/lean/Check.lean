@@ -404,3 +404,27 @@ import All
 #print axioms CallerTight.sumD_G_singular
 #print axioms CallerTight.pairCoverage_needs_tight
 #print axioms CallerTight.sumD_cover_inside
+-- discharge lane: SCHEMACOST
+#print axioms CertCaller.cdat_hist
+#print axioms SchemaCost.GramB.jb
+#print axioms SchemaCost.GramA.ja
+#print axioms SchemaCost.gramB_hp
+#print axioms SchemaCost.gramB_hpq
+#print axioms SchemaCost.gramA_hp
+#print axioms SchemaCost.gramA_hpq
+#print axioms SchemaCost.gB_pos
+#print axioms SchemaCost.gB_len
+#print axioms SchemaCost.gA_pos
+#print axioms SchemaCost.price_eq_item
+#print axioms SchemaCost.rowRank_neg1
+#print axioms SchemaCost.total_le
+#print axioms SchemaCost.repo_eq
+#print axioms SchemaCost.repo_ge
+#print axioms SchemaCost.repo_le
+#print axioms SchemaCost.repo_eq_of_empty
+#print axioms SchemaCost.repo_eq_q0
+#print axioms SchemaCost.gramB_real_hp
+#print axioms SchemaCost.gramB_real_hpq
+#print axioms SchemaCost.gramB_real_hpq_gap
+#print axioms SchemaCost.gB_plain
+#print axioms SchemaCost.gB_contacts

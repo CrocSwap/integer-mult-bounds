@@ -97,3 +97,7 @@ import Nov15.EasyWireC
 import Nov15.EasyWireFS4
 import Nov15.CallerTightDeg
 import Nov15.CallerTightNeed
+import Nov15.CertCallerCore
+import Nov15.SchemaCostA
+import Nov15.SchemaCostB
+import Nov15.SchemaCostC
