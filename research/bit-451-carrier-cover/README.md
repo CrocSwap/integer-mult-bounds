@@ -1,6 +1,6 @@
 # Sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804505**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804518**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
@@ -11,7 +11,12 @@ Under the same premises as #7863, the deterministic fixed-multitape multiplier f
 | Complete integer-scale endpoint at 2f82ecc8 | 0.00387992804422 |
 | Weighted paid exits at a24daf62 | 0.00387992804459 |
 | Minimum integer power for the fixed comparison law at 1ef5792e | 0.00387992804502 |
-| Second moment of the actual paid jobs | 0.00387992804505 |
+| Second moment of the actual paid jobs at 47f5718d | 0.00387992804505 |
+| Paid ranks bounded on a sixteenth grid | **0.00387992804518** |
+
+One rational distribution bounds the paid log ranks on the original 451-factor word, including the positive cost of splitting paid jobs. Direct convolution and a separate coefficient proof agree that power 27 suffices at every integer height. The limiting ratio rules out powers up through 26 for this distribution. The uniform loss falls from 1218/H to 1061/H. All seven ordinary stages give a cap of 0.00387992804526559. The complete signed application tests 0.00387992804525. The exact gain over the preceding proof is 0.00000000000013, or (260/77598560901)%, approximately 0.00000000335057760068%. Over #7863 it is 0.00000000000172, or (8600/193996402173)%, approximately 0.0000000443307190426%. [Proof and source credits](grid/PROOF.md) · [Independent receipt](grid/RESULT.json)
+
+## Charged second moment
 
 The original 451-factor word bounds the second moment of the completed paid log ranks by 3/5, including the full split surcharge. This admits power 31 at height five and at every other integer height. All 32 coefficient bounds pass. The largest coefficient ratio occurs at index four and is below 0.000058149, against capacity greater than 0.0001888872. The uniform loss falls from 1257/H to 1218/H. The ordinary cap is 0.00387992804513502 and the complete signed consumer tests 0.00387992804512. The exact gain over power 32 is 0.00000000000003, or (50/64665467417)%, approximately 0.000000000773210215548%. The cumulative gain over #7863 is 0.00000000000159, or (2650/64665467391)%, approximately 0.0000000409801414405%. [Proof and source credits](weighted/SECOND.md) · [Independent receipt](weighted/SECOND.json)
 
@@ -59,6 +64,8 @@ The pointwise endpoint marker is `PASS_COMPLETE_INTEGER_SCALE_ENDPOINT`. The end
 
 The third registered command reproduces all three weighted proofs. Look for `PASS_COMPLETE_WEIGHTED_EXITS`, `PASS_COMPLETE_WEIGHTED_MINIMUM` and `PASS_COMPLETE_SECOND_MOMENT`. The last application SHA-256 is `038a693200287638feae8d6888d4834577e3eb4b2d95cd75ea607605f1c989a0` and the expanded audit SHA-256 is `bf063d3cee7cdde73575265d2e73f430f71dd98abf611bd63cddcbc8ed0e78e1`.
 
+The fourth registered command reconstructs the grid weights, checks the boundary powers and reruns the complete signed application and its invoice controls. Its final marker is `PASS_COMPLETE_DYADIC_GRID`. The application and audit SHA-256 values are `9300f140d1ad01f3e0177402b5f361619191229a22e353a2e36de5a597895db2` and `a0d962f26dc7a623a8636b1e8670690227e627588b2d34b952edcff164ff9326`.
+
 The archived source has SHA-256 `5f9d9c378a1bddccb2e42ac6453716fa950f19bd71f6181a9606f5eb68b022b3`. The verifier checks all 202 entries in its source manifest. The regenerated application and audit hashes are `e0a28d730e5a63070221a170c3e5e10abdf4ed552d67fbd47d1f4ec157b736ad` and `51963b588680e3150b97b156a461c9002368c40752b73bc4a6b03f94aca97c0b`. [Exact predecessor archive](https://github.com/CrocSwap/integer-mult-bounds/blob/b3e4412fe01f07dc58305616fabf96345f49a781/research/p104-bit-451-factor-schedule/replay.tar.gz)
 
 ## Credit and overlap
@@ -69,4 +76,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-The next test is whether a single rational distribution on the 1/16 grid can dominate the complete tilted paid log ranks and admit a power below 31. Bound the raw 451-fold tail at the 15 interior thresholds, charge every split, then check the all-height inequalities. Lower powers under this new comparison remain open. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
+Can the actual 451-fold paid log moments admit a smaller power before rounding to the sixteenth grid? Bound those moments before splitting, charge the full positive uplift and check all heights at power 23. This extension has no certified price here. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
