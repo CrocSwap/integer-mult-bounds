@@ -40,6 +40,7 @@ def main():
         from strong_binary import native_word
         from strong_complex import word, load_changed
         from resources import all_profiles
+        from prior_setup import compare
         from check_linear_geometry import run
         from inputs.triangular.multiplier import precision
 
@@ -51,6 +52,7 @@ def main():
         assert receipt == json.loads((HERE / "REQUIREMENTS.json").read_bytes())
         print(json.dumps(receipt, sort_keys=True))
         print(run(precision))
+        print(compare(receipt))
     elif mode == "band":
         runpy.run_path(str(HERE / "check_band.py"), run_name="__main__")
         from check_epoch_reentry import trial

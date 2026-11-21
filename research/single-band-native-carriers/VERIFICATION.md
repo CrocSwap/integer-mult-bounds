@@ -10,7 +10,7 @@ Each of the eight checks prints `PASS_NATIVE_SCALE` and its case name. The repos
 
 | Check | What it establishes |
 | --- | --- |
-| price | Reconstructs both changed circuits. Recomputes the three installations, funded stages, positive allowances, reserves and full outer entrances. Checks 1,060 geometry and precision cases, four positive dispatch boundaries, 100 band-divisibility patterns and four generated 349,526-bit sides. |
+| price | Reconstructs both changed circuits. Recomputes the three installations, funded stages, positive allowances, reserves and full outer entrances. Checks 1,060 geometry and precision cases, four positive dispatch boundaries, 100 band-divisibility patterns and four generated 349,526-bit sides. Rebuilds the predecessor’s 107,460 paid labels and checks lower bounds on its actual exit table and expanded stream. |
 | band | Recomputes 90 exact rational flow censuses. Checks ordered simultaneous loans, non-coordinate projectors, nonzero fringe, and a tagged powered source. A rank-323 epoch ran recursively on 128 independent owners, returned to byte 654 from end offset 8,481, read 271,392 bytes and sought through 271,392 bytes. |
 | dense | Compares all 2,097,152 dense Gaussian output entries of a finite physical epoch with independent spectral transforms on all 32 input owners. |
 | binary | Checks all 636 binary frames, 2,352 projector differences, 44,825 frame instructions and 3,433 private clears. The 36-call word serves 104,904 paid occurrences and returns 18,906 labelled outputs. One- and two-column probes use moduli 3 and 9. A separate rational log/exp enclosure reconstructs both prices from raw source events. Restoring the higher-rate source's old productive cutoff defeats its certificate. |
