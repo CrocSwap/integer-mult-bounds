@@ -6,7 +6,7 @@ A literal owner-432 retarget ties after losing one paid and one productive grade
 
 The source archive contains the exact pins, proof, licenses, commands and control outcomes.
 
-Archive SHA-256 `05db518349c9f4866001f0e887f13a8183b93a8e57b0930c2e0bf0bb1019e245`.
+Archive SHA-256 `0f95d67bb1b26738ccd8474d64879a666e4e5f764f0e2d750c5dccd310f5b27c`.
 
 Unpack in a clean directory, validate `sha256sum -c SHA256SUMS`, and run the extracted README commands.
 
