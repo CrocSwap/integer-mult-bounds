@@ -1,0 +1,46 @@
+theorem foldl_testBit (l : List Nat) : ∀ (init i : Nat),
+    (l.foldl (fun a j => a ||| 2 ^ j) init).testBit i = (init.testBit i || l.contains i) := by
+  induction l with
+  | nil => intro init i; simp
+  | cons j js ih =>
+    intro init i
+    simp only [List.foldl_cons, ih, Nat.testBit_or, Nat.testBit_two_pow, List.contains_cons]
+    cases h : init.testBit i <;> cases h2 : decide (j = i) <;> simp_all [eq_comm]
+
+theorem maskOfList_testBit (l : List Nat) (i : Nat) : (maskOfList l).testBit i = l.contains i := by
+  unfold maskOfList
+  rw [foldl_testBit]; simp
+
+/-- HEADLINE (frames): a strictly increasing list of 8 port indices < 104 whose roots are pairwise orthogonal
+    (an 8-subset of the ports that is an orthogonal frame of E8) is exactly a listed frame. -/
+theorem frames_exact (l : List Nat) :
+    (l.length = 8 ∧ l.Sublist (List.range 104) ∧ l.Pairwise (fun a b => dot (rootAt a) (rootAt b) = 0)) ↔
+      l ∈ frameLists := by
+  unfold frameLists
+  rw [mem_ext]
+  unfold Spec
+  have hOK : ∀ a b, a < 104 → b < 104 → (oAdj a b = true ↔ dot (rootAt a) (rootAt b) = 0) := by
+    intro a b ha hb
+    have := adjLit_ok a ha
+    rw [List.all_eq_true] at this
+    have h2 := this b (List.mem_range.2 hb)
+    simp only [beq_iff_eq] at h2
+    rw [h2]; simp
+  constructor
+  · rintro ⟨h1, h2, h3⟩
+    refine ⟨h1, h2, ?_⟩
+    refine h3.imp_of_mem ?_
+    intro a b ha hb h
+    exact (hOK a b (List.mem_range.1 (h2.subset ha)) (List.mem_range.1 (h2.subset hb))).2 h
+  · rintro ⟨h1, h2, h3⟩
+    refine ⟨h1, h2, ?_⟩
+    refine h3.imp_of_mem ?_
+    intro a b ha hb h
+    exact (hOK a b (List.mem_range.1 (h2.subset ha)) (List.mem_range.1 (h2.subset hb))).1 h
+
+/-- the packed masks of FrameCert encode exactly those index sets -/
+theorem frames_mask_iff (m : Nat) : m ∈ FrameCert.frames ↔ ∃ l, l ∈ frameLists ∧ m = maskOfList l := by
+  rw [frames_masks]; simp [eq_comm]
+
+#print axioms DataId.frames_exact
+#print axioms DataId.frames_masks

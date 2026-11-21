@@ -1,0 +1,55 @@
+theorem extAux_split (o : Nat → Nat → Bool) (rec : List Nat → List (List Nat)) :
+    ∀ (n : Nat) (cs : List Nat), extAux o rec cs = extAuxN o rec n cs ++ extAux o rec (cs.drop n) := by
+  intro n
+  induction n with
+  | zero => intro cs; simp [extAuxN]
+  | succ n ih =>
+    intro cs
+    cases cs with
+    | nil => simp [extAuxN, extAux]
+    | cons v vs => simp [extAuxN, extAux, ih]
+
+/-- chunk of the enumeration: first-vertex indices a .. a+n-1 -/
+def ch (a n : Nat) : List (List Nat) := extAuxN oAdj (ext oAdj 7) n ((List.range 104).drop a)
+
+def chunkSpec : List (Nat × Nat) := [(0, 2), (2, 2), (4, 2), (6, 3), (9, 4), (13, 7), (20, 12), (32, 72)]
+
+def chainE (cs : List Nat) : Nat → List (Nat × Nat) → List (List Nat)
+  | _, [] => []
+  | a, (_, n) :: r => extAuxN oAdj (ext oAdj 7) n (cs.drop a) ++ chainE cs (a + n) r
+
+theorem chainE_eq (cs : List Nat) : ∀ (r : List (Nat × Nat)) (a : Nat),
+    extAux oAdj (ext oAdj 7) (cs.drop a) = chainE cs a r ++ extAux oAdj (ext oAdj 7) (cs.drop (a + (r.map Prod.snd).sum)) := by
+  intro r
+  induction r with
+  | nil => intro a; simp [chainE]
+  | cons p r ih =>
+    intro a
+    obtain ⟨_, n⟩ := p
+    rw [extAux_split oAdj (ext oAdj 7) n (cs.drop a), List.drop_drop, chainE, ih (a + n)]
+    simp [List.append_assoc, Nat.add_assoc, Nat.add_comm n]
+
+def chunkList : Nat → List (Nat × Nat) → List (List Nat)
+  | _, [] => []
+  | _, (a, n) :: r => ch a n ++ chunkList 0 r
+
+/-- the frames, as increasing index lists (computed by chunks of the enumeration) -/
+def frameLists : List (List Nat) := chunkList 0 chunkSpec
+
+theorem chainE_chunk : chainE (List.range 104) 0 chunkSpec = frameLists := by
+  unfold frameLists chunkSpec
+  simp only [chainE, chunkList, ch, List.drop_zero]
+  rfl
+
+theorem frameLists_eq : frameLists = ext oAdj 8 (List.range 104) := by
+  have h := chainE_eq (List.range 104) chunkSpec 0
+  have hs : (chunkSpec.map Prod.snd).sum = 104 := by decide
+  rw [hs] at h
+  simp only [List.drop_zero] at h
+  rw [← chainE_chunk]
+  have e : (List.range 104).drop 104 = [] := by simp
+  rw [e] at h
+  simpa [ext, extAux] using h.symm
+
+def chunkMasks : List (Nat × Nat) := [(0, X)]
+

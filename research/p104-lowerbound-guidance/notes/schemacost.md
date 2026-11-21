@@ -1,0 +1,17 @@
+# SCHEMACOST (Nov 20, Sonnet, Lean). Files: lean/decoder-duality/Nov15/SchemaCost{A,B,C}.lean (copies here). runlean rc=0, ~6-17 s, 2.5 GB; no sorry/native_decide; axioms propext/Classical.choice/Quot.sound.
+Not a retread: CALLERASM/JASCHEMA took JB/JA and cHat as hypotheses/definitions; here both are discharged against the verifier source (operator_ring.py validate, data) and the CERTKIT pricing.
+## (1) SCHEMA: DISCHARGED at grammar level [P Lean] (SchemaCostA)
+Grammar (validator `mixed-root-caller/1`): stages == [1..L] in order ("fresh ordered joint stages") => word = P_0 J_0 ... P_{L-1} J_{L-1} P_L; J = A-part [x,y,u,v] pairwise distinct + B-part [s,t] distinct, exact gauge al=-1, be=1/2, HOST2 alpha2=-1; targets dg[:2]==[-1,0] (ODD).
+- Blk/blocks: block normal form; get_jx', pos_gap, len_ge (positions, order, length from the lists).
+- GramB.jb : JB, GramA.ja : JA derived (a,b,alpha /= 0 from the fixed gauge; distinctness from validate; ordering from block structure).
+- gramB_hp / gramB_hpq / gramA_hp / gramA_hpq: the four headlines with NO schema hypothesis and NO odd-target hypothesis (ex = -1 from grammar).
+- Non-vacuity: gB (n=4,k=3, plain ADD/SCALE blocks): jb.pos = (0,4,7), 11 events; gA: ja.pos = (0,7).
+Honest scope: the block form is the Lean image of "validated record list"; the A- and B-words are separate legal words on disjoint register ranges (CALLERWORD §3, not re-proved). "Any J record has Sch" is not proved and false in general (a=0 gauge breaks a0); the validator forbids it.
+Still hypotheses of the headlines (unchanged): Legal, tightness n+2=|Iota|, lambda/=-1 K-blocks, role degree (>=2 / >=1), k thresholds, Q=0 for hp.
+## (2) INVOICE = COST: DISCHARGED for Q=0, ONE-SIDED GAP for thin IDLE_ODD [P Lean] (SchemaCostB/C)
+repo per port := sum_r ((ex%2)+8|mask|)^s - sum_plain price(e)^s - k*C*8^s (C=2 for B, 4 for A; J has zero caller price, contacts are the native 400*8^s: 400 = 96*4+8*2 on #7113).
+- repo_eq_q0: tight and |Iota|=2k => repo = (k/104)*cHat EXACTLY. gramB_real_hp: 104/k * repo <= HP(k).
+- repo_eq: tight => repo = (k/104)*cHatQ + sum_plain dlt, dlt(IDLE_ODD S) = (8|S|)^s[S/={}] + 1 - (8|S|+1)^s >= 0 (0 on QUERY, IDLE_ONE, ADD, ...). repo_ge, repo_le (<= + Q), repo_eq_of_empty.
+- FINDING: cHatQ is a LOWER bound of the repo invoice, not an upper bound, when an IDLE_ODD has a nonempty stage set: the model charges (8d)^s + 1 for the thin, the repo (8d+1)^s < that (subadditivity). #7113 type B has 4 IDLE_ODD with |S|=1: dlt = 8^.99+1-9^.99 = 0.03096 [C]; shift of the ports-weighted ĉ = 8*4*0.03096/17 = 0.0583 [C]. gramB_real_hpq (QUERY-only thins or empty-S IDLE_ODD): 104/k*repo < 128.891; gramB_real_hpq_gap (general): < 128.891 + 104/k*(n-(2k-2)). The Q-term is a crude bound (dlt <= 1); a sharp one needs |S| >= 1 => dlt <= ~0.05.
+- price_eq_item: model price x ports = CertCaller.evItem cdat, op by op; rowRank_neg1: packed ex=-1 slot gives rank 1+8popc. total_le: ports-weighted combination of the two types' bounds.
+NOT derived: that `Cert (cdat T - cdat P - L*(400*8^s+...))` in UniUniversal.kappa_of_cert_dep is applied to exactly this quantity (read, not re-derived); the JSON->Nat packing (CERTKIT); the A/B types' ports-weighted combination for #7113 itself (no Legal #7113 in Lean). A-type cost theorems (gramA_real_*) are not stated; GramA.jm/jc (Cn=4, 2 columns) are proved so they are one-line copies of the B ones.
