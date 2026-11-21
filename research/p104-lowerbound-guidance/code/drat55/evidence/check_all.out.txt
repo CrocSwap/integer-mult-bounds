@@ -1,0 +1,34 @@
+PASS P104 geometry: Q == H beta H^T (mod 2) from labels.txt
+PASS 120 classes distinct mod 2; n_z not a port label (=> row with U=<n_z> serves no port, normalization sound)
+PASS zclauses.pkl == minimal covering masks re-derived from Z4 definition (all 104 ports)  mismatching ports=0, clauses/port 144-172
+PASS tight Z4 vectors (no port value 2) = {+-z : z in Z16}: 32 nonzero  32 nonzero tight vectors, equal to +-Z16 mod 4: True
+PASS price formula: span{h_s : s in S_z} is a hyperplane whose beta-perp is exactly n_z=(1,z) (all 16 z)  hence rank Q[P,S_z] = dim span(P) - [n_z in span(P)] for every port set P (linear algebra)
+PASS perms.pkl: 384 distinct permutations of 0..15
+PASS perms.pkl is a group (identity, closed under composition)
+   fail reasons: []
+PASS each of 384 perms p is realised by T in GL(9,2): n_z T = n_{p z}, h_t T = h_{pp t} (ports permuted), Q invariant, covering clauses map onto themselves  384/384 ok, fails=0
+   => (U_z) -> (U_z T) at row p(z) maps decoders to decoders, preserves dim U_z, [n_z in U_z], hence cost and d-vector d(pz)=d(z)
+regenerated: vars 121916 clauses 472977; file: vars 121916 clauses 472977
+PASS s55.cnf == independently regenerated CNF (spec: RREF subspaces, port membership, nin, covering, totalizer>=89, lex-leader), clause-for-clause
+PASS s55.cnf.map variable names agree with regenerated numbering
+PASS representability: random 16-tuples of subspaces (RREF) satisfy all row/xor/membership clauses with m=[h_t in U_z], nin=[n_z in U_z]  60 random configs
+PASS membership forced: setting m[z,t]=True for h_t not in U_z violates a clause (xor aux are definitional)  40 violations in trials
+PASS totalizer clauses: satisfied by true-count aux for 200 random inputs (no over-constraint); output o_K true iff count>=K=89
+PASS cost identity: sum price = 144 - sum d - sum nin so price<=55 <=> sum(used)+sum(nin) >= 89 (arithmetic: 16 rows x 9 = 144)
+PASS lex-leader block: orbit-lexmax d (d >=lex d o p for all p) always extends to a satisfying aux assignment  120/120 lexmax vectors
+   (info) non-lexmax d violate block under greedy aux: 60/60
+reps: 401 min 1 max 65535
+PASS every cube cnf = byte-identical s55 body + 16 normalization clauses + unit clauses only  412 cubes decoded, bad=[]
+PASS ic/i<mask>.cnf: units fix used[z,8] = [z in mask] for all 16 z, mask == file number, and impose nothing else (d_z<=8 off the mask)  401 cubes
+PASS splits exhaustive & disjoint: every (d_0,d_1) in 0..8 x 0..8 (I=empty) lies in exactly one of the 6 cubes; every d_1 in 0..8 (I={0}, d_0=9) in exactly one of the 4 cubes  I=empty: 81/81 combos once; I={0}: 9/9
+PASS cube masks: ic files {1..} == reps.pkl exactly (401 nonempty I; mask 1 = I={0} is the parent of the i1_d1 split and is NOT used directly), plus I=empty split cubes  401 masks
+indicator orbit-lexmax masks (positions ascending, incl. empty): 402  in reps+{0}: 402 reps not lexmax: 0
+PASS reps.pkl == set of indicator-orbit-lexmax nonempty masks under perms.pkl (position 0 most significant)
+done part 1; ok so far = True
+PASS C exhaustive DFS == python exact DFS on sample (masks 0..400 + 60 feasible ones)  mismatches=[]
+PASS every orbit-lexmax mask is feasible (cubes for reps are not vacuous)
+RESULT: 993 inactive-sets I admit a G-lexmax d; 402 of them are indicator-orbit-lexmax (covered by the original cubes); 591 are NOT covered by the original cubes (partition gap)
+PASS explicit gap witness: d=(9, 8, 8, 8, 7, 9, 8, 8, 7, 7, 8, 7, 8, 7, 7, 8) has I={0,5}, satisfies d>=lex d o p for all 384 p, but mask 33 is not in reps
+ALL CHECKS PASS
+PASS OLD partition (global d-lex-leader + cubes only for indicator-lexmax I) is UNSOUND: LOOSE witness d=(9, 9, 8, 6, 6, 8, 9, 4, 4, 2, 9, 0, 5, 6, 8, 8), I=1091: satisfies all 384 lex constraints, I not in reps, and my DFS lists I as feasible  checker detects the gap (old partition FAILS soundness, as it must)
+OLD-PARTITION-SOUND = False
