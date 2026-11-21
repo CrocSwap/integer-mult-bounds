@@ -1,6 +1,6 @@
 # Sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804518**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804531**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
@@ -12,7 +12,12 @@ Under the same premises as #7863, the deterministic fixed-multitape multiplier f
 | Weighted paid exits at a24daf62 | 0.00387992804459 |
 | Minimum integer power for the fixed comparison law at 1ef5792e | 0.00387992804502 |
 | Second moment of the actual paid jobs at 47f5718d | 0.00387992804505 |
-| Paid ranks bounded on a sixteenth grid | **0.00387992804518** |
+| Paid ranks bounded on a sixteenth grid at 18718411 | 0.00387992804518 |
+| Power 23 from the 451-factor paid tensor moments | **0.00387992804531** |
+
+The paid-rank support and mean bound the first 23 completed moments, including the full excess paid mass. At scale 1804, direct evaluation on 452 binomial atoms matches the independent Stirling expansion. All 24 coefficients pass at every height. The uniform loss falls from 1061/H to 904/H. Seven strict stages give ordinary cap 0.00387992804539617 and the signed consumer tests 0.00387992804538. The gain over the preceding grid proof is **0.00000000000013**, or **0.00000000335057760056911%**, exactly (650/193996402259)%. Over the independently reproduced external peer #7863, the gain is **0.00000000000185**, or **0.0000000476812966446209%**, exactly (9250/193996402173)%. [Proof and source credits](tensor/PROOF.md) · [Independent receipt](tensor/RESULT.json)
+
+## Paid ranks on a sixteenth grid
 
 One rational distribution bounds the paid log ranks on the original 451-factor word, including the positive cost of splitting paid jobs. Direct convolution and a separate coefficient proof agree that power 27 suffices at every integer height. The limiting ratio rules out powers up through 26 for this distribution. The uniform loss falls from 1218/H to 1061/H. All seven ordinary stages give a cap of 0.00387992804526559. The complete signed application tests 0.00387992804525. The exact gain over the preceding proof is 0.00000000000013, or (260/77598560901)%, approximately 0.00000000335057760068%. Over #7863 it is 0.00000000000172, or (8600/193996402173)%, approximately 0.0000000443307190426%. [Proof and source credits](grid/PROOF.md) · [Independent receipt](grid/RESULT.json)
 
@@ -68,6 +73,8 @@ The fourth registered command reconstructs the grid weights, checks the boundary
 
 The archived source has SHA-256 `5f9d9c378a1bddccb2e42ac6453716fa950f19bd71f6181a9606f5eb68b022b3`. The verifier checks all 202 entries in its source manifest. The regenerated application and audit hashes are `e0a28d730e5a63070221a170c3e5e10abdf4ed552d67fbd47d1f4ec157b736ad` and `51963b588680e3150b97b156a461c9002368c40752b73bc4a6b03f94aca97c0b`. [Exact predecessor archive](https://github.com/CrocSwap/integer-mult-bounds/blob/b3e4412fe01f07dc58305616fabf96345f49a781/research/p104-bit-451-factor-schedule/replay.tar.gz)
 
+The fifth command emits `PASS_COMPLETE_TENSOR_MOMENTS` after the independent power-23 replay. Its application SHA-256 is `4b1b348ef8fcb0fb3ea4d9c0224925b1448516c9f8aceb2181ca82713c3159c9`. Its expanded audit SHA-256 is `6a2addc5684f3370f640bfcd84316f90d399fed1909b050e123b21204090a8c6`.
+
 ## Credit and overlap
 
 Clear1nsight supplied the exact 451-factor word and schedule, the #7830 compiler lineage and the #7973 consumer audit. Ali Romman supplied the earlier dual-supplier construction and paired caller. The retained delayed-cover and ambient-cap authors supplied the fallback inequality and stock lemma. Dugongue and Rohan Arun supplied the #7831 and #7835 cutoff schedules used in the predecessor lineage. Cinna Davis supplied earlier balanced CRT and outer proof work. The inherited source notices accompany the archived inputs. This contribution specializes the existing multiplier inequality to the actual carrier, proves the improved seven-stage rate on the same algorithm and independently replays the resulting application. OpenAI Codex materially assisted the reasoning, implementation and replay. [#7863](https://github.com/CrocSwap/integer-mult-bounds/pull/7863) · [#7973](https://github.com/CrocSwap/integer-mult-bounds/pull/7973) · [#7830](https://github.com/CrocSwap/integer-mult-bounds/pull/7830)
@@ -76,4 +83,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-Can the actual 451-fold paid log moments admit a smaller power before rounding to the sixteenth grid? Bound those moments before splitting, charge the full positive uplift and check all heights at power 23. This extension has no certified price here. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
+Can power 21 improve the complete rate at scale 1804? Check the power-20 limiting ratio as a control, then price power 21 and test all 22 of its coefficients. Both powers remain open in this package. [Higher paid log moments](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
