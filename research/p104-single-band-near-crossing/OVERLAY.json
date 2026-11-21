@@ -1,0 +1,64 @@
+{
+  "calibration.py": {
+    "old_sha256": "c36a253ab22f77381fe3e36889c9175680eadfd4a1203f2047141dc7a772f679",
+    "new_sha256": "cca37a0142ef5118fbeef865596c9f4364f9f095e1bf99f2131b5848eef1659b",
+    "edits": [
+      [
+        "    kappa=Fraction(\"0.00389011527141\"),\n)\nPROFILES = {\"compact\": COMPACT, \"high-rate\": HIGH_RATE, \"price-match\": PRICE_MATCH}\n\n\n",
+        "    kappa=Fraction(\"0.00389011527141\"),\n)\nNEAR_CROSSING = replace(\n    HIGH_RATE,\n    rank_logs=tuple(512*h for h in HIGH_RATE.rank_logs),\n    power=320,\n    floor=1 << 44,\n    bit_c=Fraction(17519521755133, 4503599627370496),\n    ordinary=Fraction(\"0.003890115286380239\"),\n    kappa=Fraction(\"0.00389011528633\"),\n)\nPROFILES = {\"compact\": COMPACT, \"high-rate\": HIGH_RATE, \"price-match\": PRICE_MATCH,\n            \"near-crossing\": NEAR_CROSSING}\n\n\n"
+      ]
+    ]
+  },
+  "check_product.py": {
+    "old_sha256": "5ace944e196d730ba966c042ddff6eccd2022e04f721619dfe47f45eefd64177",
+    "new_sha256": "ba04464995caea7b7aed64d265acb47623d3a7a808a6fcc86a904af216dd0fac",
+    "edits": [
+      [
+        "\n\ndef stock_and_public():\n    from dataclasses import replace\n    from calibration import COMPACT\n\n    assert multiply(-741503, 466013) == -345550037539\n    for x in (0, -1, 1, 37, -69, 2**16383 + 5):\n        assert multiply(x, -997) == x * -997\n    # Exercise the production stage body with a feasible rank and all 81 by 81 addresses.\n    profile = replace(COMPACT, rank_logs=(1,))\n    side = 3**4\n    records = bytes((i * 97 + (i >> 4)) % 256 for i in range(side * side))\n",
+        "\n\ndef stock_and_public(selected=None):\n    from dataclasses import replace\n    from calibration import COMPACT\n\n    selected = selected or COMPACT\n    assert multiply(-741503, 466013, profile=selected) == -345550037539\n    for x in (0, -1, 1, 37, -69, 2**16383 + 5):\n        assert multiply(x, -997, profile=selected) == x * -997\n    # Exercise the production stage body with a feasible rank and all 81 by 81 addresses.\n    profile = replace(selected, rank_logs=(1,))\n    side = 3**4\n    records = bytes((i * 97 + (i >> 4)) % 256 for i in range(side * side))\n"
+      ],
+      [
+        "\n\ndef physical_product():\n    from binary_receiver import Receiver\n    from module_atoms import balanced_widths\n",
+        "\n\ndef physical_product(selected=None):\n    from calibration import COMPACT\n    from binary_receiver import Receiver\n    from module_atoms import balanced_widths\n"
+      ],
+      [
+        "    from triangular_ordinary import root_body\n\n    stock_and_public()\n    core = Receiver(2, balanced_widths(1), direct=True)\n    calls = Counter()\n\n",
+        "    from triangular_ordinary import root_body\n\n    selected = selected or COMPACT\n    stock_and_public(selected)\n    core = Receiver(2, balanced_widths(1), direct=True, profile=selected)\n    calls = Counter()\n\n"
+      ],
+      [
+        "            rectangle(restored, dst, 2, 9, prefix, gap, suffix, restrict=True)\n\n    machine = Product((3, 5), 8, 136, exchange)\n    row = one(machine, -741503, 466013)\n    assert calls[\"shuttles\"] == 138 and row[\"H_calls\"] == 157248\n",
+        "            rectangle(restored, dst, 2, 9, prefix, gap, suffix, restrict=True)\n\n    machine = Product((3, 5), 8, 136, exchange, profile=selected)\n    row = one(machine, -741503, 466013)\n    assert calls[\"shuttles\"] == 138 and row[\"H_calls\"] == 157248\n"
+      ]
+    ]
+  },
+  "independent_binary_price.py": {
+    "old_sha256": "1936595a79fbfa14ec74af3b4e521216740d00bd45f379b5e97a1440e5a2aaf9",
+    "new_sha256": "d2eedc523b02188508cca8f030ce9de92b370e8560c7282dea5c478507fb1bef",
+    "edits": [
+      [
+        "        (128, 16, Fraction(2_039, 2**19), Fraction(13, 32), Fraction(1, 10_000)),\n        (228, 15, Fraction(17_108_907_955, 2**42), Fraction(31, 64), Fraction(1311, 10**13)),\n    )\n    floors = []\n",
+        "        (128, 16, Fraction(2_039, 2**19), Fraction(13, 32), Fraction(1, 10_000)),\n        (228, 15, Fraction(17_108_907_955, 2**42), Fraction(31, 64), Fraction(1311, 10**13)),\n        (320, 15, Fraction(17519521755133, 4503599627370496), Fraction(31,64), Fraction(1,2**43)),\n    )\n    floors = []\n"
+      ]
+    ]
+  },
+  "strict_moment.py": {
+    "old_sha256": "899ce86a0e5ae0455ea6cf97934658b2fd31b81d7111cb2bd636ce10e3e7264d",
+    "new_sha256": "4337feda5ec1f42015ec6abd70c60224abeb2765f82610987cbb9c87d37b6109",
+    "edits": [
+      [
+        "            profile.bit_c,\n            Fraction(19, 64),\n            Fraction(31 if profile.power == 228 else 26, 64),\n            profile.power,\n            profile.floor.bit_length() - 2,\n            15 if profile.power == 228 else 16,\n        ),\n        certify(positive, COMPLEX_C, Fraction(19, 64), Fraction(23, 64), COMPLEX_POWER, 14, 16),\n",
+        "            profile.bit_c,\n            Fraction(19, 64),\n            Fraction(26 if profile.power == 128 else 31, 64),\n            profile.power,\n            profile.floor.bit_length() - 2,\n            16 if profile.power == 128 else 15,\n        ),\n        certify(positive, COMPLEX_C, Fraction(19, 64), Fraction(23, 64), COMPLEX_POWER, 14, 16),\n"
+      ]
+    ]
+  },
+  "strong_binary.py": {
+    "old_sha256": "03ffb2075620fe793156e9bd22890185bef21e097abadba3a7d6cb5406051855",
+    "new_sha256": "ceca6107fdead262568399eed9aa17514c5e3f55dea604d6f85fc20a520992e8",
+    "edits": [
+      [
+        "@cache\ndef native_word(power=128):\n    if power not in (128, 228):\n        raise ValueError(\"Select a certified binary power\")\n    raw = binary_ports(graph(), caller())\n",
+        "@cache\ndef native_word(power=128):\n    if power not in (128, 228, 320):\n        raise ValueError(\"Select a certified binary power\")\n    raw = binary_ports(graph(), caller())\n"
+      ]
+    ]
+  }
+}
