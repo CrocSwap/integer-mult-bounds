@@ -19,3 +19,9 @@ Clear1nsight prepared this contribution with substantial OpenAI Codex assistance
 ## Observed local replay
 
 A fresh extraction passed all 28 file hashes. python3 -I -B verify.py regenerated all four frozen forward and adjoint receipts byte for byte and tested priced stock controls with attached old uses.
+
+## Arbitrarily many direct receipts for one higher-grade omission
+
+A companion pools all individually cheaper valid donor stock for 432 one-packet cases. Only forward slot 2944 lies in the full unbudgeted pool. At that slot, 264 singles and 221,815 grade-one triples also fail, extending the result to any number of strictly improving direct scalar receipts in the stated fixed-payload model.
+
+Unpack supplement.tar.gz alongside the original archive and follow ANY-COUNT.md. A clean extraction regenerated all three supplementary receipts byte for byte.
