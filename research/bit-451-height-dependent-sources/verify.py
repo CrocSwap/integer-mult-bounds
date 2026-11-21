@@ -134,7 +134,10 @@ def main():
                 and F(new["delta"]) == F(201,10**14), "old and new signed scope and peer comparison")
         print("PASS_COMPLETE_HEIGHT_DEPENDENT_SOURCE", f"claim={new['claim']}",
               f"delta_vs_p19={proof['absolute_gain']}",f"delta_vs_7863={new['delta']}",flush=True)
-        runpy.run_path(str(HERE/"three-cells/verify.py"))["run"](source,work,legacy,stages,base,new,signed_receipt)
+        cells = runpy.run_path(str(HERE/"three-cells/verify.py"))
+        p17 = cells["run"](source,work,legacy,stages,base,new,signed_receipt)
+        runpy.run_path(str(HERE/"small-remainders/verify.py"))["run"](
+            source,work,legacy,stages,base,p17,signed_receipt,cells["coefficients"])
 
 
 if __name__ == "__main__":

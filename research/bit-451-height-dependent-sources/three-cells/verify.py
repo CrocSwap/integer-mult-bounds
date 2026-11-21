@@ -102,3 +102,4 @@ def run(source, work, legacy, stages, base, known_good, signed_receipt):
             and F(new["delta"]) == F(205,10**14), "signed caller and peer comparison")
     print("PASS_COMPLETE_THREE_CELL_SOURCE", f"claim={new['claim']}", f"delta_vs_p18={proof['absolute_gain']}",
           f"delta_vs_7863={new['delta']}",flush=True)
+    return new
