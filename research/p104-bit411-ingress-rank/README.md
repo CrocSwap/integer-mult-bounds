@@ -6,7 +6,7 @@ A reversible two-packet encoding changes native payloads while preserving every 
 
 The source archive contains the exact pins, proof, licenses, commands and control outcomes.
 
-Archive SHA-256 `5d19cd3bea2c6a622e121f28a5b817d27b28d0dbf94b70b711dfb03e6ca2a86a`.
+Archive SHA-256 `4635284eb48fd523817622abb942abd3459bf6973df1538aff49db76d69fa9d6`.
 
 Unpack in a clean directory, validate `sha256sum -c SHA256SUMS`, and run `python3 -B verify.py`.
 
