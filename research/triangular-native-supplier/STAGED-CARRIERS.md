@@ -45,6 +45,19 @@ request. Its numerical error before rounding remains at most
 `144/B² < 1/2`, where `B=2^ceil(log₂ n)`.
 [Outer numerical and recovery scope](https://github.com/CrocSwap/integer-mult-bounds/blob/46783fbbfc219a3faffbea76f60a2810b85ab75a/research/native-stock-activation/INTEGRATION.md)
 
+The final rank is close to the limit of this particular price proof.
+Put $H_0=234000000000000$ and $f(H)=5+71\log_2(1+H/8192)$.
+Concavity and $f(0)>0$ give $f(H)/H\ge f(H_0)/H_0$ for every
+$0<H\le H_0$. Exact integers give $f(H_0)>2471$. Even granting the
+preceding stage the full source saving $C_0$, the last stage bound of
+this ledger is at most $C_0-(249/250)f(H)/H$. The rational loss at
+$H_0$ already exceeds $C_0-b_6$. Thus no rank $2^H$ with $H\le H_0$
+can certify the retained final ordinary price by this funded forest
+envelope. Our $H_6=236800000000000$ is less than 1.012 times this
+lower comparison. A smaller effective forest loss, a different native
+word, or a different required ordinary price changes the premise.
+[Exact price-floor certificate](lean/CarrierStages.lean)
+
 ## Balance every real component scan
 
 Let `e` denote the width in trits. Put `ρ=1/250` and
@@ -158,6 +171,10 @@ identical quotient at every one of the conservative `2+l` reserved
 levels, this removes a factor `Z^min(2+l,10)`. For `l>8`, at
 least eight of the active coarse depth bounds can use direct bodies.
 Two factors in the comparison come from conservative spare positions.
+For every positive incoming multiple of this reserve, the executed bank
+divides it with zero remainder and leaves a positive multiple of the
+next reserve after the actual floor division of the body. This includes
+surplus inherited rows. [Kernel-checked recursion invariant](lean/CarrierStages.lean)
 
 The body at an entry really issues a native call. At `i>1` the fixed
 floor obeys `R_i≤2E_(i−1)`. The entrance leaves more than
@@ -208,6 +225,27 @@ required at least 2,881,869,654,258,596 in the binary logarithm of
 ternary width. Every outer request has at most `p` bits, and the
 earlier calls cannot increase width. This provides a necessary old
 bound for that specific gate as well as a sufficient new one.
+
+The two sufficient entrances also determine concrete outer dimensions.
+Use the canonical length $n=2^{p_*/6}$ for each one. If its exponent is
+$a$, then $p_*=2^a+2$, $s=a+1$, $b=p_*/6$ and $L=b-a+5$. Put
+$W=64s^2$ and $q=\lceil\log_2(6W)\rceil$. The strict inequalities
+$2^{q-1}<6W<2^q$ and $6a-32<2^{a-q}$ hold at both entries.
+Since $6L=2^a-(6a-32)$, the largest dyadic axis count at most $L/W$
+is exactly $d=2^{a-q}$. The maximum width is
+$\ell=\lceil2^q/6\rceil$. Indeed $2^q$ has residue 2 or 4 modulo six,
+and the subtracted correction in $L/d$ is less than one sixth.
+
+| At each construction's sufficient entrance | PR #7914 | New construction |
+| --- | ---: | ---: |
+| $\log_2 d$ | 3839999999999887 | 355763540965158 |
+| $\ell$ for the largest padded side $2^\ell$ | 1730765619511609209510165443073366 | 13521606402434446949298167524011 |
+| Logarithm of the private compiler upper bound | 15461882265600016106127360000004194304 | 132715849533509598534716307019923456 |
+
+The first two rows give the actual selected dimensions at these lengths.
+The third applies the private compiler clock to them. Its coefficient
+tables are still prohibitive. At equal input length the two geometries
+have the same padded extent. [Exact symbolic controller](first_peak.py)
 
 At the first eligible precision `p*=6ceil(2^A/6)`, every ordinary
 width obeys `log₂ e<A+1=s`. Put `U_6=s` and `U_i=a_(i+1)` for

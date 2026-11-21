@@ -3,6 +3,22 @@
 from staged_carriers import RANK_LOGS, strong_precision_log
 
 
+def entrance_geometry(exponent):
+    """Evaluate the exact controller at n = 2^(p/6) without allocating n."""
+    assert exponent > 8 and pow(2, exponent, 6) == 4
+    s = exponent + 1
+    minimum = 64 * s**2
+    q = (6 * minimum - 1).bit_length()
+    gap = 6 * exponent - 32
+    assert 1 << (q - 1) < 6 * minimum < 1 << q
+    assert exponent - q >= gap.bit_length() and (1 << q) % 6 in (2, 4)
+    return {
+        "log2_dyadic_axis_count": exponent - q,
+        "largest_padded_axis_log2": ((1 << q) + 5) // 6,
+        "private_compiler_log2_upper": (1 << 20) * (s + 1) ** 2,
+    }
+
+
 def receipt():
     a = strong_precision_log()
     s = a + 1
@@ -34,6 +50,8 @@ def receipt():
         "required_margin_bit_length": margin.bit_length(),
         "old_guard_minus_A_minus_4": old_guard - a - 4,
         "old_matrix_exponent_minus_A_minus_2": old_matrix_log - a - 2,
+        "new_geometry_at_sufficient_entrance": entrance_geometry(a),
+        "previous_geometry_at_sufficient_entrance": entrance_geometry(3_840_000_000_000_000),
     }
 
 

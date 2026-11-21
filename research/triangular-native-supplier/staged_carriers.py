@@ -109,6 +109,9 @@ def receipt():
     log_s = (s - 1).bit_length()
     assert s - 100 - 16 * (log_s + 1) - COMPLEX_LOG - 2 >= cuts[-1]
     old_h = 240_000_000_000_000
+    ledger_floor = 234_000_000_000_000
+    assert 32 * (8192 + ledger_floor) ** 71 > 1 << (923 + 2471)
+    assert Fraction(249 * 2471, 250 * ledger_floor) > SOURCE - ORDINARY
     old_six_log = 2_881_869_654_258_596
     direct_binary_row_log = 1050 * sum(RANK_LOGS) + 448 * (3 * COMPLEX_LOG + s + 1)
     assert direct_binary_row_log < 2**59
@@ -117,6 +120,7 @@ def receipt():
         "complete_kappa": str(KAPPA),
         "stage_price_debits": [row[1] for row in prices()],
         "rank_log2": list(RANK_LOGS),
+        "last_rank_log2_strict_lower_for_same_envelope_and_ordinary_price": ledger_floor,
         "stage_rates_in_units_of_1e_minus_18": [int(row[3] * 10**18) for row in prices()],
         "log2_trit_entries": list(cuts),
         "log2_public_precision_sufficient_connected": strong_precision_log(),

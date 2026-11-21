@@ -152,3 +152,76 @@ end
 #print axioms connected_arithmetic
 #print axioms stage_reserve
 end TriangularStages
+
+namespace TriangularReserve
+
+def rows (owners charts height : ℕ) : ℕ := owners^(2+height) * charts^(height-8)
+
+def issued (rank owners charts atoms : ℕ) : ℕ :=
+  if atoms ≤ rank^8 then owners else owners*charts
+
+/-- One fresh bank leaves all rows needed by the next coarse height. -/
+theorem bank_divides (rank owners charts atoms h : ℕ) (hr : 0 < rank)
+    (hc : atoms ≤ rank^(h+1)) :
+    issued rank owners charts atoms * rows owners charts h ∣ rows owners charts (h+1) := by
+  have he : 2+(h+1) = (2+h)+1 := by omega
+  by_cases h8 : h < 8
+  · have near : atoms ≤ rank^8 := hc.trans (Nat.pow_le_pow_right hr (by omega))
+    have branch : issued rank owners charts atoms = owners := by simp [issued, near]
+    rw [branch]
+    apply dvd_of_eq
+    simp only [rows, he, show h-8 = 0 by omega, show h+1-8 = 0 by omega, pow_zero, mul_one]
+    rw [pow_succ, Nat.mul_comm]
+  · have heq : h+1-8 = (h-8)+1 := by omega
+    by_cases near : atoms ≤ rank^8
+    · have branch : issued rank owners charts atoms = owners := by simp [issued, near]
+      refine ⟨charts, ?_⟩
+      rw [branch]
+      simp only [rows, he, heq, pow_succ]
+      ring
+    · have branch : issued rank owners charts atoms = owners*charts := by simp [issued, near]
+      rw [branch]
+      apply dvd_of_eq
+      simp only [rows, he, heq, pow_succ]
+      ring
+
+/-- This is the successful divmod in the weighted receiver for all surplus multiplicities. -/
+theorem funded_child (rank owners charts atoms h available : ℕ)
+    (hr : 0 < rank) (ho : 0 < owners) (hz : 0 < charts)
+    (ha : 0 < available) (hc : atoms ≤ rank^(h+1)) (fund : rows owners charts (h+1) ∣ available) :
+    atoms / rank ≤ rank^h ∧ available % issued rank owners charts atoms = 0 ∧
+      0 < available / issued rank owners charts atoms ∧
+      rows owners charts h ∣ available / issued rank owners charts atoms := by
+  let I := issued rank owners charts atoms
+  have hi : 0 < I := by
+    dsimp [I, issued]; split <;> positivity
+  obtain ⟨q, hq⟩ := dvd_trans (bank_divides rank owners charts atoms h hr hc) fund
+  change available = I * rows owners charts h * q at hq
+  have measured : available = (rows owners charts h * q) * I := by rw [hq]; ring
+  have hqpos : 0 < rows owners charts h * q := by
+    by_contra! hn
+    have zero : rows owners charts h * q = 0 := by omega
+    rw [zero, Nat.zero_mul] at measured
+    omega
+  refine ⟨?_, ?_, ?_, q, ?_⟩
+  · calc atoms/rank ≤ rank^(h+1)/rank := Nat.div_le_div_right hc
+         _ = rank^h := by rw [pow_succ]; exact Nat.mul_div_cancel _ hr
+  · change available % I = 0
+    rw [measured, Nat.mul_mod_left]
+  · change 0 < available / I
+    simpa [measured, Nat.mul_div_cancel _ hi] using hqpos
+  · change available / I = _
+    rw [measured, Nat.mul_div_cancel _ hi]
+
+set_option exponentiation.threshold 4096 in
+/-- The retained envelope cannot fund the required ordinary price at this rank. -/
+theorem price_floor_certificate :
+    2^(923+2471) < 32*(8192+234000000000000 : ℕ)^71 ∧
+      (249 : ℚ)*2471/(250*234000000000000) >
+        (3879928046148-3879928035646 : ℚ)/10^15 := by
+  norm_num
+
+#print axioms price_floor_certificate
+#print axioms bank_divides
+#print axioms funded_child
+end TriangularReserve

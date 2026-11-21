@@ -26,6 +26,8 @@ def main():
     if case == "prices":
         execute("staged_carriers.py")
         execute("first_peak.py")
+        execute("check_active_forest.py", prior, source, base)
+        execute("check_uniform_space.py")
         execute("scale_audit.py", source)
     elif case == "quotient":
         execute("check_quotient_route.py", prior, "--large")
@@ -36,6 +38,7 @@ def main():
         execute("check_raw_body.py", source, prior)
     elif case == "whole":
         execute("check_receiver.py")
+        execute("check_active_slots.py")
     elif case == "numerics":
         execute("check_precision.py")
     elif case == "movement":

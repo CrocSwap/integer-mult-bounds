@@ -22,9 +22,9 @@ def main():
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        check=True,
     )
     print(build.stdout, end="", flush=True)
+    build.check_returncode()
     if "Build completed successfully" not in build.stdout or "sorryAx" in build.stdout:
         raise ValueError("Incomplete or admitted proof")
     result = re.findall(

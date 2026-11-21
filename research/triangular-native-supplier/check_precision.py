@@ -1,12 +1,32 @@
 """Check the real width controller at exact outer geometries and the public error transfer."""
 
 from fractions import Fraction
+from math import gcd, prod
 from multiplier import precision
-from outer_schedule import Shape
+from outer_schedule import Shape, parameters, square_axes
 from check_eighth_grid import main as probe_grid
 
 
 def bounds():
+    for exponent, expected in ((16384, 0), (24576, 1), (65536, 2), (131072, 4), (262144, 8)):
+        n = (1 << exponent) + 11
+        shape = parameters(n)
+        assert (shape.count if shape else 0) == expected
+        if shape is None:
+            continue
+        sides = tuple(square_axes(shape.axes()))
+        size = prod(sides)
+        T = 1 << shape.extent_bits
+        b = shape.public // 6
+        assert 3 * T <= 4 * size and 2 * ((n + b - 1) // b) - 2 < size <= 1 << b
+        assert all(gcd(x, y) == 1 for i, x in enumerate(sides) for y in sides[:i])
+        assert precision(shape.public, shape.extent_bits, shape.count) >= 32768 * (
+            max(shape.axes()) + 6
+        )
+    print(
+        "verified finite geometry transition and coprime square sides at 1, 2, 4 and 8 axes",
+        flush=True,
+    )
     for k in (510, 1024, 4096, 9000):
         # n = 2^(2^k). Only the logarithms of its extents are materialized.
         b = 1 << k

@@ -50,9 +50,10 @@ class Track:
         self.motion.bytes["write"] += result
         return result
 
-    def truncate(self):
-        self.resize(self.tell())
-        return self.stream.truncate()
+    def truncate(self, size=None):
+        end = self.stream.truncate(size)
+        self.resize(end)
+        return end
 
     def __enter__(self):
         return self
