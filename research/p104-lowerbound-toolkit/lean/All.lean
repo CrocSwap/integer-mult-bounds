@@ -92,3 +92,8 @@ import Nov15.WordShapeH
 import Nov15.WordShapeHToy
 import Nov15.CallerCfgBridge
 import Nov15.CallerJASchema
+import Nov15.EasyWireK
+import Nov15.EasyWireC
+import Nov15.EasyWireFS4
+import Nov15.CallerTightDeg
+import Nov15.CallerTightNeed
