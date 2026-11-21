@@ -15,6 +15,10 @@ BRIDGE = 'research/p104-shared-native-helper-splits/retained/compiler/bit-audit/
 PEER_ARCHIVE = '8d376948e23de166f8f015cfc7d5ba28d0ce6732ae865ff129905c2a29fa3fa0'
 PEER_TREE = 'b14720ac48ff13a93d0dd094cfddeba285c5aa74'
 EXPECTED = {
+    'normalized/primary/PRICE.json': 'ef3f829625b03c09f1cdff2440ef92b9869b4cb4d0821bf9c0fd5910c9d6ad3c',
+    'normalized/independent/PRICE.json': '523d6dc93a7cd34bf6183a66d03b624ab2f0dfcf18b7e95032b7d0ab695fa24f',
+    'normalized/independent/ACCEPT.json': '35481cf9a929a3dd137a9e63134b7e97ee7c5408d4e675a3e8ad67b16d9a7b71',
+    'normalized/application/RESULT.json': '9b00a17913efb76995b01c7b75f5b00aab394a0531e26490ab02a5940adcac3c',
     'primary/PRICE.json': '228b7c47572c9b1c7568db2f59248af454296a1e3ad094da585073bbd594f5cb',
     'independent/PRICE.json': '5c723ea9c6b085b6e0aa792f34cfa64daed551a9bf2f629efc54d219008596d2',
     'independent/ACCEPT.json': 'babc9a23a60da353403b4d6f0a3a346c0523a42645618890a592929747fb019a',
@@ -103,6 +107,33 @@ def prices(peer, work, bridge):
     authenticate(second, EXPECTED['independent/PRICE.json'])
 
 
+def verify_normalization(peer, work, previous, accepted):
+    primary = work/'normalized-primary.json'
+    independent = work/'normalized-independent.json'
+    run('normalized/primary/price.py', '--peer', peer, '--ordinary', previous, '--out', primary)
+    run('normalized/independent/price.py',
+        '--peer-application', peer/'APPLICATION.json', '--peer-archive', peer/'APPLICATION-SOURCES.tar.gz',
+        '--binary', previous/'BINARY.json', '--signed', previous/'REPLAY.json', '--accepted', accepted,
+        '--ambient-proof', ROOT/'research/p104-shared-native-helper-splits/retained/compiler/PROOF.md',
+        '--shift-proof', ROOT/'research/net-tax-rank-compiler/SHIFTED-LOG.md', '--out', independent)
+    authenticate(primary, EXPECTED['normalized/primary/PRICE.json'])
+    authenticate(independent, EXPECTED['normalized/independent/PRICE.json'])
+    signed = work/'normalized-signed'
+    run('normalized/application/replay.py', '--peer-package', peer, '--prior-package', HERE,
+        '--prior-run', previous, '--primary', primary, '--independent', independent, '--out', signed)
+    authenticate(signed/'REPLAY.json', EXPECTED['normalized/application/RESULT.json'])
+    result = read_json(signed/'REPLAY.json')
+    require(set(result['output_sha256']) == {'BINARY.json','PHYSICAL.json','APPLICATION.json'},
+            'normalized signed evidence inventory')
+    for filename, digest in result['output_sha256'].items():
+        authenticate(signed/filename, digest)
+    acceptance = work/'normalized-accepted.json'
+    run('normalized/independent/accept.py', '--peer', peer, '--prior-run', previous,
+        '--run', signed, '--primary', primary, '--independent', independent, '--out', acceptance)
+    authenticate(acceptance, EXPECTED['normalized/independent/ACCEPT.json'])
+    print('PASS_PAIRED_NORMALIZED_COVER', result['claim'], result['difference'])
+
+
 def main():
     require(sys.implementation.name == 'cpython' and sys.version_info[:2] == (3,12) and __debug__,
             'requires CPython 3.12 with assertions')
@@ -126,7 +157,8 @@ def main():
         run('independent/accept.py', '--peer', peer, '--run', cold, '--adapter', HERE/'application/replay.py',
             '--primary', HERE/'primary/PRICE.json', '--independent', HERE/'independent/PRICE.json', '--out', accept)
         authenticate(accept, EXPECTED['independent/ACCEPT.json'])
-        print('PASS_PAIRED_DELAYED_COVER', result['claim'], result['difference'])
+        print('PASS_PAIRED_DELAYED_COVER', result['claim'], result['difference'], flush=True)
+        verify_normalization(peer, work, cold, accept)
 
 
 if __name__ == '__main__':
