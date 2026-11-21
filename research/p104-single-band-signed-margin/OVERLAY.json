@@ -1,0 +1,96 @@
+{
+  "band_product.py": {
+    "old_sha256": "7feb08718d511b45d0e9f927540115c9c1526f9b65ff3dadaef55b1ac8a2b19d",
+    "new_sha256": "b58c52fdb95499722618614b49a628fd8565d7a64173415961416039ed86aec6",
+    "edits": [
+      [
+        "\n@cache\ndef production_supplier(rank_log):\n    from strong_complex import artifacts, word\n\n",
+        "\n@cache\ndef production_supplier(rank_log, stop_denominator):\n    from strong_complex import artifacts, word\n\n"
+      ],
+      [
+        "        return ComplexRaw(atlas, fields, columns, **kw)\n\n    return Positive(native, physical, 1 << rank_log)\n\n\n",
+        "        return ComplexRaw(atlas, fields, columns, **kw)\n\n    return Positive(native, physical, 1 << rank_log, denominator=stop_denominator)\n\n\n"
+      ],
+      [
+        "    binary = source_planner(profile.power, profile.floor)\n    streams = [binary.image(1 << log_rank) for log_rank in profile.rank_logs]\n    positive = production_supplier(profile.complex_log)\n    if positive.owners <= 1:\n        raise ArithmeticError(\"The numerical carrier needs independent rows\")\n",
+        "    binary = source_planner(profile.power, profile.floor)\n    streams = [binary.image(1 << log_rank) for log_rank in profile.rank_logs]\n    positive = production_supplier(profile.complex_log, profile.positive_stop_denominator)\n    if positive.owners <= 1:\n        raise ArithmeticError(\"The numerical carrier needs independent rows\")\n"
+      ],
+      [
+        "            bit,\n            self.profile.complex_log,\n            partial(production_supplier, self.profile.complex_log),\n        )\n\n",
+        "            bit,\n            self.profile.complex_log,\n            partial(production_supplier, self.profile.complex_log, self.profile.positive_stop_denominator),\n        )\n\n"
+      ]
+    ]
+  },
+  "calibration.py": {
+    "old_sha256": "c36a253ab22f77381fe3e36889c9175680eadfd4a1203f2047141dc7a772f679",
+    "new_sha256": "444f185c619ef01bdea6328af3dc7ba30014b5cfebe7d1de875966e656fd57ff",
+    "edits": [
+      [
+        "    ordinary: Fraction\n    kappa: Fraction\n\n\n",
+        "    ordinary: Fraction\n    kappa: Fraction\n    positive_stop_denominator: int = 10**14\n\n\n"
+      ],
+      [
+        "    kappa=Fraction(\"0.00389011527141\"),\n)\nPROFILES = {\"compact\": COMPACT, \"high-rate\": HIGH_RATE, \"price-match\": PRICE_MATCH}\n\n\n",
+        "    kappa=Fraction(\"0.00389011527141\"),\n)\nSPLIT_TARIFF = replace(\n    HIGH_RATE,\n    rank_logs=(106_811_524, 1_708_984_375, 27_343_750_000,\n               437_500_000_000, 7_000_000_000_000, 112_000_000_000_000),\n    power=268,\n    floor=1 << 50,\n    bit_c=Fraction(280312348082011, 2**56),\n    ordinary=Fraction(\"0.0038901152863925\"),\n    kappa=Fraction(\"0.003890115286352\"),\n)\nSPLIT_TILT = Fraction(593, 2048)\nPRODUCTIVE_TILT = Fraction(491, 1024)\nSPLIT_WEIGHT = Fraction(1, 64)\nFIXED_STOCK = replace(SPLIT_TARIFF, kappa=Fraction(\"0.0038901152863924\"),\n                      positive_stop_denominator=10**17)\nSMALL_GAP = replace(FIXED_STOCK,\n    rank_logs=tuple(64*height for height in FIXED_STOCK.rank_logs),\n    power=285,\n    floor=1 << 47,\n    bit_c=Fraction(280312348082137, 2**56),\n    ordinary=Fraction(\"0.00389011528659083\"),\n    kappa=Fraction(\"0.0038901152865907\"),\n)\nPROFILES = {\"compact\": COMPACT, \"high-rate\": HIGH_RATE, \"price-match\": PRICE_MATCH,\n            \"split-tariff\": SPLIT_TARIFF, \"fixed-stock-stop\": FIXED_STOCK, \"small-gap\": SMALL_GAP}\n\n\n"
+      ],
+      [
+        "\n\ndef prices(profile):\n    bit_loss = debit(134, 127, profile.power, profile.bit_c, profile.floor, 5)\n    numeric_loss = debit(153, 129, COMPLEX_POWER, COMPLEX_C, COMPLEX_FLOOR, 1)\n    result = []\n",
+        "\n\ndef split_tariff_debit(profile):\n    floor = profile.floor\n    scale = 4 * (134 * 127) ** profile.power * floor\n    assert Fraction(1024 * floor, 15 * (floor - 2)) < 69\n    assert 69**100 < 2**611\n    bound = Fraction(611, 100) + profile.bit_c * (scale - 1).bit_length()\n    return -(-bound.numerator // bound.denominator)\n\n\ndef prices(profile):\n    bit_loss = (split_tariff_debit(profile) if profile.power in (SPLIT_TARIFF.power, SMALL_GAP.power)\n                else debit(134, 127, profile.power, profile.bit_c, profile.floor, 5))\n    numeric_loss = debit(153, 129, COMPLEX_POWER, COMPLEX_C, COMPLEX_FLOOR, 1)\n    result = []\n"
+      ],
+      [
+        "        result.append((height, covered, rate))\n        previous = rate\n    if not (\n        profile.kappa + 4 * GAP < profile.ordinary\n        and profile.kappa + 5 * GAP < COMPLEX_C - Fraction(numeric_loss, profile.complex_log)\n    ):\n        raise ArithmeticError(\"The numerical consumer cannot receive these prices\")\n",
+        "        result.append((height, covered, rate))\n        previous = rate\n    gap = Fraction(1, profile.positive_stop_denominator)\n    if not (\n        0 < gap <= GAP\n        and profile.kappa + 4 * gap < profile.ordinary\n        and profile.kappa + 5 * gap < COMPLEX_C - Fraction(numeric_loss, profile.complex_log)\n    ):\n        raise ArithmeticError(\"The numerical consumer cannot receive these prices\")\n"
+      ]
+    ]
+  },
+  "check_product.py": {
+    "old_sha256": "5ace944e196d730ba966c042ddff6eccd2022e04f721619dfe47f45eefd64177",
+    "new_sha256": "3caf1264c85faa30dd2c599c3d3521059f25a366d64df995bd145161fb608092",
+    "edits": [
+      [
+        "\n\ndef stock_and_public():\n    from dataclasses import replace\n    from calibration import COMPACT\n\n    assert multiply(-741503, 466013) == -345550037539\n    for x in (0, -1, 1, 37, -69, 2**16383 + 5):\n        assert multiply(x, -997) == x * -997\n    # Exercise the production stage body with a feasible rank and all 81 by 81 addresses.\n    profile = replace(COMPACT, rank_logs=(1,))\n    side = 3**4\n    records = bytes((i * 97 + (i >> 4)) % 256 for i in range(side * side))\n",
+        "\n\ndef stock_and_public(profile):\n    from dataclasses import replace\n    assert multiply(-741503, 466013, profile=profile) == -345550037539\n    for x in (0, -1, 1, 37, -69, 2**16383 + 5):\n        assert multiply(x, -997, profile=profile) == x * -997\n    # Exercise the production stage body with a feasible rank and all 81 by 81 addresses.\n    profile = replace(profile, rank_logs=(1,))\n    side = 3**4\n    records = bytes((i * 97 + (i >> 4)) % 256 for i in range(side * side))\n"
+      ],
+      [
+        "\n\ndef physical_product():\n    from binary_receiver import Receiver\n    from module_atoms import balanced_widths\n",
+        "\n\ndef physical_product(profile=None):\n    from binary_receiver import Receiver\n    from module_atoms import balanced_widths\n"
+      ],
+      [
+        "    from triangular_ordinary import root_body\n\n    stock_and_public()\n    core = Receiver(2, balanced_widths(1), direct=True)\n    calls = Counter()\n\n",
+        "    from triangular_ordinary import root_body\n\n    if profile is None:\n        from calibration import COMPACT\n\n        profile = COMPACT\n    stock_and_public(profile)\n    core = Receiver(2, balanced_widths(1), direct=True, profile=profile)\n    calls = Counter()\n\n"
+      ]
+    ]
+  },
+  "strict_moment.py": {
+    "old_sha256": "899ce86a0e5ae0455ea6cf97934658b2fd31b81d7111cb2bd636ce10e3e7264d",
+    "new_sha256": "f13c79ed45ce41c67a3f47c1767601be032ae65a908b9ee3a80643b0ac08689a",
+    "edits": [
+      [
+        "from math import isqrt\n\nfrom calibration import COMPLEX_C, COMPLEX_POWER\n\nUNIT = 1 << 112\n",
+        "from math import isqrt\n\nfrom calibration import COMPLEX_C, COMPLEX_POWER, PRODUCTIVE_TILT, SMALL_GAP, SPLIT_TARIFF, SPLIT_TILT, SPLIT_WEIGHT\n\nUNIT = 1 << 112\n"
+      ],
+      [
+        "\n\ndef certify(word, c, tilt, drop, power, slack_bits, cutoff):\n    if (word.power, word.floor, word.low_cut, word.high_cut) != (power, cutoff, 12, 12):\n        raise ValueError(\"The evaluated strictifier differs from the installed one\")\n",
+        "\n\ndef certify(word, c, tilt, drop, power, slack_bits, cutoff, *, split_weight=2):\n    if (word.power, word.floor, word.low_cut, word.high_cut) != (power, cutoff, 12, 12):\n        raise ValueError(\"The evaluated strictifier differs from the installed one\")\n"
+      ],
+      [
+        "    gamma = Fraction(moment(paid, t + tilt, True) * UNIT, lower * power_interval(12, tilt)[0])\n    loss = Fraction(moment(targets, t - drop, True) * power_interval(cutoff, drop)[1], lower * UNIT)\n    deficit = 1 - alpha**power - 2 * gamma**power - loss**power\n    if not (tilt >= c and deficit > Fraction(1, 1 << slack_bits)):\n        raise ArithmeticError(\"The strict local surplus cannot pay all physical fringe axes\")\n",
+        "    gamma = Fraction(moment(paid, t + tilt, True) * UNIT, lower * power_interval(12, tilt)[0])\n    loss = Fraction(moment(targets, t - drop, True) * power_interval(cutoff, drop)[1], lower * UNIT)\n    if split_weight != 2:\n        # For x >= 1, (2x)^c - 1 <= (101/100)c x^tilt / tilt.\n        assert 0 < c < Fraction(1, 250) and c <= tilt <= 1\n        assert Fraction(101, 100)**250 > 2\n        assert Fraction(101, 100) * c / tilt < split_weight\n    deficit = 1 - alpha**power - split_weight * gamma**power - loss**power\n    if not (tilt >= c and deficit > Fraction(1, 1 << slack_bits)):\n        raise ArithmeticError(\"The strict local surplus cannot pay all physical fringe axes\")\n"
+      ],
+      [
+        "\ndef both(binary, positive, profile):\n    return (\n        certify(\n",
+        "\ndef both(binary, positive, profile):\n    if profile.power in (SPLIT_TARIFF.power, SMALL_GAP.power):\n        return (\n            certify(binary, profile.bit_c, SPLIT_TILT, PRODUCTIVE_TILT,\n                    profile.power, profile.floor.bit_length() - 2, 15, split_weight=SPLIT_WEIGHT),\n            certify(positive, COMPLEX_C, Fraction(19, 64), Fraction(23, 64), COMPLEX_POWER, 14, 16),\n        )\n    return (\n        certify(\n"
+      ]
+    ]
+  },
+  "strong_binary.py": {
+    "old_sha256": "03ffb2075620fe793156e9bd22890185bef21e097abadba3a7d6cb5406051855",
+    "new_sha256": "74ba0d1aa9ca1dc2f4ade19ca1989f8dbf5329ddf3736bf3056280283f4fd660",
+    "edits": [
+      [
+        "@cache\ndef native_word(power=128):\n    if power not in (128, 228):\n        raise ValueError(\"Select a certified binary power\")\n    raw = binary_ports(graph(), caller())\n",
+        "@cache\ndef native_word(power=128):\n    if power not in (128, 228, 268, 285):\n        raise ValueError(\"Select a certified binary power\")\n    raw = binary_ports(graph(), caller())\n"
+      ]
+    ]
+  }
+}
