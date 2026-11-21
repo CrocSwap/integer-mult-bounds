@@ -182,3 +182,15 @@ logarithm of the quotient reserve contains e^0.0039. Relative to the
 earlier physical e^0.00388 bound it has an extra factor e^(1/50000).
 The new H reduces its fixed coefficient at a quantified entry. Those
 cofinal bounds do not imply a uniform reserve improvement at all e.
+
+## What prevents a thousandfold cut at the largest price
+
+Let $T(t)$ and $P(t)$ be the true productive and paid sums of $r^t$ on the 111-port source. For $0\le t\le1$ a tensor power raises these sums to the same positive integer power. A discarded productive port can only reduce the credit. Splitting a paid rank adds debit, since $(x+y)^t\le x^t+y^t$ for positive $x,y$. Thus the strict-moment certificate for this class requires $T(t)>P(t)$ before either change. Write $t=1-c$.
+
+There is a **global** ceiling on $c$ for this source. Divide $T(t)-P(t)$ by $8^t$. For ranks 1 through 7 the signed counts are −48972, −44892, −1980, −900, −1044, −2916 and −480. Each negative term increases with $t$ on this normalization. The 14,520 rank-eight terms give a constant. The remaining negative terms pair exactly with the next rank. For $r=14,21,28,35,42,49,56$ each pair contributes $444[((r+1)/8)^t-(r/8)^t]$. For $1\le a\le b$, $b^t-a^t$ increases for $t\ge0$: on adding $u\ge0$, $b^t(b^u-1)\ge a^t(a^u-1)$. Two positive terms remain, $444(64/8)^t$ and $222(127/8)^t$. These increase too. The independent checker recovers every signed count directly from the literal events and uses outward rational bounds to establish $P(1-c_0)>T(1-c_0)$ at $c_0=0.0038901152866$. Monotonicity excludes every $c\ge c_0$ up to one. [Exact source check](independent_binary_price.py) · [Kernel-checked real-power inequality and rank floors](lean/BandFlow.lean)
+
+Even if all compiler losses other than the present ordinary factor 32 vanish, its last $H=\log_2 N$ has covered rate at most $c-5/H$. The strict stage recurrence requires $b<(249(c-5/H)+b_{\rm prev})/250$ with $b_{\rm prev}\le b$, hence $b<c-5/H$. The signed caller at $\kappa=0.00389011527141$ needs $b>\kappa+4\cdot10^{-14}$. Together these require
+
+$$H>\frac{5}{c_0-\kappa-4\cdot10^{-14}}=\frac{10^{14}}{303},\qquad H\ge330033003301.$$
+
+The thousandfold targets against the physical predecessor and the conditional delayed-cover competitor would be 236,800,000,000 and 299,610,000,000. Each is below this floor. At the actual installed $c_B=17108907955/2^{42}$, debit 19 and $b=0.003890115271496$, the same comparison requires $H\ge1455682013917$. The installed value $1568000000000$ is within **7.72%** of this necessary floor for the stated integer invoice. The first floor permits any tensor power, productive floor or paid cap with the stated raw necessity and five-bit tariff. The second fixes the actual price certificate. A cheaper ordinary contract, a source with a higher raw crossing, or a different price certificate can change these conclusions.

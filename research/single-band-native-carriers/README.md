@@ -27,6 +27,8 @@ The smaller ordinary ranks reduce the component widths, the generated native str
 
 Feasible signed Fourier products, complete circuit traces, independent price calculations and kernel replay exercise different parts of the claim. The production input threshold still has a double exponential. No machine ran either production-dimensional multiplication. The least recurring constant and a crossover against a conventional multiplier are unknown. The two 228-factor configurations also change the cofinal bound on the logarithm of the chart reserve by a width factor $e^{1/50000}$ before the changed rank factors. [Verification and limitations](VERIFICATION.md) · [Predecessor attribution](NOTICE.md) · [Coordination](https://github.com/CrocSwap/integer-mult-bounds/discussions/8028)
 
+For the most demanding price, the 111-port source and the retained five-bit ordinary tariff force the largest rank exponent above 330,033,003,300, even when all other compiler losses are forgiven. At the installed 19-bit debit the necessary exponent is at least 1,455,682,013,917. The actual 1,568,000,000,000 is within 7.72% of this second floor. Both floors apply to the stated source and price method. [Global raw crossing and rank limits](STRONG-BINARY.md#what-prevents-a-thousandfold-cut-at-the-largest-price)
+
 ## Open next questions
 
 Can a different ordinary caller pay less than five bits of finite rank loss at the same complete price? Can a numerical pack use fewer independent axes and still issue a real paid call into the last ordinary service? These two costs limit further reductions in the carrier rank and the outer entrance. [Exact obligations](TASK.json)

@@ -104,9 +104,30 @@ def independent_prices(graph, caller):
             old_drop = rank_price(16, w)[0] * mass(targets, t - w, 0) / upper_target
             assert lower_base**v + old_drop**v > 1
         floors.append((surplus * 10**18).__floor__())
-    above_crossing = 1 - Fraction("0.0038901152866")
-    assert mass(paid, above_crossing, 0) > mass(targets, above_crossing, 1)
+    crossing_limit(targets, paid)
     return tuple(floors)
+
+
+def crossing_limit(targets, paid):
+    """Bind the monotonicity proof to every signed coefficient of the literal word."""
+    signed = {
+        r: targets[r] - paid[r] for r in targets.keys() | paid.keys() if targets[r] != paid[r]
+    }
+    expected = dict(enumerate((-48972, -44892, -1980, -900, -1044, -2916, -480), 1))
+    expected.update({8: 14520, 64: 444, 127: 222})
+    for low in range(14, 57, 7):
+        expected[low] = -444
+        expected[low + 1] = 444
+    assert signed == expected
+    upper = Fraction("0.0038901152866")
+    assert mass(paid, 1 - upper, 0) > mass(targets, 1 - upper, 1)
+    signed_rate_floor = Fraction("0.00389011527141") + Fraction(4, 10**14)
+    five_bit_floor = (5 / (upper - signed_rate_floor)).__floor__() + 1
+    installed_floor = (
+        19 / (Fraction(17108907955, 2**42) - Fraction("0.003890115271496"))
+    ).__floor__() + 1
+    assert (five_bit_floor, installed_floor) == (330033003301, 1455682013917)
+    print("PASS_BINARY_RANK_EXPONENT_FLOORS", five_bit_floor, installed_floor)
 
 
 if __name__ == "__main__":

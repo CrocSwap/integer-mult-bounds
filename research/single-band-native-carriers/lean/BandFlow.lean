@@ -290,4 +290,44 @@ theorem weighted_nested {M : Type*} [AddCommGroup M] (A : M ≃+ M) (p q : M →
 #print axioms period_price
 #print axioms normalized_flow
 
+/-- A high positive rank can pay an adjacent negative rank at every larger moment. -/
+theorem paired_high_monotone {a b s t : ℝ} (ha : 1 ≤ a) (hab : a ≤ b)
+    (hs : 0 ≤ s) (hst : s ≤ t) : b ^ s - a ^ s ≤ b ^ t - a ^ t := by
+  have hst' : 0 ≤ t - s := by linarith
+  have a0 : 0 < a := by linarith
+  have b0 : 0 < b := by linarith
+  have m₁ := Real.rpow_le_rpow a0.le hab hs
+  have m₂ := sub_le_sub_right (Real.rpow_le_rpow a0.le hab hst') 1
+  have prod := mul_le_mul m₁ m₂ (sub_nonneg.mpr (Real.one_le_rpow ha hst'))
+    (Real.rpow_nonneg b0.le s)
+  have eq : s + (t - s) = t := by ring
+  have ea := Real.rpow_add a0 s (t-s)
+  have eb := Real.rpow_add b0 s (t-s)
+  rw [eq] at ea eb
+  linarith only [prod, ea, eb]
+
+/-- With the stated raw crossing even the five-bit-only invoice needs this rank. -/
+theorem outer_five_bit_floor {H : ℕ} {b c : ℝ}
+    (raw : c ≤ 38901152866 / (10:ℝ)^13) (rate : 389011527145 / (10:ℝ)^14 ≤ b)
+    (bill : 5 < (c-b)*H) : 330033003301 ≤ H := by
+  by_contra! h
+  have hz : (H : ℝ) ≤ 330033003300 := by exact_mod_cast (show H ≤ 330033003300 by omega)
+  have step := mul_le_mul_of_nonneg_right (sub_le_sub raw rate) (Nat.cast_nonneg (α := ℝ) H)
+  norm_num at step
+  linarith only [hz, step, bill]
+
+/-- The actual integral invoice at the installed ordinary rate has a stronger floor. -/
+theorem installed_nineteen_bit_floor {H : ℕ}
+    (bill : 19 < (17108907955/(2:ℝ)^42 - 3890115271496/(10:ℝ)^15)*H) :
+    1455682013917 ≤ H := by
+  by_contra! h
+  have hz : (H : ℝ) ≤ 1455682013916 :=
+    by exact_mod_cast (show H ≤ 1455682013916 by omega)
+  norm_num at bill
+  linarith only [hz, bill]
+
+#print axioms paired_high_monotone
+#print axioms outer_five_bit_floor
+#print axioms installed_nineteen_bit_floor
+
 end BandFlow
