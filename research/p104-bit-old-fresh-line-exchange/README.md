@@ -6,9 +6,9 @@ Exact nesting and complete signed pricing test actual compensations that are out
 
 The source archive contains the exact pins, proof, licenses, commands and control outcomes.
 
-Archive SHA-256 `66e16dc649bb38de739edce9baac0b55e0482bc50173118bf043c0077312d931`.
+Archive SHA-256 `ecc9b29fba50d88ff1a7ad52f5203b929d4d384b5075af7477f12c389bdbe8bc`.
 
-Unpack in a clean directory, validate `sha256sum -c SHA256SUMS`, and run the extracted README commands.
+Unpack in a clean directory, validate `sha256sum -c SHA256SUMS`, and run the extracted README commands. The complete archive passed a clean extraction and a manifest-only reconstruction, including the pinned source modules and three tampered-receipt controls.
 
 ## Open next questions
 
