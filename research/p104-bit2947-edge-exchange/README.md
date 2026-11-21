@@ -6,9 +6,9 @@ One retiming ties the old signed bill; the two-sender construction passes both f
 
 The source archive contains the exact pins, proof, licenses, commands and control outcomes.
 
-Archive SHA-256 `c123faccfb2b75de4575844e892c4132446b8ba334e849e20849b0422081ef04`.
+Archive SHA-256 `e49cf558bebe892a0502e7e7e2b7d9adf846e53f504cb4291c1d4da716f4f913`.
 
-Unpack in a clean directory, validate `sha256sum -c SHA256SUMS`, and run the extracted README commands.
+Unpack in a clean directory, validate `sha256sum -c SHA256SUMS`, and follow the extracted REPLAY.md. A Python 3.12.3 isolated extraction reproduced all four receipts using the pinned source modules in this archive.
 
 ## Open next questions
 
