@@ -1,6 +1,6 @@
 # Sharper bounds on the same 451-factor multiplier
 
-Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804541**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
+Under the same premises as #7863, the deterministic fixed-multitape multiplier for every pair of n-bit integers returns the exact product in time O(n (log n)^(1−κ)) with **κ = 0.00387992804544**. The improvement is in the proof of the ordinary BIT rate on the existing physical schedule.
 
 | Comparable complete result | Conditional κ |
 |---|---:|
@@ -15,7 +15,12 @@ Under the same premises as #7863, the deterministic fixed-multitape multiplier f
 | Paid ranks bounded on a sixteenth grid at 18718411 | 0.00387992804518 |
 | Power 23 from the 451-factor paid tensor moments at cb73879f | 0.00387992804531 |
 | Least integer power under the 3/4 mean bound at a5186a40 | 0.00387992804538 |
-| Power 20 under the measured mean bound 749/1000 | **0.00387992804541** |
+| Power 20 under the measured mean bound at c2a4868b | 0.00387992804541 |
+| Power 19 with grouped source complements | **0.00387992804544** |
+
+The original finite compiler partitions unmatched inputs into root, partial-sibling and full-sibling groups. With each chronological paid occurrence counted separately, all three groups admit a source-capacity factor of **8/5**. All 20 power-19 coefficients clear the resulting capacity. At scale 1804 the uniform loss drops from 786/H to 747/H. Seven charged ordinary stages give cap 0.00387992804552674. The signed consumer tests 0.00387992804551. The gain over power 20 is **0.00000000000003** or approximately **0.000000000773210215470%**, exactly (100/129330934847)%. The gain over #7863 is **0.00000000000198** or approximately **0.0000000510318742466754%**, exactly (1100/21555155797)%. [Source multiplicities, proof and credits](tensor/SIBLING.md) · [Independent receipt](tensor/SIBLING.json)
+
+## Power 20 under the measured mean
 
 The original paid inventory bounds the full 451-factor mean below 749/1000, including the split surcharge. At scale 1804, this tighter bound admits power 20 at every integer height. Independent evaluations match all 21 moments and coefficient ratios. The uniform loss falls from 825/H to 786/H, and seven ordinary stages give cap 0.00387992804549430. The complete signed application tests 0.00387992804548. The gain over the power-21 proof is **0.00000000000003** or approximately **0.000000000773210215476%**, exactly (50/64665467423)%. The gain over the reproduced #7863 result is **0.00000000000195** or approximately **0.000000050258664030817%**, exactly (3250/64665467391)%. [Paid-mean proof and predecessor credits](tensor/MEAN.md) · [Independent receipt](tensor/MEAN.json)
 
@@ -89,6 +94,8 @@ It then reconstructs the 20/21 boundary and emits `PASS_COMPLETE_TENSOR_MINIMUM`
 
 The same command retests power 20 with the tighter source mean and verifies the complete signed consumer. The final marker is `PASS_COMPLETE_TENSOR_MEAN`. The application SHA-256 is `fd110bf3a3d6ed204f3b312bcd72aedc444806b3821515fd4220b3ba327037f1` and the expanded audit SHA-256 is `001afbe125635833bafb8c5f1b313700d25370b5bf4dfc68983f53220197cacd`.
 
+The final tensor check distinguishes equal-rank paid labels, authenticates the finite compiler and reproduces the power-19 application. Look for `PASS_COMPLETE_SIBLING_CAPACITY`. The application SHA-256 is `8d5a5fa30f79b5f39fabc2bb320f38ac291761c0012de5d22540a142b1d767af` and the expanded audit SHA-256 is `e8dbc8054ecd54bb6d089346cf84220499d8683fd2043b0650817ad0bd0dd806`. The controls include an insufficient source multiplier and the working power-20 predecessor. [Finite Pascal identity](https://github.com/CrocSwap/integer-mult-bounds/blob/7c49fe32c55de02c2c873655c804b16e4c3fef0a/research/kappa-rebuild/architecture/FINITE-PRECOMPILATION.md#L94-L176)
+
 ## Credit and overlap
 
 Clear1nsight supplied the exact 451-factor word and schedule, the #7830 compiler lineage and the #7973 consumer audit. Ali Romman supplied the earlier dual-supplier construction and paired caller. The retained delayed-cover and ambient-cap authors supplied the fallback inequality and stock lemma. Dugongue and Rohan Arun supplied the #7831 and #7835 cutoff schedules used in the predecessor lineage. Cinna Davis supplied earlier balanced CRT and outer proof work. The inherited source notices accompany the archived inputs. This contribution specializes the existing multiplier inequality to the actual carrier, proves the improved seven-stage rate on the same algorithm and independently replays the resulting application. OpenAI Codex materially assisted the reasoning, implementation and replay. [#7863](https://github.com/CrocSwap/integer-mult-bounds/pull/7863) · [#7973](https://github.com/CrocSwap/integer-mult-bounds/pull/7973) · [#7830](https://github.com/CrocSwap/integer-mult-bounds/pull/7830)
@@ -97,4 +104,4 @@ The nearest six-stage threshold calculation assumes a different raw invoice, lar
 
 ## Open next questions
 
-At power 20, can a scalar shift improve the complete signed rate? Use the profitable price threshold to bound the full eligible shift range, then check the necessary inequality at height G=0 over that range. A surviving shift still needs its base and all-height proofs, seven-stage price and complete independent replay. [Original tensor moment theorem](https://github.com/CrocSwap/integer-mult-bounds/blob/4cf054a50c5718616594ec4ca2c9114278120a8b/research/net-tax-rank-compiler/LOG-MOMENTS.md)
+Can a sharper source-capacity estimate admit power 18? At the frozen paid mean, first price the necessary whole-word root and nonroot contributions. Test a nonroot multiplier of 5/2 and bound the root contribution separately in rank bands before attempting a power-18 construction. The signed price, all heights and independent replay remain open. [Current source proof](tensor/SIBLING.md)

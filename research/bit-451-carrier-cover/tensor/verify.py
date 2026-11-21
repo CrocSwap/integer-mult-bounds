@@ -104,6 +104,7 @@ def main():
         run(source,work,legacy,stages,base)
         runpy.run_path(str(HERE/"minimum.py"))["run"](source,work,legacy,stages,base)
         runpy.run_path(str(HERE/"mean.py"))["run"](source,work,legacy,stages,base)
+        runpy.run_path(str(HERE/"sibling.py"))["run"](source,work,legacy,stages,base)
 
 
 if __name__ == "__main__":
