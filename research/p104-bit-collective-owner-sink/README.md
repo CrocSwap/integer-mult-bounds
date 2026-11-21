@@ -8,7 +8,7 @@ The source archive contains the exact pins, proof, licenses, commands and contro
 
 Archive SHA-256 `dd4caeb0cae100d3c3a5744f85ffab1d67a76cf0fd9cb1f592be337a0742fa77`.
 
-Unpack in a clean directory, validate `sha256sum -c SHA256SUMS-ROUND8`, and run the extracted README commands.
+Unpack in a clean directory, validate `sha256sum -c SHA256SUMS-ROUND8`, and run the extracted `ROUND8-REPORT.md` commands.
 
 ## Open next questions
 
