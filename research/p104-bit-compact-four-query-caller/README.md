@@ -8,7 +8,7 @@ Observed validation. `python3 -IB verify.py` passed the exact formal and native 
 
 The source archive contains the exact pins, proof, licenses, commands and control outcomes.
 
-Archive SHA-256 `785934a79e4f00f19a2db89749a6e78bcf1406450c148422327e9451b46598b0`.
+Archive SHA-256 `2280a3b790eab3d714572a3bf84128fd3adeec2b50d3998033a655d812ab8366`.
 
 Unpack in a clean directory, validate `sha256sum -c SHA256SUMS`, and run the extracted README.md commands.
 
