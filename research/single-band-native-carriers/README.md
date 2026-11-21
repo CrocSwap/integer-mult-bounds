@@ -1,0 +1,32 @@
+# Smaller carriers for general integer multiplication
+
+The compact construction preserves the complete saving `κ = 0.00387992803556` of [PR #7981](https://github.com/CrocSwap/integer-mult-bounds/pull/7981). It reduces the logarithm of the largest binary dimension from **236,800,000,000,000 to 1,600,000**. A second installation reaches κ = 0.00389011519729 with a largest binary rank exponent 1,057 times smaller than the physical predecessor. A third installation matches the current conditional price **κ = 0.00389011527141** of [PR #8029](https://github.com/CrocSwap/integer-mult-bounds/pull/8029). All three use the same physical compiler and signed tape entry. [Complete resource receipt](REQUIREMENTS.json) · [Signed binary entry](band_product.py)
+
+| Quantity | Physical predecessor #7981 | Compact | Higher rate | Current price match |
+| --- | ---: | ---: | ---: | ---: |
+| Complete κ | 0.00387992803556 | 0.00387992803556 | 0.00389011519729 | 0.00389011527141 |
+| Ordinary stages | 6 | 2 | 6 | 6 |
+| Largest binary rank, log₂ N | 236,800,000,000,000 | 1,600,000 | 224,000,000,000 | 1,568,000,000,000 |
+| Positive numerical rank, log₂ M | 3,300,000,000 | 610,000 | 1,600,000 | 1,600,000 |
+| Setup exponent for the largest stream, log₂ J | 4,736,000,000,000,000,000 | 1,638,400,000 | 229,376,000,000,000 | 1,605,632,000,000,000 |
+| Connected sufficient threshold A in p ≥ 2^A | 355,763,540,965,264 | 2,471,428 | 267,186,701,153 | 1,870,297,303,584 |
+| Largest padded axis at its own entrance, log₂ side | 13,521,606,402,434,446,949,298,167,524,011 | 1,431,655,766 | 187,649,984,473,771 | 1,501,199,875,790,166 |
+| All per-input numerical setup at that entrance, log₂ upper bound | 132,715,849,533,509,598,534,716,307,019,923,456 | 1,468,548,787,717 | 192,427,450,469,892,962 | 1,539,145,727,545,373,217 |
+
+Let $n$ be the larger significant bit length and $p=6\lceil\log_2 n\rceil$. At each configuration the algorithm returns the exact signed product for arbitrary input tapes in $S+C n(1+\log n)^{1-\kappa}$ steps on the fixed-alphabet multitape model. For the finite initial lengths the same entry runs the signed scalar program. For **every** length at least $2^{\lceil2^A/6\rceil-1}+1$ it runs the full numerical word with a genuine call into the last binary stage and all its predecessor stages. Extra declared leading zeros cost their tape length. At these entrances the complete machine, including both inputs, output, field files, reserves, suspended owners and historical work space, fits below $6.2pT<297.6n$ bits for canonical inputs, with $T$ the actual padded tensor size. [Connected entrance and numerical setup](LINEAR-GEOMETRY.md) · [Simultaneous storage](ACTIVATION-SPACE.md)
+
+## Why the exponents fall
+
+- The literal 36-call and 48-call circuits of #8027 have extra price headroom. The binary implementation realizes the changed projectors on both physical banks. The numerical implementation reconstructs the rational circuit from its journals and generates all 2,971 required Clifford transports and 104 port pairs. Its 21 additional transports, 1,291 independent roles, divisions and absolute phases are checked on the changed graph. [Binary construction](STRONG-BINARY.md) · [Gaussian construction](STRONG-COMPLEX.md)
+- A single band of native tensor calls replaces recursive compilation of unequal ranks. Each child borrows its exact prefix in the lender’s frame. The strict native surplus pays the remaining axes once. The installed tape encodes one chronological round for all subsequent rounds. It retains the actual owner, backing, loan, return and restoration at each issued operation. This removes the growing compiler loss at the finite rank. [Finite-flow proof and setup bill](BAND.md) · [Tape implementation](epoch_tape.py)
+- A deterministic coprime-square search reduces the minimum axis width from $64s^2$ to $512s+1280$, where $s=\lceil\log_2(p+2)\rceil$. It selects more axes in the same padded tensor. At the compact entrance and **the same input**, one old root matrix alone needs $2^{1,501,199,875,790,166}$ entries. All new private generation fits in $2^{1,468,548,787,717}$ transitions, a factor above 1,022 **in the exponents**. This saving is independent of the smaller carrier ranks. [Uniform sieve and compiler proof](LINEAR-GEOMETRY.md)
+
+## Complete costs and evidence
+
+The smaller ordinary ranks reduce the component widths, the generated native streams and the length needed to expose a full recursive chain. These three effects share a cause. The shorter powered words, single-round representation and omission of lower-rank compiler batches also reduce setup at a fixed rank. The bound on generation, installed machinery and fixed setup scratch is $\sum_i N_i^{1024}+M^{1024}$. The previous rank-dependent clock used degree 20,000. The compact machine fits below $2^{1,638,400,002}$ fixed steps and cells. The higher-rate machine fits below $2^{229,376,000,000,003}$. The current-price machine fits below $2^{1,605,632,000,000,003}$. These are bounds for the specified generators. [Program, movement and recurring costs](APPLICATION.md)
+
+Feasible signed Fourier products, complete circuit traces, independent price calculations and kernel replay exercise different parts of the claim. The production input threshold still has a double exponential. No machine ran either production-dimensional multiplication. The least recurring constant and a crossover against a conventional multiplier are unknown. The two 228-factor configurations also change the cofinal bound on the logarithm of the chart reserve by a width factor $e^{1/50000}$ before the changed rank factors. [Verification and limitations](VERIFICATION.md) · [Predecessor attribution](NOTICE.md) · [Coordination](https://github.com/CrocSwap/integer-mult-bounds/discussions/8028)
+
+## Open next questions
+
+Can a different ordinary caller pay less than five bits of finite rank loss at the same complete price? Can a numerical pack use fewer independent axes and still issue a real paid call into the last ordinary service? These two costs limit further reductions in the carrier rank and the outer entrance. [Exact obligations](TASK.json)
