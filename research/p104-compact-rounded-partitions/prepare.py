@@ -73,9 +73,9 @@ EDIT = {
          '    copyfile(HERE / "grades.py", dest / "grades.py")\n    from runpy import run_path\n    run_path(str(HERE / "quarter_overlay.py"))["apply"](dest)'),
     ),
     "installations.py": (
-        ("Q(2143194013, 2**39)", "Q(2143195807, 2**39)"),
+        ("Q(2143194013, 2**39)", "Q(1097317122991, 2**48)"),
         ('TERMINAL = Profile((35327, 559005), 680000, Q(".0038982"))',
-         'TERMINAL = Profile((35327, 559462), 680000, Q(".003898202"))'),
+         'TERMINAL = Profile((35327, 561325), 680000, Q(".00389821005"))'),
     ),
     "grades.py": (
         ("HALF = Fraction(1, 2)", "QUARTER = Fraction(1, 4)\nCOMPLEMENT = Fraction(3, 4)"),
@@ -87,7 +87,7 @@ EDIT = {
         ("len(cells) == 62","len(cells) == 63"),
         ("assert max(Q(k)/r for r, k in cells) == 9",
          "assert max(Q(k)/r for r, k in cells) == 9 and min(paid) == Q(1, 4)\n"
-         "        assert c.denominator <= 2**40 and Q(100,99)**250 > 4\n"
+         "        assert c.denominator <= 2**48 and Q(100,99)**250 > 4\n"
          "        assert Q(99,100)*Q(2,9)>Q(19,100) and t > Q(996,1000)\n"
          "        assert Q(10)*Q(106,100)/(Q(996,1000)*Q(99,100)*Q(19,100)) < 64\n"
          "        assert max(target)*4 < 32*2066\n"
@@ -95,10 +95,13 @@ EDIT = {
          "            z=Q(-1,2) if r==Q(1,4) else Q(1,2) if r==Q(3,4) else Q(0)\n"
          "            assert 8*k-10*r+min(0,z)>=0\n"
          "            assert 10*k-8*r+max(0,z)<10*k and z<=8*r"),
-        ("(572,339787971)", "(572,339934211)"),
+        ("assert factor < Q(power_interval(2,Q(43,256))[0],UNIT)",
+         "assert factor**2048 < 2**339"),
+        ("positive = GAUSSIAN_C-Q(43,256*num)", "positive = GAUSSIAN_C-Q(339,2048*num)"),
+        ("(572,339787971)", "(573,340530371)"),
         ('delta = TERMINAL.kappa-Q(".0038981730255")\n    assert delta == Q(53949,2*10**12)',
-         'delta = TERMINAL.kappa-Q(".0038982016137")\n    assert delta == Q(3863,10**13)'),
-        ('old_rate=".0038981730255"','old_rate=".0038982016137"'),
+         'delta = TERMINAL.kappa-Q(".00389821")\n    assert delta == Q(1,20_000_000_000)'),
+        ('old_rate=".0038981730255"','old_rate=".00389821"'),
     ),
     "independent_price.py": (
         ("assert margin(histogram(79),GAUSSIAN_C)[0] > 0",
@@ -195,9 +198,9 @@ def regenerate(work):
     with tempfile.TemporaryDirectory(prefix="rounded-tier-build-") as temporary:
         output=run_worker(work,"receipt.py",temporary)
     result=json.loads(output)
-    assert result["terminal"]["kappa"]=="1949101/500000000"
+    assert result["terminal"]["kappa"]=="77964201/20000000000"
     assert result["gaussian"]["transport_cells"]==63
-    assert result["complete_log2_C"]==339934211
+    assert result["complete_log2_C"]==340530371
     (work/"RESULT.json").write_text(json.dumps(result,indent=2)+"\n")
     print("PASS_ROUNDED_TIERED_GAUSSIAN_PRICE",result["terminal"]["kappa"],flush=True)
 

@@ -1,0 +1,19 @@
+# Directed finite cost of the compact Gaussian retune
+
+Start with #8055 at `7b48187d99525ad59f560de3921ec7e48382484c` and the complete integer quarter schedule at `28f9516bbd758831650efd2f9fc3ed5a586f0eb5`. The exact paid list contains 564,144 ordinals, 105,216 independent targets, and one base copy and one dilation-79 copy. The new trial changes 51 shares in the original 63-cell support. All shares stay positive, each paid row sums to one, and the receiving capacities are filled. Per-owner shares exceed 2^-64, all exact shares fit 263 bits, and the largest `k/r` ratio is 9. Unit share on 4424→10191 with 624 target owners preserves the signed first placement. The interval test uses both the old 62-cell half-split and the earlier quarter price as controls.
+
+For `M=2^H`, `H≥1024`, keep `L=32768`, `U=2 floor(M/(2048·12087))`, `K=M^82`, `V=M^6`, `R=M^2`, the same integration grid `G=2^(64(H+1))`, and both original clock levels. The even physical bin issues `floor((e−8)/4)` axes and its integer complement. At the two possible residues the errors are zero or ±1/2. The exact 63 edges satisfy `8k−10r+min(0,z)≥0`, `10k−8r+max(0,z)<10k`, and `z≤8r`. The original charged `64/L` boundary allowance survives the new shares because `P/T>.99`, `t>.996`, the positive moment margin and common lower boundary mass `Ψ>.19P` hold. No paid call or phase was removed. In the large copy all potentially relevant 189,072 additional dispatches and 1,134,432 field-extents stay charged.
+
+Let `c=1097317122991/2^48`, `t=1−c`. Actual exterior integration endpoints stay below `M`. Outward reciprocal bounds have lower endpoint at least `1/(2M)` on the retained grid. For at most 48 square roots, each width increases by at most `√M` times the previous width plus two grid units. At most 49 factors in the unit interval add their widths and two grid units per product. The inverse power interval width is below `2^103 M^24/G`. Taking both endpoints, then multiplying by `M^6/t`, results in integral error below `2^41 M^−34<1/4`. Thus the less-than-two per-floor allowance, end truncation reserve and finite integer capacity argument still apply at the older grid and owners. Exact fractions and outward checks at four actual lattice endpoints exercise the new depth. The recurring bounds on control extent, tape and fixed precision pay the original outer routes. The fixed setup's `2^32` allowance for grade bookkeeping and coupling covers fewer than `2^29` actions here even with the longer power, leaving the conservative `2^228` tape bound applicable.
+
+With `δ=2^-128`, the directed receipt encloses
+
+```text
+F = (256/255)(4097/4096)(1028/1024)(1024·12087·L)^c
+    · (1+64/L+δ)/((1−10/L)(1−δ)^3).
+F^2048 < 2^339.
+```
+
+At Gaussian H=680000 this buys `b<c−339/(2048H)`. The ordinary bank increases only the second terminal height from 559462 to 561325. It charges the complete ordinary two-stage recurrence and revalidates both tiers' 54 strict and four functional conditions. The signed invoice books `κ+5·10^-18` for each supplier. The remaining ordinary and Gaussian gaps are positive, approximately `7.55809e-11` and `8.02678e-11` respectively. The finite conversion and all-input cap are computed at the new first legal public header. These are cumulative costs of the one literal schedule, including output recovery.
+
+The weighted #8057 profile uses a different allocation and three binary stages. Its exact installed ordinary and Gaussian ceilings are about `.003898210000368366` and `.003898210000704137` under its unchanged prices. The new result clears both. This comparison concerns the two fully priced profiles and their inherited premises. [Exact price and pinned input evidence](https://github.com/ToikY/integer-mult-bounds/blob/888b4e162261ffc1953ac18e867c2c21af4b8164/paired-768/r375/README.md)
