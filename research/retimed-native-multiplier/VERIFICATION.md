@@ -1,6 +1,6 @@
 # Evidence and limits
 
-All registered modes use Python 3.12, ordinary assertions, and the locally restored SHA-256-verified predecessors. No network is needed after checkout. [Source pins](SOURCES.json) · [Manifest](VERIFY.json) · [Runner](verify.py)
+The physical mode constructs the atlas once and shares it across the zero and nonzero checks. The original separate 80-second witness entry timed out while repeating preparation on the author’s machine. The combined mode exercises both witnesses. All registered modes use Python 3.12, ordinary assertions, and the locally restored SHA-256-verified predecessors. No network is needed after checkout. [Source pins](SOURCES.json) · [Manifest](VERIFY.json) · [Runner](verify.py)
 
 | Check | Evidence |
 | --- | --- |

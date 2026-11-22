@@ -28,7 +28,7 @@ def check(mode, tree):
         print(info)
     else:
         files = {"schedule": ["check_streamed", "check_chronology", "check_reentry"],
-                 "physical": ["check_binary_word", "check_positive_word", "check_precision"],
+                 "physical": ["check_binary_word", "check_positive_word", "check_nonzero_eight", "check_precision"],
                  "install": ["check_installation"],
                  "witness": ["check_nonzero_eight"],
                  "deep-receiver": ["true_high", "direct_recursive"],
