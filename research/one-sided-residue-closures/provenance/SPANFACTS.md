@@ -1,0 +1,21 @@
+# The eight span facts used by the dominance filter
+
+Provenance attachment for `data/rows_input.csv`; it changes no claim. Each fact has the form "for the configuration (flat dimensions) + s free lines, in the P112 / E8 model, every admissible set of qualifying directions has span at most S" (`CONF` in `dominance_filter.py`: `(dims, s, S)`). A row of `generator/land7.out` is dropped when some Basis-Lemma set of e pieces (total support < 53) fits into a configuration with S <= d-1. The logs are in `logs/` (absolute paths stripped from the `OVERALL` lines; otherwise verbatim). Where `OVERALL` lines are quoted, "max real rank" or "max span" is the S of the fact.
+
+| # | fact (dims, s, span) | run | implementation count | shipped log |
+|---|---|---|---|---|
+| 1 | (6,6)+1 <= 3 | Lemma S66+t: `s66.c` mode 1 (direction list |Off|<=77); per-direction free line | double: `s66.c` and independent Python `indep.py` mode 1 (6 chunks, all 159 reps) | `logs/SIX/s66_m1.out` (max real rank 3, 0 rank-8 pairs); `logs/SIX/indep_m1_c0..c5.out` (max real rank 3) |
+| 2 | (6,6)+2 <= 4 | `y_662`: `s6y` on `data80.txt`, dims 6 6, s=2, lim 78 | single | `logs/SIX/y_662.out` (max real rank 4) |
+| 3 | (6,6,3) s0 <= 4 | `y_664` (relaxed (6,6)+4 lines, lim 80: span 8 on 6 pairs only) then `r_664` (exact third-flat refinement of those pairs) | single | `logs/SIX/y_664.out`, `logs/SIX/r_664.out` (REFINE max exact rank 4) |
+| 4 | (7,4) s0 <= 4 | `y_740` (`s6y data80.txt 7 4 0 80`) | single | `logs/SIX/y_740.out` (max real rank 4) |
+| 5 | (7,5) s0 <= 4 | `y_750` (`s6y 7 5 0 80`, run by the MS3c card); direction list extended to |Off|<=88 with no qualifying new direction | single | `logs/MS3c/y_750.out` (max real rank 4); `logs/DIRX/p1_y750.out` (|Off|<=88 pass, 0 surviving pairs) |
+| 6 | (6,6,4) s0 <= 5 | `s3f` target 8, all 159 reps, 70.0M pairs: MAX SPAN 5; re-run on the |Off|<=88 list at target 6 (pass) and target 5 (crack), so the span is exactly 5 | single (`s3f`, `s3y`; Python brute-force recheck on 11 pairs of the (6,6,2) case only) | `logs/S3FLAT/out_a664s0_*.out` (aggregate with `bash logs/S3FLAT/summ.sh a664s0` from `logs/S3FLAT`); `logs/SPANCOVER/664s0t6_*.out` (pass), `664s0t5_*.out` (one crack) |
+| 7 | (6,5,4)+1 <= 4 | `s3f` target 8, per-h relaxed, all 159 reps, 455.8M pairs, MAX SPAN 4 | single | `logs/S3FLAT/out_b654s1_*.out` |
+| 8 | (6,4,4)+1 <= 4 | `s3f` target 8, per-h relaxed, all 159 reps, 271.6M pairs, MAX SPAN 4 | single | `logs/S3FLAT/out_b644s1_*.out` |
+
+Notes and caveats, stated as in the source cards.
+- Only fact 1 is double-implemented. Facts 2-8 are single-implementation runs.
+- A run at target 8 proves only "span <= 7" in general; the stated bounds 4 and 5 are the maximum spans the runs actually reported (facts 6 pass/crack at lower targets confirm 5). The filter uses a fact for a row only when S <= d-1.
+- Direction lists: facts 1-4, 7, 8 are within their needed |Off| bound on the |Off|<=80 list; facts 5 and 6 need |Off|<=84 and were closed by the |Off|<=88 pass (`logs/DIRX/p1_y750.out`, and the 664s0 pass `logs/SPANCOVER/664s0t6_*.out`, which uses the |Off|<=88 list `data88.txt`). The `DIRX` pass for (6,6,4) s0 at target 8 (70,064,678 pairs, 0 hits) is now also rerun by `replay_spanfacts.sh` (`logs/REPLAY/replay_fact6_p1.out`); the target-6 SPANCOVER run on the same list is shipped.
+- Rerunnable from this attachment (added later; no claim changes): the C and Python sources (`src/s66.c`, `src/s6x.c` = `s6y`/`s6r`, `src/indep.py`, `src/s3f.c`, `src/s3x.c`, `src/s3y.c`, the independent `src/s3z.c`, `src/s4z.c`), the direction-list generators (`src/gen.py` for `data.txt`/`data80.txt`/`gens.txt`, `src/gen88.py` for `data88.txt`; `data/data88.txt.gz`, `data/gens.txt` are the shipped copies the replay compares with) and `replay_spanfacts.sh`, which reruns every row of the table above in chunks and compares with the shipped logs (log: `logs/REPLAY/`, 14 of 14 checks pass, 260 CPU-minutes). `s6y` is `s6x.c` with six arguments; `s6r` is `s6x.c` with the extra `REFINE` argument.
+- Logs not found: none of the eight facts lacks a log. The `x_660`/`s66_m0`/`indep_m0` logs (S66, no free line) are included as extra context for fact 1; `logs/SIX/indep_m1.out` (a first, unfinished single-process run) is replaced by its six chunk logs.
