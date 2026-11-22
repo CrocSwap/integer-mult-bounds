@@ -10,6 +10,7 @@ With CPython 3.12 and Git:
 
 ```sh
 python3.12 -IB scripts/research_package.py --package research/p104-gaussian-unsplit-returns
+python3.12 -IB scripts/research_package.py --package research/p104-gaussian-unsplit-returns-installation
 ```
 
 The exact predecessor wrapper, source manifest and compiled archive from #8053 are kept under `peer8053/`. The preparation script authenticates them, applies the literal adapter and weighted price replacements at unique source sites, and verifies the full candidate cost. It reuses the now-shared #8052 and #8042 archived dependencies. The unchanged signed compiler retains five inherited obligations for all columns, ownership and restoration, uniform compilation, tape and precision services, and analytic recovery. Production-scale dispatch is outside the measured scope.
