@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check the changed native map and its composition in the literal 36-call caller.
 
-Run: python3 -IB review.py strong-bit.json.gz EFREE-CALLER.json.gz
+Run: python3 -IB constant_caller.py strong-bit.json.gz EFREE-CALLER.json.gz
 
 Standard library only, with two byte-pinned inputs supplied on the command
 line. Outer-call checks restrict physical fields to constant binary fields,
@@ -174,9 +174,13 @@ for label, selected in cases.items():
     assert total_rank == total-2*m
     assert helper_rank == 36*408-2*m
     assert root_restriction == 38*111
+    # The caller's separate helper banks keep the (231,222) probes distinct.
+    probes = [1 << (38*111 + j*408 + h-222) for j in selected for h in (231,222)]
+    augmented = rank(chain(rootrows, helpers, probes))
+    assert augmented == total
     if m == 0:
         assert rootrows == [1 << i for i in range(38*111)]
         assert helpers == [1 << i for i in range(38*111,total)]
-    outer_results[label] = {'m':m,'rank':total_rank,'nullity':total-total_rank,'helper_output_rank':helper_rank,'root_input_restriction_rank':root_restriction}
+    outer_results[label] = {'m':m,'rank':total_rank,'nullity':total-total_rank,'helper_output_rank':helper_rank,'root_input_restriction_rank':root_restriction,'rank_with_original_helper_pair_per_changed_call':augmented}
 
 print(json.dumps({'original_rank':rank(orig),'changed_rank':rank(changed),'residual_signature_coupling':coupling,'helper_residual_signature_coupling':helper_coupling,'changed_helper_rank':rank(changed[222:]),'collision_a_nonzero_input':bits(ka),'collision_b_nonzero_input':bits(kb),'collision_a_original_output':bits(sa),'collision_b_original_output':bits(sb),'caller_model':'constant binary fields; independent 38*111 root and 36*408 per-call helper fields; unique helper owners at each LOCAL','caller_rows':total,'caller_cases':outer_results,'all_subset_rank':'18906-2m, by block triangularity and distinct helper owners'},indent=2,sort_keys=True))

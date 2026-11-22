@@ -29,13 +29,16 @@ def apply(rows, vector):
     return sum(dots(row, vector) << i for i, row in enumerate(rows))
 
 
-def trace(word, program, *, backwards=False):
+def trace(word, program, *, backwards=False, observe=None):
     """In reverse, CLEAR creates a zero adjoint and an initial zero has no adjoint."""
     start, end = (word["final"], word["start"]) if backwards else (word["start"], word["final"])
     count = len(start)
     charts = dict(enumerate(start))
     forms = {i: 1 << i for i in range(count)}
     retirements = []
+    if observe:
+        for i in forms:
+            observe(charts[i], forms[i])
     for op, target, *args in (reversed(program) if backwards else program):
         if op == ("CLEAR" if backwards else "INIT"):
             assert target >= count and target not in charts
@@ -59,6 +62,10 @@ def trace(word, program, *, backwards=False):
             source, = args
             forms[target], forms[source] = forms[source], forms[target]
             charts[target], charts[source] = charts[source], charts[target]
+            if observe:
+                observe(charts[source], forms[source])
+        if observe and target in forms:
+            observe(charts[target], forms[target])
     assert charts == dict(enumerate(end)) and set(forms) == set(range(count))
     return [forms[i] for i in range(count)], retirements
 
@@ -82,13 +89,26 @@ def paid(word, program):
                    for row in program if row[0] == "MOVE")
 
 
+def insert_basis(basis, row):
+    while row:
+        pivot = row.bit_length()
+        if pivot not in basis:
+            basis[pivot] = row
+            return
+        row ^= basis[pivot]
+
+
 def main():
     raw = (HERE / "strong-bit.json.gz").read_bytes()
     assert sha256(raw).hexdigest() == SHA
     word = json.loads(gzip.decompress(raw))
     old, new = word["program"], rewrite(word)
     baseline, old_scrub = trace(word, old)
-    changed, new_scrub = trace(word, new)
+    chart_one = {}
+    def observe(chart, row):
+        if chart == 1:
+            insert_basis(chart_one, row)
+    changed, new_scrub = trace(word, new, observe=observe)
     baseline_dual, _ = trace(word, old, backwards=True)
     changed_dual, _ = trace(word, new, backwards=True)
     assert len(baseline) == 630 and baseline == [
@@ -121,11 +141,41 @@ def main():
     assert pairing == [[1, 0], [0, 1]]
     assert all(apply(changed, v) == 0 for v in collisions)
     assert [apply(baseline, v) for v in collisions] == [sa, sb]
+    assert len(chart_one) == 503
+    assert all(dots(row, v) == 0 for row in chart_one.values() for v in collisions)
+    combined = dict(chart_one)
+    for row in changed:
+        insert_basis(combined, row)
+    assert len(combined) == 628
+    # A helper probe reads its original input value. Classify its restriction
+    # to the collision plane, then check a decoder on all 630 coefficient rows.
+    probe_types = Counter(tuple(dots(1 << h, v) for v in collisions) for h in range(222,630))
+    assert probe_types == {(0,0):392, (1,0):10, (0,1):6}
+    probes_a = [i for i in support(sa) if i>=222]
+    probes_b = [i for i in support(sb) if i>=222]
+    assert len(probes_a)*len(probes_b) == 60
+    assert all((word["start"][h], word["final"][h]) == (0, 1) for h in probes_a + probes_b)
+    assert (word["frames"]["0"]["dim"], word["frames"]["1"]["dim"]) == (0, 8)
+    for i in probes_a:
+        for j in probes_b:
+            da, db = (1 << i) ^ changed[i], (1 << j) ^ changed[j]
+            assert (da, db) == (ra, rb)
+            assert all((y ^ (da if sa & (1<<h) else 0) ^ (db if sb & (1<<h) else 0)) == baseline[h]
+                       for h,y in enumerate(changed))
+    for i,j in ((231,428),(222,230),(223,224)):
+        augmented = dict(combined)
+        for index in (i,j):
+            insert_basis(augmented, 1 << index)
+        assert len(augmented) < 630
     for zeros, expected_dirty in ((ra | rb, 3344), (((1 << 630) - (1 << 222)), 2617)):
         for rows in (old_scrub, new_scrub):
             assert sum(bool(form & ~zeros) for _, _, form in rows) == expected_dirty
     print(json.dumps({
         "public_rows": 630, "agreement_dimension": 628, "changed_map_rank": 628,
+        "changed_chart_one_history_rank": len(chart_one),
+        "rank_with_all_changed_outputs_and_chart_one_history": len(combined),
+        "recovering_original_helper_pairs": 60, "tested_helper_pair_domain": 83028,
+        "helper_probe_choices_a": probes_a, "helper_probe_choices_b": probes_b,
         "residual_a": support(ra), "residual_b": support(rb),
         "signature_a": support(sa), "signature_b": support(sb),
         "collision_inputs": list(map(support, collisions)), "residual_collision_pairing": pairing,

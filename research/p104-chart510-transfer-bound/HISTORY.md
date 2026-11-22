@@ -65,6 +65,6 @@ For a genuinely new rank-seven \(H\), its exterior stock is zero. Testing all \(
 
 ## Replay
 
-Run `python3 -IB history_proof.py /path/to/strong-bit.json.gz`. The checker uses the Python standard library. It verifies the compressed and expanded SHA-256 values, all 39,600 original instructions, the normalized outputs on all 630 independent public inputs, the private-reader boundaries, the chronological binary ranks, and all rational image and kernel comparisons used above. The exact output is in `HISTORY-RESULT.json`.
+Run `python3 -IB history_proof.py /path/to/strong-bit.json.gz`. The checker uses the Python standard library. It verifies the compressed and expanded SHA-256 values, all 39,600 original instructions, the normalized outputs on all 630 independent public inputs, the private-reader boundaries, the chronological binary ranks, and all rational image and kernel comparisons used above. The exact output is in `HISTORY.json`.
 
 This single-call certificate gives zero signed-moment gain from replacing precisely these five transfers while retaining the stated exterior traffic. Correlations across the 36 outer invocations or recoding another old paid transfer require their own communication contract and price.
