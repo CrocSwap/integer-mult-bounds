@@ -19,6 +19,9 @@ FROZEN = {
     'FEEDBACK-RIGIDITY.json': '3a648032d227705d3440b52455450a39cd067b98daaf69ccc2c07e3ae1a58410',
     'feedback_independent.py': 'f3d3788407294b8416c138632c15f7fc73fd7a51006709c2477c84151d80dc7c',
     'FEEDBACK-INDEPENDENT.json': 'd65d2f6b6ebcf27b4f45606d8e7cc069958140ee0a353fc158357ebd16478b3f',
+    'curvature.py': '60cceec9033fa8d099b343cadd4726b6099dabd9306087eb77741ad1ae332c86',
+    'CURVATURE.json': 'de2d7c008b2fab2f2fbd1b5ecb1d58fe87400dd67da9adfd24639880f691b44d',
+    'pinned/EFREE-CALLER.json.gz': '757b3523798f840bdb02028b23708c3416627a99ea09e7a3c4bcdc5cd0c7ce4b',
     'grade_price.py': 'd1b15db0625855e18f64fecc87e037a635da3cd9413e55c22157ab5c51b6873c',
     'GRADE-PRICE.json': 'f0707455c18e4ec868b81c2eb13ea06de5facbf7c2ceda465348d7ad39d91901',
     'information.py': '5ced620536a94181430cae9d063b23475bc92c15c7d8fda55d820caa18e4a650',
@@ -76,6 +79,7 @@ def main():
             'source Git blob mismatch')
     dimension = load_module('dimension_cuts.py')
     grade = load_module('grade_price.py')
+    curvature = load_module('curvature.py')
     feedback = load_module('feedback_rigidity.py')
     feedback_audit = load_module('feedback_independent.py')
     information = load_module('information.py')
@@ -87,6 +91,8 @@ def main():
     compare(d, 'DIMENSION-CUTS.json')
     p = grade.check(GRAPH)
     compare(p, 'GRADE-PRICE.json')
+    c = curvature.check(GRAPH, HERE / 'pinned/EFREE-CALLER.json.gz')
+    compare(c, 'CURVATURE.json')
     q = feedback.run(GRAPH)
     compare(q, 'FEEDBACK-RIGIDITY.json')
     q2 = feedback_audit.check(GRAPH, HERE / 'FEEDBACK-RIGIDITY.json')
@@ -98,6 +104,19 @@ def main():
     f = frozen.check(GRAPH, HERE / 'EXACT-EDITS.json')
     compare(f, 'FROZEN-REPLAY.json')
     g = frozen.source(GRAPH)
+    changed_histogram = curvature.native_upward(g)
+    changed_histogram[1] += 1
+    changed_histogram[2] -= 2
+    changed_histogram[3] += 1
+    require(sum(changed_histogram.values()) == sum(curvature.native_upward(g).values())
+            and sum(r*n for r,n in changed_histogram.items()) == 4750,
+            'histogram corruption control changed count or rank sum')
+    must_reject(lambda: curvature.validate_profiles(changed_histogram, curvature.RELAXED),
+                'rank-preserving histogram corruption')
+    bad_graph = dict(g)
+    bad_graph['program'] = [list(row) for row in g['program']]
+    bad_graph['program'][7112][3] = 0
+    must_reject(lambda: curvature.ordered_contacts(bad_graph), 'changed 4+4 incidence')
     changes = json.loads((HERE / 'EXACT-EDITS.json').read_text())
     require(frozen.apply(g['program'], changes) == repair.builds(g['program'], 'exact'),
             'independent edit list differs from repair generator')
@@ -110,8 +129,13 @@ def main():
         bad.write_bytes(raw[:-1] + bytes([raw[-1] ^ 1]))
         for label, reader in [('dimension', dimension.check), ('grade', grade.check),
                               ('information', information.read_graph), ('repair', repair.load),
-                              ('frozen', frozen.source), ('feedback', feedback.run)]:
+                              ('frozen', frozen.source), ('feedback', feedback.run),
+                              ('curvature', curvature.read_graph)]:
             must_reject(lambda reader=reader: reader(bad), label + ' source')
+        bad_caller = Path(tmp) / 'damaged-caller.gz'
+        caller = (HERE / 'pinned/EFREE-CALLER.json.gz').read_bytes()
+        bad_caller.write_bytes(caller[:-1] + bytes([caller[-1] ^ 1]))
+        must_reject(lambda: curvature.read_caller(bad_caller), 'caller source')
         bad_receipt = Path(tmp) / 'damaged-feedback.json'
         tampered = json.loads((HERE / 'FEEDBACK-RIGIDITY.json').read_text())
         tampered['certificate'][0]['witness_pair'][0]['shift_mask'] ^= 1
@@ -125,10 +149,11 @@ def main():
     damaged = dict(d)
     damaged['upward_grade'] = d['upward_grade'] - 1
     must_reject(lambda: compare(damaged, 'DIMENSION-CUTS.json'), 'damaged receipt')
-    print('PASS: source bindings; eight saturated cuts, 120 hub cuts, exact interval price;')
+    print('PASS: source bindings; eight saturated cuts, 120 hub cuts, interval price and curvature;')
     print('      27 feedback sites and 4643 sender exclusions with independent low-pivot replay;')
     print('      sharp information bound controls; independent 630-row repair and transpose;')
-    print('      damaged source, receipt, witness and edit; wrong oracle, missing ADD, cut controls')
+    print('      damaged source, receipt, witness, edit, histogram and incidence controls;')
+    print('      wrong oracle, missing ADD, and cut controls')
 
 
 if __name__ == '__main__':

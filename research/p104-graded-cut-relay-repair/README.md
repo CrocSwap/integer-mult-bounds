@@ -62,6 +62,31 @@ the same value. At `t = 1 − 0.00389046`, the native upward price is in
 lower bound and need not be realizable by causal messages at legal endpoints;
 they exclude downward and caller costs. [Primal, dual and scope](GRADE-PRICE.md).
 
+## Curvature and a conditional fusion budget
+
+For a histogram of paid ranks \(r\le R\), write `G = Σ r n_r`,
+`H_j = Σ n_r max(r−j,0)` and `w_j = 2j^t−(j−1)^t−(j+1)^t`.
+A telescoping identity gives the exact powered bill
+`G − Σ_{j=1}^{R−1} w_j H_j`; concavity makes every `w_j` nonnegative.
+For the native upward histogram and the optimal interval relaxation, the
+relaxed-minus-native `H_j` values at `j=1,…,7` are
+`2149, 2967, 2539, 2067, 1554, 1020, 505`. The first two priced terms of the
+25.059996283598193 relaxation gap are approximately **11.5746371588693** and
+**6.00177780362279** per native invocation. They are relaxation headroom,
+not realized savings.
+
+Among hypothetical fusions of positive ranks with sum at most eight, the
+largest saving is `2·4^t − 8^t`, approximately **0.02142834703346313** at
+the trial rate. Reconstructing the complete 36-call binary raw invoice from
+the pinned graph and caller shows that six such fusions cannot close its raw
+deficit. Seven hypothetical balanced 4+4 fusions would pass that raw test if
+all other terms were unchanged; no physical fusion or powered outer test is
+established. In the original word exactly one ordered 4+4 pair has matching
+intermediate chart and increasing clock, compared with 4,227 ordered 2+2
+pairs. These are incidence counts only: payload availability, common owner,
+legal shortcut and displaced readers have not been established. [Derivation,
+source bindings and controls](CURVATURE.md).
+
 ## Individual downward feedback rigidity
 
 At any one of the 27 native downward logical slots, keep all other interior
@@ -155,8 +180,9 @@ python3.12 -I -B scripts/research_package.py --package research/p104-graded-cut-
 ```
 
 The registered command authenticates the one vendored graph and all checked
-scripts, compares seven deterministic receipts, and exercises damaged-source,
-damaged-receipt and witness, wrong-oracle, missing-ADD and cut-restoration controls. The
+scripts, compares eight deterministic receipts, and exercises damaged-source,
+damaged-receipt, witness, rank-preserving histogram and incidence controls,
+plus wrong-oracle, missing-ADD and cut-restoration controls. The
 checks include independent forward and transpose replays. They do not provide
 an independent human review. For individual commands see the proof files.
 
