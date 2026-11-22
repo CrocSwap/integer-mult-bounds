@@ -1,0 +1,320 @@
+--- a/binary_receiver.py
++++ b/binary_receiver.py
+@@ -1,34 +1,14 @@
+ """Run the funded binary graph in the public bank and return every physical loan."""
+ 
+-from functools import cache
+-
+-from calibration import COMPACT
+-from compiler_cut import SourceRule
+-from epoch_tape import Compiler, run
++from installations import COMPACT
++from raw_binary_stage import binary_recipe, binary_word, run
+ from module_atoms import chart_width, total_width
+ from periodic import Job
+ from quotient_route import free_count, low_count
+ from raw_binary import job_frame
+ from receiver import OwnerBanks, Receiver as PhysicalReceiver
+ from streaming_routes import cold_swap_tape, erase, type_route
+-from strong_binary import StrongBinarySource, native_word
+-
+-
+-class NativeRule(SourceRule):
+-    def __init__(self, power):
+-        word = native_word(power)
+-        self.word = word
+-        self.ambient = word.ambient**word.power
+-
+-
+-@cache
+-def source_rule(power):
+-    return NativeRule(power)
+-
+-
+-@cache
+-def source_planner(power, floor):
+-    return Compiler(source_rule(power), floor)
++from strong_binary import StrongBinarySource
+ 
+ 
+ class Receiver(PhysicalReceiver):
+@@ -44,9 +24,11 @@
+         self.atom = 3 ** total_width(layout)
+         self.low = 1 if direct else low_count(dimension)
+         self.high = 1 if direct else 3 ** ((self.digits - 1) * free_count(dimension))
+-        self.rule = source_rule(profile.power)
+-        self.planner = source_planner(profile.power, profile.floor)
+-        self.owners = self.planner(dimension).width
++        height = dimension.bit_length() - 1
++        self.recipe = binary_recipe(height) if height >= 3000 else None
++        if self.recipe is not None and dimension != 1 << height:
++            raise ValueError("The retimed carrier needs a dyadic rank")
++        self.owners = self.recipe.width if self.recipe is not None else 1
+         self.stock = self.owners * self.low * self.high
+         self.arena = self.last_storage = None
+         self.small = None
+@@ -97,7 +79,7 @@
+                         banks.install(job.owner, out)
+ 
+                 def native(self, ports, columns):
+-                    return core.rule.word.native(ports, columns, raw)
++                    return binary_word().native(ports, columns, raw)
+ 
+                 def zero(self, exemplar):
+                     return Job(banks.zero(), exemplar.axes)
+@@ -105,7 +87,7 @@
+                 def retire_zero(self, job):
+                     banks.retire(job.owner, require_zero=True)
+ 
+-            run(self.rule, self.n, jobs, Machine(), planner=self.planner)
++            run(self.recipe, jobs, Machine())
+             for job in jobs:
+                 banks.read(job.owner, result)
+                 banks.retire(job.owner)
+--- a/ordinary_carrier.py
++++ b/ordinary_carrier.py
+@@ -1,25 +1,29 @@
+ """Route both signed-product shuttles through the two installed binary carriers."""
+ 
++from contextlib import closing
+ from functools import partial
+ 
+ from upstream import install
+ 
+ install()
+ from binary_receiver import Receiver
+-from calibration import COMPACT
++from installations import COMPACT
+ from module_atoms import ceil_root
+-from ordinary import least_power, rectangle
++from ordinary import least_power
+ from staged_carriers import admitted_stage, entrance_logs
+-from streaming_routes import cold_swap_tape, copy_bytes, work_tapes, erase
++from fiscal_scans import rectangle_slab, slab_indices, transfer
++from streaming_routes import cold_swap_tape, work_tapes, erase
+ from triangular_ordinary import root_body
+ 
+ 
+ def ternary(source, target, digits, prefix, gap, suffix, *, maximum, profile):
+     stage = admitted_stage(digits, maximum, profile.rank_logs)
+-    if not stage:
+-        cold_swap_tape(source, target, digits, prefix, gap, suffix)
++    if stage:
++        stage_body(source, target, digits, prefix, gap, suffix, stage, profile)
+         return
+-    stage_body(source, target, digits, prefix, gap, suffix, stage, profile)
++    with closing(slab_indices(prefix)) as slabs:
++        for _ in slabs:
++            cold_swap_tape(source, target, digits, 1, gap, suffix)
+ 
+ 
+ def stage_body(source, target, digits, prefix, gap, suffix, stage, profile):
+@@ -36,7 +40,9 @@
+     previous = partial(ternary, maximum=stage - 1, profile=profile)
+     direct = (digits + width - 1) // width <= rank**8
+     backend = Receiver(rank, layout, previous, direct=direct, profile=profile)
+-    root_body(source, target, digits, prefix, gap, suffix, backend)
++    with closing(slab_indices(prefix)) as slabs:
++        for _ in slabs:
++            root_body(source, target, digits, 1, gap, suffix, backend)
+ 
+ 
+ def ordinary_swap(source, target, bits, prefix, gap, suffix, *, profile=COMPACT):
+@@ -44,7 +50,7 @@
+     if bits < 0 or min(prefix, gap, suffix) < 1:
+         raise ValueError("Use a nonnegative width and positive field dimensions")
+     if not bits:
+-        copy_bytes(source, target, prefix * gap * suffix)
++        transfer(source, target, prefix * gap * suffix)
+         return
+     extent = 1 << bits
+     digits = least_power(3, extent)
+@@ -52,13 +58,17 @@
+     if not admitted_stage(digits, stages, rank_logs):
+         from compact_crt import binary_swap
+ 
+-        binary_swap(source, target, bits, prefix, gap, suffix)
++        with closing(slab_indices(prefix)) as slabs:
++            for _ in slabs:
++                binary_swap(source, target, bits, 1, gap, suffix)
+         return
+     padded = 3**digits
+-    with work_tapes(2) as (opened, completed):
+-        rectangle(source, opened, extent, padded, prefix, gap, suffix)
+-        opened.seek(0)
+-        ternary(opened, completed, digits, prefix, gap, suffix, maximum=stages, profile=profile)
+-        erase(opened)
+-        completed.seek(0)
+-        rectangle(completed, target, extent, padded, prefix, gap, suffix, restrict=True)
++    with work_tapes(2) as (opened, completed), closing(slab_indices(prefix)) as slabs:
++        for _ in slabs:
++            rectangle_slab(source, opened, extent, padded, gap, suffix)
++            opened.seek(0)
++            ternary(opened, completed, digits, 1, gap, suffix, maximum=stages, profile=profile)
++            erase(opened)
++            completed.seek(0)
++            rectangle_slab(completed, target, extent, padded, gap, suffix, restrict=True)
++            erase(completed)
+--- a/band_product.py
++++ b/band_product.py
+@@ -7,43 +7,29 @@
+ from upstream import HERE, install
+ 
+ install()
+-from band_positive import Positive
+-from binary_io import magnitude_bits, magnitude_limbs
+-from calibration import COMPACT, PROFILES
++from retimed_supplier import Positive
++from binary_io import magnitude_limbs
++from fiscal_scans import magnitude_bits
++from installations import COMPACT, PROFILES
+ from inputs.triangular.multiplier import Product as PackProduct, precision
+ from linear_geometry import parameters, square_sides
+ from ordinary_carrier import ordinary_swap
+ from positive_dispatch import h_pack
+ from product_path import scalar_product
+-from raw48 import ComplexRaw
+ 
+ 
+ @cache
+ def production_supplier(rank_log, stop_denominator):
+-    from strong_complex import artifacts, word
+-
+-    _, _, _, source = install()
+-    data = HERE / "inputs"
+-    atlas = artifacts(source / "research/grade14-native-realization", data)
+-    native = word(atlas.graph, atlas.layout)
+-
+-    def physical(fields, columns, **kw):
+-        return ComplexRaw(atlas, fields, columns, **kw)
+-
+-    return Positive(native, physical, 1 << rank_log, denominator=stop_denominator)
++    return Positive(rank_log, stop_denominator)
+ 
+ 
+ def prepare_native(profile=COMPACT):
+-    """Generate the fixed native programs. The tape caller can also install each at first use."""
+-    from binary_receiver import source_planner
++    """Generate the raw labels, both signed circuits, the atlas and the two grade couplings."""
++    from raw_binary_stage import binary_recipe
+ 
+-    binary = source_planner(profile.power, profile.floor)
+-    streams = [binary.image(1 << log_rank) for log_rank in profile.rank_logs]
++    binary = tuple(binary_recipe(height) for height in profile.rank_logs)
+     positive = production_supplier(profile.complex_log, profile.positive_stop_denominator)
+-    if positive.owners <= 1:
+-        raise ArithmeticError("The numerical carrier needs independent rows")
+-    streams.append(positive.planner.image(positive.carrier))
+-    return tuple(streams)
++    return (*binary, positive.recipe)
+ 
+ 
+ class Product(PackProduct):
+--- a/strong_binary.py
++++ b/strong_binary.py
+@@ -52,19 +52,46 @@
+         if self.ambient * columns > dimension or columns < 1:
+             raise ValueError("The complete source ambient and its columns must fit the frame")
+ 
+-        for name in (
+-            "raw_projector",
+-            "difference",
+-            "joint",
+-            "target",
+-            "head",
+-            "idle",
+-            "port_stage",
+-        ):
+-            setattr(self, name, cache(getattr(self, name)))
++
++    def difference(self, first, last):
++        frames = self.graph["frames"]
++        if frames[str(first)]["dim"] > frames[str(last)]["dim"]:
++            first, last = last, first
++        word, rank = fixed_binary_charts()[0][first, last]
++        return self.extend(word, range(rank))
++
++    def joint(self, port):
++        return fixed_binary_charts()[1][port]
+ 
+ 
+ @cache
++def fixed_binary_charts():
++    """Compile the eight-coordinate forms once. Lift them only on a real field."""
++    from ternary_frames import frame_at_three, projector, transpose
++    from vendor.cover import row_program
++
++    data, root = graph(), caller()
++    frames, starts, ends = data["frames"], data["start"], data["final"]
++    projectors = {int(i): projector(transpose(f["B"] + f["A"]), f["dim"])
++                  for i, f in frames.items()}
++    ports = root["ports"]
++    pairs = {tuple(row[2:]) for row in data["program"] if row[0] == "MOVE"}
++    pairs.update(zip(starts[2*ports:], ends[2*ports:], strict=True))
++    differences = {}
++    for i, j in sorted(pairs):
++        if frames[str(i)]["dim"] > frames[str(j)]["dim"]:
++            i, j = j, i
++        if (i, j) in differences:
++            continue
++        delta = [[y-x for x,y in zip(left,right,strict=True)]
++                 for left,right in zip(projectors[i],projectors[j],strict=True)]
++        basis, rank = frame_at_three(delta)
++        differences[i,j] = tuple(row_program(basis,3)),rank
++    joint = tuple(tuple(row_program(transpose(frames[str(starts[i])]["B"]
++                  + frames[str(ends[ports+i])]["B"]),3)) for i in range(ports))
++    return differences, joint
++
++
+ def active_catalogue(dimension, columns):
+     return ActiveCatalogue(dimension, columns)
+ 
+--- a/ordinary_carrier.py
++++ b/ordinary_carrier.py
+@@ -10,14 +10,24 @@
+ from installations import COMPACT
+ from module_atoms import ceil_root
+ from ordinary import least_power
+-from staged_carriers import admitted_stage, entrance_logs
++from staged_carriers import entrance_logs
+ from fiscal_scans import rectangle_slab, slab_indices, transfer
+ from streaming_routes import cold_swap_tape, work_tapes, erase
+ from triangular_ordinary import root_body
+ 
+ 
++def stage_for_width_log(available, maximum, rank_logs):
++    """Choose a receiver from the exact scanned width logarithm."""
++    if available < 0 or not 0 <= maximum <= len(rank_logs):
++        raise ValueError("Use a positive trit width and a supported stage")
++    cuts = entrance_logs(rank_logs)
++    return next((i for i in range(maximum, 0, -1) if available >= cuts[i-1]), 0)
++
++
+ def ternary(source, target, digits, prefix, gap, suffix, *, maximum, profile):
+-    stage = admitted_stage(digits, maximum, profile.rank_logs)
++    if digits < 1:
++        raise ValueError("Use a positive trit width and a supported stage")
++    stage = stage_for_width_log(digits.bit_length()-1, maximum, profile.rank_logs)
+     if stage:
+         stage_body(source, target, digits, prefix, gap, suffix, stage, profile)
+         return
+@@ -55,7 +65,7 @@
+     extent = 1 << bits
+     digits = least_power(3, extent)
+     stages = len(rank_logs)
+-    if not admitted_stage(digits, stages, rank_logs):
++    if not stage_for_width_log(digits.bit_length()-1, stages, rank_logs):
+         from compact_crt import binary_swap
+ 
+         with closing(slab_indices(prefix)) as slabs:
+--- a/check_product.py
++++ b/check_product.py
+@@ -97,7 +97,7 @@
+             restored.seek(0)
+             rectangle(restored, dst, 2, 9, prefix, gap, suffix, restrict=True)
+ 
+-    machine = Product((3, 5), 8, 136, exchange)
++    machine = Product((3, 5), 8, 136, exchange, profile=profile)
+     row = one(machine, -741503, 466013)
+     assert calls["shuttles"] == 138 and row["H_calls"] == 157248
+     return {**row, **calls, "rank": core.n, "stage_body_records": 81**2}
