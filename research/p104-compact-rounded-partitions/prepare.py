@@ -127,6 +127,10 @@ for r, n in quarter_79.items():
 assert derivative > 10**7
 print("PASS_INDEPENDENT_QUARTER_BRACKET", new_lo, new_hi)"""),
     ),
+    "verify.py": (
+        ('print(worker("check_gaussian.py",dst),end="")',
+         'run([sys.executable,"-IB",str(PACKAGE/"check_gaussian.py"),str(dst)],check=True)'),
+    ),
     "check_gaussian.py": (
         ("from grades import SCALES, SPLITS","from grades import SCALES, SPLITS\nfrom transport import paid_axis_count"),
         ("jobs=[Job(i,range(2*k))", "columns = 6\n    jobs=[Job(i,range(columns*k))"),
@@ -134,6 +138,10 @@ print("PASS_INDEPENDENT_QUARTER_BRACKET", new_lo, new_hi)"""),
         ("slots=2*producer.recipe.ambient", "slots=columns*producer.recipe.ambient"),
         ("Raw(w,raw).native(jobs,2)", "Raw(w,raw).native(jobs,columns)"),
         ("len(job.axes)==2*grade","len(job.axes)==paid_axis_count(grade, columns)"),
+        ('assert len(job.axes)==paid_axis_count(grade, columns)',
+         'assert len(job.axes)==paid_axis_count(grade, columns)\n'
+         '        if completed % 100_000 == 0:\n'
+         '            print("CHECK_COMPACT_NUMERICAL_PAID_CUTS", completed, flush=True)'),
         ('"sum output axes",2*sum(sizes)', '"sum output axes",columns*sum(sizes)'),
     ),
 }
