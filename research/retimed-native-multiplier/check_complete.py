@@ -8,7 +8,7 @@ from pathlib import Path
 from activation import resource_receipt
 from installations import BINARY_C, GAUSSIAN_C, PROFILES
 from linear_geometry import connected_exponent, entrance_geometry
-from ordinary_clock import polynomial_to_fibre_bound
+from ordinary_clock import polynomial_to_fibre_bound, first_stage_bound
 from outer_budget import qualify
 from outer_clock import exact_shape_check, financial_checks
 from raw_binary_stage import binary_word
@@ -26,25 +26,24 @@ def tariff(c, census, ambient):
     t = 1-c
     margin, cells = certify(c, census)
     assert cells and margin > 0 and min(cells.values()) / sum(targets.values()) > Q(1,2**64)
-    assert max(max(targets), max(paid)) <= 129 and min(paid) >= Q(1, 2)
+    assert max(max(targets), max(paid)) <= 1032 and min(paid) >= Q(1,2)
     assert all(4*k >= 5*r for r,k in cells)
-    assert max(max(v.numerator.bit_length(), v.denominator.bit_length()) for v in cells.values()) < 512
-    p = Q(sum(count * intervals(r, t)[0] for r,count in paid.items()), UNIT)
-    total = Q(sum(count * intervals(k, t)[1] for k,count in targets.items()), UNIT)
+    assert max(max(v.numerator.bit_length(),v.denominator.bit_length()) for v in cells.values()) < 512
+    p = Q(sum(count*intervals(r,t)[0] for r,count in paid.items()),UNIT)
+    total = Q(sum(count*intervals(k,t)[1] for k,count in targets.items()),UNIT)
     assert p/total > Q(99,100) and p > 10
-    lower, guard, delta = 2**15, 1024, Q(1,2**128)
+    lower, guard, delta = 32768, 1024, Q(1,2**128)
     def upper(x, exponent):
         return Q(intervals(x, exponent)[1], UNIT)
-    lt = Q(power_interval(lower,t)[0], UNIT)
-    assert upper(max(targets),c) < Q(102,100) and lt > 2**14 and t > Q(996,1000)
-    factor = (Q(256,255)*Q(4097,4096)*Q(1028,1024)*upper(4*guard*ambient,c)
-              * (upper(max(targets)*lower,c) + 60/lt + delta)
-              / ((1-Q(10,lower))*(1-delta)**2))
-    assert factor**16 < 8
+    assert upper(max(targets),c) < Q(106,100) and t > Q(996,1000)
+    factor = (Q(256,255)*Q(4097,4096)*Q(1028,1024)*upper(guard*ambient*lower,c)
+              * (1+Q(64,lower)+delta) / ((1-Q(10,lower))*(1-delta)**3))
     if ambient == 134:
-        assert (factor*Q(19,2))**2 < 128
+        assert (factor*Q(47,20))**8 < 2**11
+        assert Q(75,32)/Q(47,20) == Q(375,376)
     else:
-        assert cells[56,129] > 0
+        assert ambient == 1224 and cells[448,1032] == 1
+        assert factor**256 < 2**39
     return {"productive":sum(targets.values()), "paid":sum(paid.values()), "cells":len(cells),
             "directed_margin":str(margin), "factor_upper_times_1000000":-(-10**6*factor.numerator//factor.denominator)}
 
@@ -66,17 +65,29 @@ def profile_row(profile):
     prev = Q()
     history = []
     for i,h in enumerate(heights):
-        covered = BINARY_C-Q(7,2*h)
+        covered = BINARY_C-Q(11,8*h)
         limit = min(profile.eta,(249*covered+prev)/250)
         b = profile.ordinary if i+1 == len(heights) else Q(int(limit*10**21)-1,10**21)
-        assert prev < b < limit and polynomial_to_fibre_bound()+80*h < 1024*h
+        assert prev < b < limit
+        overhead = polynomial_to_fibre_bound() if i else first_stage_bound(profile.eta)
+        assert overhead+80*h < 1024*h
         history.append(str(b))
         prev = b
-    positive = GAUSSIAN_C-Q(1,5*profile.complex_log)
+    positive = GAUSSIAN_C-Q(39,256*profile.complex_log)
     signed = qualify(profile.kappa,Q(1,profile.positive_stop_denominator),prev,positive)
-    logB = 40 + ceiling_log(Q(133,10)**len(heights)) + 16384*sum(heights)
-    logC = 1+max(2**27, 1600 + 220*profile.complex_log + logB + 1)
-    return {"kappa":str(profile.kappa),"binary_H":list(heights),"numerical_H":profile.complex_log,
+    logB = 40 + ceiling_log(Q(376*7,10)**len(heights)) + 16384*sum(heights)
+    logC = 1+max(84_500_000, 1600 + 220*profile.complex_log + logB + 1)
+    # Iterated stage funding and Cauchy-Schwarz apply to all admitted stage counts.
+    floors = []
+    for stages in range(1,7):
+        room = BINARY_C-profile.ordinary-BINARY_C*Q(1,250)**stages
+        if room > 0:
+            weight = sum(Q(1,16)**i for i in range(stages))
+            floors.append(1 + int(Q(249,250)*Q(11,8)*weight**2/room))
+    numerical_floor = 1 + int(Q(39,256)/(GAUSSIAN_C-profile.ordinary))
+    entrance_floor = min(floors) + numerical_floor
+    assert entrance_floor <= A
+    return {"A_lower_in_this_price":entrance_floor,"kappa":str(profile.kappa),"binary_H":list(heights),"numerical_H":profile.complex_log,
             "width_logs":[92*h for h in (*heights, profile.complex_log)],
             "stage_rates":history,"signed_gate":signed,"geometry":geom,**receipt,
             "log2_fixed_setup_and_install_le":SETUP_LOG,"log2_ordinary_clock_le":logB,
@@ -109,8 +120,8 @@ def all_results():
         lo,hi = intervals(grade,1-BINARY_C)
         assert Q(lo,UNIT) <= b and a <= Q(hi,UNIT)
     binary = tariff(BINARY_C,census,134)
-    positive = tariff(GAUSSIAN_C,ranks(),153)
-    assert (binary["cells"],positive["cells"]) == (24,31)
+    positive = tariff(GAUSSIAN_C,ranks(),1224)
+    assert (binary["cells"],positive["cells"]) == (24,54)
     early = financial_checks()
     regime = exact_shape_check(HERE)
     rows = {name: profile_row(profile) for name,profile in PROFILES.items()}

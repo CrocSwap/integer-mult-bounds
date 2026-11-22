@@ -53,7 +53,12 @@ def exact_shape_check(package):
 def financial_checks():
     # At s>=32 the private setup fits in n. Compare one term with an exponential
     # and use (s+2)^2<2(s+1)^2 on the tail. The linear cap only decreases at s=512.
-    assert max(private_log(s) for s in range(1, 32)) < (1 << 27) - 100_000
+    # p=6b, s=ceil(log2(6b+2)), and n>2^(b-1) when n>1.
+    def prefix_log(s):
+        lower = max(0, ((1 << (s-1))-2)//6-1)
+        return private_log(s)-lower
+    prefix = max(prefix_log(s) for s in range(1,32))
+    assert prefix < 84_500_000-1000 and prefix == prefix_log(27)
     assert 32 + 1024 * (128 * 32**2 + 32 + 88) < 1 << (32 - 4)
     assert max(controls_log(s) for s in range(1, 64)) < 1 << 23
     assert 128 * 63**2 == 508_032
@@ -88,7 +93,8 @@ def financial_checks():
     assert (Fraction(128, 1) / g)**16 < 1 << 1024
     return {"private_prefix_log2": max(private_log(s) for s in range(1, 32)),
             "controls_prefix_log2": max(controls_log(s) for s in range(1, 64)),
-            "early_log2_C_bound": 1 << 27,
+            "private_prefix_after_input_log2": prefix,
+            "early_log2_C_bound": 84_500_000,
             "tail_log2_fixed_factor_including_b_to_n": 1434,
             "tail_unit": "(1 + B + Z) * n * (1 + log2(n))^(1-kappa)"}
 

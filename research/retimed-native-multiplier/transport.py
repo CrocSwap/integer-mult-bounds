@@ -325,9 +325,9 @@ class Recipe:
     def __init__(
         self, rank_log, ambient, targets, paid, cells, trial, level_floor=2**15
     ):
-        if rank_log < 3000:
+        if rank_log < 1024:
             raise ValueError(
-                "The production width proof requires rank_log at least 3000."
+                "The production width proof requires rank_log at least 1024."
             )
         self.rank_log, self.ambient = rank_log, ambient
         self.targets, self.paid, self.cells = targets, paid, cells
@@ -353,5 +353,5 @@ class Recipe:
             n**82,
             n**2,
             width=self.width,
-            delay_base=2**19,
+            delay_base=1 << max(19, (len(self.paid) - 1).bit_length()),
         )

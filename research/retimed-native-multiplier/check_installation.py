@@ -68,7 +68,7 @@ def build():
             assert plan.width_log == 92 * plan.rank_log and not hasattr(plan, "count")
         bit, pos = recipes[0], recipes[-1]
         assert (len(bit.targets), len(bit.paid), len(bit.cells)) == (18906, 104904, 24)
-        assert (len(pos.targets), len(pos.paid), len(pos.cells)) == (52608, 282576, 31)
+        assert (len(pos.targets), len(pos.paid), len(pos.cells)) == (105216, 564144, 54)
         print(name, list(profile.rank_logs), profile.complex_log, flush=True)
     print("installed binary labels", len(binary_word().targets), len(binary_word().paid))
     forms, ports = fixed_binary_charts()

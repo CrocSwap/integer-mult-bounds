@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from fractions import Fraction as Q
 
 BINARY_C = Q(4484997569314581, 2**60)
-GAUSSIAN_C = Q(4085, 2**20)
+GAUSSIAN_C = Q(2092819, 2**29)
 
 
 @dataclass(frozen=True)
@@ -20,13 +20,14 @@ class Profile:
         return self.kappa + Q(5, self.positive_stop_denominator)
 
 
-COMPACT = Profile((33000, 380000), 13000, Q(97,25000), Q(".00387992803556"), 10**14)
-SMALL = Profile((48000,), 3000, Q(97,25000), Q(".0038"), 10**14)
-BALANCED = Profile((90000, 1800000, 36000000), 36000, Q(39,10000), Q(".00389"), 10**14)
-NEAR = Profile((20000000,300000000,4000000000,40000000000,600000000000),
-               36000,Q(39,10000),Q(".00389011528"),10**17)
-MATCHED = Profile((650000000,10500000000,168000000000,2700000000000,
-                   43000000000000,1050000000000000),
-                  36000,Q(39,10000),Q(".0038901152865907"),10**17)
-PROFILES = {"small": SMALL, "compact": COMPACT, "balanced": BALANCED,
-            "near": NEAR, "matched": MATCHED}
+SELECTED_PRICE = Profile((5610,), 1024, Q(97,25000), Q(".00363005817"), 10**14)
+SMALL = Profile((18400,), 1600, Q(97,25000), Q(".0038"), 10**14)
+COMPACT = Profile((9100, 144000), 8500, Q(97,25000), Q(".00387992803556"), 10**14)
+BALANCED = Profile((50900, 804000, 12800000), 19000, Q(39,10000), Q(".00389"), 10**14)
+NEAR = Profile((3550000, 56200000, 888000000, 14100000000, 222000000000),
+               19000, Q(39,10000), Q(".00389011528"), 10**17)
+MATCHED = Profile((401000000, 6340000000, 101000000000, 1590000000000,
+                   25100000000000, 396000000000000),
+                  19000, Q(39,10000), Q(".0038901152865907"), 10**17)
+PROFILES = {"selected-price": SELECTED_PRICE, "small": SMALL, "compact": COMPACT,
+            "balanced": BALANCED, "near": NEAR, "matched": MATCHED}

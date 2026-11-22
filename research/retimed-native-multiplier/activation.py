@@ -37,15 +37,17 @@ def resource_receipt(profile):
     cuts=binary_entries(ranks)
     A=full_entrance(cuts[-1],num)
     s=A+1
-    assert s>=8192
+    assert s>=6000
+    # 8E < 33L/s and L <= p/6+3. The remaining excess is <= 34s+8.
+    # Then 5.5/s <= 11/12000, and p/12000 covers 34s+9 for every s>=6000.
+    assert (12000*(34*s+9)).bit_length() <= s-2
     for h in (num,*ranks):
-        assert h>=3000
-        assert 66+83*h<92*h
+        assert h>=1024
+        assert 68+83*h<92*h
         assert 92*h<105*h and 92*h<448*h
         assert (700*h).bit_length()<=h and (872*(4*h+1)).bit_length()<=h
         assert (30*1024*h+120).bit_length()<=h-1
     for i,h in enumerate(ranks):
-        assert 28_726_102+80*h<1024*h
         assert not i or cuts[i-1]+2<h
     assert s-100-7*ceil_log2(s)>=num+cuts[-1]+2
     assert profile.eta<Fraction(1,250)
@@ -58,14 +60,17 @@ def resource_receipt(profile):
     assert (1200*(64*(128*s*s+s)+2*s+128)).bit_length()<=s-2
     assert (2000*(34*s+108)).bit_length()<=s-2
     assert 33**9<2*32**9
-    # The local coefficient is independent of the astronomical raw width B.
-    # The nonnative prefix has at most 32 levels, each with at most 2^64.
-    q=2048
-    local=2*q+4096+4*(m+1)+128
+    # Each local count fits 25 bits on a native adapter and 32
+    # on a non-native adapter. The largest historical absolute address
+    # is the sum of local extents down a path. Keep the upper products
+    # even on each of the 32 fixed intra-service adapter heights.
+    assert 2*8*256*80*22*3<2**25
+    assert 8*71*22*3*256*128*2<2**32
+    local=25*32+32*32+4*(m+1)+128
     per_head=local+4*(s+128).bit_length()
     slack=s//2-2-per_head
-    tail=7*s//16-3-local
-    assert 16*(local+1028)<=7*s and slack>1024 and tail>1024
+    tail=31*s//64-3-local
+    assert 64*(local+1028)<=31*s and slack>1024 and tail>1024
     delta=(-pow(2,A,6))%6
     assert delta in (2,4)
     return {"binary_cuts":cuts,"public_exponent_A":A,"first_public_offset":delta,

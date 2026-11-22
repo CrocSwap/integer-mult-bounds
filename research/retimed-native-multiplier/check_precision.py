@@ -122,10 +122,13 @@ def audit():
     big = max(masses)
     assert 2**435 < big < 2**436
     assert GRID == ODD << DYADIC
-    profiles = ((3000, 14), (13000, 14), (36000, 17))
+    from installations import PROFILES
+    profiles = {(p.complex_log,p.positive_stop_denominator) for p in PROFILES.values()}
     for h, d in profiles:
         assert 872*(4*h+1) < 1 << h
-        assert 66+(6+77)*h < 92*h
+        assert 68+(6+77)*h < 92*h
+        assert 32*(h+11)+6*h+4 < 64*(h+1)
+        assert 150+6*(h+1).bit_length() < h
         assert 96*h + 92*h + h + 100 < 191*h
         assert 700*h + 200 < (1 << (h-2))
         assert 16*(h+2) + 200 < h*h//2

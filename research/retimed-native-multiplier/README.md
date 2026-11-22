@@ -6,15 +6,18 @@ A fixed integer-multiplication machine can generate both native words and their 
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Prior compact | 0.00387992803556 | 1,600,000 | 610,000 | 1,638,400,002 | 2,471,428 | 30,535,241,478 |
 | Prior small-gap | 0.0038901152865907 | 7,168,000,000,000,000 | 1,600,000 | 7,340,032,000,000,000,003 | 7,645,866,239,991,957 | 125,269,872,000,160,591,302 |
-| Small | 0.0038 | 48,000 | 3,000 | 513 | 51,471 | 787,093,646 |
-| Compact | 0.00387992803556 | 380,000 | 13,000 | 513 | 426,495 | 6,769,453,650 |
-| Balanced | 0.00389 | 36,000,000 | 36,000 | 513 | 37,926,837 | 620,797,681,654 |
-| Near | 0.00389011528 | 600,000,000,000 | 36,000 | 513 | 644,320,117,023 | 10,556,538,887,921,661 |
-| Matched | 0.0038901152865907 | 1,050,000,000,000,000 | 36,000 | 513 | 1,095,879,152,647,278 | 17,954,883,993,607,921,665 |
+| Selected-Price | 0.00363005817 | 5,610 | 1,024 | 513 | 6,913 | 92,141,171 |
+| Small | 0.0038 | 18,400 | 1,600 | 513 | 20,345 | 301,819,251 |
+| Compact | 0.00387992803556 | 144,000 | 8,500 | 513 | 161,992 | 2,510,262,059 |
+| Balanced | 0.00389 | 12,800,000 | 19,000 | 513 | 13,674,566 | 223,726,063,267 |
+| Near | 0.00389011528 | 222,000,000,000 | 19,000 | 513 | 237,047,783,945 | 3,883,790,340,181,683 |
+| Matched | 0.0038901152865907 | 396,000,000,000,000 | 19,000 | 513 | 422,797,742,630,271 | 6,927,118,188,548,181,691 |
 
 All dimensions in the table are exponents. The ranks are $2^H$, setup is bounded by $2^{\log_2 S}$ transitions and the recurring coefficient by $2^{\log_2 C}$. The prior rows use the single-band physical compiler and our explicit repricing of its recurring tape costs. Its submitted bound used an unspecified coefficient. PR #8040 already lowered the corresponding setup exponents to 4,098 and 6,267 with its grade-counted installer. The new fixed bound is 513. The upper bounds do not measure the speed of one product. [Prior setup receipts](https://github.com/aliromman/integer-mult-bounds/blob/1ca6b8111297ac2cc2dcfe5da0027656898f7589/research/counted-native-bands/RESULT.json)
 
-For each A, the first sufficient significant input length in bits is $2^{\lceil 2^A/6\rceil-1}+1$. This entrance supplies the complete numerical raw word, a genuine full-slot ordinary interchange, all earlier services, the private precision and the true high-matrix stock. The public controller can select a cheaper or stopped branch before this point. At Small the largest side at the entrance already has tens of millions of address bits. Every rank-$2^H$ raw cohort actually has $2^{92H}$ independent native rows. Input-dependent preparation, incomplete groups and head movement enter the recurring bound. [Complete activation](ACTIVATION.md) · [Precision and movement](NUMERICAL.md)
+For each A, the first sufficient significant input length in bits is $2^{\lceil 2^A/6\rceil-1}+1$. This entrance supplies the complete numerical raw word, a genuine full-slot ordinary interchange, all earlier services, the private precision and the true high-matrix stock. The public controller can select a cheaper or stopped branch before this point. Even the selected-price row needs 2^6,888 outer axes at entry. Its largest axis uses 5,592,406 address bits. Every rank-$2^H$ raw cohort actually has $2^{92H}$ independent native rows. Input-dependent preparation, incomplete groups and head movement enter the recurring bound. [Complete activation](ACTIVATION.md) · [Precision and movement](NUMERICAL.md)
+
+The direct ordinary receiver now moves its supplied basis into a coordinate, issues one recursive exchange and restores the basis. In wide mode it transforms each actual low/high packet by a rank-one reflection. A packet needs at most five recursive calls. The volume-weighted mean over all lows is at most $7/3+16/[3(3^N-1)]$, uniformly over the paid input frame. The two-scale Gaussian supplier repays its small-column loans with actual fields from two complete raw executions. A linear integral over both real transport boundaries prices the integer remainders. The first change lowers the ordinary debit from 3.5 to 1.375 bits per installed stage. The second lowers the matched numerical exponent from the first retimed value of 36,000 to 19,000. [Direct and quotient construction](RECEIVER.md) · [Full transport](TRANSFER.md) · [First retimed receipts](https://github.com/aliromman/integer-mult-bounds/blob/3d33cb0c8a523b66d91e8de8250b85d0a436eb35/research/retimed-native-multiplier/RESULT.json)
 
 ## Equal-rate comparison
 
@@ -24,9 +27,13 @@ c-b_m \ge c/250^m+(249l/250)\sum_{i=1}^m250^{i-m}/H_i .
 $$
 Cauchy–Schwarz with $1/16<1/\sqrt{250}$ bounds the last sum below by $(\sum_{j=0}^{m-1}16^{-j})^2/(\sum_i H_i)$. The ordinary width floor implies $A>\sum_i H_i+H_M$. At the most permissive supported positive stop add the strictly necessary numerical debit. The checker also constructs actual alternative installations from those words and runs their complete resource and signed gates. The lower bound applies to these four named tariff formulas and stage rule. Other physical suppliers may do better. [Retunings](equal_rate.py)
 
-- At κ = .00389, a feasible old refit has A = 188,868,731. Every such retuning has A ≥ 188,252,135. The new balanced installation has A = 37,926,837.
-- At κ = .00389011528, a feasible old refit has A = 3,615,709,999,957. Every such retuning has A ≥ 3,609,923,786,113. The new near installation has A = 644,320,117,023.
-- At κ = .0038901152865907, a feasible old refit has A = 7,420,702,481,833,889. Every such retuning has A ≥ 7,404,411,307,975,972. The new matched installation has A = 1,095,879,152,647,278.
+- At κ = .00389, a feasible old refit has A = 188,868,731. Every such retuning has A ≥ 188,252,135. The new balanced installation has A = 13,674,566.
+- At κ = .00389011528, a feasible old refit has A = 3,615,709,999,957. Every such retuning has A ≥ 3,609,923,786,113. The new near installation has A = 237,047,783,945.
+- At κ = .0038901152865907, a feasible old refit has A = 7,420,702,481,833,889. Every such retuning has A ≥ 7,404,411,307,975,972. The new matched installation has A = 422,797,742,630,271.
+
+The same lower-bound argument applies to this package's **own** two tariffs. Use the actual raw ordinary crossing and debit 11/8, positive debit 39/256, final ordinary target κ+5g, and at most six stages. At the strongest κ it gives A≥421,764,310,695,960. The installed A is within 0.25% of that bound. This restriction is on these prices and stage funding. An improvement of several further orders at this κ requires a new price or a different stage construction. The present 36-call word has only about $3.76·10^{-15}$ of raw rate above the target. [Rational floor calculation](check_complete.py)
+
+The near profile lowers κ by $6.5907·10^{-12}$ relative to the matched profile. This permits a further factor of 1,784 in the defining activation exponent. At that exact near rate the comparison against an independently retuned predecessor is about 15.2-fold. The first factor includes the price tradeoff. Neither factor measures elapsed running time.
 
 ## Reproduction
 
@@ -47,4 +54,4 @@ The public signed entry prints `-345550037539`; on that input the normal selecto
 
 ## Open next questions
 
-Can the complete ordinary receiver meet its present raw crossing with fewer weighted recursive interchanges on all real low matrices? Can an outer pack force the genuine paid path at a smaller public precision while retaining every high coordinate and the full numerical error budget?
+Which change to the binary word or the stage funding can sustain the strongest rate across a substantially wider raw margin? The certified tariff floor limits what later work can gain by tuning these same ranks.

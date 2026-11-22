@@ -19,6 +19,14 @@ def polynomial_to_fibre_bound():
     return 20 * (16 + 8) + 259 * degree + 2 + a * (a - 1).bit_length()
 
 
+def first_stage_bound(eta):
+    assert eta >= Fraction(97,25000) and 2*eta > Fraction(1,250)
+    # u >= ceil(e^eta)/2, hence w+1 <= 9u^2. Bound u^a/3^(u-1) by 3a^a.
+    degree = 20*253
+    a = 2*degree
+    return 20*(16+8)+4*degree+2+a*(a-1).bit_length()
+
+
 def full_log2_B(ranks):
     # B0=2^100, B_i<=J_i^14(1+Bprev); root binary rectangle and digit rounding.
     return 40 + 16 * 1024 * sum(ranks)

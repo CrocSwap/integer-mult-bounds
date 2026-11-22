@@ -13,8 +13,8 @@ from strict_moment import power_interval, UNIT
 def ranks():
     graph, layout = load_changed(HERE / "inputs")
     raw = word(graph, layout)
-    target = Counter(F(p.rank) for p in raw.targets)
-    paid = Counter(F(p.rank) for p in raw.paid)
+    target = Counter(scale*p.rank for scale in (1, 8) for p in raw.targets)
+    paid = Counter(scale*p.rank for scale in (1, 8) for p in raw.paid)
     paid[1] -= 1008
     paid[F(1, 2)] = 2016
     return target, paid

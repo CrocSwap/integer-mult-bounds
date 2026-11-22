@@ -54,7 +54,9 @@ def install(destination):
     unpack(destination)
     run(["git", "apply", "--no-index", str(HERE / "machine.patch")],
         check=True, cwd=destination)
-    for name in ("installations", "raw_binary_stage", "retimed_supplier", "transport", "unpowered_price", "fiscal_scans"):
+    run(["git", "apply", "--no-index", str(HERE / "receiver.patch")],
+        check=True, cwd=destination)
+    for name in ("five_exchange", "installations", "raw_binary_stage", "retimed_supplier", "transport", "unpowered_price", "fiscal_scans"):
         copyfile(HERE / f"{name}.py", destination / f"{name}.py")
 
 

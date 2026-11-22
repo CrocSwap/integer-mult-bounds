@@ -190,6 +190,39 @@ theorem stripeTail (s0 s localOverhead : ℕ) (h0 : 1024 ≤ s0) (hs : s0 ≤ s)
   have width := headWidth s (by omega)
   omega
 
+/-- For every cofinal stripe, a full earlier prefix has at most s/64 index bits
+    after the four address and reader copies. -/
+theorem sharpHeadWidth (s : ℕ) (hs : 4096 ≤ s) : 4*((s+128).log2+1) ≤ s/64 := by
+  have cap : ∀ j : ℕ, 16 ≤ j → 256*(j+1)+127 < 2^j := by
+    intro j h
+    obtain ⟨t, rfl⟩ := Nat.exists_eq_add_of_le h
+    induction t with
+    | zero => decide
+    | succ t ih =>
+      rw [show 16+t.succ=(16+t)+1 by omega, pow_succ]
+      omega
+  have loc := cap (s/256) (by omega)
+  have bits := (Nat.log2_lt (show s+128≠0 by omega)).2 (show s+128<2^(s/256) by omega)
+  omega
+
+theorem tightStripe (s0 s localOverhead : ℕ) (h0 : 4096 ≤ s0) (hs : s0 ≤ s)
+    (base : 64*(localOverhead+1028) ≤ 31*s0) :
+    1024+(localOverhead+4*((s+128).log2+1)) < s/2-2 := by
+  have width := sharpHeadWidth s (by omega)
+  omega
+
+theorem precisionTail (s : ℕ) (hs : 64 ≤ s) : 12000*(34*s+9) ≤ 2^(s-2) := by
+  obtain ⟨j, rfl⟩ := Nat.exists_eq_add_of_le hs
+  induction j with
+  | zero => decide
+  | succ j ih =>
+    rw [show 64+j.succ-2=(64+j-2)+1 by omega, pow_succ]
+    omega
+
+#print axioms sharpHeadWidth
+#print axioms tightStripe
+#print axioms precisionTail
+
 #print axioms active
 #print axioms stop
 #print axioms floorNext

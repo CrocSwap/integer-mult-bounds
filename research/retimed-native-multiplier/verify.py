@@ -30,6 +30,9 @@ def check(mode, tree):
         files = {"schedule": ["check_streamed", "check_chronology", "check_reentry"],
                  "physical": ["check_binary_word", "check_positive_word", "check_precision"],
                  "install": ["check_installation"],
+                 "witness": ["check_nonzero_eight"],
+                 "deep-receiver": ["true_high", "direct_recursive"],
+                 "receiver": ["normal_five", "direct_exact", "check_five", "low_inventory_scan"],
                  "slabs": ["check_scans"]}
         for name in files[mode]:
             runpy.run_path(str(HERE / (name + ".py")), run_name="__main__")
@@ -38,7 +41,7 @@ def check(mode, tree):
 
 if __name__ == "__main__":
     cli = ArgumentParser(description=__doc__)
-    cli.add_argument("mode", choices=("cost", "schedule", "install", "physical", "product", "slabs"))
+    cli.add_argument("mode", choices=("cost", "schedule", "install", "physical", "product", "slabs", "receiver", "witness", "deep-receiver"))
     command = cli.parse_args().mode
     if sys.version_info[:2] != (3, 12) or not __debug__:
         raise RuntimeError("Use Python 3.12 with assertions enabled")

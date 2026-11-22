@@ -1,187 +1,50 @@
-# Connected activation with the true retimed row stock
+# Complete activation at the six revised rank lists
 
-Let n be the larger significant operand bit length. The signed tape
-multiplier uses p=6 ceil(log2 n) and s=ceil(log2(p+2)). In each
-profile below write A for its sufficient public precision exponent.
-At every n from 2^(ceil(2^A/6)-1)+1 upwards, a genuine positive
-transport issues a complete interchange into the last ordinary
-stage, with real calls into its earlier stages. At the same entrance
-the complete historical storage is below 6.2pT<297.6n bits for
-canonical inputs. T is the actual padded tensor extent. Inputs with
-declared extra leading zero bytes pay for those bytes.
+Write n for the larger significant bit length, p=6 ceil(log₂ n), s=ceil(log₂(p+2)), T for the true outer padded extent, and k=floor(s/2)−2. The first sufficient significant length is 2^(ceil(2^A/6)−1)+1. At this length a genuine positive source touches the top ordinary stage through the actual full-slot operation. It is an applicability bound. The table counts the first full historical storage as well as true geometric entry. A performance crossover has not been measured.
 
-| Profile | Binary entrance exponents | H_M | A | Margin at first s | All-size margin lower bound at first s |
-| --- | --- | ---: | ---: | ---: | ---: |
-| Small | 48,258 | 3,000 | 51,471 | 17,342 | 14,188 |
-| Compact | 33,197, 413,261 | 13,000 | 426,495 | 204,838 | 178,257 |
-| Balanced | 90,426, 1,890,490, 37,890,554 | 36,000 | 37,926,837 | 18,954,977 | 16,584,652 |
-| Near | 20,080,386, 320,080,450, 4,320,080,514, 44,320,080,578, 644,320,080,642 | 36,000 | 644,320,117,023 | 322,160,050,006 | 281,890,042,851 |
-| Matched | 652,610,507, 11,152,610,571, 179,152,610,635, 2,879,152,610,699, 45,879,152,610,763, 1,095,879,152,610,827 | 36,000 | 1,095,879,152,647,278 | 547,939,576,315,089 | 479,447,129,274,833 |
+| Rate profile | Positive log rank | Largest binary log rank | Last ordinary cut | A | First stripe surplus | Proved surplus for every later s |
+|---|---:|---:|---:|---:|---:|---:|
+| Selected-rate | 1,024 | 5,610 | 5,697 | 6,913 | 1,443 | 1,385 |
+| Small | 1,600 | 18,400 | 18,539 | 20,345 | 8,151 | 7,892 |
+| Compact | 8,500 | 144,000 | 153,265 | 161,992 | 78,958 | 76,498 |
+| Balanced | 19,000 | 12,800,000 | 13,655,297 | 13,674,566 | 6,835,217 | 6,621,647 |
+| Near | 19,000 | 222,000,000,000 | 237,047,764,578 | 237,047,783,945 | 118,523,889,843 | 114,820,018,369 |
+| Matched | 19,000 | 396,000,000,000,000 | 422,797,742,610,827 | 422,797,742,630,271 | 211,398,871,312,958 | 204,792,656,584,555 |
 
-Each first precision is the least multiple of six at least $2^A$. The full shapes, side widths and number of axes at that entrance are in [the exact results](RESULT.json). For Small the first complete outer tensor has $2^{51443}$ axes and its largest axis has 44,739,243 address bits. The private setup and the data array still exceed available hardware.
+The first selected geometry contains 2^6888 actual square axes. Its largest axis has 5,592,406 address bits. Output precision and the astronomical full tensor still dominate feasibility.
 
-## Reach the native services
+## Entry and precision
 
-For binary rank N_i=2^H_i set
+At stage i, a_i=max(ceil(250(H_i+64)/249),H_i+64+a_(i−1)); omit the second term for the first stage. Each subsequent H_i exceeds a_(i−1)+2. The rank's true owner product is N_i^92 below its N_i^105 reserve bound. A positive source uses M^92 below its M^448 bound, retains all tail and high coordinates, and passes 872(4H_M+1)<M even at H_M=1024. The external cell (448,1032) sends a probability of 1/624 to each maximum target. At an even bin near 3U/4 its source interval is wholly external because (3/4)(1032/448)>1. Its integral over the width-two target bin, including the dilation and 1/624 share, exceeds two replicas since V=M^6 and x≤M. The first assigned replica of group zero and round zero is a real row (h0<B). Its ticket sequence has spacing at least floor(q/5)≥204 at stride q≥1024, with more than three tickets on the actual first raw head. The physical aligner must perform a whole-slot interchange by the original gap argument. The numerical controller and the physical exposed rank-1,032 target at the grade-448 boundary of the larger raw copy provide h≥2^(s−100)/s⁷ ordered real windows and a real first whole-slot exchange. The terminal stop is false there. The sufficient condition s−7 ceil(log₂ s)≥H_M+a_m+102 gives h≥4M·2^a_m and an ordinary width above its actual top cutoff. Test the first satisfying s and the value one beyond the next power of two; later dyadic post-jump minima grow by 2^j−7. Each threshold in the table uses the actual public picker and every preceding stage. The [production constructor](transport.py) accepts H≥1024. The [numerical invoice](NUMERICAL.md) checks that whole range.
 
-    a_i=max(ceil(250(H_i+64)/249), H_i+64+a_(i-1))
+At s≥6000 one has P−p≤33(p/6+3)/s+34s+8, from the executed pack's E and integer height bound. Here 5.5p/s≤11p/12000, and 34s+9≤2^(s−2)/12000≤p/12000. The remaining 99/s<1. This proves P<1.001p on the entire new range including selected s=6914. OuterTickets.precisionTail uses ordinary integer induction, valid from s=64. The earlier s≥8192 display was sufficient for that predecessor; the sharper implication uses the identical executed table and precision. The element width gives every physical window at least 128 complete digits, so no change to the Fourier or row error budget is needed.
 
-and omit the second term at i=1. All earlier entry logarithms are
-strictly below H_i-2. The ordinary root's real row requirement is
-B=N_i^92<N_i^105. In quotient mode it also retains every high tuple
-of the low class. The reserve proof underlying these cutoffs includes
-that full stock and the root's pad. No dummy data supplies an arbitrary
-public entry. Both unpowered suppliers have H>=3000, as the production
-constructor requires. All binary H>=33000 also pass the distinct scalar
-absorption condition 28,726,102+80H<1024H from the ordinary clock.
+## Local data sizes
 
-The square selector runs on its linear branch throughout. With d
-axes, largest width ell and component precision P, it gives
-P<1.001p and d>=2^(s-16)/s for all stated s. Every selected window
-exposes 128 complete digits. The true root mixing/tag argument
-produces a positive pack of h>=2^(s-100)/s^7 ordered original
-windows. The signed positive source's true rank-129 target accepts
-a positive incoming allocation from paid grade 56, in an even bin
-above 3U/4. Its complete first row at group zero and round zero
-contains three spaced tickets. Its admission and the first full-slot
-shuffle are therefore real. Let M=2^H_M and a=a_last. The condition
+Use the full real incoming field extent as one volume. Include the sources while their new outputs are stored.
 
-    s-100-7 ceil(log2 s) >= H_M+a+2
+* A positive raw leaf owns one slot of exactly 1/B of its incoming extent. In an ordinary field of c=Nf+r atoms, folding the two residuals into gap and suffix leaves each owner slot exactly 1/B of the entering field. In wide mode Q actual low packets each take 1/Q of that slot, including the complete high class, dirty earlier prefix, both addressed blocks and true gap/suffix. Parent siblings and answers retain their complete extents until use. Repeated calls, all preparatory pairs and their inverses are serial. The new direct before/after changes of basis use the real earlier ordinary service at fixed field volume.
+* At one native operating height the B public owner rows and all simultaneous auxiliary raw slots together use fewer than two whole entering volumes. The certified 2^68 N^83 auxiliary slots are smaller than B=N^92 at every height here. This count includes raw words stopped at paid edges, active source clocks, real zeroes and replacements, pending borrowed slots and the incomplete final group. The positive root's one public widening, staging, output, an untouched restore source and transient replacements allow eight volumes at every immediate adapter. A physical route on the quotient has 25 spools plus ten times the aggregate tag volume. A genuine N²-byte tag accompanies at least 3^(2Nfw) payload addresses, so it costs at most eight such record volumes. Thus 105 volumes suffice even if every tag is populated. Use 256 for the route, temporary trit padding (<3), level switches, full sweeps, repair and scrub. The ordinary root rectangle (<9), and a new stage's row pad (<2), are counted as separate possible enlargements below.
+* The retained static data-path census records 71 temporary/page sites, 22 temporary heads per such site and three named tuple positions over 26 modules. A function name or an open Python generator alone is control. An immutable dirty bank, spent temporary or allocated slot is data and is counted here. The new direct coordinate wrapper introduces two payload heads under one named additional site. Lowering the native line reuses the original exposed-leaf, weighted, underlying shift and lower tapes. The streamed raw scheduler holds causal slots and descriptors at a yield; its additional live raw owners were counted above. Allow 80 native sites in all, including the new wrapper, and keep both old cohorts through every transfer. This gives 2·8·256·80·22·3=21,626,880<2^25 volumes per immediate adapter.
+* The native call sequences before the next charged native or earlier-stage invocation fit 32 immediate adapters. On the binary side they pass through the root box/pad, weighted stream, compiler bank, raw/matcher, low split, packet return or direct coordinate wrapper, high packet, its row operation or correction, affine route and one scaler or ternary field primitive. The three copies in a weighted pair and a sweep's many columns stream serially. unit_scale keeps three permanent tapes for its halving loop and seven for its odd step. Its O(log u) iteration stack keeps scalar descriptors; it does not retain an additional full field at every split. On the positive side the outer root gives one grow shell, the cohort service, a raw owner mutation/placement, the current mixed row/phase/sum operation and its return. A paid positive child is an independently charged native height, including during a nested raw loan. The ordinary calls from any of these sites open a separately charged native stage or a cold local pass. Even applying all 32 local factors multiplicatively gives at most 2^800 incoming volumes at a genuine native height. Falling back to the original 2^2048 factor would lose the short selected threshold.
+* Outside the native services, each persistent numerical file is charged once separately. Each remaining source/return stripe and its widened positive or CRT view is at most 128 times pT/2^k. A CRT marker of length ≤p+8 bits has at least 2^(s+9) actual payload records behind it. A positive-column repair has at least the same complete suffix. The marker and the complete payload together fit twice the data estimate. The CRT, radix, root synthesis, H, quarter phases and returns use the unchanged 71 sites, 22 spools and 3 tuple slots. Allow 8 entry/copy/restore fields and 256 per role as above. Their bound is 8·71·22·3·256·128·2=2,456,813,568<2^32 per auxiliary height. Charge 32 such outer roots and small procedures even if all these factors compound, or 2^1024. Width-dependent private numerical coefficients, row matrices, compiled indices and transient scalar operations have their separate additive bill.
 
-gives h>=4M 2^a. The public e=h stop is false for either installed
-denominator because h>1 and h^D>h. The whole-slot swap runs at
-least floor(h/M)*ell/2>2^a real trits. The cutoff has to hold at
-every larger input. Check the first passing s and the next
-post-dyadic jump; later postjump minima increase by 2^j-7.
+## Historical positions and all-size inequality
 
-The root needs 92H_M row bits per open numerical level, below the
-existing 448H_M bound. Its unused spectator, dirty controls, low
-suffix and complete physical row sector still fit the sliced field.
-The precision test is 872(4H_M+1)<M. Even at H_M=3000 this inequality
-holds. A completed child returns its correct Clifford operation
-and full complementary field before the next causal join. The
-three normalized transforms, pointwise product, original-coordinate
-extraction, inverse CRT, carry and signs have the source error bound.
-Choosing these ranks changes the two installed native services;
-the public grid and the inherited numerical assertions keep their
-original quantifiers.
+A paid positive or ordinary child has at most its parent's full field. A root binary-to-ternary rectangle enlarges its extent by less than nine once; each fresh ordinary stage pads each real entering slab by less than two. There are at most m≤6 earlier-stage changes. Thus every actual native input, before counting its temporary homes, is at most 2^(m+12) starting stripes. The raw fields use free-first slots and each held field has its true recorded width. The Gaussian child starts after its parent's highest historical slot. The binary page begins at the previous open end, and the pending/answer tops pop to their previous markers. A retired sibling can enlarge the historical extent of its own frame, but later siblings share that base. The largest address touched is a sum of local historical lengths along an active path; the 2^800 local homes never multiply the next true child's extent.
 
-## Count the physical data
+At most 32(s+128) genuine native macroheights and at most 2^32(s+128)² possibly distinct physical-role high-water intervals enter the native proof. It is conservative to accumulate unrelated maxima at each height and sum again over all such roles. The factor 128 on the incoming stripe, genuine cross-stage enlargements, all 32 outer factors, the native local factor and the two polynomial counts above have total log at most
 
-At a rank N, the temporal cell count is V=N^6 and the public width
-is exactly B=N^92. At most 2V raw instances are born per time, and
-each finishes in fewer than N^77 steps. An arbitrary raw instance
-including its zero inputs, active states and staged returns uses
-fewer than 2^64 actual row fields. The binary word has 39,600
-opcodes within one of 36 serial raw subcalls, with 3,433 INITs.
-The numerical source has 52,608 raw target tags, its return stages
-at most one copy per root, and each of 48 serial graphs holds
-at most its 1,291 initial fields and 6,965 new node values.
-The per-column charts release their current full-field replacement
-before advancing. Their earlier ordinary services have their own
-recursion bills. The shared decoder runs groups and rounds in
-sequence; the final incomplete group uses independent zeroes.
-Thus the additional live row count is below
+    D(s)=800+1024+4(m+1)+128+4 bitlength(s+128).
 
-    2^66 V N^77 = 2^66 N^83 < B.
+For example taking 7+(m+12)+800+1024+5+32+3 bitlength(s+128) already covers those products. This also covers the extra named direct wrapper on the same set of heads. It never uses a free move between two disjoint tapes. Ancestor returns and scrubs cover their full actual extent.
 
-Every row field occupies the true parent volume divided by B.
-In an ordinary quotient call the low packets split each row field
-further into Q equal parts, retaining its high values. The child
-gets one such part. Its delayed siblings and completed replies stay
-on the parent's pending/return tapes. On a direct ordinary paid
-line residual exponents move into the gap and suffix, preserving
-the complete V_parent/B slot. Its at most nine pivots are serial.
-In a positive paid child the upper 92H address bits are actually
-removed and the child receives one of the B independent physical
-fields at its unchanged component width. Its public widening occurs
-only once at the root. References to a retimed pending loan are
-views of that same owner. They do not create another full field.
+For s≥4096, j=floor(s/256)≥16, and 256(j+1)+127<2^j by induction. Hence s+128<2^j and 4 bitlength(s+128)≤s/64. Put F=800+1024+4(m+1)+128. Then
 
-The root binary rectangle grows by less than nine once; each
-strictly earlier ordinary stage can append a row pad smaller than its
-incoming extent. At most m<=6 such stage changes occur per active
-path. Thus the true input at any native height is bounded by
-2^(m+12) times the initial stripe. At a single height even the
-aggregate local data allowances fit 2^2048 times this true input.
-In detail, the two cohort equivalents above include all active and
-suspended native-owner slots. A full staged input, output, further
-working copy and the undo/exchange snapshots add at most eight
-incoming equivalents per immediate adapter. The quotient low sorter
-uses 25 field spools and ten copies of its total tags. Since a
-genuine N²-byte tag accompanies at least 3^(2Nfw) high/body records,
-at most 105 volume equivalents pay that route, including grouped
-trit padding and scrubs as in its source. The compiler output,
-pending and answer pages are true streams. Even allowing 256 such
-equivalents per role, 71 physical sites, 22 spools per site and
-three tuple positions leaves 2^24 equivalents after the input and
-return staging factors. These are two fixed groups of factors
-(the local physical roles and transport cohorts). Giving each of
-32 adapter heights a multiplier 2^64 instead still fits 2^2048.
-Graph ordinals, per-atom charts, true high digit controls, and the
-input-dependent scale/coupling tables have a separate additive
-control estimate. Their per-use construction and erasure are paid
-by the real active-field clock.
+    k-D(s) ≥ floor(31s/64)−3−F.
 
-The arena allocator uses a free index before expanding its high end.
-For each frame its historic highest index is therefore bounded by
-the greatest number of *simultaneously* live slots in that frame.
-The next frame begins after this local historical high. The binary
-stack page has the previous open end as its base. A return scrubs
-and pops its page or pending interval. The highest absolute position
-on a head is thus a sum of local historical lengths down some
-path, even if ancestor maxima were reached by different siblings.
-It is valid to charge a new supremum separately at each depth and
-for each distinct physical role. No extra factor is applied to the
-size of a true recursive *argument*.
+The sufficient integer condition 64(F+1028)≤31s at the entrance persists at every later s. In all six cases k−D exceeds 1024. Thus the historical payload outside the two permanent files and canonical I/O is less than pT/2^1024.
 
-Outside the native services the persistent numerical files are
-charged separately. From an initial stripe of pT/2^k, where
-k=floor(s/2)-2, its public ingress, widening, outgoing and placement
-extents are each at most 128 such stripes. One mark of at most p+8
-bits per >=2^(s+9) records costs less than one data stream.
-The CRT, compact switch, repair, finite H, quarter rotations and
-returns have at most 71 call sites, 22 spools per site, three tuple
-positions and 256 complete equivalents each. Charging eight entry,
-exit, snapshot and staged result equivalents gives
+A separate normalized bound pays actual low/high coefficient and tag generation, private tables, CRT scratch, movement meters, the read-only program and the single counter values carried by every direct or covered address. Use log₂ J≤1024 max(H_i,H_M)+ceil(log₂(m+2)) for the actual finite structure and log₂ D_private≤2^21(s+1) for private numerical tables. These quantities describe actual control data: enlarging an analytical time-price envelope on small ranks does not add stored records. The leading private bound checks 64+8(log₂J+1)+64s+8(log₂D_private+1)<(s+1)^8 at the first s. Its terms divided by (s+1)^8 all decrease. The two further private and grouped-CRT integer tests in [activation.py](activation.py) propagate by the ratio bound 33^9<2·32^9. The physical payload plus private data therefore occupies less than pT/1024. The main working fields cost at most (4P+2p+116)T, canonical I/O at most pT/6+32. Combining P<1.001p and 24n/p≤T<48n/p proves the same complete ceiling of 6.2pT<297.6n bits throughout each tail.
 
-    8*71*22*3*256*128*2 < 2^32.
-
-Hence 2^64 local allowance per each of the inherited 32 nonnative
-heights suffices. Preserve doubled exponents there even for history;
-this gives the 4,096 term below. The number of native heights is
-below 32(s+128) and the source accounts for at most
-2^32(s+128)^2 possible scratch intervals, including distinct maxima
-on separate heads. With the earlier stage-change bound, the following
-logarithm above the starting stripe pays all their historical extents:
-
-    D(s)=2*2048+4096+4(m+1)+128+4 bitlength(s+128).
-
-For example the native high-water, local height count, outer heights,
-width change and role count together use fewer than
-2048+32*64+(m+12)+7+5+32+3 bitlength(s+128) of these bits. The
-two permanent working banks and canonical I/O are outside D(s).
-For s>=1024, 4 bitlength(s+128)<=s/16; take j=floor(s/64)
-and induct from j=16 on 64(j+1)+127<2^j. Then k-D(s) is at
-least 7s/16-3-[2*2048+4096+4(m+1)+128]. This increasing lower
-bound already exceeds 1,024 at every entry in the table.
-
-Finally take J=2^(1024 max H+ceil(log2(m+2))) to dominate even
-all per-use scale and traffic controls, while the fixed installer
-keeps its much smaller actual catalogue. The receipt checks the
-inherited private size, symbolic nonzero tag/movement counters, CRT
-working reserve and reciprocal precision bounds at the entrance.
-The private sums divided by (s+1)^8 decrease and
-33^9<2*32^9 bounds the other successive ratios. The total auxiliary
-highs fit pT/1024. Both full numerical files occupy at most
-(4P+2p+116)T bits, and canonical I/O at most pT/6+32 bits.
-Together these give the stated complete bound.
-
-The executable [activation.py](activation.py) computes the five arithmetic
-receipts. The [complete check](check_complete.py) compares its independent cut calculation with the
-source's actual shape and entrance functions. In OuterTickets.lean,
-oneOrdinaryBank, spineCap, stackHigh, headWidth and stripeTail
-kernel-check the volume identity, the bound along an arbitrary
-physical path, addition of local high-water allowances, and the
-integer all-size margin. The binding to these literal transport,
-ordinary, CRT and Fourier tape layouts is a written proof.
+The active geometry and six numerical receipts are in [the exact receipt](RESULT.json) and [the independent controller comparison](check_complete.py). OuterTickets.sharpHeadWidth, tightStripe and precisionTail kernel-check the cofinal steps; the resource-to-geometry binding and data-path census remain written. The source binding for the 71 sites, tag width, historical intervals and output formats is [the complete historical proof](https://github.com/CrocSwap/integer-mult-bounds/blob/9585c1fa2ed5f2316ac09e04b357cb720badfcb8/research/triangular-native-supplier/ACTIVATED-STORAGE.md). The positive slot address and dirty CRT backing are specified in [the entered machine](https://github.com/CrocSwap/integer-mult-bounds/blob/9585c1fa2ed5f2316ac09e04b357cb720badfcb8/research/triangular-native-supplier/FIRST-PEAK.md). The compact private table bound and genuine window selector come from [the actual square controller](https://github.com/CrocSwap/integer-mult-bounds/blob/6285dd829114705862e8d91facaedc1f31d3cfcb/research/single-band-native-carriers/LINEAR-GEOMETRY.md).

@@ -1,4 +1,4 @@
-"""Use the unpowered, physically tagged 48-call word in the complete positive receiver."""
+"""Run two column scales of the tagged 48-call word in the signed positive receiver."""
 
 from fractions import Fraction as F
 from collections import Counter
@@ -16,6 +16,10 @@ from installations import GAUSSIAN_C
 from unpowered_price import certify
 
 
+SCALES = (1, 8)
+SMALL_SPLITS = 1008
+
+
 class Raw:
     def __init__(self, tagged, physical):
         self.tagged = tagged
@@ -23,44 +27,50 @@ class Raw:
 
     def native(self, ports, columns):
         if columns <= 0 or columns % 2:
-            raise ValueError("Each split needs a positive even column count.")
-        inputs = []
-        for label, job in zip(self.tagged.targets, ports, strict=True):
-            if len(job.axes) != label.rank * columns:
-                raise ValueError("The target rank does not fit its issued axes.")
-            inputs.append((label.tag, job))
-        iterator = self.physical.raw(inputs, columns)
-        split = 0
-        for label in self.tagged.paid:
-            tag, job = next(iterator)
-            if tag != label.tag or len(job.axes) != label.rank * columns:
-                raise ArithmeticError(
-                    "The next native cut differs from its installed tag or extent."
-                )
-            if label.rank == 1 and split < 1008:
-                yield job.select(range(columns // 2))
-                yield job.select(range(columns // 2, columns))
-                split += 1
-            else:
-                yield job
-        if split != 1008 or next(iterator, None) is not None:
-            raise ArithmeticError(
-                "The native circuit did not close on its final paid cut."
-            )
+            raise ValueError("Each split needs a positive even column count")
+        if len(ports) != len(SCALES) * len(self.tagged.targets):
+            raise ValueError("Each true target needs one complete owner")
+        if len({job.owner for job in ports}) != len(ports):
+            raise ValueError("Every productive port needs its own live owner")
+        source = iter(ports)
+        for scale in SCALES:
+            width = columns * scale
+            inputs = []
+            for label in self.tagged.targets:
+                job = next(source)
+                if len(job.axes) != label.rank * width:
+                    raise ValueError("A target has the wrong number of physical axes")
+                inputs.append((label.tag, job))
+            actual = self.physical.raw(inputs, width)
+            splits = 0
+            for label in self.tagged.paid:
+                tag, job = next(actual)
+                if tag != label.tag or len(job.axes) != label.rank * width:
+                    raise ArithmeticError("The physical cut differs from the installed word")
+                if scale == 1 and label.rank == 1 and splits < SMALL_SPLITS:
+                    yield job.select(range(width // 2))
+                    yield job.select(range(width // 2, width))
+                    splits += 1
+                else:
+                    yield job
+            if next(actual, None) is not None or (scale == 1 and splits != SMALL_SPLITS):
+                raise ArithmeticError("The numerical word did not close at its final loan")
 
 
 def source_ranks(tagged):
+    targets = tuple(scale*p.rank for scale in SCALES for p in tagged.targets)
     slots = []
-    split = 0
-    for port in tagged.paid:
-        if port.rank == 1 and split < 1008:
-            slots.extend((F(1, 2), F(1, 2)))
-            split += 1
-        else:
-            slots.append(F(port.rank))
-    if split != 1008:
-        raise ArithmeticError("The positive word has too few rank-one cuts.")
-    return tuple(p.rank for p in tagged.targets), tuple(slots)
+    for scale in SCALES:
+        splits = 0
+        for port in tagged.paid:
+            if scale == 1 and port.rank == 1 and splits < SMALL_SPLITS:
+                slots.extend((F(1, 2), F(1, 2)))
+                splits += 1
+            else:
+                slots.append(scale * port.rank)
+        if scale == 1 and splits != SMALL_SPLITS:
+            raise ArithmeticError("The base copy has too few rank-one requests")
+    return targets, tuple(slots)
 
 
 class Positive(RetainedPositive):
@@ -75,7 +85,7 @@ class Positive(RetainedPositive):
         margin, cells = certify(GAUSSIAN_C, (Counter(targets), Counter(paid)))
         if cells is None or margin <= 0:
             raise ArithmeticError("The Gaussian word has insufficient column capacity")
-        self.recipe = Recipe(rank_log, native.ambient, targets, paid, cells, GAUSSIAN_C)
+        self.recipe = Recipe(rank_log, max(SCALES)*native.ambient, targets, paid, cells, GAUSSIAN_C)
 
     @property
     def owners(self):

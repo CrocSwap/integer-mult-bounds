@@ -68,6 +68,8 @@ D=d X^1024 therefore satisfies
 
 The same proof of its private bit heights and scalar loops applies to the
 old square selector. For s<=31 the right side is at most 126082079.
+For 1≤s≤31 use n>2^(b−1) except at the trivial n=1 door. Because s=ceil(log2(6b+2)), subtract max(0,floor((2^(s−1)−2)/6)−1) from the private exponent before maximizing. The largest result is 84,484,466 at s=27. Other scan terms below have a separate additive bill. [Exact finite maximum](outer_clock.py)
+
 For s>=32 it is below 2^(s-4)<log2(n). Check the quadratic numerator at
 32 and double the denominator at every subsequent integer. The linear
 tail at 512 makes ell smaller. Thus private generation costs at most n
@@ -83,7 +85,7 @@ recursion nodes. At one node of size at most t, allow 2^8(t+1)^2
 indexed comparisons or actions, even using a quadratic permutation check.
 A linear search of all saved permutations, inverses, tables, stacks and
 results visits fewer than 2^12(t+1)^4(p+1)^2 bits: the local width is at
-most p, each node holds O(t²) table entries, and there are fewer than 2t
+most p. A permutation, its inverse, the two colors and at most 2ell−1 switch rows occupy fewer than 2^8(t+1)^2 entries per node (ell=log2(t)). There are fewer than 2t
 nodes. A fixed-width read/write, comparison, loop count and its head
 restoration fit within four full such scans times 2^8(p+1). Alternate
 rewrite tapes permit insertions without an uncharged shift. Restoring the
@@ -92,7 +94,7 @@ axes. Each left child reconstruction needs at most p CRT terms and modular
 inverses on at most 4p+8 bits, including the unnormalized left sum.
 The source long division/Euclid bound is 2^20(w+1)^3. Even allowing a
 complete p-element search before each, these contributions are below Q
-with scrub and the bounded number of inverse rotations included. For
+with scrub. A repair key reverses the ten operations in CompactSwitch.WORD (two four-step F words, load and unload), then calls the switches once. At most eleven such control evaluations are needed per key. For
 s<=63, log2 Q<=5081414.
 
 At s>=64 the very same greedy grouped CRT path has L>=10100G for
@@ -105,12 +107,10 @@ The non-root unused half has at least that much space too. Consequently
 jobs() never returns the individual unbuffered case. A tail single's
 actual dest is H. It evaluates a switch once per 2^(H+1) addresses.
 CompactSwitch.raw calls its controls once per 2^H records or fewer;
-the inverse code in repair_key repeats a bounded number per 2^H-record
+the inverse code in repair_key evaluates at most eleven controls per 2^H-record
 group. Even dX^1024 fits below 2^(H-16) on this range, as does Q.
 Their binary logarithms grow quadratically and H>=p/1212 grows
-exponentially. Group controls thus cost at most a fixed number of
-complete scans of the slice, even when the finite compiler runs afresh
-for each particular group.
+exponentially. Even eleven Q evaluations and eleven fresh private compilations then cost fewer than 22·2^(H−16) steps per group of 2^H records. The complete control cost fits one traversal of the slice, counting at least one step per record.
 
 On the bad-set repair, each of at most d members excludes two all-one
 G-bit digits or one of the two extreme strings on 63G-2 guard bits.
@@ -118,12 +118,10 @@ The union has measure at most 3d 2^-G. This does not assume independence
 between different exclusions. The complete destinations are sorted on at
 most L bits. Each tag is shorter than the entire grouped buffer even when
 the slice payload is just one byte per address. Since 3dL 2^-G<1, all
-stable radix passes, staging, long seeks and clearing cost less than a
-fixed number of complete scans. A failed group has just one complete
-key computation. The packing here includes every hole.
+stable radix passes input and emit at most one additional slice of payload in total. Keys have at most L bits and each exceptional group carries at least 2^H payload bytes, with H≥L/101 and 2^H≥L. Marking, copying to the two buckets, rewinding, concatenating the two streams, deleting, rescanning for the returned hole and clearing the marked file use fewer than 32 one-way transfers of a slice after doubling for key volume. Even 2^16 transitions per transferred bit, including the restoration and counters above, cost under 2^22 slice bits. Each failed group calls the ten-operation inverse key routine once. The packing here includes every hole.
 
 For all s<512, none of the comparator or retimed native carriers can be active:
-every installed native rank logarithm is at least 3000. The ordinary leaf is the
+every installed native rank logarithm is at least 1024. The ordinary leaf is the
 four-bucket, at-most-p digit swap, and the positive leaf is the exact
 ordered two-pair arithmetic on at most p coordinates. Its public
 widen/phase/narrow and clear are counted. A crude volume multiplier
@@ -141,7 +139,7 @@ private compiler once. An absent shape also has a finite numeric clock:
 on 2^j<=b<2^(j+1), s<=j+4 and L>=2^j-j-1. For j>=15 this exceeds
 64(j+4)^2 by induction, so the scalar branch always has n<=2^32768.
 Its signed word and file costs are less than 2^32820 n. Altogether
-2^(134217728) n suffices for every s<512.
+2^(84500000) n suffices for every s<512.
 
 ## The cofinal outer call count
 
@@ -171,11 +169,11 @@ including partial suffixes and initialization. One has four signed
 products of at most 10p+100 bits. Store coefficient tables in descending
 axis-width order. Reaching table j can traverse at most (j+1)t0 records
 after the fastest table of size t0, and occurs at most T/(t0·2^(j-1))
-times. Summing (j+1)/2^(j-1) pays these returns by a constant times T;
+times. The sum of (j+1)/2^(j−1) over j≥0 is eight. This pays at most 8T record traversals on returns;
 count a copy of the private inventory for setup. Each record includes
 precision, crossing and rounding bits. Source validity can be checked
 by a scan of the full d-tuple per record as its total coordinate width
-is only L+O(d). Pointwise multiplication, conjugation, both digit-scale
+is L address bits plus at most four delimiter and loop bits per axis. Keep each coordinate in its fixed-width field, and use a sequential delimiter walk of at most L+4d bits on this pass. Pointwise multiplication, conjugation, both digit-scale
 and source-size recoveries, grid conversions in both directions, CRT,
 sign, carry, input heads and returned output have the same or smaller
 word/scan bill. Reserve 2^58 V p^(3/5) per arithmetic stage. The
@@ -203,7 +201,7 @@ Replacing all the powers by the largest one yields
 For g=10^-17 or the larger g=10^-14,
 (s+1)^16/p^g <= (128/g)^16 < 2^1024. Use s+1<=4 log2 p and maximize
 y^16 2^(-gy). Replacing V,p by 48n and 6 ceil(log2 n) then gives a
-cofinal factor below 2^1434(1+B+Z). Add 2^(134217728) for the finite
+cofinal factor below 2^1434(1+B+Z). Add 2^(84500000) for the finite
 prefix. This is an explicit reduction of the outer time constant to
 the actual physical native constant. It gives no timing crossover.
 
