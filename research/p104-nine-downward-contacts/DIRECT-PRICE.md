@@ -1,0 +1,21 @@
+# Price of nine direct returns with frozen upward receipts
+
+This is a narrower statement than the global nine-contact count in [README.md](README.md). Consider exactly nine downward one-bit contacts, each directly into chart 0. Retain **only the original upward receipt set**, with its original values, destination charts and native clocks. Do not add any cross-chart communication outside those receipts and the nine stated direct contacts. Initial public fields are as in the source; private initial state has no input information. Local computation, storage and the coding of each bit can be arbitrary. Require the first eight native return forms collectively by the end of native clock 11104 and all nine by the end of 18875. The nine returns must be recoverable at chart 0 for every binary input. The first deadline need not respect each original return's own earlier clock. Named original sender charts, and new charts with no input-bearing initial stock or upward receipts, are allowed. These are logical clocks identifying source-word boundaries: arbitrary cochart operations may be inserted between them without consuming a new communication tick. They do not mean that the modified word retains the same raw instruction indices or measured execution time. The literal construction meets the stronger native block boundaries.
+
+Under this contract every return must originate at chart 1, whose projector is the identity; chart 0 has the zero projector. Hence the exact downward tariff of any such nine-contact candidate is `9·8^t` for positive exponent `t`, attained by the word in this package. This is **not** a lower bound for changed upward receipts, extra upward contacts, other destination charts, general-alphabet scalars, or unrestricted schedules. The direct sender theorem is independent of the powered whole-caller screen.
+
+## Proof and finite audit
+
+Let `Z` be the 516-dimensional span of the fields initially present at chart 0 and let `F` be the nine native return forms. Their rank modulo `Z` is nine. At fixed `Z=z`, every one of the 512 values of `F` occurs. A nine-bit complete direct transcript from which chart 0 recovers `F` must therefore be a bijection on `F`: the transcript is itself a function of `(Z,F)`, with no room for dependence on any other input when `(Z,F)` is fixed.
+
+For each original chart `c`, let `H_c` contain its initial forms and all original upward receipts there up to the first deadline. The replayers compute the exact binary row-space intersections
+
+```
+((Z + H_c)/Z) ∩ ((Z + F)/Z).
+```
+
+At native clock 11104 they have dimension zero at all 635 charts except chart 1, where the dimension is nine. If a binary message is determined by `H_c` and also by `(Z,F)`, a zero intersection forces it to depend only on `Z`: at fixed `Z`, bases for the two quotient spaces have independent joint values, so a common function of either coordinate of the resulting Cartesian product must be constant. Such a message cannot be one bit of a bijective nine-bit transcript for `F`. Every contact by the first deadline therefore comes from chart 1. The first eight returns are independent modulo `Z`, so at least eight of the nine contacts must have occurred by that deadline.
+
+If all nine arrived by the first deadline, every sender is already accounted for. Otherwise exactly eight arrived, and their transcript is a bijection of the first eight returns at fixed `Z`. Enlarge `Z` by those eight returns; its rank becomes 524. At clock 18875 the ninth target has rank one modulo this enlarged stock. The same computation gives zero intersection at every original chart except chart 1, where the dimension is one. The last message therefore also comes from chart 1. New charts without input-bearing initial stock or a receipt add no stock in this contract.
+
+[nine_direct.py](nine_direct.py) computes both 636-chart scans with high-pivot elimination and checks their deterministic fingerprints. [check_direct.py](check_direct.py) independently recomputes the intersections using low-pivot elimination and records a mutated-target control that makes a lower sender appear. Their receipts are [NINE-DIRECT.json](NINE-DIRECT.json) and [DIRECT-RECEIPT.json](DIRECT-RECEIPT.json). The separate implementations and review were prepared with OpenAI Codex assistance; no human or proof-kernel acceptance is claimed.
