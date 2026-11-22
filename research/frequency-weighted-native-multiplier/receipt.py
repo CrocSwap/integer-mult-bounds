@@ -13,6 +13,7 @@ from upstream import HERE as RAW_DIR, install
 
 install()
 sys.path.append(str(HERE.parent / "tiered-native-multiplier" / "source"))
+sys.path.append(str(HERE / "portable"))
 from activation import resource_receipt
 from band_product import prepare_native
 from grades import SCALES, WEIGHTS
@@ -27,6 +28,7 @@ from strong_binary import graph, caller
 from strong_complex import load_changed, word
 from transport import ceil
 from unpowered_price import certify, intervals
+from verify_receipt import verify as fixed_installation
 
 DEBIT = Q(151553, 2**20)
 
@@ -221,6 +223,7 @@ def check():
     gain = TERMINAL.kappa - older
     assert gain == Q(1, 50_000_000_000)
     assert financial_checks()["early_log2_C_bound"] == 84500000
+    setup = fixed_installation()
     return dict(
         gaussian=gaussian,
         entry=early,
@@ -230,7 +233,10 @@ def check():
         complete_log2_C=cost,
         entry_price_surcharge=premium,
         fixed_funding_height_floors=[ceil(ordinary_floor), ceil(positive_floor)],
-        log2_fixed_setup_upper=228,
+        log2_fixed_setup_upper=setup["trace_exponent"],
+        log2_portable_setup_guard=setup["conservative_exponent"],
+        log2_native_setup_upper=228,
+        portable_setup_transition_upper=setup["transitions"],
         max_native_H=max(*TERMINAL.rank_logs, TERMINAL.complex_log),
     )
 
