@@ -2,7 +2,7 @@
 
 Use the raw 128-factor positive word and physical service of #8030, with
 either published numerical carrier M=2^610000 or M=2^1600000. #8035
-changes the stop comparison to e^D<=h, D=10^17, and uses the latter M.
+uses the latter M with D=10^17 in the test e^D<=h. The 430-factor variant uses the same M with D=10^21.
 Let B be a numerical upper bound on the ordinary bit service in the same
 fixed-tape units, at ordinary rate a=κ+4g and g=1/D. This service must
 include real payload, arbitrary exterior, its own installed data,
@@ -54,7 +54,7 @@ than 2^120 J^30(p+2)^16:
   normalization, decoding base-128 operands, capped binary powering for
   the D test, and cleanup use the same tapes. Computing all dynamic raw
   index lists takes at most (p+2)^4 visits per row. The cutoff D has
-  fewer than 57 bits over the two published variants. These are once
+  at most 70 bits over these variants. Capped repeated squaring needs at most 69 squares and 29 further products for D=10^21; this fits in 2^7 elementary multiplications per test. These are once
   per active execution or once per physical row. Per-address functions
   are counted separately below, with their *entire* iteration.
 * This absolute work is smaller than one actual row field. With

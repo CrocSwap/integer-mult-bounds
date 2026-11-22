@@ -217,3 +217,7 @@ the actual physical native constant. It gives no timing crossover.
 * [Exceptional keys, radix passes and rotation](https://github.com/CrocSwap/integer-mult-bounds/blob/46783fbbfc219a3faffbea76f60a2810b85ab75a/research/native-stock-activation/compact_crt.py)
 * [Finite binary input, extrema and carried output](https://github.com/CrocSwap/integer-mult-bounds/blob/46783fbbfc219a3faffbea76f60a2810b85ab75a/research/native-stock-activation/binary_io.py)
 * [Updated positive margin](https://github.com/CrocSwap/integer-mult-bounds/blob/ea776471bf8ed143a0625cf2d7532f65d15eb5f9/research/p104-single-band-signed-margin/PROOF.md)
+
+## The 70-bit stop parameter
+
+At g=10^−21 the previous 1024-bit inequality fails. Put y=log₂ p. For s≥512, y≥s−2, so s+1≤17y/16. For every real t≥0 one has t≤2^t, since 2^floor(t)≥floor(t)+1. Apply this with t=gy/16. It gives (s+1)^16/p^g ≤ (17/g)^16 < 2^1182. The scalar inequality is verified with integers. Since V<48n and p=6 ceil(log₂ n), conversion to the stated input unit adds at most nine bits to the factor. The cofinal exponent for (1+B+Z) is at most 400+1182+9=1591. The original 1600 allowance covers the remaining two bits for the sum of the three services. The explicit initialization and finite-prefix bounds still apply. [Actual stop, ranks and allocation](RESOLUTION.md)

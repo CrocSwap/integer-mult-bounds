@@ -123,7 +123,7 @@ def profile_row(profile):
     logC = 1+max(84_500_000, 1600 + 220*profile.complex_log + logB + 1)
     # Iterated stage funding and Cauchy-Schwarz apply to all admitted stage counts.
     floors = []
-    for stages in range(1,7):
+    for stages in range(1,max(6,len(heights))+1):
         room = BINARY_C-profile.ordinary-BINARY_C*Q(1,250)**stages
         if room > 0:
             weight = sum(Q(1,16)**i for i in range(stages))
@@ -172,7 +172,8 @@ def all_results():
     regime = exact_shape_check(HERE)
     rows = {name: profile_row(profile) for name,profile in PROFILES.items()}
     from equal_rate import comparisons
-    return {"baseline":baseline(),"equal_rate":comparisons(),"binary":binary,"positive":positive,"profiles":rows,
+    from resolution import compare_resolution
+    return {"resolution_comparison":compare_resolution(), "baseline":baseline(),"equal_rate":comparisons(),"binary":binary,"positive":positive,"profiles":rows,
             "prefix":early,"first_controller_shape":regime,"first_numerical_placement":first_move}
 
 

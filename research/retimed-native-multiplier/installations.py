@@ -29,5 +29,9 @@ NEAR = Profile((3550000, 56200000, 888000000, 14100000000, 222000000000),
 MATCHED = Profile((401000000, 6340000000, 101000000000, 1590000000000,
                    25100000000000, 396000000000000),
                   19000, Q(39,10000), Q(".0038901152865907"), 10**17)
+RESOLUTION = Profile((5_698_204_041, 91_171_264_649, 1_458_740_234_375,
+                      23_339_843_750_000, 373_437_500_000_000,
+                      5_975_000_000_000_000, 95_600_000_000_000_000),
+                     19_000, Q(39,10000), Q(".003890115286594445"), 10**21)
 PROFILES = {"selected-price": SELECTED_PRICE, "small": SMALL, "compact": COMPACT,
-            "balanced": BALANCED, "near": NEAR, "matched": MATCHED}
+            "balanced": BALANCED, "near": NEAR, "matched": MATCHED, "resolution": RESOLUTION}

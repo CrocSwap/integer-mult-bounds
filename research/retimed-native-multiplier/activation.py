@@ -33,7 +33,7 @@ def resource_receipt(profile):
     ranks=tuple(profile.rank_logs)
     num=profile.complex_log
     m=len(ranks)
-    assert 1<=m<=6
+    assert 1<=m<=7
     cuts=binary_entries(ranks)
     A=full_entrance(cuts[-1],num)
     s=A+1

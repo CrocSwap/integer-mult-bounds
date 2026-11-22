@@ -91,7 +91,9 @@ def financial_checks():
         assert crt_dispatch < (1 << 90) * (s + 1)**4
     g = Fraction(1, 10**17)
     assert (Fraction(128, 1) / g)**16 < 1 << 1024
-    return {"private_prefix_log2": max(private_log(s) for s in range(1, 32)),
+    assert 17**16 * 10**(21*16) < 1 << 1182
+    assert 400 + 1182 + 9 + 2 < 1600
+    return {"small_stop_tail_factor_log2":1591, "private_prefix_log2": max(private_log(s) for s in range(1, 32)),
             "controls_prefix_log2": max(controls_log(s) for s in range(1, 64)),
             "private_prefix_after_input_log2": prefix,
             "early_log2_C_bound": 84_500_000,

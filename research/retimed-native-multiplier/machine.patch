@@ -269,3 +269,52 @@
  def active_catalogue(dimension, columns):
      return ActiveCatalogue(dimension, columns)
  
+--- a/ordinary_carrier.py
++++ b/ordinary_carrier.py
+@@ -10,14 +10,24 @@
+ from installations import COMPACT
+ from module_atoms import ceil_root
+ from ordinary import least_power
+-from staged_carriers import admitted_stage, entrance_logs
++from staged_carriers import entrance_logs
+ from fiscal_scans import rectangle_slab, slab_indices, transfer
+ from streaming_routes import cold_swap_tape, work_tapes, erase
+ from triangular_ordinary import root_body
+ 
+ 
++def stage_for_width_log(available, maximum, rank_logs):
++    """Choose a receiver from the exact scanned width logarithm."""
++    if available < 0 or not 0 <= maximum <= len(rank_logs):
++        raise ValueError("Use a positive trit width and a supported stage")
++    cuts = entrance_logs(rank_logs)
++    return next((i for i in range(maximum, 0, -1) if available >= cuts[i-1]), 0)
++
++
+ def ternary(source, target, digits, prefix, gap, suffix, *, maximum, profile):
+-    stage = admitted_stage(digits, maximum, profile.rank_logs)
++    if digits < 1:
++        raise ValueError("Use a positive trit width and a supported stage")
++    stage = stage_for_width_log(digits.bit_length()-1, maximum, profile.rank_logs)
+     if stage:
+         stage_body(source, target, digits, prefix, gap, suffix, stage, profile)
+         return
+@@ -55,7 +65,7 @@
+     extent = 1 << bits
+     digits = least_power(3, extent)
+     stages = len(rank_logs)
+-    if not admitted_stage(digits, stages, rank_logs):
++    if not stage_for_width_log(digits.bit_length()-1, stages, rank_logs):
+         from compact_crt import binary_swap
+ 
+         with closing(slab_indices(prefix)) as slabs:
+--- a/check_product.py
++++ b/check_product.py
+@@ -97,7 +97,7 @@
+             restored.seek(0)
+             rectangle(restored, dst, 2, 9, prefix, gap, suffix, restrict=True)
+ 
+-    machine = Product((3, 5), 8, 136, exchange)
++    machine = Product((3, 5), 8, 136, exchange, profile=profile)
+     row = one(machine, -741503, 466013)
+     assert calls["shuttles"] == 138 and row["H_calls"] == 157248
+     return {**row, **calls, "rank": core.n, "stage_body_records": 81**2}
