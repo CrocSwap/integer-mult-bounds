@@ -52,14 +52,14 @@ theorem tickets (M : ℕ) (large : 10^13 ≤ M) :
   omega
 
 /-- The complete controller pays for all low-tier inputs at the high-tier rate. -/
-theorem prefixInvoice (x : ℝ) (hx : 0 < x) (bound : x ≤ (2:ℝ)^(1137207:ℝ)) :
-    x^(1-(345:ℝ)/100000) ≤ x^(1-(194910001:ℝ)/50000000000) * (2:ℝ)^(510:ℝ) := by
-  apply (TierCost.finitePrefix x 1137207 (345/100000) (194910001/50000000000) hx bound (by norm_num)).trans
+theorem prefixInvoice (x : ℝ) (hx : 0 < x) (bound : x ≤ (2:ℝ)^(1146239:ℝ)) :
+    x^(1-(345:ℝ)/100000) ≤ x^(1-(389821:ℝ)/100000000) * (2:ℝ)^(514:ℝ) := by
+  apply (TierCost.finitePrefix x 1146239 (345/100000) (389821/100000000) hx bound (by norm_num)).trans
   apply mul_le_mul_of_nonneg_left _ (Real.rpow_nonneg hx.le _)
   exact Real.rpow_le_rpow_of_exponent_le (by norm_num) (by norm_num)
 
 theorem strictIncrease :
-    (194910001:ℚ)/50000000000 - 19491/5000000 = 1/50000000000 := by norm_num
+    (389821:ℚ)/100000000 - 38982016137/10000000000000 = 83863/10000000000000 := by norm_num
 
 /-- Adding ordinary stages cannot exceed the maximum funded local price. -/
 theorem boundedStages (b price : ℕ → ℚ) (cap : ℚ) (start : b 0 ≤ cap)
@@ -72,10 +72,10 @@ theorem boundedStages (b price : ℕ → ℚ) (cap : ℚ) (start : b 0 ≤ cap)
 
 /-- Both thresholds use the same ordinary and numerical costs as the signed caller. -/
 theorem priceFloors :
-    ((4391986206293:ℚ)/2^50 - 11/(8*515493) <
-       194910001/50000000000 + 5/(10^18)) ∧
-    ((17145637167:ℚ)/2^42 - 151553/(2^20*542293) <
-       194910001/50000000000 + 5/(10^18)) := by norm_num
+    ((4391986206293:ℚ)/2^50 - 11/(8*517429) <
+       389821/100000000 + 5/(10^18)) ∧
+    ((17145637167:ℚ)/2^42 - 65081/(2^19*483869) <
+       389821/100000000 + 5/(10^18)) := by norm_num
 
 #print axioms boundedStages
 #print axioms priceFloors

@@ -24,6 +24,7 @@ with TemporaryDirectory(prefix="tier-lean-") as temp:
     for source in (
         package.parent / "tiered-native-multiplier" / "TierCost.lean",
         package / "WeightedNumerical.lean",
+        package / "GaussianFiniteLoss.lean",
     ):
         name = source.stem
         copyfile(source, dst / (name + ".lean"))

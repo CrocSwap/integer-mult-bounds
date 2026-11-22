@@ -16,21 +16,26 @@ sys.path.append(str(HERE.parent / "tiered-native-multiplier" / "source"))
 sys.path.append(str(HERE / "portable"))
 from activation import resource_receipt
 from band_product import prepare_native
-from grades import SCALES, WEIGHTS
+from grades import LOWER, SCALES, WEIGHTS
 from independent_binary_price import raw_moments
 from installations import BINARY_C, GAUSSIAN_C, ENTRY, TERMINAL, activation, at_public
 from linear_geometry import entrance_geometry
+from ordinary_carrier import stage_for_width_log
 from ordinary_clock import first_stage_bound, polynomial_to_fibre_bound
 from outer_budget import qualify
 from outer_clock import financial_checks
 from strict_moment import UNIT, power_interval
+from staged_carriers import entrance_logs
 from strong_binary import graph, caller
 from strong_complex import load_changed, word
 from transport import ceil
 from unpowered_price import certify, intervals
 from verify_receipt import verify as fixed_installation
 
-DEBIT = Q(151553, 2**20)
+sys.path.append(str(HERE))
+from positive_debit import certify_loss
+
+DEBIT = Q(65081, 2**19)
 
 
 def tape_factor(ambient, rate):
@@ -119,9 +124,9 @@ def check_numerical(recipe):
         )
         <= 261
     )
-    assert recipe.ambient == 306 and tape_factor(recipe.ambient, GAUSSIAN_C) < Q(
-        power_interval(2, DEBIT)[0], UNIT
-    )
+    assert recipe.ambient == 306 and LOWER == 2048
+    finite_loss = certify_loss(recipe, LOWER)
+    assert Q(finite_loss["debit"]) == DEBIT
     cuts = {}
     for weight in (90, 91):
         chosen, required = raw_counts(base, weight)
@@ -145,16 +150,25 @@ def check_numerical(recipe):
         typed_cells=len(prices),
         min_individual_share=str(min_share),
         raw_loss=str(DEBIT),
+        finite_loss=finite_loss,
         capacity_cut=cuts,
     )
 
 
 def bank(profile):
-    h1, h2 = profile.rank_logs
-    first = (249 * (BINARY_C - Q(11, 8 * h1))) / 250
-    booked = Q(int(min(first, profile.eta) * 10**21) - 1, 10**21)
-    second = (249 * (BINARY_C - Q(11, 8 * h2)) + booked) / 250
-    assert h1 >= 3000 and booked < profile.ordinary < min(second, profile.eta)
+    heights = profile.rank_logs
+    booked, rates = Q(0), []
+    for stage, height in enumerate(heights):
+        assert height >= 3000
+        upper = min(profile.eta, (249 * (BINARY_C - Q(11, 8 * height)) + booked) / 250)
+        selected = (
+            profile.ordinary
+            if stage + 1 == len(heights)
+            else Q(int(upper * 10**21) - 1, 10**21)
+        )
+        assert booked < selected < upper
+        rates.append(str(selected))
+        booked = selected
     gaussian = GAUSSIAN_C - DEBIT / profile.complex_log
     signed = qualify(
         profile.kappa,
@@ -164,22 +178,29 @@ def bank(profile):
     )
     stock = resource_receipt(profile)
     assert activation(profile) == stock["public_exponent_A"]
-    if h1 >= 8192:
-        assert h2 >= 8192
-        bound = 128 + 320 * (h1 + h2)
+    cuts = tuple(stock["binary_cuts"])
+    assert entrance_logs(heights) == cuts
+    for i, cut in enumerate(cuts, 1):
+        assert stage_for_width_log(cut - 1, len(heights), heights) == i - 1
+        assert stage_for_width_log(cut, len(heights), heights) == i
+        assert stage_for_width_log(cut, i - 1, heights) == i - 1
+    if min(heights) >= 8192:
+        assert 1 <= len(heights) <= 7
+        bound = 128 + 320 * sum(heights)
         additions = []
     else:
+        assert heights == ENTRY.rank_logs
         costs = (first_stage_bound(profile.eta), polynomial_to_fibre_bound())
         additions = [
             max(0, e - 944 * h) for e, h in zip(costs, profile.rank_logs, strict=True)
         ]
-        bound = 40 + 17 + 16384 * (h1 + h2) + sum(additions)
+        bound = 40 + 17 + 16384 * sum(heights) + sum(additions)
     expense = max(84500001, 1602 + 220 * profile.complex_log + bound)
     return dict(
         kappa=str(profile.kappa),
-        ordinary_H=[h1, h2],
+        ordinary_H=list(heights),
         numerical_H=profile.complex_log,
-        ordinary_rates=[str(booked), str(profile.ordinary)],
+        ordinary_rates=rates,
         gaussian_rate=str(gaussian),
         signed=signed,
         stock=stock,
@@ -215,13 +236,14 @@ def check():
     assert at_public(threshold - 6) is ENTRY and at_public(threshold) is TERMINAL
     premium = ceil((TERMINAL.kappa - ENTRY.kappa) * A)
     cost = 1 + max(early["log2_C"] + premium, late["log2_C"])
-    assert cost == 309506891 and premium == 510
+    assert cost == 318259431 and premium == 514
     ordinary_floor = Q(11, 8) / (BINARY_C - TERMINAL.ordinary)
     positive_floor = DEBIT / (GAUSSIAN_C - TERMINAL.ordinary)
-    assert (ceil(ordinary_floor), ceil(positive_floor)) == (515494, 542294)
-    older = Q(".0038982")
+    assert (ceil(ordinary_floor), ceil(positive_floor)) == (517430, 483870)
+    older = Q(".0038982016137")
     gain = TERMINAL.kappa - older
-    assert gain == Q(1, 50_000_000_000)
+    assert gain == Q(83863, 10**13)
+    assert TERMINAL.kappa > Q(4286126377, 2**40)
     assert financial_checks()["early_log2_C_bound"] == 84500000
     setup = fixed_installation()
     return dict(
@@ -235,7 +257,7 @@ def check():
         fixed_funding_height_floors=[ceil(ordinary_floor), ceil(positive_floor)],
         log2_fixed_setup_upper=setup["trace_exponent"],
         log2_portable_setup_guard=setup["conservative_exponent"],
-        log2_native_setup_upper=228,
+        log2_full_store_setup_upper=setup["full_store_trace_exponent"],
         portable_setup_transition_upper=setup["transitions"],
         max_native_H=max(*TERMINAL.rank_logs, TERMINAL.complex_log),
     )

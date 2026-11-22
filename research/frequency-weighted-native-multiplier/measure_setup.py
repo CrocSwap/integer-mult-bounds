@@ -33,7 +33,10 @@ def measure(preceding):
 
         recipes = prepare_native()
         ranks = [[item.rank_log for item in row] for row in recipes]
-        assert len(ranks) == 2 and all(len(row) == 3 for row in ranks)
+        terminal = (
+            [35327, 559005, 680000] if preceding else [8192, 129414, 524288, 483871]
+        )
+        assert ranks == [[3000, 3080, 1024], terminal]
         assert recipes[0][-1].cells is recipes[1][-1].cells
         cells = len(recipes[0][-1].cells)
         assert cells == (62 if preceding else 51)

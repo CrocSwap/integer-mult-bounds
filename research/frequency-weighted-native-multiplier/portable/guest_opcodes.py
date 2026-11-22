@@ -14,11 +14,40 @@ def leb(rd):
     raise ValueError("long leb")
 
 
+def max_free_segment(ops):
+    """Bound each forward run of free operators up to a return or fuel charge."""
+    blocks = []
+    ends = {}
+    for offset, op in enumerate(ops):
+        if op in (2, 3, 4):
+            blocks.append(offset)
+        elif op == 5:
+            assert ops[blocks[-1]] == 4
+            blocks[-1] = offset
+        elif op == 11 and blocks:
+            begin = blocks.pop()
+            if ops[begin] == 5:
+                ends[begin] = offset
+    assert not blocks
+    run = [0] * (len(ops) + 1)
+    for offset in reversed(range(len(ops))):
+        op = ops[offset]
+        if op in (0, 15):
+            run[offset] = 1
+        elif op in (1, 2, 3, 11, 26):
+            run[offset] = 1 + run[offset + 1]
+        elif op == 5:
+            end = ends[offset]
+            run[offset] = 1 + max(run[end], run[end + 1])
+    return max(run)
+
+
 def census(raw):
     rd = Reader(raw)
     rd.take(8)
     counts = Counter()
     max_depth = 0
+    free = 0
     while rd.i < len(rd.raw):
         section = rd.byte()
         body = rd.take(rd.uint())
@@ -27,14 +56,18 @@ def census(raw):
         for _ in range(body.uint()):
             code = body.take(body.uint())
             depth = 1
+            ops = []
             for _ in range(code.uint()):
                 code.uint()
                 code.byte()
             while code.i < len(code.raw):
                 op = code.byte()
+                ops.append(op)
                 name = f"{op:02x}"
                 counts[name] += 1
                 if op in (0x02, 0x03, 0x04):
+                    # These forms have no block parameters and at most one result.
+                    assert code.raw[code.i] in (0x40, 0x7C, 0x7D, 0x7E, 0x7F)
                     leb(code)
                     depth += 1
                     max_depth = max(max_depth, depth)
@@ -89,16 +122,18 @@ def census(raw):
                     ), (op, code.i)
                 assert depth >= 0 and (depth or code.i == len(code.raw))
             assert depth == 0
-    return counts, max_depth
+            free = max(free, max_free_segment(ops))
+    return counts, max_depth, free
 
 
 if __name__ == "__main__":
-    c, d = census((Path(__file__).parent / "python-3.12.0.wasm").read_bytes())
+    c, d, f = census((Path(__file__).parent / "python-3.12.0.wasm").read_bytes())
     print(
         json.dumps(
             {
                 "instructions": sum(v for k, v in c.items() if "." not in k),
                 "max_control_depth": d,
+                "max_free_segment": f,
                 "opcode_counts": c,
             },
             indent=2,

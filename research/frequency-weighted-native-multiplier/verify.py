@@ -74,7 +74,7 @@ def main(scope):
             product(runtime)
             return
         files = {
-            "price": ("receipt.py", "check_placement.py"),
+            "price": ("receipt.py", "independent_price.py", "check_placement.py"),
             "calendar": ("check_calendar.py", "check_ownership.py"),
             "raw": ("check_raw.py",),
             "exterior": ("check_exterior.py",),

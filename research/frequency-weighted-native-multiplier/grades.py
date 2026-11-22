@@ -8,6 +8,7 @@ from typed_transport import NativeType, TypedPlan
 WEIGHTS = (1, 90)
 SCALES = (1, 2)
 SPLITS = 1008
+LOWER = 2048
 
 
 class GradeVariant:
@@ -121,7 +122,7 @@ class WeightedRecipe:
             types,
             shares,
             1 - self.trial,
-            32768,
+            LOWER,
             2 * (M // (2048 * self.ambient)),
             M**6,
             M**82,

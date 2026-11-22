@@ -14,7 +14,7 @@ from bounded_wasi import FileService
 from guest_opcodes import census
 from module_census import catalogue
 from record_census import inspect
-from verify_receipt import time_bound
+from verify_receipt import local_time_bound, time_bound
 from wasmtime import Config, Engine, Linker, Module, Store, _bindings
 
 HERE = Path(__file__).resolve().parent
@@ -25,8 +25,8 @@ LIB_FILES = {
     "lib/python3.12/os.py": "e36b0a6d4feefa0ec1f15b84abd87f61da6f5db434586467869ff0e5f5e1dc24",
     "lib/python3.12/lib-dynload/.empty": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 }
-SOURCE_IMAGE = "e27aaa69b1f7edd294140762a0daed56d3d4d95427d97e2bd874c8967243ddcf"
-DIRECTORY = "32b5d7d611a0987569b895a6649d514a6f8ad55cf8f5fbec3d1dcec5925897a8"
+SOURCE_IMAGE = "594661d65b3022ba679c29b193800813ed0c41d8f3a8c691e46a7a20ea38229f"
+DIRECTORY = "045c482b6d32fc58bae8e047e22d519f9269e0124fe3cb1695e930e4f472f2a8"
 
 
 def verified(data, digest):
@@ -68,7 +68,7 @@ def sources(repository):
     }
     contract = json.dumps(subset, sort_keys=True, separators=(",", ":")).encode()
     rows["/weighted/SOURCES.json"] = verified(
-        contract, "b97ca179f2d1bacdb9eba2963748a34567fff36d1fef94d271b0b063904aa1c3"
+        contract, "2b6dbd7a48dae6b7894a08ddca10eb988147e53fc35e91603c45cc26588a535f"
     )
     for name in spec["local_sources"]:
         rows["/weighted/" + name] = (weighted / name).read_bytes()
@@ -161,7 +161,8 @@ def main():
     blob = verified(args.wasm.read_bytes(), WASM)
     lib = library(args.archive)
     code = catalogue(blob)
-    operators, depth = census(blob)
+    operators, depth, free = census(blob)
+    assert free == 274
     assert (
         depth,
         code["max_locals"],
@@ -213,14 +214,22 @@ def main():
     del service
     assert len(linked) == 110
     write_tree(work / "machine", linked)
-    bound = time_bound(producer, code, depth) + time_bound(consumer, code, depth)
-    assert bound < 2**146
+    assert (
+        signature(linked)
+        == "3b4c1c8ae6b15cf97c49f801f3b0059da0eaefb2db2aae79d52957e651eaee30"
+    )
+    full_store = time_bound(producer, code, depth) + time_bound(consumer, code, depth)
+    bound = local_time_bound(producer, code, depth, free) + local_time_bound(
+        consumer, code, depth, free
+    )
+    assert bound < 2**113 and full_store < 2**142
     evidence = {
         "installer": producer,
         "receiver": consumer,
         "opcodes": sum(operators.values()),
         "module": code,
         "max_depth": depth,
+        "max_free_segment": free,
         "directory": c,
         "directory_sha256": DIRECTORY,
         "compiled_sha256": signature(compiled),
@@ -231,6 +240,8 @@ def main():
         "linked_bytes": sum(map(len, linked.values())),
         "transition_bound": str(bound),
         "exponent": 146,
+        "full_store_bound": str(full_store),
+        "full_store_trace_exponent": full_store.bit_length(),
         "trace_exponent": bound.bit_length(),
     }
     (work / "clock.json").write_text(
