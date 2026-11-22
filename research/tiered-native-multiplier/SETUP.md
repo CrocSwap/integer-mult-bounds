@@ -19,9 +19,12 @@ Four serial fresh-process observations used CPython 3.12.16 on macOS 27.2 arm64.
 
 The ratio of the mean elapsed times is 16.23. The same K7 source digest appears in all four records. The incumbent installed three rank recipes with 54 Gaussian coupling cells. The candidate installed six recipes for two profiles, with shared banks and 62 Gaussian cells. These observations apply to fixed compilation. No comparable production-size multiplication timing is available. [Pinned competitor verifier](https://github.com/ToikY/integer-mult-bounds/blob/e25494616bf149217644ce08d949181ea3600e13/research/p104-gaussian-fixed-carrier/verify.py)
 
+A subsequent matched pair ran the newly published 1,006-split PR #8054 and the candidate in fresh processes. The peer took 94.902 seconds elapsed, 91.769 seconds CPU and 324,567,040 peak resident bytes. The candidate took 5.059 seconds elapsed, 5.052 seconds CPU and 277,331,968 bytes. This is one paired observation. The peer produced 564,142 numerical loans. The candidate produced 564,144. [Two-unsplit-return source](https://github.com/ToikY/integer-mult-bounds/blob/40940734cf582ded0896833b3dc93880299cf927/research/p104-gaussian-unsplit-returns/prepare.py)
+
 Given an exact checkout of PR #8053, pass its package directory as the argument to the first command. Run each command in a new process.
 
 ```sh
+python3.12 -IB research/tiered-native-multiplier/measure_setup.py --peer-8054 /path/to/research/p104-gaussian-unsplit-returns
 python3.12 -IB research/tiered-native-multiplier/measure_setup.py --peer-8053 /path/to/research/p104-gaussian-fixed-carrier
 python3.12 -IB research/tiered-native-multiplier/measure_setup.py
 ```

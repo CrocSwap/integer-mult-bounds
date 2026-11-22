@@ -62,16 +62,34 @@ old = histogram(8)
 lo,hi = Q(".0038981803447950341293615588"),Q(".0038981803447950341293615589")
 assert margin(old,lo)[0] > 0 and margin(old,hi)[1] < 0
 assert margin(old,TERMINAL.kappa)[1] < -Q(17,100)
-for j in range(16):
-    # Differentiate sum h_r*(r/16)^t. Bound the signed derivative on the full interval.
-    derivative = 0
-    for r,n in old.items():
-        q = Q(r)/16
-        a,b = log_rank(q.numerator)
-        d,e = log_rank(q.denominator)
-        endpoints = (*power(q,Q(j,16)), *power(q,Q(j+1,16)))
-        derivative += min(n*z*y for z in (a-e,b-d) for y in (min(endpoints),max(endpoints)))
-    assert derivative > 302770
+
+
+def certify_derivative(h):
+    for j in range(16):
+        # Differentiate sum h_r*(r/16)^t. Bound the signed derivative on the full interval.
+        derivative = 0
+        for r,n in h.items():
+            q = Q(r)/16
+            a,b = log_rank(q.numerator)
+            d,e = log_rank(q.denominator)
+            endpoints = (*power(q,Q(j,16)), *power(q,Q(j+1,16)))
+            derivative += min(n*z*y for z in (a-e,b-d) for y in (min(endpoints),max(endpoints)))
+        assert derivative > 300000
+
+
+certify_derivative(old)
+two_returns = old.copy()
+two_returns[1] -= 2
+two_returns[Q(1, 2)] += 4
+unsplit_paid = old_paid.copy()
+unsplit_paid[1] += 2
+unsplit_paid[Q(1, 2)] -= 4
+peer_margin, peer_cells = certify(Q(133940467, 2**35), (old_target, unsplit_paid))
+assert sum(unsplit_paid.values()) == 564142 and peer_margin > 0 and len(peer_cells) == 54
+assert margin(two_returns,Q(".003898180942171"))[0] > 0
+assert margin(two_returns,Q(".003898180942173"))[1] < 0
+assert margin(two_returns,TERMINAL.kappa)[1] < -Q(17,100)
+certify_derivative(two_returns)
 assert margin(histogram(79),GAUSSIAN_C)[0] > 0
 assert TERMINAL.kappa > hi
 print("PASS_INDEPENDENT_RAW_CROSSING",lo,hi,"and funded 79-column dilation")

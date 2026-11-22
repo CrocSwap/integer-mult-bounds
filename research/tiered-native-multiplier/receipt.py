@@ -116,11 +116,11 @@ def verify():
     premium = ceil((TERMINAL.kappa-ENTRY.kappa)*boundary)
     cost = 1+max(early["log2_C"]+premium,late["log2_C"])
     assert (premium,cost) == (572,339787971)
-    delta = TERMINAL.kappa-Q(".0038981721342")
-    assert delta == Q(139329,5*10**12) and delta > 0
+    delta = TERMINAL.kappa-Q(".0038981730255")
+    assert delta == Q(53949,2*10**12) and delta > 0
     prefix = financial_checks()
     return dict(binary=b_receipt,gaussian=n_receipt,entry=early,terminal=late,
-                old_rate=".0038981721342",rate_delta=str(delta),entry_premium=premium,
+                old_rate=".0038981730255",rate_delta=str(delta),entry_premium=premium,
                 complete_log2_C=cost,prefix=prefix)
 
 

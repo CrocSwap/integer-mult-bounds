@@ -27,7 +27,7 @@ def cpu():
     return sum(x.ru_utime+x.ru_stime for x in rows)
 
 
-def measure(peer):
+def measure(peer, revision):
     start, used = perf_counter(), cpu()
     with TemporaryDirectory(prefix="tier-timing-") as tmp:
         work = Path(tmp)
@@ -35,11 +35,15 @@ def measure(peer):
         if peer is None:
             load_file("candidate_setup",HERE/"bootstrap.py").install(machine)
         else:
-            wrapper = load_file("fixed_carrier_source",peer/"verify.py")
             src = work / "peer"
-            src.mkdir()
-            wrapper.restore(src)
-            wrapper.edit_installation(src)
+            if revision == "8054":
+                wrapper = load_file("unsplit_source", peer/"prepare.py")
+                wrapper.materialize(peer/"peer8053", src)
+            else:
+                wrapper = load_file("fixed_carrier_source",peer/"verify.py")
+                src.mkdir()
+                wrapper.restore(src)
+                wrapper.edit_installation(src)
             run([sys.executable,"-IB",str(src/"bootstrap.py"),str(machine)],check=True)
         sys.path.insert(0,str(machine))
         from band_product import prepare_native
@@ -49,10 +53,11 @@ def measure(peer):
         else:
             rows = (prepare_native(PROFILES["extended"]),)
         contracts = [[(r.rank_log,len(r.targets),len(r.paid),len(r.cells)) for r in tier] for tier in rows]
-        assert all(len(tier)==3 and tier[-1][1:3]==(105216,564144) for tier in contracts)
+        loans = 564142 if revision == "8054" else 564144
+        assert all(len(tier)==3 and tier[-1][1:3]==(105216,loans) for tier in contracts)
         digest = sha256((machine/"strong-bit.json.gz").read_bytes()).hexdigest()
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print(json.dumps(dict(revision="candidate" if peer is None else "8053",wall=perf_counter()-start,
+    print(json.dumps(dict(revision=revision,wall=perf_counter()-start,
                           cpu=cpu()-used,rss_bytes=rss if sys.platform=="darwin" else rss*1024,
                           python=sys.version.split()[0],system=platform.platform(),machine=platform.machine(),
                           installed=contracts,binary_sha256=digest)))
@@ -60,5 +65,9 @@ def measure(peer):
 
 if __name__ == "__main__":
     args = ArgumentParser(description=__doc__)
-    args.add_argument("--peer-8053",type=Path)
-    measure(args.parse_args().peer_8053)
+    group = args.add_mutually_exclusive_group()
+    group.add_argument("--peer-8053",type=Path)
+    group.add_argument("--peer-8054",type=Path)
+    options = args.parse_args()
+    measure(options.peer_8053 or options.peer_8054,
+            "8054" if options.peer_8054 else "8053" if options.peer_8053 else "candidate")

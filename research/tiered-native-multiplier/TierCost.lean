@@ -29,7 +29,7 @@ theorem entryPrice (x : ℝ) (hx : 0 < x) (hA : x ≤ (2:ℝ)^(1274851:ℝ)) :
   exact Real.rpow_le_rpow_of_exponent_le (by norm_num) (by norm_num)
 
 theorem strictGain :
-    (19491:ℚ)/5000000 - 19490860671/5000000000000 = 139329/5000000000000 := by norm_num
+    (19491:ℚ)/5000000 - 7796346051/2000000000000 = 53949/2000000000000 := by norm_num
 
 #print axioms highFibre
 #print axioms finitePrefix
