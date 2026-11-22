@@ -1,0 +1,84 @@
+--- a/installations.py
++++ b/installations.py
+@@ -4,7 +4,7 @@
+ from fractions import Fraction as Q
+ 
+ BINARY_C = Q(4391986206293, 2**50)
+-GAUSSIAN_C = Q(2143194013, 2**39)
++GAUSSIAN_C = Q(17145637167, 2**42)
+ 
+ 
+ @dataclass(frozen=True)
+@@ -21,7 +21,7 @@
+ 
+ 
+ ENTRY = Profile((3000, 3080), 1024, Q(".00345"))
+-TERMINAL = Profile((35327, 559005), 680000, Q(".0038982"))
++TERMINAL = Profile((8192, 129414, 524288), 483871, Q(".00389821"))
+ PROFILES = {"entry": ENTRY, "terminal": TERMINAL}
+ 
+ 
+--- a/retimed_supplier.py
++++ b/retimed_supplier.py
+@@ -1,4 +1,4 @@
+-"""Run two column scales of the tagged 48-call word in the signed positive receiver."""
++"""Run two independently funded column scales of the tagged 48-call word in the signed positive receiver."""
+ 
+ 
+ from upstream import HERE, install
+@@ -8,44 +8,8 @@
+ from periodic import Job
+ from raw48 import ComplexRaw
+ from spool import scratch, snapshot, transfer
+-from grades import SCALES, SPLITS, numerical_source, numerical_recipe
+-
+-
+-class Raw:
+-    def __init__(self, tagged, physical):
+-        self.tagged = tagged
+-        self.physical = physical
+-
+-    def native(self, ports, columns):
+-        if columns <= 0 or columns % 2:
+-            raise ValueError("Each split needs a positive even column count")
+-        if len(ports) != len(SCALES) * len(self.tagged.targets):
+-            raise ValueError("Each true target needs one complete owner")
+-        if len({job.owner for job in ports}) != len(ports):
+-            raise ValueError("Every productive port needs its own live owner")
+-        source = iter(ports)
+-        for scale in SCALES:
+-            width = columns * scale
+-            inputs = []
+-            for label in self.tagged.targets:
+-                job = next(source)
+-                if len(job.axes) != label.rank * width:
+-                    raise ValueError("A target has the wrong number of physical axes")
+-                inputs.append((label.tag, job))
+-            actual = self.physical.raw(inputs, width)
+-            splits = 0
+-            for label in self.tagged.paid:
+-                tag, job = next(actual)
+-                if tag != label.tag or len(job.axes) != label.rank * width:
+-                    raise ArithmeticError("The physical cut differs from the installed word")
+-                if scale == 1 and label.rank == 1 and splits < SPLITS:
+-                    yield job.select(range(width // 2))
+-                    yield job.select(range(width // 2, width))
+-                    splits += 1
+-                else:
+-                    yield job
+-            if next(actual, None) is not None or (scale == 1 and splits != SPLITS):
+-                raise ArithmeticError("The numerical word did not close at its final loan")
++from grades import numerical_source, numerical_recipe
++from typed_raw import TypedRaw
+ 
+ 
+ class Positive(RetainedPositive):
+@@ -87,7 +51,7 @@
+             physical = ComplexRaw(
+                 self.physical, fields, columns, low=low, bundle=bundle, slots=n
+             )
+-            adapter = Raw(self.word, physical)
++            adapter = TypedRaw(self.word, physical)
+             outer = self
+ 
+             class Machine:
