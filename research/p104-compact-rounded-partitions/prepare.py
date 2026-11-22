@@ -132,6 +132,26 @@ print("PASS_INDEPENDENT_QUARTER_BRACKET", new_lo, new_hi)"""),
          'run([sys.executable,"-IB",str(PACKAGE/"check_gaussian.py"),str(dst)],check=True)'),
     ),
     "check_gaussian.py": (
+        ("class RayField(Field):", """@cache
+def phase_probes(columns):
+    first = addresses(0, columns)
+    return tuple(
+        tuple((j, first[j] << i) for j in ((71*i+93)%512, (11*i+7)%512))
+        for i in range(columns)
+    )
+
+
+class RayField(Field):"""),
+        ("            indices=((71*i+93)%512,(11*i+7)%512)\n"
+         "            locations=addresses(i,n)\n"
+         "            for sample,j in enumerate(indices):\n"
+         "                assert (fn(locations[j])-base)%4==single[j]\n"
+         "                totals[sample]+=single[j]\n"
+         "                probes[sample]|=locations[j]",
+         "            for sample,(j,location) in enumerate(phase_probes(n)[i]):\n"
+         "                assert (fn(location)-base)%4==single[j]\n"
+         "                totals[sample]+=single[j]\n"
+         "                probes[sample]|=location"),
         ("from grades import SCALES, SPLITS","from grades import SCALES, SPLITS\nfrom transport import paid_axis_count"),
         ("jobs=[Job(i,range(2*k))", "columns = 6\n    jobs=[Job(i,range(columns*k))"),
         ("widths=tuple(2*s for s in SCALES)", "widths=tuple(columns*s for s in SCALES)"),
