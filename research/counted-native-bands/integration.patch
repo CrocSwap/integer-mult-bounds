@@ -1,0 +1,110 @@
+--- a/strong_binary.py
++++ b/strong_binary.py
+@@ -10,7 +10,7 @@
+ from pathlib import Path
+ 
+ from factored_frames import inverse_word
+-from powered import PoweredWord
++from smooth_word import SmoothWord
+ from raw_binary import BinarySource, Catalogue, job_frame, placed_job
+ from tagged_sources import BIT_CALLER, BIT_PIN, binary_ports, packed, pinned
+ 
+@@ -37,7 +37,7 @@
+         raise ValueError("Select a certified binary power")
+     raw = binary_ports(graph(), caller())
+     floor = 16 if power == 128 else 15
+-    return PoweredWord(raw.ambient, raw.targets, raw.paid, power, floor, 12, 12)
++    return SmoothWord(raw.ambient, raw.targets, raw.paid, power, floor, 12, 12)
+ 
+ 
+ class ActiveCatalogue(Catalogue):
+@@ -52,19 +52,7 @@
+         if self.ambient * columns > dimension or columns < 1:
+             raise ValueError("The complete source ambient and its columns must fit the frame")
+ 
+-        for name in (
+-            "raw_projector",
+-            "difference",
+-            "joint",
+-            "target",
+-            "head",
+-            "idle",
+-            "port_stage",
+-        ):
+-            setattr(self, name, cache(getattr(self, name)))
+ 
+-
+-@cache
+ def active_catalogue(dimension, columns):
+     return ActiveCatalogue(dimension, columns)
+ 
+--- a/strong_complex.py
++++ b/strong_complex.py
+@@ -61,7 +61,7 @@
+ 
+ 
+ def word(graph, layout):
+-    from powered import PoweredWord
++    from smooth_word import SmoothWord
+     from tagged_sources import PINS, complex_ports, pinned
+     import tagged_sources
+ 
+@@ -72,7 +72,7 @@
+     key = "data/CALLER.json.gz"
+     caller = tagged_sources.packed(pinned(key, PINS[key]))
+     raw = complex_ports(graph, layout, caller, local)
+-    return PoweredWord(153, raw.targets, raw.paid, 128, 16, 12, 12)
++    return SmoothWord(153, raw.targets, raw.paid, 128, 16, 12, 12)
+ 
+ 
+ @cache
+--- a/binary_receiver.py
++++ b/binary_receiver.py
+@@ -3,8 +3,9 @@
+ from functools import cache
+ 
+ from calibration import COMPACT
+-from compiler_cut import SourceRule
+-from epoch_tape import Compiler, run
++from counted_band import GradeRule
++from epoch_tape import run
++from stream_epoch import Compiler
+ from module_atoms import chart_width, total_width
+ from periodic import Job
+ from quotient_route import free_count, low_count
+@@ -14,16 +15,9 @@
+ from strong_binary import StrongBinarySource, native_word
+ 
+ 
+-class NativeRule(SourceRule):
+-    def __init__(self, power):
+-        word = native_word(power)
+-        self.word = word
+-        self.ambient = word.ambient**word.power
+-
+-
+ @cache
+ def source_rule(power):
+-    return NativeRule(power)
++    return GradeRule(native_word(power))
+ 
+ 
+ @cache
+--- a/band_positive.py
++++ b/band_positive.py
+@@ -7,12 +7,13 @@
+ class Positive(PhysicalPositive):
+     @property
+     def owners(self):
+-        from epoch_tape import Compiler
++        from stream_epoch import Compiler
++        from counted_band import GradeRule
+         from calibration import COMPLEX_FLOOR
+ 
+         if self._owners is not None:
+             return self._owners
+-        self.rule = self.word.rule()
++        self.rule = GradeRule(self.word)
+         self.planner = Compiler(self.rule, COMPLEX_FLOOR)
+         self._owners = self.planner(self.carrier).width
+         if self._owners <= 1 or self._owners & (self._owners - 1):
