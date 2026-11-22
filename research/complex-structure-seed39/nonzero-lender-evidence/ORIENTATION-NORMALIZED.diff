@@ -1,0 +1,56 @@
+--- PR2339/orientation_contract.py
++++ seed39/orientation_lifted.py
+@@ -17,7 +17,7 @@
+     raise RuntimeError("assertions must remain enabled")
+ 
+ HERE = Path(__file__).resolve().parent
+-sys.path.insert(0, str(HERE / "pr2269"))
++sys.path.insert(0, str(HERE.parent / "anticipatory-stage-evidence/interface/pr2269"))
+ import bw_gauss as g
+ 
+ 
+@@ -45,7 +45,7 @@
+     compiled = read(local / "CLIFFORD-RECIPES.json")
+     warps = {w["op"]: w for w in c["warps"]}
+     recipes = {(w["sign"], w["op"], w["old"], w["new"]): w for w in compiled["warps"]}
+-    need(len(recipes) == 224, "PR2339 warp class count changed")
++    need(len(recipes) == 112, "four-alias warp class count changed")
+     output = []; rejected = []
+     for key, r in sorted(recipes.items()):
+         sign, op, old, new = key
+@@ -76,27 +76,27 @@
+                     need(e[2] not in live, "duplicate buffer"); live.add(e[2]); peak = max(peak, len(live))
+                 else:
+                     need(e[2] in live, "unallocated buffer"); live.remove(e[2])
+-        need(not live and peak == 44, "buffer inventory changed")
++        need(not live and peak == 76, "buffer inventory changed")
+         need(used == set(recipes), "warp recipe inventory mismatch")
+-        need(dict(counts) == {"zero_frame_precondition": 128, "B": 80, "full_frame_cleanup": 80}, "warp event count changed")
++        need(dict(counts) == {"A": 8, "B": 52, "full_frame_cleanup": 52}, "warp event count changed")
+         by[orientation] = dict(warp_events_by_phase=dict(counts), warp_classes=len(used), peak_zero_buffers=peak)
+     h = c["local_profile"]
+     widths = Counter(len(c["frames"][c["final"][r]]) - len(c["frames"][c["start"][r]]) for r in range(2*c["v"], 2*c["v"]+c["R"]))
+-    need(widths == {4: 4, 5: 4, 7: 36, 8: 84, 9: 272}, "helper widths changed")
+-    need(sum(int(r)*n for r,n in h.items()) == 5264, "paid mass changed")
+-    need(sum(w*n for w,n in widths.items()) == 3408, "helper width sum changed")
++    need(widths == {4: 36, 5: 4, 7: 36, 8: 112, 9: 240}, "helper widths changed")
++    need(sum(int(r)*n for r,n in h.items()) == 5328, "paid mass changed")
++    need(sum(w*n for w,n in widths.items()) == 3472, "helper width sum changed")
+     payload = json.dumps(output, sort_keys=True, separators=(",", ":")).encode()
+     (local / "ORIENTED-WARP-RECIPES.json.gz").write_bytes(gzip.compress(payload, mtime=0))
+     report = dict(status="PASS_EXPLICIT_FORWARD_DUAL_WARP_RECIPES", orientations=by,
+                   recipe_records=len(output), columns_per_record=512,
+                   wrong_global_phase_controls_rejected=len(rejected),
+-                  paid_profile=h, paid_mass=5264, helper_width_inventory=dict(sorted(widths.items())),
+-                  helper_width_sum=3408, helpers=400,
++                  paid_profile=h, paid_mass=5328, helper_width_inventory=dict(sorted(widths.items())),
++                  helper_width_sum=3472, helpers=428,
+                   canonical_content_sha256=hashlib.sha256(json.dumps(c,sort_keys=True,separators=(",", ":")).encode()).hexdigest(),
+                   oriented_recipe_content_sha256=hashlib.sha256(payload).hexdigest(),
+                   scope="Exact finite local monomial recipes for both orientations; inverse-transpose is entrywise conjugation for unitary monomials. Hosting, physical reserve, outer recurrence, source-access and all-size analytic transfer remain separate.")
+     (local / "ORIENTATION-CONTRACT.json").write_text(json.dumps(report, indent=2)+"\n")
+-    print(report["status"], "448 recipes, 512 columns each, 448 phase mutations rejected")
++    print(report["status"], "224 recipes, 512 columns each, 224 phase mutations rejected")
+ 
+ 
+ if __name__ == "__main__":

@@ -1,0 +1,34 @@
+--- pr2269/lemmag_stage.py
++++ lemmag_stage.py
+@@ -1,3 +1,5 @@
++# Adapted from pinned PR2269: path layout and nontrivial-warp control selection only.
++# Frame-zero compensation is checked by algebra/phase controls, not detectable by frame labels alone.
+ # SPDX-License-Identifier: Apache-2.0
+ """Package stage `lemmag-labels` (beside the frame-only `local-replay`): runs the Lemma G label / adapter checks of PR1964 (thakrarsagar; Lemma G by
+ DreamingOfClouds, PR509 / PR516; vendored verbatim in lemmag_checks.py) on every provider's emitted LOCAL-PROGRAMS, both orientations:
+@@ -7,14 +9,14 @@
+ usage: lemmag_stage.py OUT.json DIR [DIR ...]   (each DIR contains local/CANONICAL-WORD.json.gz and local/LOCAL-PROGRAMS.json.gz)"""
+ import gzip, json, sys
+ from pathlib import Path
+-sys.path.insert(0, str(Path(__file__).resolve().parent))
++sys.path.insert(0, str(Path(__file__).resolve().parent / "pr2269"))
+ import lemmag_checks as V
+ 
+ 
+ def main(out, dirs):
+     report = {}
+     for d in dirs:
+-        L = Path(d) / 'local'
++        L = Path(d)
+         c = json.loads(gzip.decompress((L / 'CANONICAL-WORD.json.gz').read_bytes()))
+         progs = json.loads(gzip.decompress((L / 'LOCAL-PROGRAMS.json.gz').read_bytes()))
+         row = {'v': c['v'], 'R': c['R'], 'events': {o: len(p) for o, p in progs.items()}, 'honest': {}, 'mutants': {}}
+@@ -33,7 +35,7 @@
+             st = len(V.label_check(c, m, 'strict')[0]); pe = len(V.label_check(c, m, 'permissive')[0]); ar = len(V.adapter_rule(c, m))
+             row['mutants'][name] = {'label_strict': st, 'label_permissive': pe, 'adapter_rule': ar, 'rejected': bool(st or pe or ar)}
+             assert st or pe or ar, ('adapter mutant ACCEPTED by the Lemma G checks', str(d), name)
+-        ws = [i for i, e in enumerate(fw) if e[0] == 'warp' and e[3] != 1]       # forward warps (from frame below FULL)
++        ws = [i for i, e in enumerate(fw) if e[0] == 'warp' and e[3] != e[4]]       # nontrivial frame handoffs; compensation warps have frame 0 -> 0
+         if ws:   # BORROW controls: reference-change mutants must be rejected
+             def rej(m): return bool(V.label_check(c, m, 'strict')[0] or V.label_check(c, m, 'permissive')[0] or V.adapter_rule(c, m))
+             w0 = ws[0]; e0 = fw[w0]; other = next(f for f in range(2, len(c['frames'])) if f not in (e0[3], e0[4]))

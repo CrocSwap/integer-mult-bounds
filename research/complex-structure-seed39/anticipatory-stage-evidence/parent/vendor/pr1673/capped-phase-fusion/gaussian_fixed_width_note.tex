@@ -1,0 +1,212 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert_\infty}
+\newcommand{\Z}{\mathbb Z}
+\title{Fixed-Width Gaussian Resampling Is Polynomially Conditioned}
+\author{Research note prepared with OpenAI Codex}
+\date{October 13, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+An exact bilateral Newton factorization proves that the Gaussian
+resampling inverse has norm $O(\theta^{-2})$ at a fixed Gaussian width,
+where $\theta>0$ is the oversampling gap. This removes the width-growth
+requirement from the conditioning argument. The proof uses convergent
+infinite triangular factors and then periodizes them; it does not assert
+operator-norm convergence of finite sections. A fast implementation and
+its tensor cost remain separate obligations. No improved final
+integer-multiplication exponent is claimed in this note.
+\end{abstract}
+
+Let $1\le s<t\le2s$ be integers, $\rho=t/s=1+\theta$, and $a\ge1$.
+For every $i\in\Z$ set
+\[
+ q_i=\lfloor\rho i+1/2\rfloor,\quad
+ \beta_i=\rho i-q_i\in[-1/2,1/2),\quad
+ x_i=e^{2a\rho q_i},\quad
+ v_i=e^{-a\rho^2i^2+a\beta_i^2}.
+\]
+Thus $q_{i+s}=q_i+t$ and $\beta_{i+s}=\beta_i$.
+The bilateral unwrapped matrix and the finite periodic matrix are
+\[
+ G_{ij}=e^{-a[(\rho j-q_i)^2-\beta_j^2]},\qquad
+ N_{ij}=\sum_{n\in\Z}G_{i,j+ns}\quad(0\le i,j<s).
+\]
+Norms of finite matrices are maximum absolute row sums. Bilateral
+matrices act on $\ell^\infty(\Z)$ and have the same absolute-row-sum norm.
+
+\begin{theorem}\label{thm:main}
+Put
+\[
+ c=\prod_{m=1}^{\infty}(1-e^{-2a\rho m}).
+\]
+Both $G$ and $N$ are invertible bounded operators, and
+\[
+ \norm{G^{-1}},\ \norm{N^{-1}}
+ \le \frac{c^{-4}e^{a/2}}{(1-e^{-a\rho\theta})^2}.
+\]
+In particular, for each fixed $a\ge1$ this is $O_a(\theta^{-2})$.
+At $a=1$ the explicit bound $\norm{N^{-1}}<16\theta^{-2}$ holds.
+There is no coprimality condition.
+\end{theorem}
+
+For a finite or summable positive alphabet $X$, write $e_h(X)$ and
+$h_h(X)$ for its elementary and complete homogeneous symmetric
+polynomials, with $e_0=h_0=1$.
+
+\begin{lemma}[The partition bounds]\label{lem:partition}
+If successive positive nodes increase by a factor at least
+$R=e^{2a\rho}$, then the following quantities are at most $c^{-1}$:
+\[
+ \frac{e_h(x_l,\ldots,x_{j-1})}
+      {x_{j-h}\cdots x_{j-1}},\qquad
+ \frac{h_h(x_l,\ldots,x_i)}{x_i^h}.
+\]
+The same bounds hold with $l=-\infty$.
+\end{lemma}
+\begin{proof}
+In the elementary polynomial compare each increasing $h$-subset with
+the $h$ largest indices. Its deficits form a partition, and its relative
+weight is at most $R$ to the negative partition size. In the complete
+homogeneous polynomial, a multiset compared with $h$ copies of the
+largest node has the same partition bound. Summing over all partitions
+gives $\prod_{m\ge1}(1-R^{-m})^{-1}=c^{-1}$.
+The infinite alphabets converge because $x_k/x_i\le R^{k-i}$ for
+$k\le i$; monotone limits preserve the inequalities.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+First restrict $G$ to an arbitrary finite interval $[l,r]$.
+The usual Newton expansion of monomials gives an exact factorization
+\[
+ G_{[l,r]}=L^{(l)}D^{(l)}U^{(l)},\qquad
+ D^{(l)}_{ii}=C_i^{(l)}:=\prod_{l\le k<i}(1-x_k/x_i),
+\]
+where both triangular factors have diagonal one and
+\begin{align*}
+ L^{(l)}_{ij}
+ &=G_{ij}\frac{\prod_{l\le k<j}(1-x_k/x_i)}{C_j^{(l)}}
+ &&(i\ge j),\\
+ U^{(l)}_{ij}
+ &=\frac{v_j}{v_i}h_{j-i}(x_l,\ldots,x_i)
+ &&(j\ge i).
+\end{align*}
+All other entries are zero. These formulas also fix the normalization
+when $l$ is negative: shift the index origin to $l$, use nodes
+$x'_k=e^{-2a\rho^2l}x_k$ and column factors
+$v'_j=e^{2a\rho^2lj-a\rho^2l^2}v_j$; the extra factors cancel.
+
+Since $q_{k+1}-q_k\ge1$, we have $c\le C_i^{(l)}\le1$.
+Lemma~\ref{lem:partition} and
+$(v_j/v_i)x_i^{j-i}=G_{ij}$ show entrywise that
+\[
+ 0\le L^{(l)}_{ij}\le c^{-1}G_{ij},\qquad
+ 0\le U^{(l)}_{ij}\le c^{-1}G_{ij}.
+\]
+The Gaussian envelope
+\[
+ G_{i,i+h}\le e^{-a(\rho^2h^2-\rho|h|)}
+\]
+is summable uniformly in $i$. Every factor entry has a limit as
+$l\to-\infty$. Products of the limiting factors are therefore justified
+by dominated convergence, and give bounded triangular matrices $L,U$
+and diagonal $D$ with $G=LDU$.
+
+For completeness, the inverse entries also have explicit finite-origin
+formulas. If $h=i-j\ge0$, divided differences give
+\[
+ (L^{(l)})^{-1}_{ij}
+ =(-1)^h\frac{C_i^{(l)}}{C_j^{(l)}}
+ \frac{\exp\!\left(a[-\beta_i^2+\beta_j^2-\rho^2h
+              +2\rho\sum_{k=j+1}^{i}\beta_k]\right)}
+      {\prod_{k=j+1}^{i}(1-x_j/x_k)}.
+\]
+If $h=j-i\ge0$, the inverse Newton expansion gives
+\[
+ (U^{(l)})^{-1}_{ij}
+ =(-1)^h\frac{v_j}{v_i}e_h(x_l,\ldots,x_{j-1}).
+\]
+Using $|\beta_k|\le1/2$ and the partition bound yields, uniformly in $l$,
+\[
+ |(L^{(l)})^{-1}_{ij}|
+ \le c^{-2}e^{a/4}e^{-a\rho\theta(i-j)},\qquad
+ |(U^{(l)})^{-1}_{ij}|
+ \le c^{-1}e^{a/4}e^{-a\rho\theta(j-i)}.
+\]
+For the second estimate the dominant exponent is exactly
+\[
+ a\left[\beta_j^2-\beta_i^2-\rho^2h
+               -2\rho\sum_{k=i}^{j-1}\beta_k\right].
+\]
+These inverse entries converge as $l\to-\infty$. Each entry of a
+product of two lower triangular factors, or of two upper triangular
+factors, involves only finitely many intermediate indices. Hence the
+limiting inverse identities hold entrywise. The uniform summable row
+bounds promote them to identities of bounded operators on
+$\ell^\infty(\Z)$. Consequently
+\[
+ G^{-1}=U^{-1}D^{-1}L^{-1},\qquad
+ \norm{G^{-1}}
+ \le\frac{c^{-4}e^{a/2}}{(1-e^{-a\rho\theta})^2}.
+\]
+
+Every limiting factor and inverse is invariant under simultaneous
+translation $(i,j)\mapsto(i+s,j+s)$. For $L,D$ this follows from
+ratios of the $x_i$ and periodicity of the $\beta_i$.
+For $U$ and $U^{-1}$, the factor $e^{2a\rho t h}$ acquired by a degree
+$h$ symmetric polynomial cancels the factor $e^{-2a\rho^2s h}$ in
+$v_{j+s}/v_{i+s}$, because $t=\rho s$.
+
+For any such periodic, absolutely row-summable matrix $A$, define
+\[
+ (\Pi A)_{ij}=\sum_{n\in\Z} A_{i,j+ns}.
+\]
+Absolute convergence, decomposition of an intermediate index modulo
+$s$, and simultaneous periodicity imply
+$\Pi(AB)=(\Pi A)(\Pi B)$. Also
+$\norm{\Pi A}\le\norm A$ and $\Pi I=I_s$.
+Since $\Pi G=N$, periodizing the inverse proves the asserted bound for
+$N^{-1}$.
+
+Finally $c\ge\prod_{m\ge1}(1-e^{-2m})>5/6$.
+At $a=1$, concavity gives
+$1-e^{-\rho\theta}\ge1-e^{-\theta}\ge(1-e^{-1})\theta>3\theta/5$,
+and $e^{1/2}<2$; substitution gives the stated constant $16$.
+\end{proof}
+
+\begin{corollary}[The width may be fixed]
+For the resampling convention $a=\pi\alpha^2$, one may take the fixed
+integer $\alpha=2$ in the inverse-conditioning and normalization
+argument. If all $d$ gaps satisfy $\theta_i\ge d^{-C}$ for a fixed $C$,
+the total logarithmic normalization loss is $O(d\log d)$.
+\end{corollary}
+\begin{proof}
+The theorem bounds each inverse by a fixed constant times $d^{2C}$.
+The separate diagonal has norm at most $e^{a/4}$, a fixed constant.
+Taking powers of two large enough to normalize these factors costs
+$O(\log d)$ bits per axis; logarithms add under tensor products.
+\end{proof}
+
+\paragraph{Scope and provenance.}
+This strengthens the conditioning-only result in the earlier note
+\emph{A Polynomial Condition Bound for Gaussian Resampling}. The
+matrix is the one in Section~7 of the
+\href{https://github.com/CrocSwap/integer-mult-bounds/tree/e6f9716621f4e01fc190617934cdfaf072bd976f}{inspected repository snapshot}.
+Classical Newton interpolation and symmetric-polynomial identities are
+used explicitly above; no generic-rank assumption is used. Two independent
+agents checked the limiting and periodization arguments. Exact rational
+controls cover negative and zero origins, finite $LDU$, inverse entries,
+origin shifts and simultaneous periodicity.
+
+This theorem does not supply the new numerical implementation at these
+parameters. Stable factor application, in-place tensor composition,
+coefficient generation and all tape movement must still be priced.
+The repository's inspected conditional exponent remains
+$\kappa=0.001672660197076918$; no larger final exponent is certified here.
+\end{document}
