@@ -49,7 +49,7 @@ def check(mode, tree):
                  "witness": ["check_nonzero_eight"],
                  "deep-receiver": ["true_high", "direct_recursive"],
                  "receiver": ["normal_five", "direct_exact", "check_five", "low_inventory_scan"],
-                 "slabs": ["check_scans"]}
+                 "slabs": ["check_scans", "check_stage_fences"]}
         for name in files[mode]:
             runpy.run_path(str(HERE / (name + ".py")), run_name="__main__")
     print("PASS_RETIMED_MULTIPLIER", mode)
