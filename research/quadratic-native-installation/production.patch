@@ -1,0 +1,73 @@
+--- a/strong_complex.py
++++ b/strong_complex.py
+@@ -1,7 +1,6 @@
+ """Bind the 48-call physical receiver to the 5,674-transfer source."""
+ 
+ from functools import cache
+-from fractions import Fraction
+ from types import SimpleNamespace
+ from hashlib import sha256
+ from pathlib import Path
+@@ -36,7 +35,8 @@
+         if sha256((source / name).read_bytes()).hexdigest() != pin:
+             raise ValueError(f"The circuit source differs at {name}")
+     sys.path.insert(0, str(source))
+-    from verify_split_helpers import read, rebuild, reconstruct
++    from verify_split_helpers import read, reconstruct
++    from sparse_helpers import rebuild
+ 
+     parent, layout = rebuild()
+     graph, _ = reconstruct(parent, read("BANK-FACTORS.json.gz"))
+@@ -78,7 +78,7 @@
+ @cache
+ def artifacts(grade, data):
+     """Construct every paid Clifford factor and true port from its signed frame."""
+-    from charts import native_catalogue
++    from phase_atlas import catalogue as native_catalogue, coefficient_rows
+     from closed_caller import placement, templates
+     from mixed_caller import instructions, layout_bindings
+     from raw48 import contact, monomial, read_json
+@@ -114,5 +114,5 @@
+         main={n for row in regs for n in row},
+         odd=ODD,
+         moves={i: (a, b) for i, a, b in graph["moves"]},
+-        forms={i: tuple((j, Fraction(c)) for j, c in row) for i, row in graph["forms"]},
++        forms=coefficient_rows(graph["forms"]),
+     )
+--- a/retimed_supplier.py
++++ b/retimed_supplier.py
+@@ -10,7 +10,8 @@
+ from periodic import Job
+ from raw48 import ComplexRaw
+ from spool import scratch, snapshot, transfer
+-from strong_complex import artifacts, word
++from strong_complex import artifacts
++from clock_ports import clock_word
+ from transport import Recipe
+ from installations import GAUSSIAN_C
+ from unpowered_price import certify
+@@ -78,7 +79,7 @@
+         atlas = artifacts(
+             source / "research/grade14-native-realization", HERE / "inputs"
+         )
+-        native = word(atlas.graph, atlas.layout)
++        native = clock_word(atlas)
+         super().__init__(native, atlas, 1 << rank_log, denominator)
+ 
+         targets, paid = source_ranks(native)
+--- a/check_nonzero_eight.py
++++ b/check_nonzero_eight.py
+@@ -201,8 +201,11 @@
+ 
+ 
+ def check():
+-    a = artifacts(source / "research/grade14-native-realization", HERE / "inputs")
+-    w = word(a.graph, a.layout)
++    from band_product import production_supplier
++    from installations import RESOLUTION
++
++    supplier = production_supplier(RESOLUTION.complex_log, RESOLUTION.positive_stop_denominator)
++    a, w = supplier.physical, supplier.word
+     from retimed_supplier import Raw, source_ranks, SCALES, SMALL_SPLITS
+ 
+     assert SCALES == (1, 8) and SMALL_SPLITS == 1008
