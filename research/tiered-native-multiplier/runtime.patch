@@ -1,0 +1,239 @@
+--- a/band_product.py
++++ b/band_product.py
+@@ -10,7 +10,8 @@
+ from retimed_supplier import Positive
+ from binary_io import magnitude_limbs
+ from fiscal_scans import magnitude_bits
+-from installations import COMPACT, PROFILES
++from installations import ENTRY, PROFILES, at_public
++from grades import numerical_recipe
+ from inputs.triangular.multiplier import Product as PackProduct, precision
+ from linear_geometry import parameters, square_sides
+ from ordinary_carrier import ordinary_swap
+@@ -23,17 +24,18 @@
+     return Positive(rank_log, stop_denominator)
+ 
+ 
+-def prepare_native(profile=COMPACT):
++def prepare_native(profile=None):
+     """Generate the raw labels, both signed circuits, the atlas and the two grade couplings."""
+     from raw_binary_stage import binary_recipe
+ 
++    if profile is None:
++        return tuple(prepare_native(tier) for tier in PROFILES.values())
+     binary = tuple(binary_recipe(height) for height in profile.rank_logs)
+-    positive = production_supplier(profile.complex_log, profile.positive_stop_denominator)
+-    return (*binary, positive.recipe)
++    return (*binary, numerical_recipe(profile.complex_log))
+ 
+ 
+ class Product(PackProduct):
+-    def __init__(self, sides, b, P, exchange=None, *, engine=None, profile=COMPACT):
++    def __init__(self, sides, b, P, exchange=None, *, engine=None, profile=ENTRY):
+         self.profile = profile
+         exchange = partial(ordinary_swap, profile=profile) if exchange is None else exchange
+         super().__init__(sides, b, P, exchange, engine=engine)
+@@ -60,7 +62,7 @@
+     left_negative=False,
+     right_negative=False,
+     engine=None,
+-    profile=COMPACT,
++    profile=None,
+ ):
+     """Return the sign and length of the product. Restore both input heads."""
+     if output is left or output is right:
+@@ -77,6 +79,8 @@
+         raw = result.to_bytes(max(1, (result.bit_length() + 7) // 8), "little")
+         output.write(raw)
+         return bool(negative and all(lengths)), len(raw)
++    if profile is None:
++        profile = at_public(shape.public)
+     sides = tuple(square_sides(shape))
+     machine = Product(
+         sides,
+@@ -89,7 +93,7 @@
+     return sign, size
+ 
+ 
+-def multiply(left, right, *, profile=COMPACT):
++def multiply(left, right, *, profile=None):
+     raw = [abs(v).to_bytes((abs(v).bit_length() + 7) // 8, "little") for v in (left, right)]
+     out = BytesIO()
+     sign, _ = multiply_tapes(
+@@ -110,6 +114,6 @@
+     args = ArgumentParser(description=__doc__)
+     args.add_argument("left", type=lambda x: int(x, 0))
+     args.add_argument("right", type=lambda x: int(x, 0))
+-    args.add_argument("--profile", choices=PROFILES, default="compact")
++    args.add_argument("--profile", choices=PROFILES)
+     call = args.parse_args()
+-    print(multiply(call.left, call.right, profile=PROFILES[call.profile]))
++    print(multiply(call.left, call.right, profile=PROFILES.get(call.profile)))
+--- a/binary_receiver.py
++++ b/binary_receiver.py
+@@ -1,6 +1,6 @@
+ """Run the funded binary graph in the public bank and return every physical loan."""
+ 
+-from installations import COMPACT
++from installations import ENTRY
+ from raw_binary_stage import binary_recipe, binary_word, run
+ from module_atoms import chart_width, total_width
+ from periodic import Job
+@@ -13,7 +13,7 @@
+ 
+ class Receiver(PhysicalReceiver):
+     def __init__(
+-        self, dimension, layout, previous=cold_swap_tape, *, direct=False, profile=COMPACT
++        self, dimension, layout, previous=cold_swap_tape, *, direct=False, profile=ENTRY
+     ):
+         if dimension < 2:
+             raise ValueError("Use a native rank of at least two")
+--- a/independent_binary_price.py
++++ b/independent_binary_price.py
+@@ -75,7 +75,7 @@
+             paid[1] += ports
+         elif row[0] == "IDLE_ONE":
+             paid[len(row[2]) * caller["body_rank"]] += ports
+-    assert targets.total() == 18_906 and paid.total() == 104_904
++    assert targets.total() == 18_906 and paid.total() == 104_652
+     return targets, paid
+ 
+ 
+--- a/ordinary_carrier.py
++++ b/ordinary_carrier.py
+@@ -7,7 +7,7 @@
+ 
+ install()
+ from binary_receiver import Receiver
+-from installations import COMPACT
++from installations import ENTRY
+ from module_atoms import ceil_root
+ from ordinary import least_power
+ from staged_carriers import entrance_logs
+@@ -55,7 +55,7 @@
+             root_body(source, target, digits, 1, gap, suffix, backend)
+ 
+ 
+-def ordinary_swap(source, target, bits, prefix, gap, suffix, *, profile=COMPACT):
++def ordinary_swap(source, target, bits, prefix, gap, suffix, *, profile=ENTRY):
+     rank_logs = profile.rank_logs
+     if bits < 0 or min(prefix, gap, suffix) < 1:
+         raise ValueError("Use a nonnegative width and positive field dimensions")
+--- a/retimed_supplier.py
++++ b/retimed_supplier.py
+@@ -1,7 +1,5 @@
+ """Run two column scales of the tagged 48-call word in the signed positive receiver."""
+ 
+-from fractions import Fraction as F
+-from collections import Counter
+ 
+ from upstream import HERE, install
+ 
+@@ -10,15 +8,7 @@
+ from periodic import Job
+ from raw48 import ComplexRaw
+ from spool import scratch, snapshot, transfer
+-from strong_complex import artifacts
+-from clock_ports import clock_word
+-from transport import Recipe
+-from installations import GAUSSIAN_C
+-from unpowered_price import certify
+-
+-
+-SCALES = (1, 8)
+-SMALL_SPLITS = 1008
++from grades import SCALES, SPLITS, numerical_source, numerical_recipe
+ 
+ 
+ class Raw:
+@@ -48,45 +38,21 @@
+                 tag, job = next(actual)
+                 if tag != label.tag or len(job.axes) != label.rank * width:
+                     raise ArithmeticError("The physical cut differs from the installed word")
+-                if scale == 1 and label.rank == 1 and splits < SMALL_SPLITS:
++                if scale == 1 and label.rank == 1 and splits < SPLITS:
+                     yield job.select(range(width // 2))
+                     yield job.select(range(width // 2, width))
+                     splits += 1
+                 else:
+                     yield job
+-            if next(actual, None) is not None or (scale == 1 and splits != SMALL_SPLITS):
++            if next(actual, None) is not None or (scale == 1 and splits != SPLITS):
+                 raise ArithmeticError("The numerical word did not close at its final loan")
+ 
+ 
+-def source_ranks(tagged):
+-    targets = tuple(scale*p.rank for scale in SCALES for p in tagged.targets)
+-    slots = []
+-    for scale in SCALES:
+-        splits = 0
+-        for port in tagged.paid:
+-            if scale == 1 and port.rank == 1 and splits < SMALL_SPLITS:
+-                slots.extend((F(1, 2), F(1, 2)))
+-                splits += 1
+-            else:
+-                slots.append(scale * port.rank)
+-        if scale == 1 and splits != SMALL_SPLITS:
+-            raise ArithmeticError("The base copy has too few rank-one requests")
+-    return targets, tuple(slots)
+-
+-
+ class Positive(RetainedPositive):
+-    def __init__(self, rank_log, denominator=10**14):
+-        atlas = artifacts(
+-            source / "research/grade14-native-realization", HERE / "inputs"
+-        )
+-        native = clock_word(atlas)
++    def __init__(self, rank_log, denominator):
++        atlas, native, _, _, _ = numerical_source()
+         super().__init__(native, atlas, 1 << rank_log, denominator)
+-
+-        targets, paid = source_ranks(native)
+-        margin, cells = certify(GAUSSIAN_C, (Counter(targets), Counter(paid)))
+-        if cells is None or margin <= 0:
+-            raise ArithmeticError("The Gaussian word has insufficient column capacity")
+-        self.recipe = Recipe(rank_log, max(SCALES)*native.ambient, targets, paid, cells, GAUSSIAN_C)
++        self.recipe = numerical_recipe(rank_log)
+ 
+     @property
+     def owners(self):
+--- a/strong_binary.py
++++ b/strong_binary.py
+@@ -15,7 +15,7 @@
+ from tagged_sources import BIT_CALLER, BIT_PIN, binary_ports, packed, pinned
+ 
+ 
+-SOURCE_SHA256 = "74e93daf2b7acf794ffb51f92f03f51556f68126d41ee13a8969bddb4cbe6326"
++SOURCE_SHA256 = "9e7392c52bcf29c0cc58c54c619f95c28f476394c33e8e0a5aa30c9557d31362"
+ 
+ 
+ @cache
+--- a/transport.py
++++ b/transport.py
+@@ -102,6 +102,7 @@
+         self.source_width = 0
+         t = F(t)
+         measure = Measure(t, volume, max(256, 64 * n.bit_length()))
++        targets, paid = self.targets, self.paid
+         ids = defaultdict(list)
+         for i, k in enumerate(targets):
+             ids[k].append(i)
+--- a/unpowered_price.py
++++ b/unpowered_price.py
+@@ -11,13 +11,9 @@
+ 
+ 
+ def ranks():
+-    graph, layout = load_changed(HERE / "inputs")
+-    raw = word(graph, layout)
+-    target = Counter(scale*p.rank for scale in (1, 8) for p in raw.targets)
+-    paid = Counter(scale*p.rank for scale in (1, 8) for p in raw.paid)
+-    paid[1] -= 1008
+-    paid[F(1, 2)] = 2016
+-    return target, paid
++    from grades import numerical_source
++    _, _, targets, paid, _ = numerical_source()
++    return targets.histogram, paid.histogram
+ 
+ 
+ def intervals(r, t):
