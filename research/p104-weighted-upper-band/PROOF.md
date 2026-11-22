@@ -1,0 +1,19 @@
+# Paid upper-fence change and complete signed bound
+
+The construction uses the exact #8057 signed source `cbe847a953b971f9c6c5a0a6661e2008acd29086` and compares to #8063 `682fd9512ccbf3035089d7e5f9cb4dedf9f746b4`. It retains the five premises for arbitrary all-column native action, owned erasure and restoration, chronological compilation, tape and precision, and analytic recovery. The physical widths (1,2), real (5,451) weights, cutoff L=1874, raw trial c=17145637307/2^42 and all 51 grade and 88 type shares remain in force. The upper fence is an actual input to the signed weighted calendar.
+
+For M=2^H, set D=1724·306/2=263772 and U=2 floor(M/(2D)). The typed constructor uses this U at both numerical heights. The old cutoff fixture still checks all eight positive lower-edge grants, both legal width residues, all paired type routes and the payment of leaves. At every contributing band e≥L, physical widths are e−8 and 2(e−8). Both preserve phase descriptors and the second stays divisible by four. A child lies in d≤4(e+2)/5<5e/6, so it returns before its providing parent's next paid cut. The same 2^19 delay radix and fewer than 2^19 paid cuts per physical word preserve the M^77 stop lifetime and 4H+1 depth estimate.
+
+The mandatory external root uses the 112→258 cell, with share 1/624 per exact recipient. The real band e=2 floor(3U/8) stays strictly between L and U. The directed weighted parent mass exceeds four and the outward rounding error is below 1/4. It gives a positive real integer grant. For s'=258(e−8), the two integer cuts give 3·258M/(4D)−3096<s'≤3·258M/(4D). Thus 1360s'<M<1364s' and 5(1364s'−M)/4>2·1364 at H≥1024. The actual period q=4 ceil(M/(4s')) is 1364. The first three tickets are floor(jq/5) for j=0,1,2, giving 0, 272 and 545. The authentic raw alignment moves slot 1 to slot 272. It keeps the original field owner, cyclic phase rule and caller interface.
+
+The widened bands retain 4·258(U−8)<M and 516(U+2)<M. All integral endpoints are positive and below M and use the same 42-root grid. The complete active birth count is at most 456V/(tL^t)+2U<2V for t=1−c and V=M^6. The count of potential bins remains below M, so the owner arrays, suspended tape, fixed-alphabet addresses, 2^46 M² rounding loss and 2^20 V/M^4 end loss stay inside the existing joint resource bounds. The cost of the same real widths, all paid suffix leaves, arbitrary live owners and recovery remains charged.
+
+Using the exact directed lower integral Ψ and fringe 10ΣkN_k/(tΨ), the charged finite factor is
+
+```text
+(1+δ)(1+4·258/D)(D·L)^c(1+fringe/L+δ)/(1−δ)^4
+```
+
+Here δ=2^-128 pays the charged residuals, complete-group and period rounding, and both fences. The true upper edge is at least (1−δ)M/D. The complete finite bound is below 1.089646674306, over 0.000007887415 below 2^(64944/524288). On the old fence the independently directed lower factor is more than 0.000051649827 above that cap. This negative control bounds Ψ upward to charge a downward fringe and covers the same finite accounting formula.
+
+At κ=.00389821053, the terminal ordinary heights are (8192,129414,524395) and numerical height 483871. Above κ+5·10^-18 the ordinary margin is 47244969662065588987119903/14076621094912000000000000000000000000 and the Gaussian margin is 69117358380085482489/1623601656627200000000000000000. Both profiles pass 54 strict and four functional inequalities. The candidate exceeds the old fixed Gaussian ceiling by 174082641619914517511/1623601656627200000000000000000. The terminal cuts are 8290, 137768 and 662227. First terminal header is 2^1146346+2, all-size stock is 6.2pT<297.6n bits, and terminal log₂ B≤211840448. With a 514-bit entry conversion and selector, after fixed installation the all-size recurring coefficient has log₂ C≤318293671. The same seven recipe classes and serial compiler reservation keep the native fixed setup below 2^228 transitions.
