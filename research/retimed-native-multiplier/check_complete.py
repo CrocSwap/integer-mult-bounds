@@ -48,6 +48,50 @@ def tariff(c, census, ambient):
             "directed_margin":str(margin), "factor_upper_times_1000000":-(-10**6*factor.numerator//factor.denominator)}
 
 
+def first_external_swap(census):
+    """Read the real root and the first placement tickets at each production Gaussian rank."""
+    from itertools import islice
+    from periodic import Job
+    from raw48 import ComplexRaw
+    from strong_complex import load_changed, word
+    from transport import axes, ceil
+
+    native = word(*load_changed(HERE/"inputs"))
+    roots = [p for p in native.targets if p.rank == 129 and p.tag[:2] == ("root", "rotated")]
+    assert len(roots) == 384
+    targets, _ = census
+    assert targets[1032] == 624
+    placements = {}
+    for h in sorted({profile.complex_log for profile in PROFILES.values()}):
+        rank = 1 << h
+        upper = 2*(rank//(2048*1224))
+        band = 2*((3*upper)//8)
+        left, right = Q(band*1032,448), Q((band+2)*1032,448)
+        assert upper < left < right < rank and band > 32768
+        # Throughout this interval x^(-1-t) >= 1/rank^2. The 1/624 share remains positive after flooring.
+        assert rank**6 * (right-left)/(624*rank**2) > 4
+        size = 1032*(band-8)
+        period = 4*ceil(Q(rank,4*size))
+        assert period >= 1024 and rank**2//period > 0
+        tickets = tuple(islice(axes(rank,size,period,0),3))
+        assert tickets[0] == 0 and tickets[1] > 1
+        # The true rotated root starts with coordinate zero repeated over the columns.
+        # Its first three canonical slots equal these three slots at every tested rank.
+        canonical = ComplexRaw.axis_list(3,(0,))
+        swaps = []
+        class TapeProbe:
+            def swap(self, left, right, width, exchange):
+                swaps.append((left,right,width))
+        class Columns:
+            window = 1
+            swap = None
+        body = ComplexRaw(None, {}, Columns(), low=0, bundle=1, slots=rank)
+        route = body.align(TapeProbe(),Job(0,tickets),canonical)
+        assert route and swaps[0] == (1,tickets[1],1)
+        placements[str(h)] = {"period":period,"first_tickets":list(tickets)}
+    return {"root_tag":list(roots[0].tag),"per_target_probability":"1/624","placements":placements}
+
+
 def ceiling_log(q):
     answer = max(0, q.numerator.bit_length() - q.denominator.bit_length())
     return answer if 2**answer >= q else answer+1
@@ -120,14 +164,16 @@ def all_results():
         lo,hi = intervals(grade,1-BINARY_C)
         assert Q(lo,UNIT) <= b and a <= Q(hi,UNIT)
     binary = tariff(BINARY_C,census,134)
-    positive = tariff(GAUSSIAN_C,ranks(),1224)
+    positive_census = ranks()
+    positive = tariff(GAUSSIAN_C,positive_census,1224)
+    first_move = first_external_swap(positive_census)
     assert (binary["cells"],positive["cells"]) == (24,54)
     early = financial_checks()
     regime = exact_shape_check(HERE)
     rows = {name: profile_row(profile) for name,profile in PROFILES.items()}
     from equal_rate import comparisons
     return {"baseline":baseline(),"equal_rate":comparisons(),"binary":binary,"positive":positive,"profiles":rows,
-            "prefix":early,"first_controller_shape":regime}
+            "prefix":early,"first_controller_shape":regime,"first_numerical_placement":first_move}
 
 
 def verify():
