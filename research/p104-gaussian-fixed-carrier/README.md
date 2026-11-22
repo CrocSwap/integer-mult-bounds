@@ -12,6 +12,7 @@ Use CPython 3.12 and Git from a clean checkout with the recorded base history.
 
 ```sh
 python3.12 -IB scripts/research_package.py --package research/p104-gaussian-fixed-carrier
+python3.12 -IB scripts/research_package.py --package research/p104-gaussian-fixed-carrier-installation
 ```
 
 Every replay mode authenticates and materializes the complete 48-file peer package from `peer8052.tar.gz`. [PEER-SOURCE.json](PEER-SOURCE.json) records its origin and file hashes by path. The predecessor notice and license are preserved in the archive. [RESULT.json](RESULT.json) records the exact recalculated prices and resource bounds. The selected record is outside this package.
