@@ -10,6 +10,7 @@ Use CPython 3.12 and Git on PATH.
 
 ```sh
 python3.12 -IB scripts/research_package.py --package research/p104-compact-rounded-partitions
+python3.12 -IB scripts/research_package.py --package research/p104-compact-rounded-partitions-numerical-replay
 ```
 
 The package authenticates the exact #8055 source archive by path and executes six modes on the restored literal variant. The five inherited conditions are all-column native action, ownership/restoration, compilation, tape and precision, and analytic recovery. The finite signed replays verify the actual changed adapter and don't execute a production-size input.
