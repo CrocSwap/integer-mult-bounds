@@ -1,0 +1,3 @@
+# Attribution
+
+Clear1nsight supplied #8078's expanded signed profiles and exact height and clock proof. Ali Romman supplied #8057's weighted producer and caller, #8055's native setup, and #8042's supplier proofs. SYLforge supplied #8052's K7 circuit and physical replay. #8064, #8070 and #8072 supply the widened upper fence, earlier debit and signed allocation source. This contribution proves a tighter factor for the literal Gaussian period and installs one newly funded profile. OpenAI Codex materially assisted proof, implementation, reproduction and packaging. [Full credit](PROOF.md#predecessor-credit) · [License](LICENSE)
