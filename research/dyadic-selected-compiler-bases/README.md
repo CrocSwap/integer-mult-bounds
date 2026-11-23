@@ -98,3 +98,30 @@ Prepared for Jerry Chen / @CubeJerry with substantial OpenAI assistance.
 Source attribution and the retained notices are in [NOTICE.md](NOTICE.md).
 This is local model-assisted research and checking, not external human
 acceptance or formal proof-kernel verification.
+
+## Explicit finite dyadic routing supplement
+
+[routing/PROOF.md](routing/PROOF.md) and its separate
+[review](routing/review/CROSS-REVIEW.md) now give fixed, prime-independent words
+for all513 unique nested differences in the selected source catalogue, including
+135 projectors that are not raw frames. Each route and its inverse works for
+every odd prime and positive width by exact dyadic identities. The full64-field
+directed invoice is at most472 completed ordinary swaps,496 ordered shifts
+including all64 carries, and64 fixed scales (at most128 signed-dyadic scale
+atoms). Each direction receives its own complete charge.
+
+The representative carry is an exact localized rational; it must not be rounded
+to an integer or divided by q inside the modular ring. The independent checker
+verifies6156 complete low/high cases and2052 exact carry identities, with normal
+and optimized parity. The explicit unimodular matrix `[[7,2],[17,5]]` defeats the
+short pivot heuristic outside this finite catalogue, so these counts and that
+search are not claimed for general generated matrices.
+
+The routing proof credits #7840's general GL/carry construction, #6950's paid
+ordinary-swap interface and #5052's signed-scaling machine. It supplies exact
+factor descriptors and a primitive-interface bill. Full route installation,
+low selection, carry preparation, ordinary/shift transition costs, source
+ownership and the outer analytic obligations remain separate. The older
+AUTHOR-RECEIPT pending-review label is historical; the attached separate review
+accepts its frozen proof. `PUBLICATION-PROVENANCE.json` links the formerly local
+seed locators to their byte-identical published parent objects.
