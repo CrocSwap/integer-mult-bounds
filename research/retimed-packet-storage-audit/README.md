@@ -179,14 +179,17 @@ formal propositions.
 
 ## Open next questions
 
-The Gaussian simultaneous-owner census and its local numerical mass premise
-are now proved for the exact source under their stated valid-call contracts.
-The new direct scalar/root/rectangle envelopes supplement the earlier three
-local byte routes. The complete ordinary local/ancestor composition is now
-supplied below, conditional on binary owner capacity. The remaining binary
-raw-context census, outer CRT/control allocations and full fixed-tape tariff
-remain open. Their concrete first steps are recorded in TASK.json. The
-original proofs and reviews are retained as historical checkpoints.
+The Gaussian and binary owner censuses and their local production capacity
+premises are now proved for the exact source under the stated successful-call
+and custody contracts. The binary capacity bound supplies the former local
+antecedent of the complete ordinary local/ancestor composition below. The
+direct scalar/root/rectangle envelopes supplement the earlier local byte routes.
+Header and private-control encoding, outer CRT/control allocations, the full
+fixed-tape tariff and application of the retained outer recovery framework
+remain open. Their concrete first steps are recorded in TASK.json. The original
+proofs and reviews remain as historical checkpoints; in particular, the frozen
+binary-census README's handoff predates the completed storage application and
+independent application review linked below.
 
 The standalone source export is self-contained and hash authenticated.
 SOURCES.json pins catalogue/selected-record provenance; SOURCE-BINDINGS.json
@@ -206,8 +209,9 @@ mixed native/cold history, the six separate public binary roles add at most
 `3X_max`, giving `H_history<74352X_max` from an empty reservation. Initial
 historical capacities receive their per-role maximum grant.
 
-The binary capacity premise `capacity<=2B` remains explicit; the Gaussian
-owner census does not prove it. These are ordinary data-file coefficients,
+The frozen joined theorem records binary capacity `capacity<=2B` separately.
+The binary census and production corollary below now derive that antecedent;
+the Gaussian census remains a distinct result. These are ordinary data-file coefficients,
 excluding borrowed caller backing, headers, private control, delimiters,
 movement, outer Gaussian/CRT allocation and analytic recovery. The old
 composition/local READMEs preserve their pre-join handoffs; this section and
@@ -226,8 +230,18 @@ python3 -B research/retimed-packet-storage-audit/verify_ordinary.py \
   --output /tmp/retimed-ordinary-data-byte-join
 ```
 
-The registered fourth command executes both author and independent methods
+The standalone ordinary replay executes both author and independent methods
 with normal/optimized parity, preserving all frozen receipts in place.
 `check_joined.py` separately binds both component proofs, authenticates
 all 23 retained source files and checks the exact rational coefficient.
-Expected final marker: `PASS_COMPLETE_ORDINARY_DATA_BYTE_JOIN`.
+Its final marker is `PASS_COMPLETE_ORDINARY_DATA_BYTE_JOIN`.
+
+## Binary capacity closes the ordinary numerical antecedent
+
+The [binary census](binary-census/PROOF.md) proves capacity <= B + 22339*sum_e count[e]*(104904*delay[e]+1), including opening and closing lifetimes. The [production corollary](binary-census/COROLLARY.md) combines that census with the accepted mass enclosure and literal delay loop to derive capacity<2B. Separate reviewers accepted both components.
+
+The fixed source has 18,906 targets and 104,904 paid labels. Paid-cut-only accounting sees 2,803 private owners and misses the actual 3,433 peak during closing cleanup. The inclusive count charges the larger peak. Logical bank capacity is distinct from warm physical backing.
+
+[STORAGE-APPLICATION.md](binary-census/STORAGE-APPLICATION.md) and its [separate application review](binary-application-review/APPLICATION-REVIEW.md) instantiate the unchanged ordinary data-file theorem: H_native<74349X and H_history<74352X_max, retaining initial per-role capacity. The numerical beta=2 antecedent is now derived. Legal caller, custody, erasure/return, fixed-role, header/control, fixed-tape and outer obligations remain explicit; no complete canonical assumption or selected kappa changes.
+
+The fourth registered command now runs verify_storage_completion.py, combining ordinary and binary author/reviewer checks within the existing 300-second allowance. All receipts go outside the package and every package file must remain unchanged. Its final marker is `PASS_RETIMED_COMPLETE_ORDINARY_AND_BINARY_STORAGE`. Earlier frozen conditional proofs and receipts are historical; the application and later root receipt record the derived antecedent.
