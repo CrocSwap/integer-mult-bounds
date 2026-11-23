@@ -120,7 +120,7 @@ Expected marker: `PASS_RETIMED_OWNER_AND_BYTE_SUPPLEMENTS`. This runs both
 author checkers and both separate review methods. The byte author driver runs
 in a temporary package copy, and every new receipt goes to the chosen output
 directory, preserving committed evidence. The original two replay engines
-are unchanged. The registered budgets are now 600, 420 and 180 seconds,
+are unchanged. The four registered budgets are 420, 300, 180 and 300 seconds,
 totaling at most 1,200 seconds. The supplements need no Lean installation
 and do not rerun the formal supplement.
 
@@ -171,8 +171,8 @@ formalized. The source inventory now also retains the unchanged predecessor
 `OuterStop.lean`, for 26 original source files; earlier 25-file receipts describe
 the original packet package before this addition.
 
-No new kappa, activation threshold, total storage constant or removal of a
-foundational physical premise is claimed. The package performs no remote
+No new kappa, activation threshold, global multiplier storage constant or
+removal of a foundational physical premise is claimed. The package performs no remote
 publication. Prepared for @CubeJerry with OpenAI assistance. Model cross-review
 is not independent human review; kernel acceptance is limited to the stated
 formal propositions.
@@ -182,8 +182,9 @@ formal propositions.
 The Gaussian simultaneous-owner census and its local numerical mass premise
 are now proved for the exact source under their stated valid-call contracts.
 The new direct scalar/root/rectangle envelopes supplement the earlier three
-local byte routes. The remaining ordinary role/ancestor-bank census, legal
-adapter nesting, outer CRT/control allocations and full fixed-tape tariff
+local byte routes. The complete ordinary local/ancestor composition is now
+supplied below, conditional on binary owner capacity. The remaining binary
+raw-context census, outer CRT/control allocations and full fixed-tape tariff
 remain open. Their concrete first steps are recorded in TASK.json. The
 original proofs and reviews are retained as historical checkpoints.
 
@@ -191,3 +192,42 @@ The standalone source export is self-contained and hash authenticated.
 SOURCES.json pins catalogue/selected-record provenance; SOURCE-BINDINGS.json
 binds the retained unmerged source bytes without relying on that foreign
 commit being available in a clean checkout.
+
+## Complete ordinary data-file coefficient
+
+[JOINED-STORAGE.md](JOINED-STORAGE.md) combines the separately reviewed
+[ancestor composition](composition/PROOF.md),
+[complete 67-position local table](ordinary-local/PROOF.md), and
+[warm-entry boundary](composition/ENTRY-HISTORY.md) at the same frozen #8042 source.
+The local coefficient is `A(B)<=17+54/B`; the named-head coefficient is
+`G(B,2)=6+123/(8(B-1))`. Exact substitution at the installed at-most-seven
+stages gives `H_native<8261T<74349X`. Across a fixed installation's full
+mixed native/cold history, the six separate public binary roles add at most
+`3X_max`, giving `H_history<74352X_max` from an empty reservation. Initial
+historical capacities receive their per-role maximum grant.
+
+The binary capacity premise `capacity<=2B` remains explicit; the Gaussian
+owner census does not prove it. These are ordinary data-file coefficients,
+excluding borrowed caller backing, headers, private control, delimiters,
+movement, outer Gaussian/CRT allocation and analytic recovery. The old
+composition/local READMEs preserve their pre-join handoffs; this section and
+the joined note record the completed substitution without changing frozen proofs.
+
+The [independent joined review](ordinary-local/review/JOINED-REVIEW.md) checks
+the exact substitution and history domain. The
+[independent local review](ordinary-local/review/REVIEW.md) uses its own
+interval interpreter and actual caller descriptors. The
+[composition root review](composition/ROOT-REVIEW.md) checks the actual
+named heads and same-stage/earlier-stage source boundaries. Model-assisted
+review does not imply human or kernel acceptance.
+
+```sh
+python3 -B research/retimed-packet-storage-audit/verify_ordinary.py \
+  --output /tmp/retimed-ordinary-data-byte-join
+```
+
+The registered fourth command executes both author and independent methods
+with normal/optimized parity, preserving all frozen receipts in place.
+`check_joined.py` separately binds both component proofs, authenticates
+all 23 retained source files and checks the exact rational coefficient.
+Expected final marker: `PASS_COMPLETE_ORDINARY_DATA_BYTE_JOIN`.
