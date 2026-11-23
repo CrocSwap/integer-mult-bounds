@@ -1,5 +1,21 @@
 # Selected native/compiler joint construction
 
+## Reviewed dyadic-basis supplement
+
+The separately reviewed [dyadic basis construction](../dyadic-selected-compiler-bases/README.md)
+completes the fixed-cover arithmetic follow-up. It carries complete image/kernel
+bases through the selected binary source and the literal finite compiler over
+`Z[1/2]`, so the fixed matchers work at every odd prime power without an extra
+forbidden-prime list. The actual completed carrier still needs
+`q > 2^45 N^5`. Its separate source-syntax review, exact quotient-lattice oracle,
+retained 237 nonzero owned erasures, and route-cost limitations are included.
+This supplement does not change the three retained contracts of the joint
+construction or the canonical selected certificate.
+
+Run its registered checker with
+`python3 -B scripts/research_package.py --package research/dyadic-selected-compiler-bases`.
+
+
 **Status: source-specific conditional theorem, accepted in the included separate
 model-assisted cross-review; canonical adoption and independent human review remain open.**
 The source-authenticated finite checks pass. They do not certify the universal

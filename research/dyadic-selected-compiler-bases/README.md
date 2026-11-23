@@ -1,0 +1,100 @@
+# Dyadic closure of the selected binary compiler
+
+**Result:** the selected binary #7000/#7001 raw data and #7828 single-grade
+compiler admit an alternate carried-basis implementation whose complete
+projectors, bases and whole-job matchers are defined over `Z[1/2]`. Every
+matcher remains invertible and every projector has its advertised split
+rank over `Z/q^w` for every odd prime q and every positive width w. The
+fixed cover prime still must satisfy the retained large-q inequality.
+
+This removes the need for an additional compiler-sized list of forbidden
+odd primes **for that implementation**. It does not identify its matrices
+with arbitrary predecessor choices, make a prescribed Gaussian pivot safe,
+or prove a single chosen nonzero minor stays nonzero at every odd prime.
+No new multiplication exponent or full assumption removal is claimed.
+
+## What supplies the missing implication
+
+For any idempotent P over a localization of the integers, clear denominators
+by s and compute integer column-lattice bases X,Y of sP and s(I-P). The
+complete basis `[X Y]` has determinant dividing s^n, because its lattice
+contains `s Z^n`. This normalizes the image and its entire kernel without
+introducing a new prime. Apply this to the exact raw nested differences,
+then carry the complete bases through the source's products, tensor products,
+direct sums, coordinate placements and complete image splits. The source's
+restricted-sector embedding has an explicit inverse over the same ring.
+
+[PROOF.md](PROOF.md) gives the universal argument and the exact source-syntax
+map. [localized.py](localized.py) implements the finite lattice construction.
+[check_localized.py](check_localized.py) reconstructs the pinned raw data
+independently of predecessor checkers and supplies failure-sensitive controls.
+[EVIDENCE.json](EVIDENCE.json) records the results. Exact origins and hashes
+are in [ORIGINS.json](ORIGINS.json).
+
+## Finite evidence
+
+The raw selected source at canonical `e54523517d0f03e58352e647c403a5af3e525a57`
+has 636 integral complete frame bases and 111 port bases. Every determinant
+has prime support contained in `{2}`. The check finds 513 distinct nested
+differences across the 2,380 distinct MOVE/helper endpoint pairs and builds
+complete dyadic bases for all of them. For 307 of those pairs the difference
+is not already one of the 636 raw frame projectors.
+
+Additional controls check both summands over 3,9,5,25,7,49; source-derived
+coordinate splits and equal-rank matchers; all 111 essential stage-route
+blocks; literal complete coordinate placement; a nonorthogonal restricted
+sector; and fixed-minor/fixed-pivot counterexamples. Finite enumeration does
+not prove the all-width result; the localization and syntax arguments do.
+
+## Reproduce
+
+From any working directory, run:
+
+```sh
+python3 -W error -I -B /path/to/package/check_localized.py
+python3 -W error -I -O -B /path/to/package/check_localized.py
+```
+
+Only the Python standard library is required. Each command authenticates
+the retained inputs and rewrites `EVIDENCE.json` deterministically. The
+enormous selected compiler word is not materialized, and no full selected
+cold replay is run. `VERIFY.json` registers both author runs and the separate reviewer in
+normal and optimized Python. [The completed review](review/CROSS-REVIEW.md)
+uses an independent finite-quotient method and records the literal source
+syntax audit, including the retained 237 nonzero owned erasures.
+
+## Predecessors and overlap
+
+The exact selected native interpretation is CubeJerry's #7840 at
+`adf2e0aa6777977a280ce50f8938f4a0f4f19b76`. The compiler is Ali Romman's #7828
+at `03b572b3b9ab72c6ba67762e85e1630cda1daad5`. The canonical finite-precompilation
+and delayed-cover bridge already provide rational whole-job matching and
+full-cover semantics; they conservatively exclude primes after generating
+the complete list. This contribution supplies the localized choice of that
+list and a complete rank certificate.
+
+Nick Petalas's #6201, at `7f150965d4836ae29bac98df8c25785428deddb1`, proves a
+different and essential restriction: an ordered lower/partial-permutation/
+lower route depends on northeast rank profiles, even for determinant-one
+matrices. Our conclusion uses #7840's full GL routing with paid ordinary
+swaps; it does not weaken that ordered-route criterion. The overlap search
+also examined #4989's finite prime check and #4010's separate dyadic chart
+scope. Bounded searches and read source boundaries are recorded in
+[OVERLAP.md](OVERLAP.md); they are not a novelty guarantee.
+
+## Open next questions
+
+1. **Instantiate a literal route descriptor with the new bases.** The
+   normalizers may differ from earlier choices. Generate a small actual
+   source paid job and price both adapter directions using the retained
+   q-unit-pivot full GL service. This would bind an implementation receipt;
+   it is not needed for the algebraic all-odd-prime existence result.
+2. **Keep the outer fine-prime obligation separate.** The result concerns
+   one fixed finite cover prime. It supplies no bound for the growing outer
+   fine-prime selection or an analytic-recovery theorem; those require their
+   own source-specific proof.
+
+Prepared for Jerry Chen / @CubeJerry with substantial OpenAI assistance.
+Source attribution and the retained notices are in [NOTICE.md](NOTICE.md).
+This is local model-assisted research and checking, not external human
+acceptance or formal proof-kernel verification.
