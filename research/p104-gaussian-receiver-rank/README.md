@@ -4,7 +4,9 @@ This is a finite certificate for the exact normalized Gaussian word used by
 [ToikY's #8072](https://github.com/CrocSwap/integer-mult-bounds/pull/8072),
 head `75f7e1c44f48c43983016bcf8878c4d9e5e87c62`. It concerns one pinned
 1,291-input, 5,674-transfer graph; it does not supply a replacement multiplier,
-an improved price, a new κ, or a global impossibility result.
+an improved price, a new κ, or a global impossibility result. The sender-space extension builds
+on the original [#8074 certificate at head
+`327e55157afb3a7a13e7ecb2b2cef20097d7feac`](https://github.com/CrocSwap/integer-mult-bounds/commit/327e55157afb3a7a13e7ecb2b2cef20097d7feac).
 
 | Checked statement | Result |
 | --- | ---: |
@@ -12,6 +14,8 @@ an improved price, a new κ, or a global impossibility result.
 | Sum of ranks of the fixed local demand matrices | 5,660 |
 | One-dimensional rational local demand nullspaces | 14 charts |
 | Chart 595: minimum arrivals from its two unchanged sender stocks, even with receiver recoding | 8 |
+| Deficient receivers where one port cannot be deleted under original sender-stock and per-sender port caps | 12 of 14 |
+| Of those, receivers also excluded with unrestricted reallocation among the original senders | 8 |
 | Directed depth-cut rank lower bound versus the graph's total transfer grade | 9,527 versus 9,639 |
 | Strictly cheaper nested alternate senders with nonempty original stock | 140,277 cases |
 | Screening survivors, all requiring an original descendant of the replaced transfer | 171 |
@@ -33,6 +37,18 @@ sender stocks, even if their values and the receiver basis are changed and all
 stock is available acausally. The existing eight arrivals attain this count.
 This sharper result does not cover new sender stocks, other routes or nonlinear
 communication.
+
+A separate sender-space calculation now covers 12 of the 14 deficient charts,
+including 11 charts beyond 595. For each it excludes deleting one arrival when
+each original sender's stock and per-sender port cap are fixed, even granting
+all stock acausally and allowing arbitrary linear transmitted values and
+receiver decoding. At eight of these charts the same bounds also exclude any
+reallocation of the remaining ports among the original senders. The other
+four exclusions require their original per-sender port caps. Charts 470 and 599
+remain inconclusive. New routes or stock and changed downstream demands remain
+outside the results. The separate exact chart-595 proof independently permits
+reallocation between its two unchanged senders. See the detailed
+[sender-space receipt](sender-space-result.json) and [proof](PROOF.md).
 The cut ranks lower-bound scalar communication under the specified fixed linear
 input/output and endpoint contract; the gap of 112 grade units is not a
 realizable saving. See [PROOF.md](PROOF.md), the full [RESULT.json](RESULT.json)
@@ -54,7 +70,18 @@ vector with `fractions.Fraction`, proves the finite-field arithmetic bounds,
 checks the chart-595 sender obstruction and all 171 modular coordinate
 witnesses, and exercises a signed-rational
 example over a second prime with an available sender, a forbidden descendant,
-and an acyclic later sender that requires rescheduling. It can additionally
+and an acyclic later sender that requires rescheduling. The second registered
+command recomputes the 12-chart sender-space bounds and the nonzero modular
+minor for every receiver–sender pair. Its deliberate corrupt-minor control must
+fail with a nonzero exit status:
+
+```sh
+python3.12 -I -B research/p104-gaussian-receiver-rank/sender_space.py
+python3.12 -I -B research/p104-gaussian-receiver-rank/sender_space.py --corrupt-minor
+```
+
+The first command must pass; the second zeroes a row of the actual chart-477,
+sender-288 minor and must reject it. The baseline verifier can additionally
 compare a previously installed, source-pinned runtime:
 
 ```sh
@@ -91,9 +118,9 @@ base is distinct from the #8072 graph source head.
 
 ## Open next questions
 
-- Can changed transported values and receiver-side decoding exploit one of the
-  14 rational null directions while preserving a legal chronological graph and
-  all owner returns?
+- Can charts 470 and 599 be resolved with stronger source-space bounds, or can
+  another sender allocation or changed stock exploit a null direction while
+  preserving a legal chronological graph and all owner returns?
 - Can any such executable redesign improve the complete, directed signed price
   after the actual 48-call supplier, physical costs and other obligations are
   included? No changed invoice is supplied here.

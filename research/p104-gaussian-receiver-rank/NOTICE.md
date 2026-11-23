@@ -12,8 +12,9 @@ contributors retained in the source archive and [PARENT-NOTICE](PARENT-NOTICE).
 The #8072 notice also credits SYLforge's ordinary circuit and physical replay.
 
 The finite receiver, demand-rank, cut, chronological-reroute and chart-595
-fixed-sender certificates were prepared for Clear1nsight with substantial
-OpenAI Codex assistance, including a separate Gaussian-word research worker. The
+fixed-sender and 12-chart sender-space certificates were prepared for
+Clear1nsight with substantial OpenAI Codex assistance, including a separate
+Gaussian-word research worker. The
 frozen word and accompanying work are distributed under the inherited
 [Apache License 2.0](LICENSE). This package does not represent independent
 scientific acceptance of either the source or the new certificate.

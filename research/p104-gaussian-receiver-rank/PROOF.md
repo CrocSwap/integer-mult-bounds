@@ -79,6 +79,86 @@ other sending charts, changed demands, uncharged timing and nonlinear encoding
 are outside this conclusion. The full witness is in the `chart_595` section of
 [RESULT.json](RESULT.json).
 
+## Sender-space extension across 12 receivers
+
+The following calculation generalizes the fixed-stock question to all 14
+receivers with a one-dimensional local demand nullspace. It covers 11 new
+receivers beyond the stronger chart-595 result above. The exact word, all local
+nulls and each full original chart stock are authenticated and replayed by the
+existing verifier. Every source stock and each new demand-plus-input basis is
+independent modulo 65,521, and therefore has the same dimension over Q.
+
+Fix one receiver with `m = d+1` original arrivals and rank-`d` fixed local
+demands. Let `L` be the span of its free original local inputs and let `H` be
+the rank-`d` demand space in arrival coordinates, built from the exact null
+vector as in the 595 construction. Set `W = H + L`. Because the original
+arrivals and local inputs are independent, `dim_Q(W) = d + dim(L)` and `W`
+equals the span of the fixed outgoing demands together with `L`.
+
+For an original sender `s`, let `S_s` be the span of **all** its original
+inputs and arrivals, even those occurring after the receiver's original
+operation. Project the modular `W` rows through elimination by the full modular
+basis of `S_s`; let the resulting rank be `q_s`. The map's kernel is precisely
+that modular sender stock. Since the modular and rational dimensions of both
+`W` and `S_s` agree, while the rational rank of their combined matrix is at
+least its modular rank,
+
+`dim_Q(W ∩ S_s) <= dim_Fp(W ∩ S_s) = dim(W) - q_s =: u_s`.
+
+Each quotient rank is checked by a nonzero square minor on recorded row and
+input-coordinate indices. The receipt records all 83 receiver–sender pairs,
+their stock sizes, original port counts, ranks, upper bounds and actual modular
+minor determinants. A modular rank drop on its own is not used as a rational
+upper bound; the individual full-rank conditions are essential.
+
+Let `c_s` be the number of original ports from sender `s` to the receiver.
+Delete one original port from some sender `r`, retaining at most `c_s` ports
+from every other sender and at most `c_r-1` from `r`. This leaves at most `d`
+messages. If those messages and the free inputs reproduce all fixed demands,
+their span contains `W` and has dimension at most `dim(L)+d = dim(W)`.
+Consequently the span equals `W`, so each transmitted value lies in `W`; a
+value sent by `s` also lies in `S_s`. The total possible message-space
+dimension is therefore at most
+
+`sum_s min(c_s - [s=r], u_s)`.
+
+The checker maximizes this upper bound over every original sender from which a
+port might be deleted. If the maximum is less than `d`, no such deletion can
+succeed even with arbitrary linear message values and receiver decoding and
+unlimited acausal access to all original sender stock. The 12-chart conclusion
+retains the original per-sender caps. If instead
+`sum_s u_s < d`, the same reasoning excludes **any** allocation of the at
+most `d` remaining ports among the original senders. This stronger inequality
+holds at eight of the 12 receivers, as shown below; the other four exclusions
+require their original per-sender caps. None of these results changes sender
+stock or demands, adds a route or free side channel, or permits nonlinear or
+input-dependent-timing communication. The existing `d+1`-port graph may use
+messages outside `W` that cancel in its decoding; this argument applies once a
+port is removed, leaving at most `d` messages.
+
+| Receiver | Demand rank `d` | Best upper bound with original port caps | Sum of sender upper bounds without port caps |
+| ---: | ---: | ---: | ---: |
+| 243 | 28 | 22 | 39 |
+| 394 | 5 | 4 | 7 |
+| 477 | 12 | 7 | 7 |
+| 517 | 13 | 8 | 8 |
+| 518 | 12 | 7 | 7 |
+| 529 | 7 | 6 | 7 |
+| 531 | 4 | 1 | 1 |
+| 541 | 7 | 6 | 7 |
+| 543 | 6 | 5 | 5 |
+| 591 | 5 | 1 | 1 |
+| 595 | 7 | 6 | 6 |
+| 1091 | 23 | 16 | 16 |
+
+At 470 the bound is 5 for rank 5, and at 599 it is 8 for rank 8; these two
+checks are inconclusive, not constructions or impossibility results. The
+separate exact 595 proof above independently permits arbitrary reallocation
+of the seven ports between its original two sender stocks. The extension
+includes a fresh negative control that zeroes a row of the actual 13-by-13
+quotient minor for receiver 477 and sender 288; the replay must reject it.
+These local port obstructions do not establish a physical or signed rate gain.
+
 ## Directed depth cuts
 
 Let `A` be the public input-to-final-output linear operator recomputed from the
