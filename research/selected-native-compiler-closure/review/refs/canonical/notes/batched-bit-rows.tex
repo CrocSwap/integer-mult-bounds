@@ -1,0 +1,123 @@
+\subsection{Integer widths, bounded row padding, and mixed contractions}
+\label{sec:mixed-width-rows}
+
+The batched residual construction uses a fixed finite list of child sizes,
+not only powers of one radix.  The following implementation supplies the
+corresponding integer-width recursion.  All constants in this subsection
+are fixed finite circuit constants, independent of the input length.
+
+\paragraph{A general moment condition.}
+Let $m,W\ge2$ be fixed.  At one circuit invocation, let the list
+$t_1,\ldots,t_J$ contain integers in $[1,m-1]$.  A child of type $i$ has
+width $t_i f$, where $f=\lfloor e/m\rfloor$, and operates on exactly
+$1/W$ of the parent's logical volume.  Repetitions in the list represent
+separate calls.  An ordinary rank-one call has $t_i=1$; a batched block
+has the corresponding larger value of $t_i$.  Full-rank edges may retain
+their original $m$ rank-one calls, so no same-width recursive call is
+needed.  Put
+\[
+ \Psi(x)=\frac1W\sum_{i=1}^J(t_i/m)^x,
+ \qquad t_* = \max_i t_i <m.
+\]
+If $\Psi(\tau)<1$ for some $0<\tau<1$, then the normalized recurrence
+\[
+ F(e)\le \frac1W\sum_{i=1}^J F(t_i\lfloor e/m\rfloor)+C,
+ \qquad F(e)=O(1)\quad(1\le e<m),
+\]
+has $F(e)=O(e^\tau)$ for every positive integer $e$.  Indeed, substituting
+$F(u)\le A u^\tau$ into an internal call gives at most
+$A\Psi(\tau)e^\tau+C$.  Choose $A$ to cover the finite base range and
+$C/(1-\Psi(\tau))$.  Floors can only decrease the right-hand side.
+
+\paragraph{A finite integer depth bound.}
+Define
+\[
+ D(e)=0\quad(e<m),\qquad
+ D(e)=1+D(t_*\lfloor e/m\rfloor)\quad(e\ge m).
+\]
+This is an integer algorithm: repeatedly replace $e$ by
+$t_*\lfloor e/m\rfloor$ until it is below $m$.  The function $D$ is
+nondecreasing, every child has depth bound at most $D(e)-1$, and
+$D(e)=O(\log(2e))$, because each internal replacement is at most
+$(t_*/m)e$.  A row count divisible by $W^{D(e)}$ is therefore sufficient
+for every root-to-leaf path.  At each invocation write the row index as
+$Wg+w$ and split by $w$.  Every child has complete within-row ranges,
+logical volume exactly $V/W$, and a remaining row count divisible by
+$W^{D(e)-1}$.  No padding occurs inside this recursion.
+
+\paragraph{Bit interchange with a remainder.}
+At an integer-width call write $e=mf+r$, $0\le r<m$.  If $f=0$, interchange
+the bounded number of digits individually.  Otherwise separate the high
+$r$ digits of each of the two target chunks.  With $G$ denoting all
+intervening spectators, the layout is
+\[
+ (H^+,H^-,G,D^+,D^-).
+\]
+First exchange corresponding digits of $H^+,D^+$ and move $H^+$ just
+before $H^-$.  The layout becomes
+$(D^+,H^+,H^-,G,D^-)$.  Apply the finite circuit to the two length-$mf$
+chunks $H^-,D^-$.  Finally move $H^+$ back immediately before the final
+$H^-$, obtaining
+\[
+ (D^+,D^-,G,H^+,H^-).
+\]
+All other fields are preserved.  These moves use fewer than a fixed
+multiple of $m$ single-digit operations and cost $O(V)$.  The main chunks
+split into $m$ equal width-$f$ fields, so every rational shear and every
+batched contiguous-block shear has exactly the required field shape.
+A child retains the unused main digits and all remainders as spectators.
+Thus the preceding moment recurrence applies literally at every integer
+width; there is no per-level numerical padding of either chunk range.
+
+\paragraph{Supplying the bit rows from existing digits.}
+For an arbitrary width $e$, compute $D(e)$ and choose the least nonnegative
+integer $\rho$ such that
+\[
+ q^{2\rho}\ge W^{D(e)}.
+\]
+Both numbers can be constructed by fixed-radix integer arithmetic.  Since
+$D(e)=O(\log e)$, we have $\rho=O(\log e)$.  For sufficiently large $e$,
+$2\rho<e$.  The exceptional set of smaller widths is fixed and finite;
+individual-digit interchange there is absorbed by the asymptotic constant.
+
+Exchange the high $\rho$ digits of the two chunks, then gather their two
+high parts into one row field before both remaining chunks, exactly as in
+the preceding layout operation.  This row field has range $q^{2\rho}$.
+Within each original prefix, pad its range to
+\[
+ R'=W^{D(e)}\left\lceil q^{2\rho}/W^{D(e)}\right\rceil
+       <2q^{2\rho}.
+\]
+Every added row includes the entire remaining address set.  Recurse once
+at the remaining width $e-\rho$, which has depth bound at most $D(e)$;
+then remove the added rows and undo the gathering move.  Each completed
+invocation preserves its row index, so padded zero rows are zero again
+when they are removed.
+
+The possibly large exponent in $W^{D(e)}=e^{O(1)}$ does not multiply the
+logical volume by that polynomial.  The row digits were already part of
+the two input chunks.  Only rounding the row count adds data, by a factor
+strictly below two, once at the outer boundary.  Exchanging and gathering
+$O(\log e)$ high digits costs $O(V\log(2e))$, which is
+$O(Ve^\tau)$.  The radix conversion from binary chunk ranges to the fixed
+radix $q$ retains the original constant factor, less than $q^2$.
+Consequently the batched construction is an arbitrary-width interchange
+procedure with the asserted exponent $\tau$ and no additional power of
+its volume or width.
+
+\paragraph{Fixed tapes and descriptors.}
+Use the original depth-first scheduler: park only the other role streams
+at the active stack top, run the child on one complete role stream, and
+restore the parked streams on return.  The number of child types is
+fixed, so parking, copying, cleanup and the finite arithmetic transforms
+contribute $O(V)$ per node.  Before descending, retain the two current
+chunks and merge consecutive spectator fields; the descriptor has a fixed
+number of field intervals.  Its integer lengths have $O(\log V_0)$ bits.
+All descendants retain the complete ranges of both root main chunks,
+even when most digits have become spectators.  Their volume is therefore
+at least $q^{2(e-\rho)}$ in the outer construction, while
+$j\log W=O(\log e)$ at depth $j$.  Hence
+$\log V_0=\log V_j+j\log W=O(\log(2V_j))$.
+Polynomial descriptor work is absorbed by $O(V_j)$, as in the original
+fixed-tape proof.  The larger fixed constant in the depth bound creates
+no new tape and no growing alphabet.
