@@ -51,3 +51,12 @@ finite checks discriminate source and order errors. No selected assumption,
 physical tariff, integer-recovery contract or kappa improvement is claimed.
 
 Prepared for Jerry Chen / @CubeJerry with substantial OpenAI assistance.
+
+## Immutable review receipts
+
+The separate reviewer's original evidence files retain the exact bytes named
+in review/RECEIPT.json. Registered reruns write their time-dependent evidence
+to temporary output paths, leaving those frozen records unchanged. A root
+normal/optimized replay of that output-path adjustment matched every scientific
+receipt field after removing only elapsed time. This is a transport and
+reproducibility correction, with no change to the reviewed theorem or checker.
