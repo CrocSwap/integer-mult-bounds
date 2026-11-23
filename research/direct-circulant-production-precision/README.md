@@ -299,3 +299,35 @@ task is to bind that existing kernel to the actual caller and charge
 simultaneous live words, coefficient preparation/delivery, cleanup and the
 complete instruction/tape cost. Our complete-gate restriction does not claim
 that the supplied-coefficient arithmetic kernel remains unconstructed.
+
+
+## Supplied dyadic arithmetic at the actual caller
+
+The separately accepted [grid-arithmetic supplement](grid-arithmetic/INTEGRATION.md)
+binds a new common-denominator specialization to the literal `Grid.multiply`
+calls. It preserves Nick Petalas's general rational-row kernel and its finite
+diagnostic guards. For signed B-bit supplied inputs and 1<=P<=B, the new
+shift/add schedule has arithmetic width W=2B+1 and simultaneous local data
+storage at most 4B+7W bits plus logarithmic controls. Under the accepted
+spectral-downset theorem, B=P+max(A,E)+3 covers the actual external table
+entries, suffix caches and represented data.
+
+This is a local arithmetic result with an explicit quadratic charge:
+O(J(d+1)T B^2) for at most J literal diagonal scans of T records. It does not
+claim the accelerated native tariff, coefficient preparation, global movement
+or ownership, private native-H storage, or reversible cleanup. The exact
+coefficient conversion still uses ties to even, while multiplication uses
+ties toward positive infinity; original Full gates are not substituted for
+the externally lowered chronology. The review records a concrete source
+counterexample to that substitution and an admissible constructor input that
+exceeds the predecessor's finite diagnostic guard.
+
+The independent reviewer checked 39,220 arithmetic cases, including 18,716
+ties and 8,628 zero-multiplier cases, plus 1,020 literal odometer calls and
+28 API bindings. Normal and optimized receipts agree. The extracted Grid
+fixture supplies an exact `operator.mul` helper; it does not execute or price
+the retained multiplication backend. The sides=(2,), digit_bits=5 example
+is an admissible explicit constructor geometry, without asserting that the
+uniform geometry selector chooses it. The eighth registered command preserves
+all prior checks and appends both modes of the new author and independent
+reviewer replays. The selected assumptions and kappa remain unchanged.
