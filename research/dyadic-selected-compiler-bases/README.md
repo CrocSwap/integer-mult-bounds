@@ -172,3 +172,7 @@ Registered checks now run in disposable identical copies, authenticate all
 preserved bytes, and compare fresh outputs with the frozen receipts. All
 eight prior scientific checks remain covered within the eight-command
 registry, alongside constructor and both new author/reviewer modes.
+
+## Carried words for the generated compiler grammar
+
+The separately registered [generated binary route ledger](../generated-binary-route-ledger/README.md) in this same PR extends q-independent words to the actual carried-basis grammar. It preserves original coupled adapters and supplies its own exact constructor counts and high-field invoices. Its words may be longer than the general fixed-prime construction above; each implementation retains its own bill. The adjacent registration preserves every frozen path in this package. Physical installation, carry preparation and outer recovery remain separate.
