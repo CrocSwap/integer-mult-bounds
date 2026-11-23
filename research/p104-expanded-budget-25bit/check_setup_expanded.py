@@ -4,6 +4,8 @@ The fixed native-constructor and serial budget are distinct from WASI tracing,
 recurring activation, and an execution of the astronomical terminal input.
 """
 from hashlib import sha256
+from dataclasses import replace
+from fractions import Fraction
 from pathlib import Path
 import json
 import sys
@@ -33,6 +35,34 @@ from tape_directory import dump
 from transport import Recipe
 
 entry, terminal = installations.ENTRY, installations.TERMINAL
+
+def scalar_values(profile):
+    return {
+        'kappa_numerator': profile.kappa.numerator,
+        'kappa_denominator': profile.kappa.denominator,
+        'eta_numerator': profile.eta.numerator,
+        'eta_denominator': profile.eta.denominator,
+        'positive_stop_denominator': profile.positive_stop_denominator,
+    }
+
+def bounded_scalars(profile):
+    values = scalar_values(profile)
+    return (all(type(x) is int and abs(x).bit_length() <= 128 for x in values.values())
+            and profile.positive_stop_denominator > 0)
+
+assert list(installations.PROFILES.values()) == [entry, terminal]
+assert all(bounded_scalars(profile) for profile in installations.PROFILES.values())
+scalar_bits = {name: {key: abs(value).bit_length() for key, value in scalar_values(profile).items()}
+               for name, profile in installations.PROFILES.items()}
+oversized = {
+    'kappa_numerator': replace(terminal, kappa=Fraction(1 << 128, 1)),
+    'kappa_denominator': replace(terminal, kappa=Fraction(1, 1 << 128)),
+    'eta_numerator': replace(terminal, eta=Fraction(1 << 128, 1)),
+    'eta_denominator': replace(terminal, eta=Fraction(1, 1 << 128)),
+    'positive_stop_denominator': replace(terminal, positive_stop_denominator=1 << 128),
+    'nonpositive_stop_denominator': replace(terminal, positive_stop_denominator=0),
+}
+assert all(not bounded_scalars(profile) for profile in oversized.values())
 heights = (*entry.rank_logs, entry.complex_log, *terminal.rank_logs, terminal.complex_log)
 assert heights == (3000, 3080, 1024, 8192, 38102, 604362, 18845936)
 assert len(heights) == 7 and all(1024 <= h < 2**25 for h in heights)
@@ -82,6 +112,8 @@ finally:
     Recipe.open, Recipe.width, WeightedRecipe.open, WeightedRecipe.width = saved
 print('PASS_EXPANDED_SETUP', json.dumps({
     'heights': heights, 'max_parameter_bits': max(heights).bit_length(),
+    'profile_scalar_encoding_bits': scalar_bits, 'scalar_guard_bits': 128,
+    'oversized_or_invalid_scalar_controls_rejected': sorted(oversized),
     'actual_terminal_carrier_bits': supplier.carrier.bit_length(),
     'directory_records': count, 'directory_bytes': census['bytes'],
     'largest_directory_integer_bits': census['largest_integer_bits'], 'directory_sha256': digest,
