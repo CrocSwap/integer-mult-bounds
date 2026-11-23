@@ -1,0 +1,30 @@
+name: Lean owner transport
+on:
+  push:
+    paths:
+      - 'research/lean-owner-transport/**'
+      - '.github/workflows/lean-owner-transport.yml'
+  pull_request:
+    paths:
+      - 'research/lean-owner-transport/**'
+      - '.github/workflows/lean-owner-transport.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  formalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: leanprover/lean-action@f061402b660e0c34644504b324e830f2991d4865
+        with:
+          lake-package-directory: research/lean-owner-transport
+          auto-config: 'false'
+          build: 'false'
+          test: 'false'
+          lint: 'false'
+          use-mathlib-cache: 'false'
+          use-github-cache: 'false'
+      - name: Fresh kernel checks, axiom audit and source controls
+        working-directory: research/lean-owner-transport
+        run: python3 -B verify.py --lean lean --build-dir .build-ci
