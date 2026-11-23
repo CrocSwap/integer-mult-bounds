@@ -38,3 +38,7 @@ The campaign previously examined 25,692 late exit-chart replacements on #7121 an
 ### Open next questions
 
 Could a connected set of three internal charts, a helper endpoint changed jointly with another chart, or a changed contact schedule produce a positive net margin? A candidate needs the full incident paid and productive tariff, followed by signed compilation and owner return. Equal-frame contractions also require a changed transfer schedule and removal or replacement of an original positive-grade MOVE. They form a distinct family outside these counts. [Task and accepted scope](TASK.json)
+
+### Joint changes in one common direction
+
+An additional exact maximum-closure calculation allows any subset of the 768 mutable charts to grow by a common line or to intersect a common hyperplane. At κ = 0.0039, the largest gain across the 1,022 directions and operation choices is zero, even when equal paid-only endpoints receive a free transfer. Every productive helper retains proper inclusion. The replay verifies both directed upper prices and exact midpoint flow certificates, with strict loss or complete histogram cancellation in every midpoint case. It also checks both objectives on literal binary subspaces in dimension three. Run `python3 -IB global_frames.py` beside the original verifier. [Joint price proof](GLOBAL-FRAMES.md) · [Machine-readable result](GLOBAL-FRAMES.json)
