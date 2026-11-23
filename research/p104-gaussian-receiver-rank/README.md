@@ -19,15 +19,17 @@ on the original [#8074 certificate at head
 | Directed depth-cut rank lower bound versus the graph's total transfer grade | 9,527 versus 9,639 |
 | Strictly cheaper nested alternate senders with nonempty original stock | 140,277 cases |
 | Screening survivors, all requiring an original descendant of the replaced transfer | 171 |
+| Original-sender two-receiver shared-packet incidences excluded with a cheaper relay | 58 of 58 |
 
-The final row rules out only a **single-link, same-value** reroute while the
+The single-link screen rules out only a **same-value** reroute while the
 other donor functions and their dependency graph remain fixed. We give each
 alternate sender its entire original stock, even values produced later in the
 original schedule. For the 171 survivors, the unique full-stock coordinates
 need a descendant of the transfer, which would create a cycle; simply reordering
 independent later work cannot fix that. Empty-stock charts cannot send the
 nonzero target by a linear combination. Changed transported values, receiver
-recoding, multiple edits and redesigned donor graphs remain open.
+recoding, multiple edits and redesigned donor graphs remain open outside the
+following limited broadcast screen.
 
 The 14 nullspaces concern **local downstream demand**, not dependence among
 the delivered values. Their existence does not construct 14 removable links.
@@ -49,6 +51,15 @@ remain inconclusive. New routes or stock and changed downstream demands remain
 outside the results. The separate exact chart-595 proof independently permits
 reallocation between its two unchanged senders. See the detailed
 [sender-space receipt](sender-space-result.json) and [proof](PROOF.md).
+A [two-receiver addendum](BROADCAST.md) allows an arbitrary changed packet
+from the original sender and arbitrary linear decoders at both receivers,
+with the other original stocks granted acausally. It tests all 11,819 actual
+`u: a -> b` read by `v: b -> d` incidences and every properly nested relay
+for the cases where the source and second receiver are different. Of 58
+incidences with a strictly lower raw-grade route, 47 have no nonzero
+common packet over Q and 11 can share only a multiple of `u`, which cannot
+decode the removed `v`. Eight cases where the sender is the second receiver
+also cannot introduce that missing information. This supplies no price or κ.
 The cut ranks lower-bound scalar communication under the specified fixed linear
 input/output and endpoint contract; the gap of 112 grade units is not a
 realizable saving. See [PROOF.md](PROOF.md), the full [RESULT.json](RESULT.json)
@@ -80,8 +91,19 @@ python3.12 -I -B research/p104-gaussian-receiver-rank/sender_space.py
 python3.12 -I -B research/p104-gaussian-receiver-rank/sender_space.py --corrupt-minor
 ```
 
-The first command must pass; the second zeroes a row of the actual chart-477,
-sender-288 minor and must reject it. The baseline verifier can additionally
+The first sender-space command must pass; the second zeroes a row of the actual
+chart-477, sender-288 minor and must reject it.
+
+The third registered command runs the shared-packet census, exact rational
+identities and positive/negative toy controls. Its separate mutation option
+changes one actual rational coordinate and must exit nonzero:
+
+```sh
+python3.12 -I -B research/p104-gaussian-receiver-rank/broadcast.py
+python3.12 -I -B research/p104-gaussian-receiver-rank/broadcast.py --corrupt-coordinate
+```
+
+The baseline verifier can additionally
 compare a previously installed, source-pinned runtime:
 
 ```sh
