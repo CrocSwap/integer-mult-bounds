@@ -215,3 +215,87 @@ already proved in [#5940](https://github.com/CrocSwap/integer-mult-bounds/pull/5
 The singular partial-write swap warning and rounded-event boundary were already
 identified in [#5240](https://github.com/CrocSwap/integer-mult-bounds/pull/5240);
 the new proof does not claim either precedent as a new result.
+
+## Nested-downset intervals and the smaller consumer selector
+
+The preceding `compiler-cuts/` subtree is preserved byte-for-byte from
+`e040fedfd8fcc51480d2468f3fa07562c8bacbf0`, including its accepted proof,
+review, receipts and attribution. The additions are separate:
+
+- [compiler-intervals/INTEGRATION.md](compiler-intervals/INTEGRATION.md)
+  introduces the relative-interval improvement. Its frozen proof also
+  contains an overlapping complete-gate derivation as source context;
+  that portion corroborates the preceding result and is not claimed again
+  as a new discovery.
+- [spectral-downset/README.md](spectral-downset/README.md) propagates the
+  accepted interval result and sharper actual root/child bounds through
+  the complete consumer precision calculation. Its supplementary API is
+  `spectral-downset/precision.py`; the original parent API remains intact.
+
+For two nested completed downsets, one common legal linearization cancels
+the shared normalized perturbation prefix. The interval and the inverse of
+the same stored operator therefore obey
+
+```
+norm <= B^2*H^2/(1-theta) < 2*B^2*H^2,  theta<=1/4,
+```
+
+improving the conservative `K_Full^2=4*L0^2*B^2*H^2` envelope. The argument
+includes interleaved siblings, matching subsets, simultaneous active atoms
+and zero-duration predecessors. It retains `lambda>=1` and `Q>=1`
+individually, all conditioning/rank/phase/atom-error contracts, and the
+complete-gate boundary. The separate interval review accepts the frozen
+proof SHA256 `e942012e66adc2d696cde3fedd6ae9c73df98e77a71b16e5004f5a74ccdfaa07`.
+
+The consumer uses Nick Petalas's credited #4852 block-solve theorem and the
+actual component envelope passed to each generator child, while preserving
+the source's allocation and admission code. It charges complete lowering,
+routing, padded spectral-to-infinity conversion, coefficient rounding,
+odometer lineage and the strict computed-state bootstrap. With the same
+`J` and `C` defined above, its sufficient precision is
+
+```
+P = 4p+277L+3011d+(L mod 2)+bit_length(C).
+```
+
+This saves exactly `1084L+1735d` bits against the original parent selector.
+For `p=72` and widths `(4,5)`, the sufficient budgets are 688,620 bits for
+the original source, 22,068 for the parent theorem and 8,842 for the new
+supplement. These are sufficient budgets, with no minimum-precision,
+measured runtime or physical-memory claim. At a fixed external precision,
+the allocation and resulting word are unchanged; choosing another external
+precision regenerates coefficients through the same source rules.
+
+The interval reviewer separately checks 149 primitive intervals, 475 nested
+downset pairs and 1,404 cut intervals. The selector reviewer checks 113
+selector cases and 254 symbolic / 762 complex rational cache records,
+including 507 zero-factor records. Their normal and optimized receipts
+agree. The frozen selector proof remains at SHA256
+`0501a6a9a5f467fff4c998606965babc8157e74d98cf33b93f71fb10674d57bb`;
+its pre-review filename is retained and its later separate review records
+acceptance.
+
+The original seven verification methods remain registered. Four existing
+compiler-cut commands now run through a path-only adapter in disposable
+byte-identical package copies, preserving the published elapsed-time
+receipts. One eighth command runs the added interval and selector methods,
+including both independent optimized modes, in the same way. Exact original
+commands and protected source identities are retained in `reconciliation/`.
+
+These additions do not claim the complete-gate theorem, #5940's conditioned
+matching interpolation, or #5240's rounded-event and partial-write controls
+as new work. All predecessor credit remains explicit. The useful remaining
+consumer task is the source-specific all-size private arithmetic, owned
+arena and tape-tariff interface. The selected five assumptions, coefficient
+service contracts, Fourier/CRT recovery geometry and kappa remain unchanged.
+
+The canonical [integer-rounded-gate package](../integer-rounded-gate/README.md)
+already supplies Nick Petalas's once-rounded arithmetic construction for
+supplied rational coefficients, with word-width bound `W=B+4C+2`. It uses
+shifts, additions and bounded binary multiplication/division while saving
+inputs before output writes. We cite its pinned README for prior-work
+orientation; its proof is not a new dependency or re-audited here. The open
+task is to bind that existing kernel to the actual caller and charge
+simultaneous live words, coefficient preparation/delivery, cleanup and the
+complete instruction/tape cost. Our complete-gate restriction does not claim
+that the supplied-coefficient arithmetic kernel remains unconstructed.
