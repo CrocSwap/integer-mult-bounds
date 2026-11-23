@@ -49,6 +49,48 @@ not after the current count of live slots.
 - [bytes/review/REVIEW.md](bytes/review/REVIEW.md): independent source proof,
   stream/permutation checks and the corrected distinction between the
   17-bit tag comparison and a symbolic 33-bit total-volume counterexample.
+- [repair-bounds/review/SHARP-REPAIR.md](repair-bounds/review/SHARP-REPAIR.md):
+  the sharper six-volume production repair bound across differing calls,
+  with explicit per-call versus role-wise historical controls.
+- [direct-scale/PROOF.md](direct-scale/PROOF.md) and its separate
+  [review](direct-scale/review/REVIEW.md): direct scalar, ordinary-root and
+  serial public-rectangle historical byte envelopes.
+- [mass-enclosure/PROOF.md](mass-enclosure/PROOF.md) and its separate
+  [review](mass-enclosure/review/CROSS-REVIEW.md): universal directed-rounding
+  error for the literal mass routine and authenticated production callers.
+- [mass-enclosure/OWNER-COROLLARY.md](mass-enclosure/OWNER-COROLLARY.md):
+  the production `<2B` owner consequence with its local mass premise derived.
+
+## Reviewed follow-ups
+
+The complete `census/` and `bytes/` subtrees landed at
+`5b9a3d018f74c835ef87db86ce824d8026257b6b` are retained byte-for-byte.
+The subsequent results live in separate folders. Their numerical and
+historical refinements supplement the earlier statements without silently
+rewriting their proofs or independent reviews.
+
+Production repair has a uniform historical bound `<=6V*`, including input
+and replacement, across arbitrary differing calls of volume at most `V*`.
+The literal correction key is injective before final validation. Each
+radix bucket holds at most half the complete group-label set, and the
+production header gives tag width `t<=a/2` relative to grouped payload
+width `a`. With merely `t<=a`, six volumes is only a per-call consequence:
+an actual all-bad/all-good pair reaches seven after role-wise maxima.
+
+The direct scalar's 22 fixed roles use at most `(27521/3420)V* <9V*`
+across arbitrary finite differing admitted calls. The author uses exact
+residue periods; a separate reviewer proves the same all-width table with
+a complete finite prefix and an analytic tail. Five named ordinary-root
+roles use `<7V*`, and the two serial public-rectangle roles use `<18V_slab`.
+The complete ternary service and stage-root fence remain explicit premises.
+
+For the actual installed mass calls, the universal error proof gives
+`Delta<2^24 N^-57<=2^-33<1/4`. Exact grade and constructor binding covers
+both Gaussian and binary installations. Combining its count-rounding
+corollary with the existing census proves the production `Arena.high<2B`
+without retaining that local numerical-enclosure assumption. Other valid-call,
+custody, funding, physical-storage and analytic contracts remain explicit;
+none of the five canonical foundational assumptions is removed in full.
 
 ## Reproduce
 
@@ -77,9 +119,26 @@ python3 -B research/retimed-packet-storage-audit/verify_supplements.py \
 Expected marker: `PASS_RETIMED_OWNER_AND_BYTE_SUPPLEMENTS`. This runs both
 author checkers and both separate review methods. The byte author driver runs
 in a temporary package copy, and every new receipt goes to the chosen output
-directory, preserving committed evidence. The two registered commands have
-600-second bounds, totaling at most 1,200 seconds. The supplements need no
-Lean installation and do not rerun the formal supplement.
+directory, preserving committed evidence. The original two replay engines
+are unchanged. The registered budgets are now 600, 420 and 180 seconds,
+totaling at most 1,200 seconds. The supplements need no Lean installation
+and do not rerun the formal supplement.
+
+Replay only the separately reviewed follow-ups in another fresh offline
+restoration:
+
+```sh
+python3 -IB research/retimed-packet-storage-audit/verify_followups.py \
+  --output /tmp/retimed-repair-direct-mass-followups
+```
+
+Expected marker: `PASS_RETIMED_REPAIR_DIRECT_AND_MASS_FOLLOWUPS`. It runs
+the independent sharp-repair checker, direct scalar author and reviewer,
+mass author, and a path-only adapter for both frozen mass reviewers. The
+adapter compiles the reviewers with `optimize=0` and requires the generated
+numerical and production-binding receipts to match the accepted receipts
+exactly. The mathematical induction and all-width arguments are separate
+from finite execution; no production-size calendar is run.
 
 `--quick` omits only the 2,834,352-record full-high oracle and is not the complete
 retained receipt. Detailed per-packet traces go to the selected result directory.
@@ -120,13 +179,13 @@ formal propositions.
 
 ## Open next questions
 
-The Gaussian simultaneous-owner census is now proved for the exact source
-under its stated valid-call contracts. Its production exponent consequence
-retains the universal mass enclosure. The local byte supplement covers three
-named routes; the remaining ordinary role/ancestor-bank census, legal adapter
-nesting, outer CRT/control allocations and full fixed-tape tariff remain open.
-Their concrete first steps are recorded in TASK.json. The original proof and
-review are retained as historical checkpoints, not silently rewritten.
+The Gaussian simultaneous-owner census and its local numerical mass premise
+are now proved for the exact source under their stated valid-call contracts.
+The new direct scalar/root/rectangle envelopes supplement the earlier three
+local byte routes. The remaining ordinary role/ancestor-bank census, legal
+adapter nesting, outer CRT/control allocations and full fixed-tape tariff
+remain open. Their concrete first steps are recorded in TASK.json. The
+original proofs and reviews are retained as historical checkpoints.
 
 The standalone source export is self-contained and hash authenticated.
 SOURCES.json pins catalogue/selected-record provenance; SOURCE-BINDINGS.json
