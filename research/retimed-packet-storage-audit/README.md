@@ -30,6 +30,9 @@ not after the current count of live slots.
   widths and a minimal rejected live-count-base mutation.
 - `verify_stopping.py`: exact capped comparator, bounded serial-bit lowering,
   child-premise checks and failure controls.
+- [formal/SOURCE-CORRESPONDENCE.md](formal/SOURCE-CORRESPONDENCE.md): a Lean
+  4.36 proof of the actual capped-power predicate and failed-caller relation,
+  with exact source correspondence and separate author/root kernel receipts.
 - `SOURCE-BINDINGS.json` and `sources/pr8042/`: exact pinned source bytes and
   the original hash-checking predecessor bootstrap. No network is needed.
 - `evidence/`: executed receipts, which corroborate the written argument.
@@ -63,10 +66,29 @@ The stopping appendix credits #8042's existing `OuterStop.lean`. It supplies
 caller binding and a serial lowering with operation counts, without treating
 Python big integers or wall-clock measurements as a tape-machine implementation.
 
+The consolidated formal supplement proves the universal Boolean predicate,
+including its low-bit branch and omitted final square. It uses only `import Lean`;
+no Mathlib is needed. With an installed Lean 4.36.0 binary, replay it
+independently of the Python-only registered packet runner:
+
+```sh
+python3 -B research/retimed-packet-storage-audit/formal/replay.py \
+  --lean /absolute/path/to/lean --output /tmp/retimed-capped-power-review
+```
+
+This wrapper restores the same pinned runtime offline, checks the reviewed
+proof hash, source AST and caller, and audits all fifteen kernel axiom reports.
+The only dependencies reported are standard `propext`, `Quot.sound` and
+`Classical.choice`. Python operational semantics and machine costs are not
+formalized. The source inventory now also retains the unchanged predecessor
+`OuterStop.lean`, for 26 original source files; earlier 25-file receipts describe
+the original packet package before this addition.
+
 No new kappa, activation threshold, total storage constant or removal of a
 foundational physical premise is claimed. The package performs no remote
-publication. Prepared for @CubeJerry with OpenAI assistance; model cross-review
-is not independent human or kernel acceptance.
+publication. Prepared for @CubeJerry with OpenAI assistance. Model cross-review
+is not independent human review; kernel acceptance is limited to the stated
+formal propositions.
 
 ## Open next questions
 
