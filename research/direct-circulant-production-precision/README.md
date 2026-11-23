@@ -181,3 +181,37 @@ SOURCES.json pins canonical provenance; ORIGINS.json authenticates the six
 executable fixtures. Review source citations, read hashes and receipts are
 retained under review/. No complete multiplier or private-tape proof is
 claimed by this publication.
+
+## Completed source-ordered complete-gate supplement
+
+[compiler-cuts/INTEGRATION.md](compiler-cuts/INTEGRATION.md) and its separate
+[review](compiler-cuts/review/CROSS-REVIEW.md) now establish a scoped fragment
+lemma for the exact retained Builder, Triangle, Program and Full factories.
+Their same sufficient four-way envelopes cover every cut after a subset of
+complete one- or two-wire gates in a matching. For the primitive word, the two
+cross-bank shears have the same direction and all bank-local gates are unitary;
+this controls every prefix, suffix and inverse without an additional generic
+matching-interpolation factor. The Full bound remains `2 L0 B H`, with
+`B = 256 N^3 (lambda Q)^12`, and an arbitrary interval is bounded by its square.
+Both `lambda >= 1` and `Q >= 1` are required individually, as in the source.
+
+This is an extension of a sufficient source envelope, not a no-loss theorem
+relative to the measured norms of neighboring full-layer cuts. It retains the
+all-size conditioning, rank, phase-service and atom-error contracts. Intermediate
+coordinate assignments, arithmetic temporaries, changed recursive atom services
+and physical tape costs remain outside the result. The original precision proof,
+selector and selected certificate are unchanged.
+
+The author checker and a separately written rational-realification/downset
+checker both passed normally and with Python assertions disabled. The independent
+review checked 760 primitive cuts, 3,040 four-way structural certificates,
+100 arbitrary primitive intervals and 46 separate LDU downsets. The source's
+individual conditioning lower bounds have an explicit failing control when
+improperly weakened to their product alone. Source notices, frozen proof bytes,
+receipts and the prior-work comparison are retained inside the supplement.
+
+This result builds on #4976 and credits the sharp conditioned interpolation
+already proved in [#5940](https://github.com/CrocSwap/integer-mult-bounds/pull/5940).
+The singular partial-write swap warning and rounded-event boundary were already
+identified in [#5240](https://github.com/CrocSwap/integer-mult-bounds/pull/5240);
+the new proof does not claim either precedent as a new result.
