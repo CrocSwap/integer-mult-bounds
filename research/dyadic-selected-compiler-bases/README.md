@@ -125,3 +125,50 @@ ownership and the outer analytic obligations remain separate. The older
 AUTHOR-RECEIPT pending-review label is historical; the attached separate review
 accepts its frozen proof. `PUBLICATION-PROVENANCE.json` links the formerly local
 seed locators to their byte-identical published parent objects.
+
+
+## General fixed-prime route descriptors
+
+The separately reviewed `route-descriptors/` supplement gives an explicit
+local-ring construction for every complete dyadic matcher `S` and every
+fixed odd prime `q`, valid at every power `q^w`. The selected pivot rows may
+depend on `q`; the resulting rational word does not depend on `w`. A common
+descriptor is retained at each coupled X/Y contact, and the inverse word
+uses the exact opposite chronology.
+
+This complements the preceding `routing/` catalogue. That directory retains
+its q-independent short-repair words for the exact 513 differences. The
+general construction does not assert that short repairs always succeed or
+that its q-dependent words replace the q-independent finite catalogue.
+Both scientific packages and their separate reviews remain intact.
+
+For an N-by-N matcher the general construction supplies at most `2N^3`
+ordinary interchanges, `N^3` ordered shifts including every carry field,
+and `N^2` rational-unit scaling records per directed full route. These are
+the inherited service-record categories, not bit-step counts. The proof
+also bounds factor coefficient heights in terms of the dyadic input and
+retains the complete low-selection, integer scaling, scanning, ownership
+and cleanup costs. The final bound `q > 2^45 N^5` still uses the completed
+carrier dimension. No outer fine-prime, storage or new-kappa claim follows.
+
+The retained analytic-recovery obligation is the exact transfer and caller
+application for the newly chosen template. Existing fine-prime supply and
+transfer results remain available; this supplement does not perform that
+caller-specific application. Earlier frozen references to remaining outer
+prime work should be read at this retained framework boundary.
+
+The descriptor catalogue has 629 matrices and 2,516 fixed-prime words:
+513 complete difference matchers, 111 essential stage routes and five
+boundary fixtures at q=3,5,7,11. Independent review checks 5,032 exact word
+products and 23,112 Bareiss pivot-minor identities without importing the
+constructor or author checker. Author and reviewer evidence passes in
+normal and optimized Python.
+
+`route-descriptors/INTEGRATION.md` records the exact accepted proof,
+source/publication provenance and the distinction from existing results.
+The author-stage files are frozen, including their historical pending-review
+status. `route-descriptors/review/REVIEW.md` records the later acceptance.
+Registered checks now run in disposable identical copies, authenticate all
+preserved bytes, and compare fresh outputs with the frozen receipts. All
+eight prior scientific checks remain covered within the eight-command
+registry, alongside constructor and both new author/reviewer modes.
