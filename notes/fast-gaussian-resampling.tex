@@ -1,5 +1,7 @@
 % Modified by icekylinx, 8 October 2026: shifted chirp error enclosure.
 % Original fast-Gaussian construction: eumemic; see NOTICE.
+% Final-grid allowance identified by GPT-6 Pro; independently confirmed
+% by Codex exact arithmetic. The correction below retains source attribution.
 \subsection{Faster Gaussian maps}
 \label{sec:fast-gaussian}
 
@@ -141,17 +143,30 @@ sequence into one integer with slots of $2P+\lceil\log_2(FL_A)\rceil+8$
 bits. A constant number of products by the established multiplier
 \cite[Theorem~1.1]{HarveyHoeven2021} then gives every rounded $c_b$
 exactly, because no slot overflows. Multiply by the approximate factor
-$2^{-\Gamma}e^{\pi\lambda\theta b^2}$, shift by $\Gamma$, and round to
-precision $p$.
+$2^{-\Gamma}e^{\pi\lambda\theta b^2}$ and shift by $\Gamma$.
+Retain this fine dyadic result, denoted $\widehat F_b$; postpone the final
+$p$-grid extraction until after the normalization or subtraction below.
 
 The rounded $g_a$ and $K_r$ have errors at most $2^{5-P}F$ and $2^{1-P}$,
 so the rounded correlation differs from $c_b$ by at most $2^{7-P}FL_A$,
 while $|c_b|\le FL_A$. After the shift, the final factor has absolute
-error at most $2^{\Gamma+1-P}$. Therefore the computed value differs from
-$F_b$ by at most $2^{\Gamma+9-P}FL_A$, which is at most $2^{-p-2}$ whenever
+error at most $2^{\Gamma+1-P}$. Therefore, before final $p$-grid
+extraction, $\widehat F_b$ differs from $F_b$ by at most
+$2^{\Gamma+9-P}FL_A$, which is at most $2^{-p-2}$ whenever
 \[
  P\ge p+\Gamma+\lceil\log_2(FL_A)\rceil+11.
 \]
+Write $h=2^{-p}$ and let $R_p$ truncate real and imaginary parts toward
+zero to multiples of $h$. Its complex error is less than $\sqrt2h$, so
+\[
+ |R_p(\widehat F_b)-F_b|
+ <2^{\Gamma+9-P}FL_A+\sqrt2h.
+\]
+The first term alone cannot bound a final grid output: for one input
+$f_0=\widetilde f_0=h/2$, all chirp factors one, $\Gamma=0$, $F=L_A=1$
+and $P=p+12$, it equals $h/8$, while every $p$-grid output is at distance
+at least $h/2$ from $F_0=h/2$. The fine dyadic products retained here
+still occupy $O(P+\log(FL_A))$ bits.
 The block uses $O(L_A+L_B)$ exponentials and products at precision $P$
 and integer products on $O((L_A+L_B)(P+\log(FL_A)))$ bits. When
 $P=O(p)$ and $\log(FL_A)=O(p)$, its cost is
@@ -170,9 +185,16 @@ of that lemma, so they differ from $(\mathsf S'u)_k$ by less than $2^{-p}$.
 Here $f_a=u_{j_0+a}$ is exact, $F=1$, and for $b<m$,
 $\pi\lambda\theta b^2\le\pi\theta(\sqrt p+1)^2\le(\pi/4)(1.21p)$ because
 $\theta\le1/4$ and $p>100$, so $\Gamma=\lceil1.4p\rceil$ suffices. Take
-$P=3p$, and apply the factor $(2\alpha)^{-1}$ by one more product at
-precision $P$. Each output then has error less than
-$2^{-p}(1+1/4+1)<3\cdot2^{-p}$, and its norm is less than
+$P=3p$. Since $L_A<4p$ and $\lceil\log_2(4p)\rceil\le p/4$ for
+$p\ge101$, this satisfies the preceding block precision requirement.
+Apply the exact rational factor $(2\alpha)^{-1}$ to $\widehat F_b$
+before final grid extraction, using integer division to truncate its
+real and imaginary parts at precision $P$. The error from this division
+is less than $\sqrt2\,2^{-P}$. As $\alpha\ge2$, the total normalized
+internal error is less than
+$h/16+\sqrt2\,2^{-3p}<h/4$.
+Only now apply $R_p$. Each output then has error less than
+$2^{-p}(1+1/4+\sqrt2)<3\cdot2^{-p}$, and its norm is less than
 $\|\mathsf S'\|+3\cdot2^{-p}<1$.
 
 \emph{The map $E$.} With $f_j=e^{\pi\alpha^2\beta_j^2}u_j$ and
@@ -212,10 +234,13 @@ $\lceil\log_2 L_A\rceil\le p-1$. Hence the block precision requirement is
 \]
 Thus $P=34p$ still suffices with the enlarged error enclosure.
 Select the outputs
-$b=q_\ell$ in order, subtract the exact $u_\ell$, and round. The block
-contains every term $0<|h|\le m$ of the truncated sum in that lemma, so
-the computed $(\widetilde Eu)_\ell$ differs from $(Eu)_\ell$ by less than
-$(3+1+1)2^{-p}<(p/3)2^{-p}$. Its norm is less than
+$b=q_\ell$ in order, subtract the exact $u_\ell$ from the retained fine
+dyadic result, and only then apply $R_p$. The subtraction is exact.
+The block contains every term $0<|h|\le m$ of the truncated sum in that
+lemma. Combining its $3\cdot2^{-p}$ tail allowance, the internal block
+error at most $2^{-p}/4$, and final grid extraction gives error less than
+$(3+1/4+\sqrt2)2^{-p}<5\cdot2^{-p}<(p/3)2^{-p}$.
+Its norm is less than
 $\|E\|+5\cdot2^{-p}<1$.
 
 \emph{Cost and tape movement.} The selected indices $q_\ell$, the numerators
