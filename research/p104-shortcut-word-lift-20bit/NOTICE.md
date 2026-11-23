@@ -1,0 +1,5 @@
+# Attribution
+
+Ali Romman supplied the #8042 matched-interval suffix derivation, #8057 weighted signed producer and caller, and the earlier #8055 serial setup proof. SYLforge supplied the #8052 K7 ordinary circuit and physical replay. #8066 contributes the prior ordinary price and #8067 the literal K7 floor and directed fringe calculation. #8070 supplies the Gaussian booking, #8071 the earlier K7 booking, and #8072 the exact fixed-booking allocation comparison. This package uses the K7-specific suffix bound in the complete charged envelope and allocates the resulting ordinary headroom.
+
+The archived source and notices retain their original license. The separate historical CI prerequisite reuses Jerry Chen's #7257 source navigation and snapshot repair. OpenAI Codex materially assisted arithmetic, implementation and independent verification. [Original suffix proof](https://github.com/aliromman/integer-mult-bounds/blob/dfd25d553a843a946ca0b94130a5ff8943e98fdd/research/retimed-native-multiplier/TRANSFER.md) · [Full predecessor credit](PROOF.md) · [License](LICENSE)
