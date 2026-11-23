@@ -1,0 +1,3 @@
+# Attribution
+
+Clear1nsight supplied #8081's 25-bit signed installation and charged setup, and #8078's expanded resource proof. Ali Romman supplied #8057's signed caller and weighted producer and #8055's native setup bound. SYLforge supplied the #8052 ordinary K7 word and replay. #8064, #8070 and #8072 supplied the preceding fence, Gaussian booking, and signed allocation. #8085 supplied the exact exterior-period proof. This contribution applies that directed factor to the charged 25-bit profile and checks the actual new installer. OpenAI Codex materially assisted proof, implementation and independent verification. [Predecessor credit](PROOF.md#predecessor-credit) · [License](LICENSE)
