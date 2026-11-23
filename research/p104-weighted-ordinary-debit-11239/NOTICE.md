@@ -1,0 +1,5 @@
+# Attribution
+
+Ali Romman supplied the exact #8057 frequency-weighted signed Gaussian producer, two native widths, signed multiplication caller and compiler. SYLforge supplied the K7 ordinary circuit and physical replay at #8052. Prior work at #8066 established the earlier ordinary debit, #8067 the literal K7 floor, #8068–#8069 the capped allocation, and #8070 the signed Gaussian debit and complete comparison. This package reuses those sources and changes the ordinary debit and one charged level of allocation. See the proof for exact attribution and predecessor links.
+
+The archive contains its original source notices and licenses. The separate historical CI prerequisite reuses Jerry Chen's #7257 guide and selected snapshot repair. OpenAI Codex materially assisted the directed calculation, literal implementation and independent replay. [Predecessor scientific source and notices](https://github.com/CrocSwap/integer-mult-bounds/tree/cbe847a953b971f9c6c5a0a6661e2008acd29086/research/frequency-weighted-native-multiplier) · [Proof and credits](PROOF.md) · [License](LICENSE)
