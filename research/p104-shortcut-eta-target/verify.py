@@ -72,6 +72,7 @@ def replay(mode):
                 expected="BILL.json",
             )
             run(HERE / "check_comparator.py", expected="COMPARATOR.json")
+            run(HERE / "check_negative_controls.py", "--inputs", tables, "--expected-result", HERE / "RESULT.json", "--output", root/"negative.json", scope="PASS_INDEPENDENT_BILL_NEGATIVE_CONTROLS")
             run(HERE / "check_prices.py", tree, expected="PRICES.json")
             run(HERE / "check_ordinary.py", runtime, peer, expected="ORDINARY.json")
             run(HERE / "check_floor.py", tree, expected="FLOOR.json")
