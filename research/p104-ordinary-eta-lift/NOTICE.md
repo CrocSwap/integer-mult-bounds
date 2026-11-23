@@ -1,0 +1,5 @@
+# Attribution and scope
+
+ToikY's [#8072](https://github.com/CrocSwap/integer-mult-bounds/pull/8072), pinned at `75f7e1c44f48c43983016bcf8878c4d9e5e87c62`, supplied the capped allocation, retune and the retained source files. ToikY's #8066–#8071 supplied the preceding ordinary booking, K7 floor, capped-allocation method, Gaussian debit and finer ordinary charge. Ali Romman supplied the pinned [#8057 source](https://github.com/CrocSwap/integer-mult-bounds/commit/cbe847a953b971f9c6c5a0a6661e2008acd29086) and #8055 native setup proof. SYLforge supplied the #8052 K7 word. The original notice, license and peer manifest are preserved in `original/`, and the archive retains its nested notices.
+
+The present package changes the ordinary height and clamp, supplies the 25-bit conditional fixed-installer extension, and checks the unchanged Gaussian as a negative control. It received substantial OpenAI Codex assistance in analysis, implementation and verification. Inherited credit does not imply that any predecessor author reviewed or endorses this extension.
