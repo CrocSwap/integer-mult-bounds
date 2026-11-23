@@ -1,0 +1,5 @@
+# Attribution
+
+Ali Romman supplied the signed #8057 frequency-weighted Gaussian producer, both native widths, signed caller and compiler, and the earlier #8055 setup proof. SYLforge supplied the #8052 K7 ordinary circuit and physical replay. The prior allocation proofs at #8068–#8069 supply the exact integer comparison method. #8070 supplies the Gaussian booking and #8071 the finer ordinary booking and the complete signed comparator. This package changes the terminal allocation at the simultaneously charged limits. The signed operator schedules and purpose-specific native implementation are inherited.
+
+The archive retains its exact Apache-2.0 sources and notices. The separate historical CI prerequisite reuses Jerry Chen's #7257 source navigation and historical snapshot repair. OpenAI Codex materially assisted the mathematical screen, literal retune and independent replay. [Predecessor scientific source](https://github.com/CrocSwap/integer-mult-bounds/tree/cbe847a953b971f9c6c5a0a6661e2008acd29086/research/frequency-weighted-native-multiplier) · [Proof and credits](PROOF.md) · [License](LICENSE)
