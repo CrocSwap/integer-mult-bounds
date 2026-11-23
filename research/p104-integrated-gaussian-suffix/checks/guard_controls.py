@@ -91,6 +91,19 @@ def main():
             pins = dict(peer_pins, archive_sha256=sha256(data).hexdigest())
             must_fail(lambda: verify.validate_peer(data, pins), message)
 
+        shutil.copyfile(ROOT / "source/addendum-members.json", case / "source/addendum-members.json")
+        shutil.copytree(ROOT / "source-view-8076", case / "source-view-8076")
+        addendum_original = ROOT / "source/six-column-8076-addendum.tar.gz"
+        addendum = case / "source/six-column-8076-addendum.tar.gz"
+        shutil.copyfile(addendum_original, addendum)
+        addendum.write_bytes(addendum.read_bytes() + b"corrupt")
+        must_fail(lambda: verify.unpack_addendum(tree / "bad-addendum-hash"), "addendum archive digest mismatch")
+        for kind, message in (("absolute", "noncanonical addendum path"),
+                              ("duplicate", "duplicate addendum member")):
+            altered_bundle(addendum_original, addendum, kind)
+            verify.ADDENDUM_SHA256 = sha256(addendum.read_bytes()).hexdigest()
+            must_fail(lambda: verify.unpack_addendum(tree / (kind + "-addendum")), message)
+
         one = tree / "selector"
         one.mkdir()
         must_fail(lambda: verify.run_scopes(fake_runner(one, "raw 0 0.1"), ("setup",)),

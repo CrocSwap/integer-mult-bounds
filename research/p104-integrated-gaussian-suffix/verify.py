@@ -26,6 +26,8 @@ if not __debug__ or sys.flags.optimize:
 HERE = Path(__file__).resolve().parent
 ARCHIVE_SHA256 = "1ffaf4eed67cfe2271820bc94d62721573ff715829c829c5d9936b561eacb270"
 MANIFEST_SHA256 = "ba961383f648a6d7dcbf9caaee4240d4b74486050a2d9d1bc0e100bd2bff6ca5"
+ADDENDUM_SHA256 = "bacfc6ec44616063eae1584e6af07a1dbbfaf7948df1745bc059aa4510c7c9a0"
+ADDENDUM_MANIFEST_SHA256 = "dfe65dbea792691d82e7c1265cae8e82f374e8c48f644c220643cbaaac978507"
 SCOPES = {
     "price": ("invoice", "independent_price", "placement"),
     "calendar": ("cutoff", "calendar", "ownership", "stages", "ordinary_floor", "corrupted_owner"),
@@ -35,6 +37,8 @@ SCOPES = {
     "product": ("product",),
     "setup": ("setup",),
 }
+ADDENDUM_SCOPES = ("source_invoice", "ordinary_tariff", "stage_caps", "invoice",
+                   "independent_price", "cutoff", "corrupted_owner")
 
 
 def require(ok, message):
@@ -147,6 +151,50 @@ def unpack(tree):
     return source
 
 
+def unpack_addendum(tree):
+    archive = HERE / "source/six-column-8076-addendum.tar.gz"
+    manifest_path = HERE / "source/addendum-members.json"
+    require(digest(archive.read_bytes()) == ADDENDUM_SHA256, "addendum archive digest mismatch")
+    require(digest(manifest_path.read_bytes()) == ADDENDUM_MANIFEST_SHA256,
+            "addendum member manifest digest mismatch")
+    pins = read_json(manifest_path)
+    require(isinstance(pins, dict) and len(pins) == 31, "unexpected addendum inventory")
+    seen = set()
+    with tarfile.open(archive, "r:gz") as bundle:
+        for member in bundle:
+            name = member.name
+            path = PurePosixPath(name)
+            require(bool(path.parts) and not path.is_absolute() and ".." not in path.parts
+                    and "\\" not in name and path.as_posix() == name
+                    and len(path.parts) >= 2 and path.parts[0] == "six-column-8076",
+                    "noncanonical addendum path: " + name)
+            require(name not in seen, "duplicate addendum member: " + name)
+            require(member.isfile() and name in pins, "unexpected addendum member: " + name)
+            entry = pins[name]
+            require(set(entry) == {"sha256", "size"} and type(entry["size"]) is int
+                    and 0 <= member.size <= 1_000_000 and member.size == entry["size"],
+                    "addendum member length mismatch: " + name)
+            stream = bundle.extractfile(member)
+            require(stream is not None, "missing addendum payload: " + name)
+            data = stream.read(member.size + 1)
+            require(len(data) == member.size and digest(data) == entry["sha256"],
+                    "addendum member digest mismatch: " + name)
+            relative = PurePosixPath(*path.parts[1:])
+            visible = HERE / "source-view-8076" / Path(*relative.parts)
+            require(visible.is_file() and not visible.is_symlink() and digest(visible.read_bytes()) == entry["sha256"],
+                    "addendum review copy differs: " + relative.as_posix())
+            destination = tree / Path(*path.parts)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
+            seen.add(name)
+    require(seen == set(pins), "addendum is missing whitelisted members")
+    visible = {p.relative_to(HERE / "source-view-8076").as_posix()
+               for p in (HERE / "source-view-8076").rglob("*") if p.is_file()}
+    wanted = {PurePosixPath(*PurePosixPath(n).parts[1:]).as_posix() for n in pins}
+    require(visible == wanted, "unexpected or missing addendum review copy")
+    return tree / "six-column-8076"
+
+
 def invoke(script, *args):
     result = subprocess.run([sys.executable, "-I", "-B", str(script), *map(str, args)],
                             capture_output=True, text=True)
@@ -248,33 +296,103 @@ def calendar_checks(combined):
                       keys=("mode", "predecessor_runtime", "result"))
 
 
+def run_addendum(tree):
+    source = unpack_addendum(tree)
+    comparison_path = tree / "cross-runtime.json"
+    comparison_output = invoke(HERE / "checks/compare_cold_runtimes.py", "--predecessor-archive",
+                               HERE / "source/six-column-8073-public.tar.gz", "--addendum-archive",
+                               HERE / "source/six-column-8076-addendum.tar.gz", "--output", comparison_path)
+    require(comparison_output.rstrip().endswith("PASS 105 of 106 runtime files; 84 of 88 peer files"),
+            "cross-source comparison did not pass")
+    comparison = read_json(comparison_path)
+    require(comparison == read_json(source / "physical-equivalence.json")
+            and comparison["runtime"]["identical_files"] == 105
+            and comparison["peer"]["identical_files"] == 84,
+            "cross-source comparison differs")
+    out = tree / "addendum-receipt"
+    output = invoke(source / "replay8076.py", "--predecessor-archive",
+                    HERE / "source/six-column-8073-public.tar.gz", "--output", out,
+                    "--scope", *ADDENDUM_SCOPES)
+    require(output.rstrip().endswith("PASS 7 scopes"), "addendum scope output differs")
+    receipt = read_json(out / "cold-result.json")
+    require(receipt.get("pass") is True
+            and receipt.get("source_head") == "d502eb21637717fe22fc16d4c4e3ede6ec59a106"
+            and receipt.get("verified_addendum_files") == 30
+            and receipt.get("pr8076_scientific_blobs") == 15
+            and receipt.get("pr8057_peer_files") == 88
+            and set(receipt.get("tested", {})) == set(ADDENDUM_SCOPES),
+            "addendum receipt does not match the requested scopes")
+    extras = {"source_invoice", "ordinary_tariff", "stage_caps"}
+    records = {}
+    for name in ADDENDUM_SCOPES:
+        record = receipt["tested"][name]
+        require(record.get("mode") == name and type(record.get("code")) is int and record["code"] == 0,
+                "addendum scope failed or mislabeled: " + name)
+        path = out / (name + ".out") if name in extras else out / "logs" / (name + ".out")
+        require(record.get("output_sha256") == digest(path.read_bytes()),
+                "addendum scope output digest mismatch: " + name)
+        for field in ("started_at", "finished_at"):
+            require(datetime.fromisoformat(record[field]).utcoffset() is not None,
+                    "addendum scope receipt has no timezone: " + name)
+        require(datetime.fromisoformat(record["started_at"]) <= datetime.fromisoformat(record["finished_at"]),
+                "addendum timestamps out of order: " + name)
+        records[name] = {key: record[key] for key in ("code", "started_at", "finished_at", "output_sha256")}
+    source_invoice = read_json(out / "source_invoice.out")
+    invoice = read_json(out / "logs/invoice.out")
+    require(source_invoice == read_json(source / "source8076/RESULT.json")
+            and invoice == read_json(source / "candidate-result.json"), "addendum invoice differs")
+    require(Fraction(invoice["terminal"]["kappa"]) == Fraction(".003898226579820971")
+            and Fraction(source_invoice["terminal"]["kappa"]) == Fraction(".003898223617430")
+            and Fraction(invoice["terminal"]["kappa"]) > Fraction(invoice["previous_exact_ceiling"])
+            and invoice["complete_log2_C"] == source_invoice["complete_log2_C"] == 318291900
+            and invoice["entry_price_surcharge"] == 516
+            and Fraction(invoice["ordinary_finite_debit"]) == Fraction(11178, 8192)
+            and Fraction(invoice["gaussian"]["raw_loss"]) == Fraction(125645, 1048576),
+            "addendum signed comparison differs")
+    return records
+
+
 def main():
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=tuple(SCOPES))
+    parser.add_argument("mode", choices=(*SCOPES, "addendum"))
     mode = parser.parse_args().mode
     started = datetime.now(timezone.utc).isoformat()
+    addendum_records = None
     with TemporaryDirectory(prefix="gaussian-suffix-") as tmp:
         tree = Path(tmp)
         source = unpack(tree)
-        combined = compose(source)
-        records = run_scopes(combined, SCOPES[mode])
-        if mode == "price":
-            price_checks(tree, source, combined)
-        elif mode == "calendar":
-            calendar_checks(combined)
-        elif mode == "setup":
-            require(invoke(HERE / "checks/guard_controls.py").strip() == "PASS_ARCHIVE_AND_RECEIPT_GUARDS",
-                    "archive and receipt controls did not pass")
+        if mode == "addendum":
+            records = run_addendum(tree)
+        else:
+            combined = compose(source)
+            records = run_scopes(combined, SCOPES[mode])
+            if mode == "price":
+                price_checks(tree, source, combined)
+                addendum_records = run_addendum(tree)
+            elif mode == "calendar":
+                calendar_checks(combined)
+            elif mode == "setup":
+                require(invoke(HERE / "checks/guard_controls.py").strip() == "PASS_ARCHIVE_AND_RECEIPT_GUARDS",
+                        "archive and receipt controls did not pass")
     result = {"mode": mode, "started_at": started, "finished_at": datetime.now(timezone.utc).isoformat(),
               "archive_sha256": ARCHIVE_SHA256, "verified_scopes": records}
     if mode == "price":
         result["additional_checks"] = ["independent_integral_prices", "one_to_seven_stage_caps",
                                        "minimum_integer_invoice", "eight_column_signed_invoice",
-                                       "actual_positive_grant"]
+                                       "actual_positive_grant", "8076_addendum_economics",
+                                       "fresh_cross_source_runtime_comparison"]
+        result["addendum_scopes"] = addendum_records
+        result["addendum_not_run_by_this_mode"] = ["placement", "calendar", "ownership", "exterior", "nested",
+                                                   "raw", "product", "stages", "ordinary_floor", "setup"]
     if mode == "calendar":
         result["additional_checks"] = ["literal_event_identity"]
     if mode == "setup":
         result["additional_checks"] = ["archive_and_receipt_guards"]
+    if mode == "addendum":
+        result["addendum_archive_sha256"] = ADDENDUM_SHA256
+        result["additional_checks"] = ["fresh_cross_source_runtime_comparison"]
+        result["not_run_by_this_mode"] = ["placement", "calendar", "ownership", "exterior", "nested",
+                                          "raw", "product", "stages", "ordinary_floor", "setup"]
     print(json.dumps(result, indent=2))
     print("PASS_INTEGRATED_GAUSSIAN_" + mode.upper())
 
