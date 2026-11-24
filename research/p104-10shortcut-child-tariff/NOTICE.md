@@ -6,4 +6,6 @@ Ali Romman supplied the [#8042 exact quotient receiver and two-moment clock](htt
 
 This package applies the exact child tariff to #8097’s construction under the same signed premises. It carries the old recursive clock budget and full ordinary reserve, and records the expanded ten-recipe setup charge. OpenAI Codex materially assisted source inspection, proof, implementation and verification. The #8097 submission discloses its own AI assistance.
 
+The installed-domain extension builds on [the preceding exact #8098 head](https://github.com/CrocSwap/integer-mult-bounds/commit/c7d4441c5e4406bff4a79576cf6b2ce0a596390a) and the [Round 438 fully directed comparison](https://github.com/ToikY/integer-mult-bounds/blob/ff72b51797253eb33db8f4e6a2db78cc8fee2a80/paired-768/r438/REPLAY.md). It uses the stronger installed domain of the same #8042 quotient function and replays the same signed callers.
+
 The retained archives and notices carry their original terms. [License](LICENSE)
