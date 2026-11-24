@@ -8,4 +8,6 @@ This package applies the exact child tariff to #8097’s construction under the 
 
 The installed-domain extension builds on [the preceding exact #8098 head](https://github.com/CrocSwap/integer-mult-bounds/commit/c7d4441c5e4406bff4a79576cf6b2ce0a596390a) and the [Round 438 fully directed comparison](https://github.com/ToikY/integer-mult-bounds/blob/ff72b51797253eb33db8f4e6a2db78cc8fee2a80/paired-768/r438/REPLAY.md). It uses the stronger installed domain of the same #8042 quotient function and replays the same signed callers.
 
+The charged-clock step reuses [#8076’s clock](https://github.com/CrocSwap/integer-mult-bounds/pull/8076) and [the original #8097 contraction](https://github.com/CrocSwap/integer-mult-bounds/commit/e1c251401fe254909ac7e7bf2c773b921a1b6b57) within the budget already paid by [the preceding exact #8098 head](https://github.com/CrocSwap/integer-mult-bounds/commit/517eac577bc12a1519eaf346a6816ad91bc9df90). [Round 441](https://github.com/ToikY/integer-mult-bounds/blob/603b8fce6c9024ba00b1d7cc7b3e8e69a6e49a8b/paired-768/r441/REPLAY.md) independently priced the combination.
+
 The retained archives and notices carry their original terms. [License](LICENSE)
