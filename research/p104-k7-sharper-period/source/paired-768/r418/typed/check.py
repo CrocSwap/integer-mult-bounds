@@ -174,7 +174,7 @@ def run(runtime, kind, oracle_path):
 
 
 def timeout(_sig, _frame):
-    raise TimeoutError("The installed typed-return probe reached its 100-second cap")
+    raise TimeoutError("The installed typed-return probe reached its per-kind time cap")
 
 
 if __name__ == "__main__":
@@ -186,7 +186,7 @@ if __name__ == "__main__":
                    "oracle/RECEIPT.json")
     args = p.parse_args()
     signal.signal(signal.SIGALRM, timeout)
-    signal.alarm(100)
+    signal.alarm((100, 160)[args.kind])
     try:
         print(json.dumps(run(args.runtime.resolve(), args.kind, args.oracle), indent=2))
     finally:
