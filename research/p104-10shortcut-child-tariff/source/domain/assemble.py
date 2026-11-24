@@ -1,4 +1,4 @@
-"""Apply the narrower quotient domain to the frozen #8098 source."""
+"""Apply the narrower quotient domain and paid contraction in one layer."""
 
 from argparse import ArgumentParser
 from hashlib import sha256
@@ -28,9 +28,12 @@ SCREEN = "cb0c087e9814d17af15fae513e739dc03b21a1c8978adc02f5ee541cdb2ae23c"
 PREIMAGE = "1c6978b8c7d136ef87191512d9ab9eb3dda8a818844244b96cb165d46d97b1df"
 OLD_IMAGE = "d34b860c4c35aeb302767216bf58dd9da627fe2b1b2b646fd70d6a544563648e"
 OLD_RATE = "0.003900862339776"
-NEW_RATE = "0.003900862349161"
+NEW_RATE = "0.003900862349168"
+PREVIOUS_RATE = "0.003900862349161"
+COMPARISON_HEAD = "517eac577bc12a1519eaf346a6816ad91bc9df90"
+CONTRACTION_SCREEN = "74791c2561cd37925d6b72c2b4e6696371583a34811ed0558827d240ac3f7029"
 SELECTOR = b'TERMINAL = Profile((8192, 63614, 1005821, 15903360, 251454111, 268435455), 52270, Q(".003900862339776"), Q(1, 256))'
-NEW_SELECTOR = SELECTOR.replace(b".003900862339776", b".003900862349161")
+NEW_SELECTOR = SELECTOR.replace(b".003900862339776", b".003900862349168")
 
 
 def digest(data):
@@ -94,6 +97,16 @@ def materialize(frozen, stage):
             row = directed[name]
             if (row["first_funded_tick"], row["preceding_tick_rejected"]) != endpoints:
                 raise ValueError("The exact directed tariff screen differs")
+    contraction = json.loads(authenticated(HERE / "CONTRACTION-SCREEN.json", CONTRACTION_SCREEN),
+                             object_pairs_hook=unique_object)
+    if (contraction["head"], contraction["tariff"], contraction["contraction"]) != (
+        COMPARISON_HEAD, "5024210149/2152336000", "2400/2401"
+    ):
+        raise ValueError("The exact paid contraction screen differs")
+    for bits in ("112", "192"):
+        row = contraction["directed_dyadic_prices"][bits]
+        if (row["funded_tick"], row["rejected_preceding_tick"]) != (1411927, 1411926):
+            raise ValueError("The exact paid contraction debit endpoints differ")
     preimage = authenticated(frozen / INSTALLATIONS, PREIMAGE)
     baseline = image(preimage, prior["runtime.patch"], stage)
     if digest(baseline) != OLD_IMAGE:
@@ -137,10 +150,13 @@ def materialize(frozen, stage):
         "peer_head": PEER_HEAD,
         "complete_preimage_manifest_sha256": FULL_PREIMAGE,
         "screen_sha256": SCREEN,
-        "baseline_terminal_kappa": OLD_RATE,
+        "preimage_terminal_kappa": OLD_RATE,
+        "comparison_head": COMPARISON_HEAD,
+        "baseline_terminal_kappa": PREVIOUS_RATE,
+        "contraction_screen_sha256": CONTRACTION_SCREEN,
         "projected_terminal_kappa": NEW_RATE,
-        "projected_delta": "9385/1000000000000000",
-        "comparator_result_sha256": screen["pinned_inputs"]["package/RESULT.json"],
+        "projected_delta": "7/1000000000000000",
+        "comparator_result_sha256": contraction["inputs_sha256"]["package/RESULT.json"],
         "installation_preimage_sha256": PREIMAGE,
         "old_installation_sha256": OLD_IMAGE,
         "candidate_installation_sha256": digest(installed),

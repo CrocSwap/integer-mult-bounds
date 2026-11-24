@@ -19,8 +19,8 @@ OVERLAY = SOURCES / "transfer"
 DOMAIN = SOURCES / "domain"
 WEIGHTED = Path("research/frequency-weighted-native-multiplier")
 SCIENTIFIC = ("price", "calendar", "raw", "exterior", "nested", "product")
-INPUTS_SHA256 = "be77a83e9b702928c3b8e16554fae12aefb635b99bfb01c5a175e9105f440c09"
-IMAGE_SHA256 = "83c9616cadecbb6da76a0c4e0d909abe62490d48f35c47c08c68d879c65e13c7"
+INPUTS_SHA256 = "066765506f21bd204408dcf4feaab9bf41c5a9d38ceb32faaf00d1a05bd60f2a"
+IMAGE_SHA256 = "2d55f0269164878a6507c6756f2f27ccd6b3a6d2cbd5b3232e89ebc8e1b7a422"
 RESERVE = 8 * 1024**3
 THREAD_ENV = dict.fromkeys(("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
                            "VECLIB_MAXIMUM_THREADS", "BLIS_NUM_THREADS", "NUMEXPR_NUM_THREADS"), "1")
@@ -118,7 +118,7 @@ def census(peer, runtime, scratch, env):
     install(peer, runtime, env)
     stock = scratch / "census"
     stock.mkdir()
-    python(OVERLAY / "check_installed.py", "--profile", "domain", "--runtime", runtime,
+    python(OVERLAY / "check_installed.py", "--profile", "clock", "--runtime", runtime,
            "--portable", peer / "portable", "--scratch", stock, env=env, timeout=150)
 
 
