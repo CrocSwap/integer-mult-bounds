@@ -16,10 +16,11 @@ HERE = Path(__file__).resolve().parent
 SOURCES = HERE / "source"
 ORIGINAL = SOURCES / "peer8097"
 OVERLAY = SOURCES / "transfer"
+DOMAIN = SOURCES / "domain"
 WEIGHTED = Path("research/frequency-weighted-native-multiplier")
 SCIENTIFIC = ("price", "calendar", "raw", "exterior", "nested", "product")
-INPUTS_SHA256 = "a230369f9e81cf83b034ac3d2abc4252e075f0382cb356ae52abfd566062a6b5"
-IMAGE_SHA256 = "d34b860c4c35aeb302767216bf58dd9da627fe2b1b2b646fd70d6a544563648e"
+INPUTS_SHA256 = "be77a83e9b702928c3b8e16554fae12aefb635b99bfb01c5a175e9105f440c09"
+IMAGE_SHA256 = "83c9616cadecbb6da76a0c4e0d909abe62490d48f35c47c08c68d879c65e13c7"
 RESERVE = 8 * 1024**3
 THREAD_ENV = dict.fromkeys(("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
                            "VECLIB_MAXIMUM_THREADS", "BLIS_NUM_THREADS", "NUMEXPR_NUM_THREADS"), "1")
@@ -90,7 +91,15 @@ def prepare(scratch, env):
         observed, (destination / "TRANSFER-ASSEMBLY.json").read_bytes()
     )):
         raise ValueError("The independently assembled tariff transfer differs from its pin")
-    return destination / WEIGHTED
+    narrowed = scratch / "domain"
+    observed = python(DOMAIN / "assemble.py", "--frozen", destination, "--output", narrowed,
+                      env=env, capture=True)
+    expected = read_json((DOMAIN / "ASSEMBLY.json").read_bytes())
+    if any(read_json(data) != expected for data in (
+        observed, (narrowed / "DOMAIN-ASSEMBLY.json").read_bytes()
+    )):
+        raise ValueError("The independently assembled domain tariff differs from its pin")
+    return narrowed / WEIGHTED
 
 def install(peer, runtime, env):
     python(peer / "bootstrap.py", runtime, env=env)
@@ -109,7 +118,7 @@ def census(peer, runtime, scratch, env):
     install(peer, runtime, env)
     stock = scratch / "census"
     stock.mkdir()
-    python(OVERLAY / "check_installed.py", "--profile", "tariff", "--runtime", runtime,
+    python(OVERLAY / "check_installed.py", "--profile", "domain", "--runtime", runtime,
            "--portable", peer / "portable", "--scratch", stock, env=env, timeout=150)
 
 
