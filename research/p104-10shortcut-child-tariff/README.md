@@ -1,10 +1,8 @@
 # Exact K7 child tariff on the ten-shortcut signed profile
 
-**Release draft.** The clean installed receipt and independent directed price passed locally in 12.22 and 6.61 seconds. The supplemental installed setup census passed with ten recipes and 2,492,209 directory records. The candidate signed seam, full independent scientific suite and hosted verification await their own receipts.
+**Independent local replay.** All seven registered modes passed on scientifically identical source commit `b8f6d438858d0941a53bb7ec489facab2ab661ef` in 354.43 seconds. The ten-recipe directory census separately passed with 2,492,209 records. The pull request tracks hosted verification.
 
-<!-- Before release, replace the status above with the observed exact commit and link its local scientific and census receipts. Keep hosted status separate. -->
-
-The installed price supports conditional κ **0.003900862339776** at recurring `log₂ C = 171810078109`. Compared with independently reproduced [#8097 at e1c25140](https://github.com/CrocSwap/integer-mult-bounds/commit/e1c251401fe254909ac7e7bf2c773b921a1b6b57), κ **0.003900862325217**, the exact prospective gain is `14559/10^15` (0.000000000014559). The relative gain is `485300/1300287441739` percent, displayed as **+0.0000003732251689%**.
+The complete signed replay certifies conditional κ **0.003900862339776** at recurring `log₂ C = 171810078109`. Compared with independently reproduced [#8097 at e1c25140](https://github.com/CrocSwap/integer-mult-bounds/commit/e1c251401fe254909ac7e7bf2c773b921a1b6b57), κ **0.003900862325217**, the exact gain is `14559/10^15` (0.000000000014559). The relative gain is `485300/1300287441739` percent, displayed as **+0.0000003732251689%**.
 
 The ordinary tariff is `10981863/4703998`, derived from the exact quotient child mean at the existing N≥9 guard. It lowers the full-reserve ordinary debit from `1418665/2^20` to `1414569/2^20`. The certified child contraction is `2390/2391`, with geometric sum 2391. The invoice keeps the predecessor’s conservative recursive clock budget of 2401. Ordinary still binds on the same 28-bit, six-stage profile with Gaussian height 52270. This is a comparison at #8097’s resource point. [Proof and complete invoice](PROOF.md) · [Installed price](RESULT.json)
 
@@ -17,6 +15,7 @@ Use Git and CPython 3.12 with assertions enabled. From the repository root, use 
 ```sh
 scratch="$(mktemp -d)"
 TMPDIR="$scratch" python3.12 -IB scripts/research_package.py --package research/p104-10shortcut-child-tariff
+TMPDIR="$scratch" python3.12 -IB research/p104-10shortcut-child-tariff/verify.py census
 ```
 
 The registered command authenticates the vendored source and runs the seven inherited scopes covering price, calendar, raw words, exterior and nested work, signed product, and serial setup plus exact word checks. The companion ten-recipe census separately exercises the installed fixed constructor and checks the expanded setup accounting. The comparator’s seven exact local scopes passed in 434.61 seconds. Its hosted attempt required action and had zero jobs. [Registered scopes](VERIFY.json) · [#8097 independent replay](https://github.com/ToikY/integer-mult-bounds/blob/079372d23998b535b4d4fd960ffaefcb4e48ecd2/paired-768/r434/REPLAY.md) · [#8097 hosted attempt](https://github.com/CrocSwap/integer-mult-bounds/actions/runs/45299312089)
