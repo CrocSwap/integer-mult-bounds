@@ -1,0 +1,134 @@
+{
+  "schema": "admissible-typed-tape-independent-source-api-review-v1",
+  "status": "PASS_SOURCE_API_UNCOMPILED",
+  "reviewer": "prove_main_bank_routing",
+  "started_utc": "2026-10-14T11:18:52Z",
+  "completed_utc": "2026-10-14T11:20:32.442969+00:00",
+  "source": {
+    "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/signed/research/lean-admissible-typed-tape/AdmissibleTypedTape.lean",
+    "bytes": 10014,
+    "sha256": "92cccf6c04267d79a6495c58c4dd63dac2834b53decda477511e1ac4c33be7a4"
+  },
+  "source_commit": "77e9d69cc2acb066c2a1ca028a1c2c0feb6dc960",
+  "source_git_blob": "472f532bb4d65ed19d164200d1a0334200359ed5",
+  "proposal": {
+    "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/signed/research/lean-admissible-typed-tape/SOURCE_PROPOSAL.json",
+    "bytes": 4627,
+    "sha256": "d1236088fd74a60fa80c501f30640be8872d73f2cea70df2ab29dbe85f544f33"
+  },
+  "core_api_pins": [
+    {
+      "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/runtime/lean-4.21.0-linux/src/lean/Init.lean",
+      "bytes": 930,
+      "sha256": "73f60c52e860b69f8fc636ad1b95a62fa6678de49c38f9d59b77a8ef45a5f90f"
+    },
+    {
+      "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/runtime/lean-4.21.0-linux/lib/lean/Init.olean",
+      "bytes": 21504,
+      "sha256": "986cb78b8abe89c1eb21703cc912053875d2d18bc3e8a8249140c7f808505172"
+    },
+    {
+      "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/runtime/lean-4.21.0-linux/src/lean/Init/Prelude.lean",
+      "bytes": 208316,
+      "sha256": "1c7e90be488584bde36df22c82f632f28338b4ab22040e3e20fc22af95c4edb3"
+    },
+    {
+      "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/runtime/lean-4.21.0-linux/src/lean/Init/SimpLemmas.lean",
+      "bytes": 17297,
+      "sha256": "8432fc0a6b37d0708b99a94ab06e49d783191751d6aa1d79ce05396417179773"
+    }
+  ],
+  "source_precedents": [
+    {
+      "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/signed/research/lean-dirty-dispatcher-admissible/DirtyDispatcherAdmissible.lean",
+      "bytes": 5395,
+      "sha256": "88dc6321e946c8f3f721192dbb9915d33f9e91aec8aaee4093ad3d35ebf3521c"
+    },
+    {
+      "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/signed/research/bit-xor-reversal/BitXorReversal.lean",
+      "bytes": 6073,
+      "sha256": "a18488327c2250fdcf0895ae4d0517e5190e97514ec1280b64879c2b70436f0f"
+    }
+  ],
+  "checks": [
+    {
+      "theorem": "Tape/append/run/rewind",
+      "finding": "Dependent Tape Op a b carries chronological input/output labels, and append requires the common boundary label. run evaluates head before tail; rewind evaluates supplied undo tail before head. Definitions use no global endpoint premise. Labels supply type alignment only, with actual state membership retained as D hypotheses."
+    },
+    {
+      "theorem": "run_append/rewind_append",
+      "finding": "Induction on the left tape is correctly dependent on its ending label. Forward append is run ys after run xs; reverse append is rewind xs after rewind ys. The cons rewind proof applies congrArg undo op in the correct direction."
+    },
+    {
+      "theorem": "run_admissible",
+      "finding": "Each step passes the actual forward op state and the result of hclosed into the tail induction. The nil case retains the original membership. The theorem applies to any typed prefix without assuming whole-word admissibility."
+    },
+    {
+      "theorem": "rewind_admissible",
+      "finding": "The tail is undone first. Its induction derives membership at the head output label, then the independently supplied backward closure derives membership at the head input. Forward closure is not substituted for this premise."
+    },
+    {
+      "theorem": "rewind_run",
+      "finding": "Tail cancellation is applied at forward op s only after forward closure proves D there; then the local left inverse returns s. The argument needs only forward closure and local undo(forward s)=s on the input domain. No backward closure or local right inverse is silently used."
+    },
+    {
+      "theorem": "run_rewind",
+      "finding": "rewind_admissible proves D at the actual rewind-tail intermediate state before the restricted local right inverse is applied. The residual tail forward/undo composition is discharged by its induction. This is a separate theorem with backward closure and forward(undo s)=s on the output domain."
+    },
+    {
+      "theorem": "touches/touches_append",
+      "finding": "The recursion is a finite union of the supplied per-step predicates, nil False and cons disjunction. It preserves the exact chosen support-union semantics without requiring finite Reg, DecidableEq, disjoint writes or unique logical names. or_assoc orientation and false_or match the installed core APIs."
+    },
+    {
+      "theorem": "run_off_support",
+      "finding": "Negation of the union produces head and tail exclusions. Closure proves the forward intermediate domain; tail preservation is composed with head preservation, yielding observe(run tape s)r=observe s r. No whole-tape spectator equation is assumed."
+    },
+    {
+      "theorem": "rewind_off_support",
+      "finding": "The actual rewind-tail state first gains domain membership from rewind_admissible. The head undo spectator law then composes with the tail spectator induction in the correct equality direction. Its write predicate and closure/support laws are independent arguments, so no forward-only support is reused without proof."
+    }
+  ],
+  "scope_qualifications": [
+    "Support predicates may overapproximate writes. The exact result is equality outside their finite tape union; it does not prove minimal physical write support.",
+    "D may be empty, and labels alone certify no arithmetic or actual initial state. A client must establish membership and the appropriate per-primitive laws.",
+    "Logical observable coordinates may alias physical locations. The generic theorem neither proves an address injection nor silently infers physical noninterference.",
+    "The functions forward and undo are actual semantic parameters, not inferred sign-flips, precision changes or syntactic inverse constructors. No global cancellation/endpoint hypothesis is present.",
+    "This derives reusable whole-tape facts from local semantic evidence; no selected literal census or numerical-kappa premise enters the theorem."
+  ],
+  "probes": [
+    "CurrentMain.AdmissibleTypedTape.run_append",
+    "CurrentMain.AdmissibleTypedTape.rewind_append",
+    "CurrentMain.AdmissibleTypedTape.run_admissible",
+    "CurrentMain.AdmissibleTypedTape.rewind_admissible",
+    "CurrentMain.AdmissibleTypedTape.rewind_run",
+    "CurrentMain.AdmissibleTypedTape.run_rewind",
+    "CurrentMain.AdmissibleTypedTape.touches_append",
+    "CurrentMain.AdmissibleTypedTape.run_off_support",
+    "CurrentMain.AdmissibleTypedTape.rewind_off_support"
+  ],
+  "type_audits": [
+    "@CurrentMain.AdmissibleTypedTape.rewind_run",
+    "@CurrentMain.AdmissibleTypedTape.run_off_support"
+  ],
+  "resource_shape": {
+    "official_core_pairs": 317,
+    "retained_local_roots": 0,
+    "fresh_roots": 1,
+    "total_modules": 318,
+    "public_probes": 9,
+    "printed_types": 2,
+    "finite_decisions": 0
+  },
+  "attribution": "James Chang with OpenAI assistance; Apache-2.0. Motivated by own admissible-domain bookkeeping, Hanson Sun PR1530 and accepted PR590/597 ordered-interpreter reversal. Actual dependent-domain tape/support proofs are new here.",
+  "context": {
+    "pinned_upstream": "0b1cccf86e2f5132ed286a26ef0a681a495740ea",
+    "author_checked_kappa": "836330098538459/500000000000000000",
+    "scope": "Previously author-checked conditional numerical context only; no selected construction/adoption or numerical conclusion from this generic source."
+  },
+  "execution": {
+    "compiler": false,
+    "finite_checks": false,
+    "source_mutation": false
+  },
+  "runtime_boundary": "The installed core APIs and source type/induction directions were inspected. Actual Lean elaboration, axiom output, object identity and resource fit require the separate admitted one-root check."
+}
