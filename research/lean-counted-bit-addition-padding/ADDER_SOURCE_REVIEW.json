@@ -1,0 +1,179 @@
+{
+  "schema": "sequential-bit-addition-independent-source-api-review-v1",
+  "status": "PASS_CORRECTED_SOURCE_API_AND_MODEL_SCOPE_UNCOMPILED",
+  "reviewer": "prove_main_bank_routing",
+  "review_started_utc": "2026-10-14T11:14:51Z",
+  "review_completed_utc": "2026-10-14T11:17:59.941688+00:00",
+  "source": {
+    "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/analytic/research/source-preparations/sequential-bit-addition/omega-import-repair/SequentialBitAddition.lean",
+    "bytes": 19166,
+    "sha256": "7cea0c0129dc1bd7a8bf03ec98dc4d9c3455f647d7760060d1151c87de3aab83"
+  },
+  "binding": {
+    "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/analytic/research/source-preparations/sequential-bit-addition/SOURCE_BINDING.json",
+    "bytes": 6492,
+    "sha256": "d7e88554371b9b970b80dd0b7db763381d9dfc51232ce0078f5e7e7cc1b2d4bf"
+  },
+  "readme": {
+    "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/analytic/research/source-preparations/sequential-bit-addition/README.md",
+    "bytes": 2572,
+    "sha256": "4e549657625999fa4a8ebb4b068a531ee285b7a5b83c6d18dbbd13dc478fce01"
+  },
+  "pin_readback": {
+    "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/bank/research/reviews/sequential-bit-addition/SOURCE_PIN_READBACK.json",
+    "bytes": 2792,
+    "sha256": "694efd4c013bb848d55acf88f1873a089700d1b70e2f78421a0a347705925e8b"
+  },
+  "dependency": {
+    "module": "PairedBitXorScan",
+    "source": {
+      "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/machine/research/source-preparations/paired-bit-xor-scan/PairedBitXorScan.lean",
+      "bytes": 8348,
+      "sha256": "8e422e28cdc3afa18a38bc6db408029ad42e071ec53bd18378dae1ca722fd465"
+    },
+    "actual_use": "Only Tape Row, whose fields are left : List Row and right : List Row, plus its DecidableEq instance. No theorem or operational XOR premise is imported into the addition proof terms.",
+    "runtime": "The frozen source binding records first XOR compilation failure and no accepted object at preparation. This source review neither resolves that failure nor counts a repaired object as accepted. Compiling this import still requires a valid complete PairedBitXorScan module, even though only Tape is used.",
+    "future_repair": "Any upstream module repair needs exact source/object binding; source use is stable only if the Tape definition and its type/instance remain exact."
+  },
+  "mathematical_checks": [
+    {
+      "area": "Seven-gate full adder",
+      "finding": "Two reads, two XOR assignments, two AND assignments and one OR assignment execute in this order. sum is computed with old carry before carry is overwritten. All fields used later in the column are initialized by preceding gates; previous x/y/temporary dirt does not leak. The eight Boolean cases establish sum+2*carry=a+b+oldCarry."
+    },
+    {
+      "area": "Unsigned scan",
+      "finding": "scan_value retains final carry with weight 2^length and initial carry explicitly. The inductive combination 2*tail+column is correctly directed. scan_storage gives exact output length and append theorem carries the complete final register state, rather than discarding carry."
+    },
+    {
+      "area": "Signed interpretation",
+      "finding": "signedValue assigns the explicit sign bit weight -2^n for n low bits. Two real sign columns produce lastLow and sign. Their eight-case identity combines with the unsigned scan to give exact signed addition for arbitrary input width and both signs. The final register carry is not part of the output encoding. Opposite-sign cancellation and n=0 are included by universal statements."
+    },
+    {
+      "area": "Padding boundary",
+      "finding": "zeroShift prepends d false bits; induction gives value2^d times original and lengthd+length. No cost is attached and no machine call silently implements this list constructor as a constant-time shift."
+    },
+    {
+      "area": "Transition model",
+      "finding": "Each step is finite-control with a fixed seven-bit register bank, three Boolean tracks per cell, bounded Boolean operations and at most one adjacent cell move. run fuel and decoded Int arithmetic are external specifications. Right-empty and left-empty observations are supplied boundary signals; the conventional marker/layout refinement is explicitly unproved."
+    },
+    {
+      "area": "First halt and exact cost",
+      "finding": "RunsToHalt.next requires the predecessor phase not halt, and done requires halt. Thus the relation is first-halt without padded terminal steps. Each processed cell takes test+7 gates+write+advance=10 transitions; rewind adds n, initialization adds1, final test and empty rewind add2, and seven clears add7. Total11n+10. At n=0, initialization1+test1+rewind-empty1+clears7=10, without reading a nonexistent cell."
+    },
+    {
+      "area": "Generic rewind invariant",
+      "finding": "scan_from includes ls.length in its budget and restores ls.reverse before transformed remaining cells. column_ten advances exactly one output row into reversed left. Reverse-cons and append associativity preserve original row order; the arithmetic index transforms to11*remainingLength+leftLength+9."
+    },
+    {
+      "area": "State restoration limits",
+      "finding": "machine_exact returns final with left=[] and transformed rows on the right, all seven registers false, and halt control. Source pairs are preserved by transformed_sources, and output agrees with the gate scan by transformed_output. Arbitrary original scratch and old output are erased, not restored. Source/README/binding state that limitation; no reversible dirty-helper guarantee is inferred."
+    },
+    {
+      "area": "Storage",
+      "finding": "step_storage considers every phase and left/right empty/nonempty shape, including malformed-control states. No branch allocates or discards cells. run_storage composes this invariant; fixed control and seven register bits are separate. signed_machine_resources executes n+2 cells, so its cost is11*(n+2)+10 and both sign columns are charged."
+    }
+  ],
+  "api_checks": [
+    "Tape Row has exactly the constructor/field order used by all nested State constructors; the imported module namespace is closed and local step/run/RunsToHalt are separate.",
+    "List.map_cons/map_map/map_id_fun/length_map preserve the pair projections used to connect transformed rows to scan. List.reverse_cons/cons_append/append_assoc match the rewind direction.",
+    "The Nat index in column_ten is n+10, which unfolds through ten RunsToHalt.next constructors. scan_from normalizes the extra cell and rewind cost algebraically without a runtime length counter.",
+    "Both Int linear_combination uses are directed from full_adder/sign identities and the earlier carry-weighted scan. No selected constants or result inequality are introduced as premises.",
+    "The two printed full types audit signed_scan_exact and machine_exact; all16 axiom probes are listed exactly in SOURCE_BINDING. Actual elaboration and axioms still need the admitted compiler run.",
+    "All three nonlocal tactic module sources/objects exist at their exact pinned paths after the one-line import repair. The PairedBitXorScan module object remains a separately checked runtime prerequisite; no compile or runtime closure is inferred from file existence."
+  ],
+  "probes": [
+    "SequentialBitAddition.column_exact",
+    "SequentialBitAddition.full_adder_identity",
+    "SequentialBitAddition.scan_value",
+    "SequentialBitAddition.scan_storage",
+    "SequentialBitAddition.scan_append_output",
+    "SequentialBitAddition.signed_scan_exact",
+    "SequentialBitAddition.signed_scan_storage",
+    "SequentialBitAddition.zero_shift_value",
+    "SequentialBitAddition.zero_shift_storage",
+    "SequentialBitAddition.machine_exact",
+    "SequentialBitAddition.machine_result",
+    "SequentialBitAddition.transformed_sources",
+    "SequentialBitAddition.transformed_output",
+    "SequentialBitAddition.step_storage",
+    "SequentialBitAddition.run_storage",
+    "SequentialBitAddition.signed_machine_resources"
+  ],
+  "type_audits": [
+    "@SequentialBitAddition.signed_scan_exact",
+    "@SequentialBitAddition.machine_exact"
+  ],
+  "finite_checks": "Two width-independent eight-case Boolean truth tables use ordinary decide. Constructor non-halt side goals also use decide. There are no selected literal tables, native_decide calls or new decide +kernel sites.",
+  "prose_qualification": "The step comment saying no XOR appears must be read as no unbounded/Nat XOR primitive. Bounded Boolean XOR intentionally occurs in gateStep. SOURCE_BINDING already says unbounded shift/XOR/division; no mathematical or executable source change is requested.",
+  "remaining_obligations": [
+    "Actual input bit representation of each dyadic Cell, sign extension/padding and exponent selection/comparison/subtraction.",
+    "Physical marked layout and allocation; input/output preparation and storage initialization.",
+    "In-place signed ADD/undo and full preservation of arbitrary initial output or dirty scratch. This out-of-place scan overwrites its output and clears its registers.",
+    "Concrete execution of the full selected tape, including non-scalar events, address routing, metadata and old scratch restoration.",
+    "Uniform all-width initialization/precision and primitive bit-time bound needed by the accepted conditional cost theorem. Finite invoice C0 is not this uniform C."
+  ],
+  "author_checked_kappa": {
+    "author_checked_kappa": "836330098538459/500000000000000000",
+    "decimal": "0.001672660197076918",
+    "role": "Attribution context only; the generic theorem has no profile or kappa premise."
+  },
+  "execution": {
+    "compiler": false,
+    "supplier_execution": false,
+    "dependency_rebuild": false
+  },
+  "attribution": "Elementary ripple-carry/full-adder arithmetic; original accepted dyadic Cell/prefix work as background; machine paired-bit zipper type; Lean/Mathlib infrastructure. Original Apache-2.0/OpenAI notices retained. Independent source readback prepared with OpenAI assistance.",
+  "source_preimage": {
+    "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/analytic/research/source-preparations/sequential-bit-addition/SequentialBitAddition.lean",
+    "bytes": 19164,
+    "sha256": "340c2664a407456817715a5e15f6124a1a455edc665bdb572f2dcd9b317cd525"
+  },
+  "import_repair": {
+    "delta": {
+      "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/analytic/research/source-preparations/sequential-bit-addition/omega-import-repair/SOURCE_DELTA.json",
+      "bytes": 1789,
+      "sha256": "eb446428bfbd8476ce1251adcab39510a9fdc63987323d7b8dc329c03cc8897b"
+    },
+    "inverse_exact": true,
+    "only_change": "Mathlib.Tactic.Omega -> Lean.Elab.Tactic.Omega",
+    "reason": "The Mathlib Omega module is absent in the pinned installation. The official Lean Omega source/object exist and rehash; the exact provider implements the referenced tactic.",
+    "providers": [
+      {
+        "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/runtime/lean-4.21.0-linux/src/lean/Lean/Elab/Tactic/Omega.lean",
+        "bytes": 9418,
+        "sha256": "d07da7c84651c88ae49d94cb623d4ad4073a48c908a9b1232e08bc5968a6c62b"
+      },
+      {
+        "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/runtime/lean-4.21.0-linux/lib/lean/Lean/Elab/Tactic/Omega.olean",
+        "bytes": 27168,
+        "sha256": "306139b8444d92a1f7a980d59f900eb05a9fc9de2476e7be81e6e794e8be169b"
+      },
+      {
+        "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/mathlib4/Mathlib/Tactic/Ring.lean",
+        "bytes": 304,
+        "sha256": "8c21415c464a2600d93fe33828a67037c80d8aa5fc833fd91895c240f0ef884d"
+      },
+      {
+        "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/mathlib4/.lake/build/lib/lean/Mathlib/Tactic/Ring.olean",
+        "bytes": 30992,
+        "sha256": "43b91f9b782238b89fff9c8be3f417a07373109c0cba657fd51382dfbc7ee526"
+      },
+      {
+        "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/mathlib4/Mathlib/Tactic/LinearCombination.lean",
+        "bytes": 14610,
+        "sha256": "9d02264a5fae1ca43dfb7b59890429890cecc0963e7345784963489fc69886d4"
+      },
+      {
+        "path": "/workspace/shared/lean-native-4.21.0-recovery-20261014/mathlib4/.lake/build/lib/lean/Mathlib/Tactic/LinearCombination.olean",
+        "bytes": 957696,
+        "sha256": "74258fddc4ebe0bf8d6c49474f86c28d49c7171bf566aeef2a46ffc0fe95c550"
+      }
+    ],
+    "prior_draft": {
+      "path": "/workspace/shared/integer-mult-native-20261013-X4buk2/worktrees/bank/research/reviews/sequential-bit-addition/PRE_IMPORT_AUDIT_DRAFT.json",
+      "bytes": 9831,
+      "sha256": "00c0cc1a87c67748bf2142ae218fcc6ebc14db6ef9bbd22938b5192d4b708009"
+    },
+    "prior_draft_qualification": "The earlier unsent draft reviewed mathematics and the declared source pins but missed complete import existence. It is preserved as a pre-import-audit draft, not an import-ready seal. This corrected review explicitly closes the one-line source-provider mismatch."
+  }
+}
