@@ -732,6 +732,10 @@ frontier6030-verify: selected-record-check
 		env -u PYTHONPATH python3 -I -B scripts/verify_frontier6030.py --work "$$work/replay"
 
 .PHONY: frontier7000-verify
-frontier7000-verify: selected-record-check
+frontier7000-verify:
 	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-frontier7000.XXXXXX"); \
-		env -u PYTHONPATH -u PYTHONHOME python3 -I -B scripts/verify_frontier7000.py --work "$$work/replay"
+		env -u PYTHONPATH -u PYTHONHOME python3 -I -B scripts/replay_frontier7000_checkpoint.py --work "$$work/replay"
+
+.PHONY: nov24-direct-verify
+nov24-direct-verify:
+	python3 -I -B scripts/verify_nov24_direct.py

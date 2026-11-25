@@ -1,0 +1,43 @@
+name: November direct multiplication theorem
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nov24-direct.yml'
+      - 'Makefile'
+      - 'certificates/selected-result.json'
+      - 'certificates/nov24-direct/**'
+      - 'research/nov24-direct-multiplication/**'
+      - 'scripts/verify_nov24_direct.py'
+      - 'tests/test_nov24_direct.py'
+      - 'scripts/verify_selected_result.py'
+      - 'scripts/verify_hpe_lean_binding.py'
+      - 'scripts/historical-ci-inputs/verify_hpe_lean_binding.py'
+      - 'upstream/build/sections/00-introduction.tex'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/nov24-direct.yml'
+      - 'Makefile'
+      - 'certificates/selected-result.json'
+      - 'certificates/nov24-direct/**'
+      - 'research/nov24-direct-multiplication/**'
+      - 'scripts/verify_nov24_direct.py'
+      - 'tests/test_nov24_direct.py'
+      - 'scripts/verify_selected_result.py'
+      - 'scripts/verify_hpe_lean_binding.py'
+      - 'scripts/historical-ci-inputs/verify_hpe_lean_binding.py'
+      - 'upstream/build/sections/00-introduction.tex'
+
+permissions:
+  contents: read
+
+jobs:
+  selected-corollary:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: make nov24-direct-verify
+      - run: python3 -B -m unittest discover -s tests -p test_nov24_direct.py

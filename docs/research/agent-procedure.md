@@ -139,9 +139,12 @@ PR caches that lack author/creation metadata; offline queries with missing metad
 explicitly rather than reporting no matches. Filtered results are leads, not
 evidence of semantic novelty, and do not replace live claim checks.
 
-The contextual entry point delegates selection and command routing to the
-unchanged pickers, then adds `catalog_selection`: the original catalogue context
-and its κ/source/review comparison with `selected`. A mismatch means the
+The contextual entry point delegates selection and historical routing to the
+unchanged pickers. For the direct November selection, it validates the direct
+verifier reference and replaces the generic selected-baseline step with that
+verifier, preserving the original card and any historical follow-up steps. It
+also adds `catalog_selection`: the original catalogue context and its
+κ/source/review comparison with `selected`. A mismatch means the
 assessment predates or differs from the selection; missing fields are unknown.
 This does not assess whether a task remains useful or authenticate the scientific
 closure. Use `selected` for the current review and replay. See the
@@ -150,7 +153,7 @@ closure. Use `selected` for the current review and replay. See the
 **Resolve the generic orientation command before running a historical card.**
 If its `first_step.command` is `python3 -B scripts/research_baseline.py`, use the
 current orientation command in [current priorities](current-priorities.md).
-For the selected #4470 productive-helper schema, that command is:
+For the direct November theorem run `make nov24-direct-verify`. For the historical #4470 productive-helper schema the command was:
 
 ```sh
 python3 -B scripts/research_selected_baseline.py

@@ -1,8 +1,38 @@
 # CI verification
 
-## Current selected-family replay: #6030
+## Proposed November direct-corollary selection
 
-The [selected record](../certificates/selected-result.json) binds conditional
+The [selected record](../certificates/selected-result.json) proposes the exact
+witness κ = 4999/10000 and the family of every fixed 0 < κ < 1/2. Its
+[application and scope](../research/nov24-direct-multiplication/PROOF.md),
+[validation scope](../certificates/nov24-direct/VALIDATION.json), and
+[source inventory](../certificates/nov24-direct/SOURCES.json) distinguish the
+cited theorem from the local verification. Maintainer admission is pending.
+
+`make nov24-direct-verify` checks retained source hashes, the comparator target,
+the explicit construction parameters and the exact exponent specialization. It uses the Python standard library and
+runs offline. It does not build the upstream Lean dependency graph, execute the
+comparator or run a multiplication algorithm. The upper theorem is stated
+without a complexity hypothesis; this local replay does not independently
+re-establish it.
+
+The [direct-corollary workflow](../.github/workflows/nov24-direct.yml) runs this
+check for relevant pull-request and main-branch changes. The CI input guard
+also follows the generic selected-record checker's historical helper references;
+its trigger filters cover those paths even though the direct check does not use
+the historical adaptation. A configured workflow is not evidence of a hosted
+pass. The current guard is `python3 -B scripts/check_selected_ci_inputs.py --require-triggers`.
+
+The previous #7000 record remains available at its
+[checkpoint](../certificates/checkpoints/frontier7000.json).
+`python3 -I -B scripts/replay_frontier7000_checkpoint.py --check-only` checks
+its bindings and recorded evidence; `make frontier7000-verify` requests its
+separate historical scientific replay. Routine direct-corollary review does not
+need to rerun the grouped construction.
+
+## Historical selected-family replay: #6030
+
+The [checkpoint record](../certificates/checkpoints/frontier6030.json) binds conditional
 κ = 0.003125804 to the [proof review](research/pr-intake-evidence/pr6030-audit/PROOF-REVIEW.md),
 [validation receipts](research/pr-intake-evidence/pr6030-audit/VALIDATION.json),
 and [explicit source closure](../certificates/frontier6030-source.json).
@@ -19,7 +49,7 @@ do not need to rerun this selected-family replay.
 
 ## Historical selected-family replay: #5599
 
-The [selected record](../certificates/selected-result.json) binds conditional
+The [checkpoint record](../certificates/checkpoints/frontier5599.json) binds conditional
 κ = 0.00310045 to the [proof review](research/pr-intake-evidence/pr5599-completion/PROOF-REVIEW.md)
 and [explicit source closure](../certificates/frontier5599-source.json).
 `make frontier5599-verify` authenticates the complete source

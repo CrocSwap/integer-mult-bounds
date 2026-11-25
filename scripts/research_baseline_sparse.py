@@ -12,8 +12,8 @@ skip-worktree entry whose blob matches HEAD. An ordinary deletion, staged drift
 or unknown path raises the same ``Invalid selected file`` error. Byte drift in
 present files is left to the baseline. Nothing is verified here.
 
-The certificate schema selects ``scripts/research_selected_baseline.py`` for
-productive-helper claims; historical certificates keep ``research_baseline.py``.
+The certificate schema selects the direct theorem verifier, the productive-helper
+report, or the historical balanced-transfer report.
 
 This is a separate script so that the baseline and its tests, which research
 packages pin as live inputs, keep their bytes.
@@ -113,8 +113,10 @@ def materialize_command(omitted, cone=True):
 def report(record, root=ROOT):
     omitted = sparse_omissions(record, root)
     certificate = selected_json(record["certificate"], root)
-    baseline = ("scripts/research_selected_baseline.py" if certificate.get("schema") == PRODUCTIVE_SCHEMA
-                else "scripts/research_baseline.py")
+    baseline = {
+        "direct-multiplier-corollary/1": "scripts/verify_nov24_direct.py",
+        PRODUCTIVE_SCHEMA: "scripts/research_selected_baseline.py",
+    }.get(certificate.get("schema"), "scripts/research_baseline.py")
     next_command = ["python3", "-B", baseline]
     if not omitted:
         return 0, {
