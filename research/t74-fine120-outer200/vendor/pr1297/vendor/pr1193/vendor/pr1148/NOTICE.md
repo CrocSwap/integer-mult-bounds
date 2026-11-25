@@ -1,0 +1,8 @@
+Apache-2.0. Prepared for Thomas DiFiore with substantial OpenAI Codex assistance.
+
+* The preceding `k8-coordinated-owners`, `k8-eight-ends`, `k8-eight-ends-t16`, and `k8-three-demotions` packages supply the frozen constructions, owner slots, drivers, searches, and all retained source notices.
+* PR1111 by seslly / shipstuff, commit `381831ea554ea983e16224dabed8921b7d0ffdbc`, introduced the group-635 entrance-demotion lead. Its public PR description was consulted; no code or payload from that PR is consumed. The group-635 idea is not original to this package. This package composes it with two other groups, the eight-endpoint word, a joint frame refit, and its preceding T16 assignment. Credit also PR664's promotion mechanism and descendants.
+* The frame model derives from PR864 (navinor / Claude), as adapted and pinned in `../k8-eight-ends`. The new joint searches treat entrance labels as variables in the same frame graph and retain the scalar/cone constraints. Floating solver output is nomination data only.
+* Retain PR1018 and Rohan Arun's PR987 scalar-word lineage, PR1030's endpoint lead, Hao Yan / FanPUYen's PR858 T16 controller and independent checker, PR870/1074 admission work, PR942 by jon314159 and chafreaky's PR795/890 signed prices, and PR589's bit supplier. Their full dependency notices and source hashes remain in the preceding packages.
+* All global admission engines are unchanged. The exact bound adapts the preceding signed-dual proof with the new pinned local profile, using the same two rational arithmetic engines.
+* No claim of unconditional theorem certification, full Lean proof, or exact optimality of the floating discovery searches is made.
