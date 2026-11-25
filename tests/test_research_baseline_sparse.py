@@ -118,6 +118,14 @@ class SparseBaselineTests(unittest.TestCase):
                          "-m", "unguarded positive control")
             self.assertTrue(maintenance_children(), "positive control must start maintenance")
 
+    def test_direct_certificate_routes_to_its_exponent_check(self):
+        self.explicit_manifest()
+        (self.root / self.record["certificate"]).write_text(
+            json.dumps({"schema": "direct-multiplier-corollary/1"}), encoding="utf-8")
+        code, result = self.run_main()
+        self.assertEqual(code, 0)
+        self.assertEqual(result["next"], ["python3", "-B", "scripts/verify_nov24_direct.py"])
+
     def test_full_explicit_inventory_keeps_repository_relative_paths(self):
         self.explicit_manifest()
         code, result = self.run_main()

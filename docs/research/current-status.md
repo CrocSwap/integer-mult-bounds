@@ -1,11 +1,17 @@
-# Current reviewed status
+# Proposed selection from the November direct multiplication theorem
 
-Selected conditional κ: **0.00363005817** = 363005817/100000000000, Jerry Chen /
+The selected numeric witness is **κ = 0.4999**. The same fixed machine supports every fixed positive κ below 1/2. The endpoint is open. This selection applies OpenAI’s direct construction to the repository’s input/output and time convention. The previous grouped-assembly result has its own source, assumptions and replay below.
+
+Run `make nov24-direct-verify` for the source and corollary replay. [Selected record](../../certificates/selected-result.json) · [Application and scope](../../research/nov24-direct-multiplication/PROOF.md)
+
+## Historical maintainer-reviewed #7000 construction
+
+Previously selected conditional κ: **0.00363005817** = 363005817/100000000000, Jerry Chen /
 CubeJerry's PR7000 with the paired QUERY-only BIT dependency PR7001. The complete
 complex caller counts 23,392 productive fields and 117,612 paid calls. The saving
 κ is about 16.13% above the preceding selected PR6030 claim .003125804.
 
-[Selected record](../../certificates/selected-result.json) ·
+[Frozen #7000 record](../../certificates/checkpoints/frontier7000.json) ·
 [Application review](pr-intake-evidence/pr7000-application/PROOF-REVIEW.md) ·
 [Validation](pr-intake-evidence/pr7000-application/VALIDATION.json) ·
 [Contributor map](community-frontier7000-contributors.md).

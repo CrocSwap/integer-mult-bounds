@@ -1,0 +1,24 @@
+# The November direct multiplier in the repository's κ convention
+
+OpenAI's *The logarithmic exponent of integer multiplication on tapes* (November 24, 2026) proves the following upper bound. One deterministic machine multiplies exactly at every positive input length, visits linear space and takes worst-case time at most $n(1+\log n)^{1/2+o(1)}$. This is the uniform theorem, `thm:uniform-main`. The paper first builds fixed-exponent algorithms and then gives a single machine that schedules them. The same machine witnesses the entire family of savings below. [Theorem statement](source/intro.tex) · [Fixed-exponent construction](source/integers.tex) · [Uniform machine](source/uniformity.tex)
+
+## Machine and output
+
+The repository specifies two unsigned, most-significant-bit-first strings of equal length $n\ge1$, separated by a delimiter. The required output is the unique $2n$-bit encoding of their product, including leading zeros. The upstream specification loads those same strings, requires a halting trace on every pair, and requires the entire output tape to contain a string of length $2n$ with value equal to the product. These conditions determine the required string even on zero operands. The alphabet, tape count and deterministic transition rule are fixed before input length is quantified. Each head reads and writes at its current cell and moves at most one position per step. The time function bounds the attained worst case across all input pairs at each length. The proof also bounds the number of visited tape cells by $O(n)$. [Repository contract](../../upstream/build/sections/00-introduction.tex) · [Upstream machine specification](source/NearSquareRootMultiplication.lean)
+
+## Quantifiers and the endpoint
+
+Let $\kappa$ be any fixed real number with $0<\kappa<1/2$ and write $g=1/2-\kappa$. In the uniform bound let $\delta(n)$ denote the excess exponent tending to zero. For all sufficiently large $n$, $\delta(n)\le g/2$. Hence the log exponent is at most $1/2+g/2<1/2+g=1-\kappa$. Changing from $1+\log n$ to the repository's $\max(1,\lceil\log_2 n\rceil)$ costs a constant factor for each fixed exponent. The finitely many smaller lengths have finite worst-case times, so enlarging the constant covers every $n\ge1$. Thus the same machine has time $O_\kappa(n(\lg n)^{1-\kappa})$ for every fixed κ in that interval.
+
+The numeric record uses $\kappa=4999/10000$. Here $g=1/10000$, and the eventual exponent $10001/20000$ is strictly below the target $5001/10000$. This witness is one instance of the family. Its supremum is $1/2$. The paper leaves the exact $O(n\sqrt{\log n})$ endpoint open. For example, an excess exponent tending to zero can still introduce an unbounded $\log\log n$ factor. The paper's separate lower bound rules out fixed $\kappa>1/2$ under variable-count Weak ETH. The upper bound used here has no Weak ETH premise. [Upper and lower theorem statements](source/intro.tex)
+
+## Evidence and attribution
+
+The scientific input is the cited theorem at OpenAI's release commit `92b516ef8e2abf66c3db7aa31438d3010bc7956f`. The archived upstream files are unmodified. UPSTREAM.json records their public paths, Git blob IDs and SHA-256 digests. The upstream Lean solution declares `OAI.Computability.NearSquareRoot.uniformIntegerMultiplication`. Its separate comparator statement uses placeholders to specify what the solution must prove. The local replay authenticates these sources and checks the exact specialization and endpoint controls. Independent compilation of the upstream Lean dependency graph and execution of a multiplier are outside this replay. [Proof entry](source/Main.lean) · [Comparator configuration](source/NearSquareRootMultiplication.json) · [Upstream release](https://github.com/openai/math/tree/92b516ef8e2abf66c3db7aa31438d3010bc7956f)
+
+The repository contribution is the machine-contract comparison, exponent specialization, selection record and offline replay, prepared with substantial OpenAI Codex assistance. The direct algorithm and proof are due to OpenAI. The community's grouped-assembly construction and its contributor credits remain available at the [#7000 checkpoint](../../certificates/checkpoints/frontier7000.json). The [0.030 supplier transfer](../nov24-retained-kappa-003/README.md) is a separate proposed construction.
+
+## Open next questions
+
+- Can the excess exponent be eliminated while keeping fixed tapes and a single machine? The uniform theorem alone gives no quantitative rate that would bound the endpoint overhead.
+- An independent formal replay can build the upper comparator at the pinned revision and record its accepted declarations and actual axioms. Its configuration and instructions are upstream. [Comparator instructions](https://github.com/openai/math/blob/92b516ef8e2abf66c3db7aa31438d3010bc7956f/lean/ComparatorChallenges/README.md)

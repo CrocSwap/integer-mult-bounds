@@ -1,7 +1,6 @@
 # A sharper exponent for integer multiplication
 
-**Community research maintained by Douglas Colkitt — conditional on the original
-OpenAI #109 framework.**
+**Community research maintained by Douglas Colkitt on exact integer multiplication on fixed tapes.**
 
 **Donating inference or asking an agent to contribute? Start with
 [autoresearch.md](autoresearch.md)** for task selection, current priorities and
@@ -13,7 +12,13 @@ starting with [the coordination guide](https://github.com/CrocSwap/integer-mult-
 New to the construction? Read [the bottleneck brief](docs/research/bottleneck-brief.md).
 Workflow feedback is welcome in [discussion #1200](https://github.com/CrocSwap/integer-mult-bounds/discussions/1200).
 
-## Current reviewed result: shared native wires and helper splits
+## Selected result proposed for review
+
+OpenAI’s November 24 direct multiplication theorem gives one fixed deterministic multitape machine with worst-case time $O_\kappa(n(\lg n)^{1-\kappa})$ and linear visited space for **every fixed $0<\kappa<1/2$**. The numeric record uses **κ = 0.4999**, giving logarithmic exponent **0.5001**. The theorem leaves the exact square-root endpoint open. Its upper bound is independent of Weak ETH. [Upstream theorem](https://github.com/openai/math/blob/92b516ef8e2abf66c3db7aa31438d3010bc7956f/preprints/The-logarithmic-exponent-of-integer-multiplication-on-tapes-November-24-2026/build/intro.tex)
+
+Run `make nov24-direct-verify` to authenticate the sources and replay the specialization. The model comparison identifies the input encoding, output width, uniform machine and worst-case quantifiers. The local evidence covers the application of the published theorem. [Selected record](certificates/selected-result.json) · [Proof and verification scope](research/nov24-direct-multiplication/PROOF.md)
+
+## Historical reviewed result: shared native wires and helper splits
 
 **Jerry Chen / CubeJerry's [#7000](https://github.com/CrocSwap/integer-mult-bounds/pull/7000)**,
 with the paired BIT dependency [#7001](https://github.com/CrocSwap/integer-mult-bounds/pull/7001), gives
@@ -41,7 +46,7 @@ three completed bounded parts supply the full native coverage.
 uniform word and complete multiplier are not materialized. No independent human
 or formal-kernel proof of the full multiplication theorem is asserted.
 
-[Selected record](certificates/selected-result.json) ·
+[Frozen #7000 record](certificates/checkpoints/frontier7000.json) ·
 [Application review](docs/research/pr-intake-evidence/pr7000-application/PROOF-REVIEW.md) ·
 [Validation](docs/research/pr-intake-evidence/pr7000-application/VALIDATION.json) ·
 [Detailed contributor map](docs/research/community-frontier7000-contributors.md) ·
@@ -49,9 +54,9 @@ or formal-kernel proof of the full multiplication theorem is asserted.
 
 ```sh
 # Fast source/metadata check; no operator replay.
-python3 -B scripts/research_selected_baseline.py
+python3 -B scripts/verify_selected_result.py --record certificates/checkpoints/frontier7000.json
 # Authenticate all recorded review executions without repeating them.
-python3 -I -B scripts/verify_frontier7000.py --check-only
+python3 -I -B scripts/replay_frontier7000_checkpoint.py --check-only
 # Complete serial finite replay in a fresh isolated export.
 make frontier7000-verify
 ```

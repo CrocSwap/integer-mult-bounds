@@ -150,7 +150,7 @@ closure. Use `selected` for the current review and replay. See the
 **Resolve the generic orientation command before running a historical card.**
 If its `first_step.command` is `python3 -B scripts/research_baseline.py`, use the
 current orientation command in [current priorities](current-priorities.md).
-For the selected #4470 productive-helper schema, that command is:
+For the direct November theorem run `make nov24-direct-verify`. For the historical #4470 productive-helper schema the command was:
 
 ```sh
 python3 -B scripts/research_selected_baseline.py

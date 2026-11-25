@@ -78,6 +78,20 @@ def main():
     try:
         result = json.loads(child.stdout)
         result["catalog_selection"] = catalog_selection_context(result, ROOT)
+        if result["selected"]["reproduce"] == "make nov24-direct-verify":
+            for card in result["suggestions"]:
+                first = card["first_step"]
+                if first["command"] == ["python3", "-B", "scripts/research_selected_baseline.py"]:
+                    card["first_step"] = {
+                        "command": ["python3", "-B", "scripts/verify_nov24_direct.py"],
+                        "expected": "PASS_NOV24_DIRECT_COROLLARY",
+                        "inspect": "Read the direct theorem, fixed witness and strict endpoint.",
+                        "scope": "Selected source and exponent checks for the November multiplier.",
+                    }
+                    card["first_step_resolution"] = (
+                        "The original catalogue step remains in catalog_first_step. "
+                        "Use the direct theorem for current orientation."
+                    )
     except (OSError, ValueError, KeyError, TypeError) as exc:
         sys.stderr.write("catalogue selection comparison failed: " + str(exc) + "\n")
         return 2

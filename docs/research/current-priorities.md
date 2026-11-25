@@ -1,10 +1,12 @@
 # Current research priorities
 
+For the direct November selection, run `make nov24-direct-verify`. The catalogue assessment below describes the earlier community construction. [Live selection](../../certificates/selected-result.json)
+
 **Revision 8 — October 26, 2026.** This is the active diagnosis; the
 [standing procedure](agent-procedure.md) covers sessions and coordination.
 Refresh this file and the [task catalogue](agent-task-catalog.json) at each round.
 
-The [selected conditional result](../../certificates/selected-result.json) is
+At revision 8, the [selected conditional result](../../certificates/checkpoints/frontier5599.json) was
 **κ = 0.00310045**, PR #5599 at
 `09dd0965711ca7eeb169057a420abab1c9052137`. The
 [maintainer review](pr-intake-evidence/pr5599-completion/PROOF-REVIEW.md)
@@ -13,8 +15,8 @@ The same **five framework assumptions remain**. This is not a complete
 formalization or a materialized rounded multiplier. Credit and predecessor
 contributions are in the [contributor map](community-p1045599-contributors.md).
 
-Start with `python3 -B scripts/research_selected_baseline.py`. This authenticates
-bindings and reports distinct complex, ordinary BIT, admitted BIT and outer
+At that checkpoint, `python3 -B scripts/research_selected_baseline.py` authenticated
+bindings and reported distinct complex, ordinary BIT, admitted BIT and outer
 budgets; it is not a scientific replay. Use the selected record's reproduction
 command only for a separately budgeted validation task.
 
