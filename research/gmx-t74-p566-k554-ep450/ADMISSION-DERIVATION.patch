@@ -1,0 +1,324 @@
+--- inherited/witness.py
++++ t74/witness.py
+@@ -53,3 +53,16 @@
+  """A different provider for substitution controls (next in sorted order)."""
+  assert len(PIDS)>1
+  return PIDS[(PIDS.index(pid)+1)%len(PIDS)]
++
++# Replica-sensitive quantities are frozen by the independently checked parent lift.
++GEO=SPEC['geometry']
++REPLICAS=GEO['replicas']; CALLS=GEO['stages']*REPLICAS
++assert type(REPLICAS) is int and REPLICAS>0
++assert (GEO['stages'],GEO['pairs'],GEO['dimension'])==(9,4,73)
++assert set(CALL_ORDER)=={(s,r) for s in range(GEO['stages']) for r in range(REPLICAS)}
++DATA=2*112*GEO['pairs']*REPLICAS
++DEFICIT=DATA-64*CALLS
++PAYLOAD=GEO['charged_prefix_bits']
++assert PAYLOAD==1<<(192+(GEO['dimension']+1)//2+2*CALLS+4).bit_length()
++PARENT_LIVE=GEO['parent_live'];PARENT_PHYSICAL=GEO['parent_physical'];PARENT_IDLE=GEO['parent_idle'];PARENT_HELPERS=GEO['parent_helpers']
++assert PARENT_PHYSICAL==PARENT_LIVE+PARENT_HELPERS+8+2
+--- inherited/emit_allcold.py
++++ t74/emit_allcold.py
+@@ -24,8 +24,8 @@
+ read=lambda p:json.loads(gzip.decompress(p.read_bytes())if p.suffix=='.gz'else p.read_bytes())
+ assert hashlib.sha256(MAP.read_bytes()).hexdigest()==SPEC['data']['owners_sha256'],'OWNERS not pinned by spec'
+ plan=read(PLAN);assert plan['runtime_source_plan_sha256']==SPEC['data']['plan_sha256'],'PLAN not pinned by spec'
+-call_order=[tuple(x)for x in plan['order']];assert len(call_order)==len(set(call_order))==333;at={x:i for i,x in enumerate(call_order)}
+-parent=read(BASE/'split-centres/GLOBAL-TEMPLATE.json.gz');t=copy.deepcopy(parent);canon=read(BASE/'split-centres/CANONICAL-WORD.json.gz');ph=read(BASE/'work/complex-nine-native/DATA-PHASES.json');roles=read(MAP);T=37;V=canon['v'];M=73;R0=canon['R'];DATA=8*T*V;assert(V,canon['h'])==(112,9)   # R0: parent (split-centres) helper count
++call_order=[tuple(x)for x in plan['order']];assert len(call_order)==len(set(call_order))==CALLS;at={x:i for i,x in enumerate(call_order)}
++parent=read(BASE/'split-centres/GLOBAL-TEMPLATE.json.gz');t=copy.deepcopy(parent);canon=read(BASE/'split-centres/CANONICAL-WORD.json.gz');ph=read(BASE/'work/complex-nine-native/DATA-PHASES.json');roles=read(MAP);T=REPLICAS;V=canon['v'];M=73;R0=canon['R'];DATA=8*T*V;assert(V,canon['h'])==(112,9)   # R0: parent (split-centres) helper count
+ assert(len(canon['start']),len(ph['recipes']))==(2*V+R0,V)
+ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ provider_files=('CANONICAL-WORD.json.gz','LOCAL-PROGRAMS.json.gz','LOCAL-CHECKS.json','INDEPENDENT-LOCAL-REPLAY.json','RESIDUAL-ADAPTERS.json','CLIFFORD-RECIPES.json','CLIFFORD-REVIEW.json')
+@@ -49,9 +49,9 @@
+   value=sha(directory/name);assert value==plan['provider_registry'][provider_id]['artifact_sha256'][name]
+   source_artifacts[f'providers/{provider_id}/{name}']=value
+  registry[provider_id]=dict(local_programs=programs,canonical_word_sha256=sha(directory/'CANONICAL-WORD.json.gz'),local_programs_sha256=sha(directory/'LOCAL-PROGRAMS.json.gz'),local_program_checks=checks,exact_local_clifford_recipe_sha256=sha(directory/'CLIFFORD-RECIPES.json'),residual_adapter_sha256=sha(directory/'RESIDUAL-ADAPTERS.json'),v=V,h=9,R=R,ports=pc['ports'],centers=pc['centers'],widths=widths)
+-assert len(roles)==333*R   # one whole-owner role per (call, provider helper)
++assert len(roles)==CALLS*R   # one whole-owner role per (call, provider helper)
+ selected={(c['stage'],c['replica']):c for c in plan['provider_calls']}
+-assert len(selected)==333 and set(selected)==set(call_order)
++assert len(selected)==CALLS and set(selected)==set(call_order)
+ assert Counter(c['provider']for c in selected.values())==COUNTS
+ per_call_widths={(c['stage'],c['replica']):c['widths']for c in plan['per_call_widths']}
+ for key,c in selected.items():
+@@ -92,7 +92,7 @@
+   u=used[i,rep,port];assert u==set(range(len(u)));left=old['rank']-len(u)
+   if left:
+    f=rep*(8*V)+(2*pairs[i]+side[i])*V+port;newidle.append(dict(child=i,port=port,replica=rep,replicas=1,family=f,rank=left,hosted=len(u),pending_offset=len(u)));paid[left]+=1
+-assert M*DATA-sum(r*n for r,n in paid.items())==11840
++assert M*DATA-sum(r*n for r,n in paid.items())==DEFICIT
+ C=len(canon['centers']);physical=DATA+C+R+2
+ assert parent['physical']-parent['live']==C+R0+2
+ # Local circuits, exact phase recipes, normalized wrappers and data routes stay
+@@ -140,7 +140,7 @@
+  template_sha256=hashlib.sha256(raw).hexdigest(),
+  parent_template_sha256=hashlib.sha256(gzip.decompress((BASE/'split-centres/GLOBAL-TEMPLATE.json.gz').read_bytes())).hexdigest(),
+  live=DATA,physical=physical,global_profile=dict(sorted(paid.items())),
+- rank_mass=sum(r*n for r,n in paid.items()),deficit=11840,maxchild=max(paid),
++ rank_mass=sum(r*n for r,n in paid.items()),deficit=DEFICIT,maxchild=max(paid),
+  hosted_residuals=len(roles),banks_per_stage=[0]*9,entering_helper_roles=entering,
+  unique_actual_73column_sigmas=len(sigmas),sigma_stream_sha256=digest.hexdigest(),
+  cross_replica_helper_roles=sum(z['replica']!=z['owner_replica']for z in roles),
+--- inherited/audit_allcold.py
++++ t74/audit_allcold.py
+@@ -77,10 +77,10 @@
+ parent_canon=read(BASE/'split-centres/CANONICAL-WORD.json.gz')
+ assert [canon['frames'][f]for f in canon['center_frames']]==[parent_canon['frames'][f]for f in parent_canon['center_frames']]
+ assert required_artifacts<=set(summary['source_artifacts'])
+-prank={e['child']:e['rank']for e in parent['idle_children']};M=73;T=37;DATA=8*T*V;PHYSICAL=DATA+CENTRES+R+2;CALLS=333;HOSTED=CALLS*R
++prank={e['child']:e['rank']for e in parent['idle_children']};M=73;T=REPLICAS;DATA=8*T*V;PHYSICAL=DATA+CENTRES+R+2;CALLS=CALLS;HOSTED=CALLS*R
+ # The selected map is an input to check, not a claim from the emitter.
+ 
+-assert len(DISPATCH)==333 and Counter(DISPATCH.values())==COUNTS
++assert len(DISPATCH)==CALLS and Counter(DISPATCH.values())==COUNTS
+ expected_provider=lambda stage,replica:DISPATCH[stage,replica]
+ 
+ def orthobasis(port):
+@@ -93,23 +93,23 @@
+  assert(t['live'],t['physical'])==(DATA,PHYSICAL)
+  assert t['local_providers']==registry and t['recipe']==parent['recipe']and 'each local invocation completes before the next' in t['loop_order'].lower()
+  assert not any(k in t for k in('local_programs','exact_local_clifford_recipe_sha256','residual_adapter_sha256'))
+- assert len(t['calls'])==333 and t['hosting']['max_helpers_per_physical_family_per_call']==1 and t['hosting']['banks']==[0]*9
++ assert len(t['calls'])==CALLS and t['hosting']['max_helpers_per_physical_family_per_call']==1 and t['hosting']['banks']==[0]*9
+  for key in('exact_data_phase_recipe_sha256','adapter_policy'):assert t[key]==parent[key]
+  assert t['exact_data_phase_recipe_sha256']==sha(BASE/'work/complex-nine-native/DATA-PHASES.json')
+  # Independently project the literal schedule onto every data replica.
+  src=parent['execution_schedule'];assert t['async_schedule']['source_schedule']==src
+  assert t['async_schedule']['source_call_order']==[[c['stage'],c['replica']]for c in parent['calls']]
+  order=[(c['stage'],c['replica'])for c in t['calls']]
+- assert [list(x)for x in order]==t['async_schedule']['order'] and len(set(order))==333
+- all_local=[];perrep={r:[]for r in range(37)};globals_=[]
++ assert [list(x)for x in order]==t['async_schedule']['order'] and len(set(order))==CALLS
++ all_local=[];perrep={r:[]for r in range(REPLICAS)};globals_=[]
+  for e in t['execution_schedule']:
+   j=e['source_event'];old=copy.deepcopy(src[j])
+   if 'replica'in e:
+-   r=e['replica'];assert 0<=r<37 and j<30;perrep[r].append(j)
++   r=e['replica'];assert 0<=r<REPLICAS and j<30;perrep[r].append(j)
+    expected=old|dict(source_event=j,replica=r,replicas=[r],time=e['time'])
+    if e['kind']=='local_cover_sweep':expected['provider_id']=expected_provider(e['stage'],r)
+    assert e==expected
+-   assert 0<=e['time']<333 and order[e['time']][1]==r
++   assert 0<=e['time']<CALLS and order[e['time']][1]==r
+    if e['kind']=='local_cover_sweep':
+     assert order[e['time']]==(e['stage'],r);all_local.append((e['stage'],r,e['time']))
+   else:
+@@ -164,7 +164,7 @@
+    role=(s,rep,h);assert role not in roles;roles[role]=dict(stage=s,replica=rep,helper=h,family=family,owner_replica=ownerrep,child=i,copy=ownerrep*V+port,port=port,offset=off,width=w)
+    touches[family].append((s,rep,h));entering+=w<9;cross+=rep!=ownerrep
+   for r,n in checks[call['orientation']]['paid_profile'].items():paid[int(r)]+=n
+- assert set(roles)=={(s,rep,h)for s in range(9)for rep in range(37)for h in range(R)}
++ assert set(roles)=={(s,rep,h)for s in range(9)for rep in range(REPLICAS)for h in range(R)}
+  # The frozen pooled metadata must bind the actual serialized owner maps.
+  assert len(t['hosting']['pooled_slots'])==HOSTED
+  for z in t['hosting']['pooled_slots']:
+@@ -179,8 +179,8 @@
+    if r:
+     f=rep*(8*V)+(2*pairs[i]+sides[i])*V+port;wanted.append(dict(child=i,port=port,replica=rep,replicas=1,family=f,rank=r,hosted=len(u),pending_offset=len(u)));paid[r]+=1
+  assert t['idle_children']==wanted
+- mass=sum(r*n for r,n in paid.items());assert73=73*DATA-mass;assert assert73==11840 and 73**2>2*max(paid)**2
+- return dict(profile=dict(sorted(paid.items())),mass=mass,hosted=HOSTED,entering=entering,cross_replica=cross,sigma_digest=digest.hexdigest(),sigmas=sigmas,idle_remainders=len(wanted),busy_family_checks=len(roles),invocations=333)
++ mass=sum(r*n for r,n in paid.items());assert73=73*DATA-mass;assert assert73==DEFICIT and 73**2>2*max(paid)**2
++ return dict(profile=dict(sorted(paid.items())),mass=mass,hosted=HOSTED,entering=entering,cross_replica=cross,sigma_digest=digest.hexdigest(),sigmas=sigmas,idle_remainders=len(wanted),busy_family_checks=len(roles),invocations=CALLS)
+ 
+ r=audit(ct);raw=gzip.decompress((OUT/'GLOBAL-TEMPLATE.json.gz').read_bytes());assert hashlib.sha256(raw).hexdigest()==summary['template_sha256'];assert r['profile']=={int(k):v for k,v in summary['global_profile'].items()};assert r['sigmas']==read(OUT/'ACTUAL-SIGMAS.json.gz');assert r['sigma_digest']==summary['sigma_stream_sha256']
+ assert all(hashlib.sha256((BASE/name).read_bytes()).hexdigest()==value for name,value in summary['source_artifacts'].items())
+@@ -228,11 +228,11 @@
+   reject(P+': wrong sweep provider',lambda q,P=P,Qp=Qp:next(e for e in q['execution_schedule']if e['kind']=='local_cover_sweep'and DISPATCH[e['stage'],e['replica']]==P).__setitem__('provider_id',Qp))
+   reject(P+': entering helper width silently restored to nine',lambda q,P=P,h=narrow:q['local_providers'][P]['widths'].__setitem__(h,9))
+ 
+-report=dict(status='PASS_INDEPENDENT_ASYNC_WHOLE_OWNER_CONTROLLER_PHASES_AND_SPECTATORS',template_sha256=summary['template_sha256'],complex_template_sha256=summary['template_sha256'],complex_live=DATA,complex_profile=r['profile'],complex_hosted_residuals=HOSTED,physical=PHYSICAL,rank_mass=r['mass'],deficit=11840,entering_helper_roles=r['entering'],cross_replica_helper_roles=r['cross_replica'],one_owner_per_complete_invocation=True,helper_busy_family_window_checks=r['busy_family_checks'],complete_invocations=r['invocations'],actual_orthogonal_73column_maps=len(r['sigmas']),actual_sigma_stream_sha256=r['sigma_digest'],all_actual_residual_and_spectator_charts=True,idle_remainders=r['idle_remainders'],mutations_rejected=controls,mutation_controls_run='--mutation-controls' in sys.argv[4:],provider_phase_semantic_sha256=phase_semantic_hashes,provider_artifact_semantic_sha256=artifact_semantic_hashes,widths_by_provider={pid:dict(sorted(Counter(providers[pid]['widths']).items()))for pid in provider_ids},provider_counts=dict(Counter(c['provider_id']for c in ct['calls'])),all_provider_program_phase_and_wrapper_bindings=True,scope='Independent exact asynchronous chronology, per-replica phase projection, owner/chart/paid-profile audit. Uses per-invocation local providers bound by exact scalar, phase and residual-wrapper receipts; all-size compilation and complete coefficient invoice are separate inherited obligations.')
++report=dict(status='PASS_INDEPENDENT_ASYNC_WHOLE_OWNER_CONTROLLER_PHASES_AND_SPECTATORS',template_sha256=summary['template_sha256'],complex_template_sha256=summary['template_sha256'],complex_live=DATA,complex_profile=r['profile'],complex_hosted_residuals=HOSTED,physical=PHYSICAL,rank_mass=r['mass'],deficit=DEFICIT,entering_helper_roles=r['entering'],cross_replica_helper_roles=r['cross_replica'],one_owner_per_complete_invocation=True,helper_busy_family_window_checks=r['busy_family_checks'],complete_invocations=r['invocations'],actual_orthogonal_73column_maps=len(r['sigmas']),actual_sigma_stream_sha256=r['sigma_digest'],all_actual_residual_and_spectator_charts=True,idle_remainders=r['idle_remainders'],mutations_rejected=controls,mutation_controls_run='--mutation-controls' in sys.argv[4:],provider_phase_semantic_sha256=phase_semantic_hashes,provider_artifact_semantic_sha256=artifact_semantic_hashes,widths_by_provider={pid:dict(sorted(Counter(providers[pid]['widths']).items()))for pid in provider_ids},provider_counts=dict(Counter(c['provider_id']for c in ct['calls'])),all_provider_program_phase_and_wrapper_bindings=True,scope='Independent exact asynchronous chronology, per-replica phase projection, owner/chart/paid-profile audit. Uses per-invocation local providers bound by exact scalar, phase and residual-wrapper receipts; all-size compilation and complete coefficient invoice are separate inherited obligations.')
+ REPORT.parent.mkdir(parents=True,exist_ok=True)
+ REPORT.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+ 
+-owners=dict(status='PASS_INDEPENDENT_ASYNC_OWNERS_AND_PROFILE',template_sha256=summary['template_sha256'],paid_profile=r['profile'],live=DATA,physical=PHYSICAL,rank_mass=r['mass'],deficit=11840,hosted_residuals=HOSTED,banked_residuals=0,all_live_owners_per_call_distinct=True,owners_per_call=N,actual_helper_owner_charts=HOSTED,actual_73column_sigmas=len(r['sigmas']),cross_replica_helper_roles=r['cross_replica'],explicit_idle_remainder_children=r['idle_remainders'],source_idle_children_charged=sum(x['replicas']for x in parent['idle_children']),source_artifacts=summary['source_artifacts'],provider_phase_semantic_sha256=phase_semantic_hashes,provider_artifact_semantic_sha256=artifact_semantic_hashes,controller_audit_sha256=hashlib.sha256(REPORT.read_bytes()).hexdigest())
++owners=dict(status='PASS_INDEPENDENT_ASYNC_OWNERS_AND_PROFILE',template_sha256=summary['template_sha256'],paid_profile=r['profile'],live=DATA,physical=PHYSICAL,rank_mass=r['mass'],deficit=DEFICIT,hosted_residuals=HOSTED,banked_residuals=0,all_live_owners_per_call_distinct=True,owners_per_call=N,actual_helper_owner_charts=HOSTED,actual_73column_sigmas=len(r['sigmas']),cross_replica_helper_roles=r['cross_replica'],explicit_idle_remainder_children=r['idle_remainders'],source_idle_children_charged=sum(x['replicas']for x in parent['idle_children']),source_artifacts=summary['source_artifacts'],provider_phase_semantic_sha256=phase_semantic_hashes,provider_artifact_semantic_sha256=artifact_semantic_hashes,controller_audit_sha256=hashlib.sha256(REPORT.read_bytes()).hexdigest())
+ (REPORT.parent/'OWNERS-AND-PROFILE.json').write_text(json.dumps(owners,indent=2)+'\n')
+ 
+ # Literal residual frames are a compact export of the already checked offsets,
+--- inherited/invoice_allcold.py
++++ t74/invoice_allcold.py
+@@ -195,7 +195,7 @@
+     helpers=next(iter(providers.values()))['helpers']; n=2*v+helpers
+     assert all((p['v'],p['h'],p['centres'],p['n'])==(v,h,centres,n) for p in providers.values())
+     parent_helpers=read(local_dir/'CANONICAL-WORD.json.gz')['R']
+-    stages,replicas,blocks_per_stream=9,37,4
++    stages,replicas,blocks_per_stream=GEO['stages'],REPLICAS,GEO['pairs']
+     call_count=len(template['calls'])
+     assert call_count==stages*replicas==control['complete_invocations']
+     assert control['one_owner_per_complete_invocation']
+@@ -238,6 +238,8 @@
+     bridge_additions=2*v*bridge_sweeps
+     shifts=blocks_per_stream*v*replicas; moves=2*shifts
+     parent_live,parent_physical=parent['live'],parent['physical']
++    assert (parent_live,parent_physical,sum(c['replicas'] for c in parent['idle_children']))==(PARENT_LIVE,PARENT_PHYSICAL,PARENT_IDLE)
++    assert parent_helpers==PARENT_HELPERS
+     data_stock=2*v*blocks_per_stream*replicas
+     assert (parent_live-data_stock)%stages==0
+     parent_banks=(parent_live-data_stock)//stages
+@@ -250,7 +252,7 @@
+         +(call_count*adapters+outside)*compiler+64*parent_physical)
+     live,physical=template['live'],template['physical']
+     mass,profile=owners['rank_mass'],owners['paid_profile']
+-    assert m*live-mass==owners['deficit']==11840
++    assert m*live-mass==owners['deficit']==DEFICIT
+     assert mass==sum(int(r)*count for r,count in profile.items())
+     assert physical==live+helpers+centres+2
+     assert live==owners['live'] and physical==owners['physical']
+@@ -260,7 +262,7 @@
+     # The old dedicated-bank geometry is only a conservative reserve envelope.
+     # Its singular program is never used as evidence for a mixed invocation.
+     rebased=parent_pervertex+65*(physical-parent_physical)+(live-parent_live)
+-    used=max(rebased,parent_pervertex); retained=None; payload=1024
++    used=max(rebased,parent_pervertex); retained=None; payload=PAYLOAD
+     if retained_invoice is not None:
+         previous=read(retained_invoice)
+         assert previous['compiler']==compiler and previous['charged_prefix_bits']==512
+@@ -313,7 +315,7 @@
+         complete_invocation_cover_sweeps=call_count,bridge_factor_two_sweeps=bridge_sweeps,
+         local_scalar_coefficient_work_prefix_bits=localbits,stream_input_sup_to_l2_bits=input_l2_bits,
+         primitive_arithmetic_margin_bits=4,controller_audit_sha256=filehash(audit/'ASYNC-AUDIT.json'),
+-        proof='Each selected normalized provider restores all arbitrary dirty helper columns and gives the same data shear endpoints. Actual whole-owner charts are right-translation bijections. Sum all 333 invocation and 333 bridge sweeps and take the maximum local scalar/Horner prefix over both orientations of the fixed provider. Idle children, phases, spectator endpoints and terminal translations are unitary. Retained all-size interfaces are conditional.')
++        proof='Each selected normalized provider restores all arbitrary dirty helper columns and gives the same data shear endpoints. Actual whole-owner charts are right-translation bijections. Sum every actual invocation and bridge sweep and take the maximum local scalar/Horner prefix over both orientations of the fixed provider. Idle children, phases, spectator endpoints and terminal translations are unitary. Retained all-size interfaces are conditional.')
+     out.mkdir(parents=True,exist_ok=True)
+     (out/'PREFIX-AND-INVOICE.json').write_text(json.dumps(receipt,indent=2)+'\n')
+     (out/'GLOBAL-PREFIX.json').write_text(json.dumps(prefix,indent=2)+'\n')
+--- inherited/assemble.py
++++ t74/assemble.py
+@@ -27,7 +27,7 @@
+ M,B,A=[load(n)for n in ('moment','base_two_moment','outer')]
+ def dec(x):
+  with localcontext()as ctx:ctx.prec=70;return str(Decimal(x.numerator)/Decimal(x.denominator))
+-from witness import DISPATCH,CALL_ORDER,COUNTS,PIDS,X,DISCOVER,pin,SPOT,spot_widths
++from witness import DISPATCH,CALL_ORDER,COUNTS,PIDS,X,DISCOVER,pin,SPOT,spot_widths,GEO,REPLICAS,CALLS,DATA,DEFICIT,PAYLOAD,PARENT_LIVE,PARENT_PHYSICAL,PARENT_IDLE,PARENT_HELPERS
+ # Cited bit supplier: PR589's tune/EXPECTED.json (merged on main as research/e8-bit-p111-tuned/tune/EXPECTED.json).
+ BIT_PATH=Path(__file__).resolve().parents[1]/'inputs/PR589-EXPECTED.json'
+ BIT_BLOB='e293ddc557742637f9f679f083a1a282d87b1b13'
+@@ -63,14 +63,14 @@
+  assert owner['all_live_owners_per_call_distinct'] is True
+  # R (helpers per provider word) is read from the invoice and must be shared by every provider; n=2v+R.
+  R=invoice['helpers'];assert type(R) is int and R>0 and all(p['helpers']==R for p in invoice['providers'].values())
+- assert owner['owners_per_call']==2*112+R and owner['actual_helper_owner_charts']==owner['hosted_residuals']==333*R==pin('expected.hosted_residuals',owner['hosted_residuals'])
++ assert owner['owners_per_call']==2*112+R and owner['actual_helper_owner_charts']==owner['hosted_residuals']==CALLS*R==pin('expected.hosted_residuals',owner['hosted_residuals'])
+  pin('expected.rank_mass',owner['rank_mass'])
+  pin('expected.actual_73column_sigmas',owner['actual_73column_sigmas']);pin('expected.cross_replica_helper_roles',owner['cross_replica_helper_roles'])
+  pin('expected.idle_remainders',owner['explicit_idle_remainder_children'])
+- assert invoice['complete_invocation_sweeps']==invoice['bridge_sweeps']==333
++ assert invoice['complete_invocation_sweeps']==invoice['bridge_sweeps']==CALLS
+  assert invoice['live']==owner['live'] and invoice['physical']==owner['physical']
+  assert invoice['centres']==8
+- assert invoice['physical_stock_identity']==dict(data_and_owner_families=33152,local_helpers=R,private_centres=8,coefficient_work=2)
++ assert invoice['physical_stock_identity']==dict(data_and_owner_families=DATA,local_helpers=R,private_centres=8,coefficient_work=2)
+  assert sum(invoice['physical_stock_identity'].values())==invoice['physical']
+  assert invoice['controller_audit_sha256']==owner['controller_audit_sha256']
+  for pid,p in invoice['providers'].items():
+@@ -106,9 +106,9 @@
+   assert p['compiler']==64*74**3
+   assert p['local_adapters']==16*(max(z['macros']for z in p['local'].values())+p['children']+2*112+R+8)+64*73
+   assert p['local_primitive_bound']==max(z['real_component_primitives']for z in p['local'].values())+p['local_adapters']*p['compiler']
+- calls=invoice['selected_calls'];assert len(calls)==333
++ calls=invoice['selected_calls'];assert len(calls)==CALLS
+  assert [(c['stage'],c['replica'])for c in calls]==CALL_ORDER
+- assert {(c['stage'],c['replica']) for c in calls}=={(s,r) for s in range(9) for r in range(37)}
++ assert {(c['stage'],c['replica']) for c in calls}=={(s,r) for s in range(9) for r in range(REPLICAS)}
+  for c in calls:
+   pid=DISPATCH[c['stage'],c['replica']]
+   assert c['provider_id']==pid
+@@ -138,13 +138,13 @@
+  # Recount the retained dedicated-bank envelope independently. Its geometry
+  # stays fixed, while every local primitive and wrapper comes from the actual
+  # selected provider/orientation sums above.
+- parent_live,parent_physical,parent_idle=55832,56346,74592
+- parent_banks,rem=divmod(parent_live-2*112*4*37,9);assert rem==0 and parent_physical==parent_live+504+8+2   # five bank groups with 8,8,8,8,5 active lanes and R0=504 helpers; shared private work is restored
++ parent_live,parent_physical,parent_idle=PARENT_LIVE,PARENT_PHYSICAL,PARENT_IDLE
++ parent_banks,rem=divmod(parent_live-2*112*4*REPLICAS,9);assert rem==0 and parent_physical==parent_live+PARENT_HELPERS+8+2   # five bank groups with 8,8,8,8,5 active lanes and R0=504 helpers; shared private work is restored
+  assert owner['source_idle_children_charged']==parent_idle
+- bridges,shifts=2*112*333,4*112*37;moves=2*shifts
+- nonlocal_items=(4*112*37*9+2*112*37*9+2*333*R+parent_idle+9*parent_banks+bridges+shifts+moves+parent_live+parent_physical+invoice['wrapper_elementary_factors_charged'])
++ bridges,shifts=2*112*CALLS,4*112*REPLICAS;moves=2*shifts
++ nonlocal_items=(4*112*REPLICAS*9+2*112*REPLICAS*9+2*CALLS*R+parent_idle+9*parent_banks+bridges+shifts+moves+parent_live+parent_physical+invoice['wrapper_elementary_factors_charged'])
+  outside=8*nonlocal_items+64*73
+- pervertex=(invoice['selected_real_component_primitives']+bridges+shifts+moves+parent_live+(333*invoice['local_adapters']+outside)*invoice['compiler']+64*parent_physical)
++ pervertex=(invoice['selected_real_component_primitives']+bridges+shifts+moves+parent_live+(CALLS*invoice['local_adapters']+outside)*invoice['compiler']+64*parent_physical)
+  rebased=pervertex+65*(invoice['physical']-parent_physical)+(invoice['live']-parent_live)
+  assert invoice['unhosted_pervertex']==pervertex and invoice['hosted_rebased_pervertex']==rebased
+  used=max(pervertex,rebased)
+@@ -160,9 +160,9 @@
+  assert 0<finite['required_C0_bits']<finite['C0_exponent']==210000
+  assert finite['G_exponent']==30000 and finite['E_exponent']==100000
+  assert finite['halving_integer_inequality']==[5329,4608]
+- assert 0<invoice['global_prefix_bits']<=invoice['charged_prefix_bits']==1024
+- assert invoice['row_prefix_extra']==2048
+- assert invoice['global_prefix_bits']==max(z['prefix_bits']for p in invoice['providers'].values()for z in p['local'].values())+37+333+333+4
++ assert 0<invoice['global_prefix_bits']<=invoice['charged_prefix_bits']==PAYLOAD
++ assert invoice['row_prefix_extra']==2*PAYLOAD
++ assert invoice['global_prefix_bits']==max(z['prefix_bits']for p in invoice['providers'].values()for z in p['local'].values())+37+CALLS+CALLS+4
+  group=2**(36*36)
+  for j in range(1,37):group*=2**(2*j)-1
+  stock=group*invoice['physical'];streamed_mass=group*owner['rank_mass']
+@@ -170,7 +170,7 @@
+  literal=2*2**30000*stock**2+8*streamed_mass+4*stock+4+32*73
+  total_mass=streamed_mass+2**100000
+  assert finite['physical_stock_bits']==stock.bit_length() and finite['router_bits']==router.bit_length() and finite['literal_bits']==literal.bit_length()
+- assert finite['physical_row_coefficient']==2*stock.bit_length()+9909+252+2048
++ assert finite['physical_row_coefficient']==2*stock.bit_length()+9909+252+2*PAYLOAD
+  assert finite['required_C0_bits']==(32*73*total_mass*total_mass).bit_length()
+  actual_checks=dict(local_primitive_bound=invoice['local_primitive_bound']<2**48,logical=logical<2**6050,router=router<2**30000,literal=literal<2**100000,mass=total_mass<2**100001,precision=32*73*total_mass*total_mass<2**210000,tape=2*total_mass+18<2**210000,row=finite['physical_row_coefficient']<20161,halving=73*73>2*48*48)
+  assert actual_checks==invoice['strict_checks'] and all(actual_checks.values())
+@@ -185,7 +185,7 @@
+  if DISCOVER:b=Q(M.certify(H,73,owner['live'],False)['lower']);conservative_b=Q(M.certify(H,73,owner['live'],True)['lower'])
+  else:b=Q(X['complex_lower']);conservative_b=Q(X['conservative_complex_lower'])
+  assert owner['template_sha256']==invoice['template_sha256'] and owner_sha==invoice['owner_audit_sha256']
+- pin('expected.live',owner['live']);pin('expected.physical',owner['physical']);assert owner['deficit']==11840
++ pin('expected.live',owner['live']);pin('expected.physical',owner['physical']);assert owner['deficit']==DEFICIT
+  assert owner['banked_residuals']==0
+  def check_moment(side,h,m,W,lower,deficit,bad):
+   assert m*W-sum(r*n for r,n in h.items())==deficit and m*m>2*max(h)**2
+@@ -200,14 +200,14 @@
+  bitH={int(r):n for r,n in bit['profile'].items()}
+  assert BIT_M==64 and sum(r*n for r,n in bitH.items())==bit['bit']['rank_mass']
+  bit_moments=check_moment('bit',bitH,BIT_M,bit['bit']['live'],c,bit_D,True)
+- conservative_moments=check_moment('conservative_complex',H,73,owner['live'],conservative_b,11840,True)
++ conservative_moments=check_moment('conservative_complex',H,73,owner['live'],conservative_b,DEFICIT,True)
+  assert bit['bit']['two_level_coefficient_bits']<bit['bit']['charged_two_level_coefficient_bits']==512 and bit['bit']['row_coefficient']<20161
+  def outer_witness(bb):
+   eta=beta=Q(1,10**24);s=min(c,(1-beta)*bb)-Q(1,10**27);assert 0<s<c and s<(1-beta)*bb
+   chain=[Q(384599,10**10)];cuts=[]
+   for _ in range(7):
+    old=chain[-1];a=(1-s)*s+s*old;gap=min(s-a,1-a-s,1-a-s*(1-old),1-s);assert old<a<s<1-a and gap>0
+-   ceil=lambda x:-(-x.numerator//x.denominator);cut=max(ceil(36/gap**2),ceil(2*(4+1024)/gap));assert cut*gap**2>=36 and cut*gap>=2*(4+1024)
++   ceil=lambda x:-(-x.numerator//x.denominator);cut=max(ceil(36/gap**2),ceil(2*(4+PAYLOAD)/gap));assert cut*gap**2>=36 and cut*gap>=2*(4+PAYLOAD)
+    cuts.append(dict(exponent=str(a),gap=str(gap),cutoff_log2=str(cut)));chain.append(a)
+   q=chain[-1]*(1-2*eta);margin=(1-eta)*q/(1+q);ticks=margin*10**18;k=Q((ticks.numerator-1)//ticks.denominator,10**18)
+   bridge={'semantic':{'C0':{'base':2,'exponent':210000},'strict_literal_gap':1},'rows':{'degree_gap':Q(10**6)-Q(51*20161,25)}}
+@@ -222,7 +222,7 @@
+  pin('expected.conservative_kappa_decimal',dec(conservative_k))
+  # Only after every conservative supplier/admission/outer check succeeds is
+  # the reviewed native exact-complex recurrence selected. Bit charge stays.
+- native_moments=check_moment('complex',H,73,owner['live'],b,11840,False)
++ native_moments=check_moment('complex',H,73,owner['live'],b,DEFICIT,False)
+  k,cuts,outer,controls=outer_witness(b)
+  pin('expected.kappa_decimal',dec(k))
+  assert M.moment(H,73,owner['live'],b,True)[0]>1
+@@ -231,7 +231,7 @@
+  moments=bit_moments+native_moments
+  input_hashes={'owner_audit':owner_sha,'fresh_invoice':invoice_sha,'package:inputs/PR589-EXPECTED.json':sha(BIT_PATH)}
+  input_hashes.update({'engines/'+name+'.py':sha(P/'engines'/(name+'.py'))for name in ('moment','base_two_moment','outer')})
+- return dict(status='PASS_GAUGE44_NATIVE_EXACT_GLOBAL_ASSEMBLY',kappa=str(k),kappa_decimal=dec(k),complex_lower=str(b),complex_decimal=dec(b),bit_lower=str(c),bit_decimal=dec(c),binding='complex',gain_over_pr635_percent=dec(100*(k/Q(X['gain_baseline_kappa'])-1)),complex_profile=H,provider_counts=invoice['provider_counts'],surcharge_model={'complex':False,'bit':True},conservative_complex_lower=str(conservative_b),conservative_complex_decimal=dec(conservative_b),conservative_kappa=str(conservative_k),conservative_kappa_decimal=dec(conservative_k),conservative_moments=conservative_moments,conservative_bootstrap=conservative_cuts,conservative_outer={n:str(v)for n,v in conservative_outer['strict_constraints'].items()},conservative_controls=conservative_controls,model_controls=model_controls,native_correction_gain=dec(k-conservative_k),template_sha256=owner['template_sha256'],input_sha256=input_hashes,bit_supplier=dict(pr=589,repository='CrocSwap/integer-mult-bounds',commit='a5afc8c6169ea61ba7c51dfd3cade02cc7b13b46',merged_as='b3eb785ac5b4b1ca2beea0f80db078a505626a90',path='research/e8-bit-p111-tuned/tune/EXPECTED.json',git_blob_sha1=BIT_BLOB,word=dict(v=bit_record['word']['v'],decoder_constant=bit_record['word']['decoder_constant'],copy_ranks=bit_record['word']['copy_ranks']),derived_deficit=bit_D,deficit_formula='T(2Kv-L*cst), L=%d T=%d K=%d M=%d'%(BIT_L,BIT_T,BIT_K,BIT_M),replay_scope='Cited unchanged supplier; this assembly reprices its full profile and does not rebuild its bit circuit.'),moments=moments,bootstrap=cuts,outer={n:str(v)for n,v in outer['strict_constraints'].items()},controls=controls,scope='Conditional R480 seven-slot k8 construction with 37 replicas. The owner map attains the fixed-inventory bin bound. The full conservative invoice, native moment correction, PR589 bit surcharge and 47 outer inequalities are checked. Local admission and all-size/compiler, mutable-source, whole-call hosting, precision/tape, exact-recovery, analytic-transfer and bit H1-H5 assumptions remain.')
++ return dict(status='PASS_GAUGE44_NATIVE_EXACT_GLOBAL_ASSEMBLY',kappa=str(k),kappa_decimal=dec(k),complex_lower=str(b),complex_decimal=dec(b),bit_lower=str(c),bit_decimal=dec(c),binding='complex',gain_over_pr635_percent=dec(100*(k/Q(X['gain_baseline_kappa'])-1)),complex_profile=H,provider_counts=invoice['provider_counts'],surcharge_model={'complex':False,'bit':True},conservative_complex_lower=str(conservative_b),conservative_complex_decimal=dec(conservative_b),conservative_kappa=str(conservative_k),conservative_kappa_decimal=dec(conservative_k),conservative_moments=conservative_moments,conservative_bootstrap=conservative_cuts,conservative_outer={n:str(v)for n,v in conservative_outer['strict_constraints'].items()},conservative_controls=conservative_controls,model_controls=model_controls,native_correction_gain=dec(k-conservative_k),template_sha256=owner['template_sha256'],input_sha256=input_hashes,bit_supplier=dict(pr=589,repository='CrocSwap/integer-mult-bounds',commit='a5afc8c6169ea61ba7c51dfd3cade02cc7b13b46',merged_as='b3eb785ac5b4b1ca2beea0f80db078a505626a90',path='research/e8-bit-p111-tuned/tune/EXPECTED.json',git_blob_sha1=BIT_BLOB,word=dict(v=bit_record['word']['v'],decoder_constant=bit_record['word']['decoder_constant'],copy_ranks=bit_record['word']['copy_ranks']),derived_deficit=bit_D,deficit_formula='T(2Kv-L*cst), L=%d T=%d K=%d M=%d'%(BIT_L,BIT_T,BIT_K,BIT_M),replay_scope='Cited unchanged supplier; this assembly reprices its full profile and does not rebuild its bit circuit.'),moments=moments,bootstrap=cuts,outer={n:str(v)for n,v in outer['strict_constraints'].items()},controls=controls,scope='Conditional R480 seven-slot k8 construction with a source-bound replica count. The owner map attains the fixed-inventory bin bound. The full conservative invoice, native moment correction, PR589 bit surcharge and 47 outer inequalities are checked. Local admission and all-size/compiler, mutable-source, whole-call hosting, precision/tape, exact-recovery, analytic-transfer and bit H1-H5 assumptions remain.')
+ if __name__=='__main__':
+  import sys
+  package,C,out=map(Path,sys.argv[1:4]);assert package.resolve()==P and not out.exists()
+--- inherited/assembly_controls.py
++++ t74/assembly_controls.py
+@@ -58,7 +58,7 @@
+         for p in i['providers'].values():
+             for z in p['local'].values():
+                 z['prefix_bits'], z['prefix_l1'] = 1, '1'
+-        i['global_prefix_bits'] = 1 + 37 + 333 + 333 + 4
++        i['global_prefix_bits'] = 1 + 37 + CALLS + CALLS + 4
+ 
+     def reordered_calls(o, i):
+         i['selected_calls'][0], i['selected_calls'][1] = i['selected_calls'][1], i['selected_calls'][0]
