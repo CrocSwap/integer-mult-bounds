@@ -1,6 +1,10 @@
 """Small exact Gaussian-dyadic Clifford compiler, independent of gx internals.
 Paulis use i^p X^x Z^z. State vectors use integer Gaussian numerators / 2^d.
 The tableau is supplemented by a literal circuit, so global phases are kept.
+
+Production exact gate-table zero_state (identical receipts):
+research/clifford-state-performance/ and research/clifford-state-production/.
+Prepared by Wentao Li with substantial AI assistance.
 """
 from dataclasses import dataclass
 
@@ -61,6 +65,29 @@ def qvalue(Q,alpha,x,n):
 def mul_i(a,p):
  x,y=a;p%=4
  return [(x,y),(-y,x),(-x,-y),(y,-x)][p]
+
+from functools import lru_cache
+
+@lru_cache(maxsize=64)
+def _permutation_table(n, rows):
+ """Compute Gx from G(x xor lowbit(x)) xor G(lowbit(x))."""
+ columns=[sum(((row>>j)&1)<<i for i,row in enumerate(rows)) for j in range(n)]
+ table=[0]*(1<<n)
+ for x in range(1,len(table)):
+  bit=x&-x
+  table[x]=table[x^bit]^columns[bit.bit_length()-1]
+ return tuple(table)
+
+@lru_cache(maxsize=64)
+def _phase_table(n, rows, linear):
+ """Remove the lowest bit; all remaining quadratic partners have larger indices."""
+ table=[0]*(1<<n)
+ for x in range(1,len(table)):
+  bit=x&-x
+  i,rest=bit.bit_length()-1,x^bit
+  table[x]=(table[rest]+linear[i]+2*((rows[i]&rest).bit_count()&1))%4
+ return tuple(table)
+
 @dataclass
 class Op:
  n:int
@@ -79,15 +106,30 @@ class Op:
    else:circ.append(e)
   return Op(self.n,inverse(self.tab),circ)
  def zero_state(self,basis=0):
+  # Exact gate-table evaluator (research/clifford-state-performance/); identical receipts.
   N=1<<self.n;vec=[(0,0)]*N;vec[basis]=(1,0);den=0
   for e in self.circuit:
    if e[0]=='P':
-    v=[(0,0)]*N
-    for x,a in enumerate(vec):v[mv(e[1],x)]=a
+    mapping=_permutation_table(self.n,tuple(e[1]));v=[(0,0)]*N
+    for x,a in enumerate(vec):v[mapping[x]]=a
     vec=v
    elif e[0]=='X':vec=[vec[x^e[1]] for x in range(N)]
-   elif e[0]=='D':vec=[mul_i(a,qvalue(e[1],e[2],x,self.n)) for x,a in enumerate(vec)]
-   elif e[0]=='phase':vec=[mul_i(a,e[1]) for a in vec]
+   elif e[0]=='D':
+    phases=_phase_table(self.n,tuple(e[1]),tuple(e[2]));v=[]
+    for (a,b),phase in zip(vec,phases):
+     if phase==0:v.append((a,b))
+     elif phase==1:v.append((-b,a))
+     elif phase==2:v.append((-a,-b))
+     else:v.append((b,-a))
+    vec=v
+   elif e[0]=='phase':
+    phase=e[1]%4;v=[]
+    for a,b in vec:
+     if phase==0:v.append((a,b))
+     elif phase==1:v.append((-b,a))
+     elif phase==2:v.append((-a,-b))
+     else:v.append((b,-a))
+    vec=v
    elif e[0]=='C':
     q,sgn=e[1:];v=[]
     for x,(a,b) in enumerate(vec):

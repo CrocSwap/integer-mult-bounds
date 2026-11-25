@@ -19,7 +19,9 @@ def main():
     verify_sources()
     if args.out.exists():
         raise ValueError('Use a fresh output file')
-    clifford = load_clifford()
+    # reference/fast still use vendored pairwise baseline bytes; fast monkeypatches
+    # zero_state. Production multicold clifford_exact.py is pinned separately.
+    clifford = load_clifford('baseline')
     if args.engine == 'fast':
         fast_state.clear_caches()
         clifford.Op.zero_state = fast_state.zero_state

@@ -19,8 +19,14 @@ def verify_sources(root=ROOT):
             raise ValueError('Pinned source changed: ' + relative)
 
 
-def load_clifford():
-    path = ROOT / SOURCE['clifford']
+def load_clifford(which='baseline'):
+    """Load the pairwise baseline (default) or the production multicold evaluator.
+
+    Registers the module as ``clifford_exact`` so the helper-interface adapters
+    reuse this object instead of re-importing the on-disk multicold file.
+    """
+    key = 'clifford' if which == 'baseline' else 'production_clifford'
+    path = ROOT / SOURCE[key]
     spec = importlib.util.spec_from_file_location('clifford_exact', path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module

@@ -12,8 +12,10 @@ from pathlib import Path
 
 PKG = Path(__file__).resolve().parent
 ROOT = PKG.parents[1]
+# Runtime native oracle for dense.py; demoted from live SOURCES/VERIFY pins after
+# research/clifford-state-production/ rewrote the working multicold evaluator.
 KERNEL = 'research/complex-multicold/vendor/pr558/vendor/pr552/complex-global/vendor531/vendor/clifford/clifford_exact.py'
-INPUTS = {KERNEL, 'research/selector-batching/README.md'}
+INPUTS = {'research/selector-batching/README.md'}
 
 
 def require(ok, message):
