@@ -1,0 +1,224 @@
+{
+  "schema": "public-key-only-compact-dictionary-acceptance-v1",
+  "toolchain": {
+    "lean": "4.21.0",
+    "mathlib_repository": "leanprover-community/mathlib4",
+    "mathlib_commit": "308445d7985027f538e281e18df29ca16ede2ba3",
+    "official_dependency_lock": "lake-manifest.json at the exact Mathlib revision"
+  },
+  "modules": [
+    {
+      "module": "HexObjectLayout",
+      "source_sha256": "2d04f7ea61f1fd4676704d2541fed0f59ce8683811696cadd00cbedfaf749ab5",
+      "status": "Kernel-checked and independently source/API/terminal reviewed",
+      "probes": [
+        {
+          "declaration": "CurrentMain.HexObjectLayout.keyPolicy_iff",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.HexObjectLayout.checkKeys_iff",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.HexObjectLayout.objectBytes_split",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.HexObjectLayout.encode_decomposition",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.HexObjectLayout.encode_checkBytes",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.HexObjectLayout.artifact_checkBytes",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      ],
+      "full_printed_types": "CurrentMain.HexObjectLayout.objectBytes_split : ∀ (before : List CurrentMain.HexObjectLayout.Field)\n  (selected : CurrentMain.HexObjectLayout.Field) (after : List CurrentMain.HexObjectLayout.Field),\n  CurrentMain.HexObjectLayout.objectBytes (before ++ selected :: after) =\n    CurrentMain.HexObjectLayout.prefixBytes before selected ++ selected.payload.data.toList ++\n      CurrentMain.HexObjectLayout.suffixBytes after\nCurrentMain.HexObjectLayout.artifact_checkBytes : ∀ (before : List CurrentMain.HexObjectLayout.Field)\n  (selected : CurrentMain.HexObjectLayout.Field) (after : List CurrentMain.HexObjectLayout.Field)\n  (artifact : ByteArray),\n  artifact.data = (CurrentMain.HexObjectLayout.encode (before ++ selected :: after)).data →\n    CurrentMain.CheckedArraySlice.checkBytes artifact selected.payload\n        (CurrentMain.HexObjectLayout.offset before selected) =\n      true\n",
+      "diagnostics": [],
+      "axiom_scope": "Every observed dependency is propext, Quot.sound or Classical.choice; no sorryAx or additional axiom.",
+      "review_scope": "Independent exact-source/API and proof-delta review, then actual full output/type/axiom and dependency identity review. Rejected earlier proof-local elaboration attempts were not accepted.",
+      "limitations": [
+        "Generic payloads alone are not asserted valid JSON.",
+        "Consumer must restrict every field payload and execute full artifact equality.",
+        "Offset is computed from actual preceding bytes; not caller-supplied or a parser internal span.",
+        "Empty object and repeated payloads supported; selected split requires an actual field.",
+        "Byte-level nonempty lowercase hex and serialized-key Nodup checks; no fixed digest width or cryptographic authenticity.",
+        "No Python serializer/installed-parser specification, file identity, selected artifact census or costs."
+      ]
+    },
+    {
+      "module": "CheckedCompactObject",
+      "source_sha256": "44112fa15a8f9a99f082a82adfa071ca43e0edd621248e2036bf912cf1f17f0a",
+      "status": "Kernel-checked and independently source/API/terminal reviewed",
+      "probes": [
+        {
+          "declaration": "CurrentMain.CheckedCompactObject.fields_split",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.CheckedCompactObject.layout_checkBytes",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.CheckedCompactObject.recover_inputs",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.CheckedCompactObject.recover_layout",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.CheckedCompactObject.recover_sound",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.CheckedCompactObject.recover_complete",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      ],
+      "full_printed_types": "@CurrentMain.CheckedCompactObject.recover_layout : ∀ {n : ℕ} (artifact : ByteArray)\n  (entries : List (CurrentMain.CheckedCompactObject.Entry n)) (i : Fin entries.length)\n  (update coefficients : CurrentMain.CheckedBinaryChart.Address n)\n  (r : CurrentMain.JsonPackedColumnDictionary.CheckedEntry n),\n  CurrentMain.CheckedCompactObject.recover n artifact entries i update coefficients = some r →\n    (∀ f ∈ CurrentMain.CheckedCompactObject.fields entries, CurrentMain.HexObjectLayout.keyPolicy f.key = true) ∧\n      (List.map (fun f => CurrentMain.HexObjectLayout.keyBytes f.key)\n            (CurrentMain.CheckedCompactObject.fields entries)).Nodup ∧\n        artifact.data =\n            (CurrentMain.HexObjectLayout.prefixBytes (CurrentMain.CheckedCompactObject.beforeFields entries i)\n                    (CurrentMain.CheckedCompactObject.toField\n                      (CurrentMain.CheckedCompactObject.selected entries i))).toArray ++\n                (CurrentMain.CompactNatColumnFragment.payload\n                    (CurrentMain.CheckedCompactObject.selected entries i).columns).data ++\n              (CurrentMain.HexObjectLayout.suffixBytes\n                  (CurrentMain.CheckedCompactObject.afterFields entries i)).toArray ∧\n          CurrentMain.CheckedArraySlice.checkBytes artifact\n                (CurrentMain.CompactNatColumnFragment.payload\n                  (CurrentMain.CheckedCompactObject.selected entries i).columns)\n                (CurrentMain.CheckedCompactObject.offset entries i) =\n              true ∧\n            r.columns = (CurrentMain.CheckedCompactObject.selected entries i).columns\n@CurrentMain.CheckedCompactObject.recover_sound : ∀ {n : ℕ} (artifact : ByteArray)\n  (entries : List (CurrentMain.CheckedCompactObject.Entry n)) (i : Fin entries.length)\n  (update coefficients : CurrentMain.CheckedBinaryChart.Address n)\n  (r : CurrentMain.JsonPackedColumnDictionary.CheckedEntry n),\n  CurrentMain.CheckedCompactObject.recover n artifact entries i update coefficients = some r →\n    r.columns = (CurrentMain.CheckedCompactObject.selected entries i).columns ∧\n      (∃ wholeText dictionary text raw,\n          String.fromUTF8? artifact = some wholeText ∧\n            Lean.Json.parse wholeText = Except.ok dictionary ∧\n              String.fromUTF8?\n                    (CurrentMain.CompactNatColumnFragment.payload\n                      (CurrentMain.CheckedCompactObject.selected entries i).columns) =\n                  some text ∧\n                Lean.Json.parse text = Except.ok raw ∧\n                  dictionary.getObjVal? (CurrentMain.CheckedCompactObject.selected entries i).key = Except.ok raw ∧\n                    CurrentMain.JsonPackedColumnDictionary.decodeColumns n raw = some r.columns ∧\n                      CurrentMain.StrictJsonValueBridge.reencode 2\n                          (CurrentMain.ParsedBinaryChartCertificate.vectorValue r.columns) =\n                        raw) ∧\n        CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns =\n            ↑(CurrentMain.CheckedBinaryChart.checkedEquiv ↑r.certificate ⋯) ∧\n          (∀ (x : CurrentMain.CheckedBinaryChart.Address n),\n              CurrentMain.CheckedBinaryChart.inverseAddress (↑r.certificate)\n                  ((CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns) x) =\n                x) ∧\n            ∀ (x : CurrentMain.CheckedBinaryChart.Address n),\n              (CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns)\n                  (CurrentMain.CheckedBinaryChart.inverseAddress (↑r.certificate) x) =\n                x\n",
+      "diagnostics": [],
+      "axiom_scope": "Every observed dependency is propext, Quot.sound or Classical.choice; no sorryAx or additional axiom.",
+      "review_scope": "Independent exact-source/API and proof-delta review, then actual full output/type/axiom and dependency identity review. Rejected earlier proof-local elaboration attempts were not accepted.",
+      "limitations": [
+        "Key order and all typed column values are still supplied as a complete checked witness in this module.",
+        "The position is in the restricted serialization, not a proved internal source span of the installed parser.",
+        "No selected-file success, file/digest authentication, runtime extern refinement, complex phases, physical execution or cost theorem.",
+        "Completeness retains actual parser/named-field equations and the restricted checked-Candidate class."
+      ]
+    },
+    {
+      "module": "KeyOnlyCompactObject",
+      "source_sha256": "3056f2d9475ede110e526f32ffbc3ca7c39a42157475af5484d9d45a87fc737c",
+      "status": "Kernel-checked and independently source/API/terminal reviewed",
+      "probes": [
+        {
+          "declaration": "CurrentMain.KeyOnlyCompactObject.decodeFields_sound",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.KeyOnlyCompactObject.decodeFields_complete",
+          "axioms": [
+            "propext",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.KeyOnlyCompactObject.recover_inputs",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.KeyOnlyCompactObject.recover_sound",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        },
+        {
+          "declaration": "CurrentMain.KeyOnlyCompactObject.recover_complete",
+          "axioms": [
+            "propext",
+            "Classical.choice",
+            "Quot.sound"
+          ]
+        }
+      ],
+      "full_printed_types": "@CurrentMain.KeyOnlyCompactObject.recover_sound : ∀ {n : ℕ} (artifact : ByteArray) (keys : List String) (position : ℕ)\n  (update coefficients : CurrentMain.CheckedBinaryChart.Address n)\n  (r : CurrentMain.JsonPackedColumnDictionary.CheckedEntry n),\n  CurrentMain.KeyOnlyCompactObject.recover n artifact keys position update coefficients = some r →\n    (∃ text dictionary entries,\n        ∃ (hi : position < entries.length),\n          String.fromUTF8? artifact = some text ∧\n            Lean.Json.parse text = Except.ok dictionary ∧\n              List.map CurrentMain.CheckedCompactObject.Entry.key entries = keys ∧\n                position < keys.length ∧\n                  (∀ entry ∈ entries,\n                      ∃ raw,\n                        dictionary.getObjVal? entry.key = Except.ok raw ∧\n                          CurrentMain.StrictJsonValueBridge.reencode 2\n                                (CurrentMain.ParsedBinaryChartCertificate.vectorValue entry.columns) =\n                              raw ∧\n                            ∀ (j : Fin n),\n                              CurrentMain.ParsedBinaryChartCertificate.columnFunction entry.columns j < 2 ^ n) ∧\n                    CurrentMain.HexObjectLayout.checkKeys (CurrentMain.CheckedCompactObject.fields entries) = true ∧\n                      artifact.data =\n                          (CurrentMain.HexObjectLayout.encode (CurrentMain.CheckedCompactObject.fields entries)).data ∧\n                        r.columns = (CurrentMain.CheckedCompactObject.selected entries ⟨position, hi⟩).columns ∧\n                          CurrentMain.CheckedCompactObject.recover n artifact entries ⟨position, hi⟩ update\n                              coefficients =\n                            some r) ∧\n      CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns =\n          ↑(CurrentMain.CheckedBinaryChart.checkedEquiv ↑r.certificate ⋯) ∧\n        (∀ (x : CurrentMain.CheckedBinaryChart.Address n),\n            CurrentMain.CheckedBinaryChart.inverseAddress (↑r.certificate)\n                ((CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns) x) =\n              x) ∧\n          ∀ (x : CurrentMain.CheckedBinaryChart.Address n),\n            (CurrentMain.JsonPackedColumnDictionary.columnOperator r.columns)\n                (CurrentMain.CheckedBinaryChart.inverseAddress (↑r.certificate) x) =\n              x\n@CurrentMain.KeyOnlyCompactObject.recover_complete : ∀ {n : ℕ} (artifact : ByteArray) (dictionary : Lean.Json)\n  (entries : List (CurrentMain.CheckedCompactObject.Entry n)) (i : Fin entries.length)\n  (c : CurrentMain.CheckedBinaryChart.Candidate n) (h : CurrentMain.CheckedBinaryChart.check c = true)\n  (hc :\n    c.columns =\n      CurrentMain.ParsedBinaryChartCertificate.columnFunction\n        (CurrentMain.CheckedCompactObject.selected entries i).columns),\n  (∀ entry ∈ entries,\n      CurrentMain.JsonPackedColumnDictionary.dictionaryColumns n dictionary entry.key = some entry.columns) →\n    CurrentMain.HexObjectLayout.checkKeys (CurrentMain.CheckedCompactObject.fields entries) = true →\n      artifact.data = (CurrentMain.HexObjectLayout.encode (CurrentMain.CheckedCompactObject.fields entries)).data →\n        CurrentMain.ByteJsonGlobalCall.parseBytes artifact = Except.ok dictionary →\n          CurrentMain.ByteJsonGlobalCall.parseBytes\n                (CurrentMain.CompactNatColumnFragment.payload\n                  (CurrentMain.CheckedCompactObject.selected entries i).columns) =\n              Except.ok\n                (CurrentMain.StrictJsonValueBridge.reencode 2\n                  (CurrentMain.ParsedBinaryChartCertificate.vectorValue\n                    (CurrentMain.CheckedCompactObject.selected entries i).columns)) →\n            CurrentMain.KeyOnlyCompactObject.recover n artifact\n                (List.map CurrentMain.CheckedCompactObject.Entry.key entries) (↑i) c.updateVector c.coefficients =\n              some\n                { columns := (CurrentMain.CheckedCompactObject.selected entries i).columns, certificate := ⟨c, h⟩,\n                  column_match := ⋯ }\n",
+      "diagnostics": [],
+      "axiom_scope": "Every observed dependency is propext, Quot.sound or Classical.choice; no sorryAx or additional axiom.",
+      "review_scope": "Independent exact-source/API and proof-delta review, then actual full output/type/axiom and dependency identity review. Rejected earlier proof-local elaboration attempts were not accepted.",
+      "limitations": [
+        "The supplied key order is still an explicit checked witness; values are derived internally.",
+        "Completeness retains original whole-artifact and selected-fragment parser equations, actual per-field decoding, full-layout equality/key policy and the restricted checked-Candidate conditions.",
+        "No selected-file success, parser pre-collapse trace or general field-span correspondence, file identity/digest authentication, complex phase, physical execution or cost theorem."
+      ]
+    }
+  ],
+  "coverage": {
+    "finite": "Executable checks inspect all supplied field keys, full artifact bytes, strict bounded columns and a selected index. Theorems are generic over arbitrary finite lists and binary dimension n; no selected-table census.",
+    "conditional": "Soundness follows from actual checker success; completeness retains actual whole-artifact and fragment parser equations, per-field strict decode equations, full layout/key checks and restricted checked-Candidate conditions.",
+    "full": "Derived key-only execution retains original UTF-8/JSON equations, exact key order, every actual named vector, whole-layout byte equality, selected recovered columns and independent binary operator/inverses. It does not prove the full multiplication theorem."
+  },
+  "remaining": [
+    "The ordered key list and restricted binary update/form are still explicit inputs.",
+    "Full byte equality and unique lowercase-hex serialized keys characterize this restricted compact layout; installed-parser internal spans/pre-collapse trace are not proved.",
+    "No claim that a selected ACTUAL-SIGMAS file passes these checks; no file identity, digest or cryptographic authentication.",
+    "No Python serializer theorem, general JSON round trip, runtime extern refinement, complex phase, physical Hosting/executor, precision, cost or full multiplication theorem."
+  ],
+  "author_checked_context": {
+    "kappa": "836330098538459/500000000000000000",
+    "decimal": "0.001672660197076918",
+    "author_checked": true,
+    "applicability_revision": "299eb8effe080183313757ac36e76c1b98ed9fae",
+    "selected_result": {
+      "repository": "CrocSwap/integer-mult-bounds",
+      "revision": "299eb8effe080183313757ac36e76c1b98ed9fae",
+      "path": "certificates/selected-result.json",
+      "bytes": 10725,
+      "sha256": "10b9e340fd8e354a37a0c4813c90e5de1dd42044b5f6aca4a3fc5a42b685fa32",
+      "git_blob": "ae6a99f28aa468649eb66a361e764d769363bf11",
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/299eb8effe080183313757ac36e76c1b98ed9fae/certificates/selected-result.json"
+    },
+    "meaning": "Source-matched context only. The parameterized statements do not use or change kappa and do not prove the full multiplication theorem.",
+    "source_check": "Author directly matched selected-result, ASSEMBLY, SELECTED-SOURCE and both relevant emitter bytes at this exact local revision.",
+    "later_scoped_continuity": {
+      "revision": "e2e2b43cdb2085075c174c3ecb1cff8d2911aa20",
+      "evidence": "Integration and coordinator observations preserve the same five critical inputs. This packet does not claim an independent local read or a complete unrelated-donor audit of that later revision."
+    }
+  }
+}
