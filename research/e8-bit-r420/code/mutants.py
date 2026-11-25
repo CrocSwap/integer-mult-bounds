@@ -16,8 +16,14 @@ Negative controls (sites are found from the word's structure, not from producer 
   9 move a cleanup gate off the full frame (to the frame of the gate it inverts)
 Positive control:
   P a cancelled pair of target-to-target reads at frame 0 (y_t += y_u twice: V = I, allowed by the lemma)
-Prepared by eumemic with substantial Anthropic Claude assistance; Apache-2.0."""
+
+Production path reuses exact Word.__init__/labels geometry across evaluate() calls when h/v/R/form/lines/frames
+match (research/r420-geometry-cache/). full() and interface() always rerun on a fresh Word. Equivalence: same
+check API and mutation receipts as the pairwise harness.
+Prepared by eumemic with substantial Anthropic Claude assistance; production geometry cache by Wentao Li with
+substantial AI assistance; Apache-2.0."""
 import copy
+from collections import OrderedDict
 import gzip
 import importlib.util
 import json
@@ -32,6 +38,59 @@ is_y = lambda r: v <= r < 2 * v
 is_z = lambda r: not is_y(r)
 ZERO = next(k for k, f in enumerate(w0["frames"]) if not f)
 
+# Complete data dependencies of Word.__init__ and labels(); see research/r420-geometry-cache/.
+GEOMETRY_FIELDS = ("h", "v", "R", "form", "lines", "frames")
+
+
+class GeometryCache:
+    """Reuse validated geometry across mutation checks with identical geometry fields."""
+
+    def __init__(self, capacity=2):
+        if type(capacity) is not int or capacity < 1:
+            raise ValueError("capacity must be a positive integer")
+        self.capacity = capacity
+        self._entries = OrderedDict()
+        self.hits = 0
+        self.misses = 0
+
+    def check(self, word):
+        key = json.dumps({field: word[field] for field in GEOMETRY_FIELDS},
+                         sort_keys=True, separators=(",", ":"), allow_nan=False)
+        if key in self._entries:
+            self.hits += 1
+            snapshot = self._entries.pop(key)
+            self._entries[key] = snapshot
+        else:
+            self.misses += 1
+            checked = X.Word(word)
+            labels = checked.labels()  # Failures never populate the cache.
+            snapshot = (
+                checked.v, checked.R, checked.n, tuple(checked.lines),
+                tuple(checked.fdim),
+                tuple(tuple(tuple(row) for row in frame) for frame in checked.fperp),
+                checked.FULL, checked.ZERO, tuple(labels.items()),
+            )
+            self._entries[key] = snapshot
+            if len(self._entries) > self.capacity:
+                self._entries.popitem(last=False)
+
+        # Never return the cached mutable Word or share mutable derived data.
+        obj = X.Word.__new__(X.Word)
+        obj.w = word
+        obj.v, obj.R, obj.n = snapshot[:3]
+        obj.lines = list(snapshot[3])
+        obj.fdim = list(snapshot[4])
+        obj.fperp = [[list(row) for row in frame] for frame in snapshot[5]]
+        obj.FULL, obj.ZERO = snapshot[6:8]
+        obj._nest = {}
+        labels = dict(snapshot[8])
+        full = obj.full()
+        hypotheses, conclusion, info = obj.interface()
+        return obj, labels, full, hypotheses, conclusion, info
+
+
+_geometry_cache = GeometryCache()
+
 
 def zgates(w):
     return [("A", i) for i, g in enumerate(w["A"]) if is_z(g[1])] + [("B", i) for i, g in enumerate(w["B"]) if is_z(g[1])]
@@ -44,7 +103,13 @@ def mirror(w, sec, i):
 
 def evaluate(w):
     try:
-        W, lab, fl, H, C, info = X.check(w)
+        # Production path caches geometry when argv[1] is a full xcheck module.
+        # Historical drop-in adapters (research/r420-geometry-cache/cached_xcheck.py)
+        # expose only check/Reject; call them directly.
+        if hasattr(X, "Word") and hasattr(X, "check"):
+            W, lab, fl, H, C, info = _geometry_cache.check(w)
+        else:
+            W, lab, fl, H, C, info = X.check(w)
     except X.Reject as e:
         return False, "replay: " + str(e)[:90]
     bad = [k for k, x in list(H.items()) + list(C.items()) if not x]
