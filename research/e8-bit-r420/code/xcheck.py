@@ -29,13 +29,18 @@ and the lemma's conclusion decomposed on the raw word W0 = (A, scatter, B):
   J   the source part of every target's W0 output is its own source (J = I);
   K   the helper part of every target's W0 output equals the helper set D adds to it (D = -V^-1 K s over F2);
   Uinv  C applied to the W0 outputs of the z registers restores every z register (C = U^-1).
-Prepared by eumemic with substantial Anthropic Claude assistance; Apache-2.0."""
+Prepared by eumemic with substantial Anthropic Claude assistance; Apache-2.0.
+
+Production rref uses primitive-integer elimination (Aman PR367 / research/r420-rref-performance)
+and returns the same rational basis rows and pivot columns as the historical Fraction RREF.
+See research/r420-rref-production/ for equivalence evidence. No other checker stage changes."""
 import gzip
 import json
 import math
 import sys
 from collections import Counter
 from fractions import Fraction
+from math import gcd, lcm
 
 
 class Reject(Exception):
@@ -48,26 +53,65 @@ def need(cond, msg):
 
 
 # ------------------------------------------------------------------ exact linear algebra over Q and Z
-def rref(rows):
-    """reduced row echelon form over Q of integer rows; returns (basis rows, pivot columns)"""
-    m = [[Fraction(x) for x in r] for r in rows]
-    piv = []
-    rk = 0
-    ncol = len(m[0]) if m else 0
-    for col in range(ncol):
-        p = next((i for i in range(rk, len(m)) if m[i][col] != 0), None)
-        if p is None:
+def _primitive(row):
+    content = gcd(*row) if row else 0
+    return [x // content for x in row] if content > 1 else row
+
+
+def _integer_rows(matrix):
+    """Convert integer/Fraction rows to content-primitive integer rows; never mutate inputs."""
+    rows = []
+    for values in matrix:
+        row = list(values)
+        if all(isinstance(x, int) for x in row):
+            rows.append(_primitive(row))
+        else:
+            values = [Fraction(x) for x in row]
+            denominator = lcm(*(x.denominator for x in values)) if values else 1
+            rows.append(_primitive([x.numerator * (denominator // x.denominator)
+                                    for x in values]))
+    if rows and any(len(row) != len(rows[0]) for row in rows):
+        raise ValueError('matrix rows must have equal lengths')
+    return rows
+
+
+def _eliminate(matrix, reduced=False):
+    """Fraction-free integer elimination; returns primitive rows and pivot columns."""
+    rows = _integer_rows(matrix)
+    if not rows:
+        return rows, []
+    pivots = []
+    for column in range(len(rows[0])):
+        rank = len(pivots)
+        pivot = next((i for i in range(rank, len(rows)) if rows[i][column]), None)
+        if pivot is None:
             continue
-        m[rk], m[p] = m[p], m[rk]
-        inv = 1 / m[rk][col]
-        m[rk] = [a * inv for a in m[rk]]
-        for i in range(len(m)):
-            if i != rk and m[i][col] != 0:
-                f = m[i][col]
-                m[i] = [a - f * b for a, b in zip(m[i], m[rk])]
-        piv.append(col)
-        rk += 1
-    return m[:rk], piv
+        rows[rank], rows[pivot] = rows[pivot], rows[rank]
+        base = rows[rank]
+        targets = range(len(rows)) if reduced else range(rank + 1, len(rows))
+        for i in targets:
+            if i == rank or not rows[i][column]:
+                continue
+            row = rows[i]
+            divisor = gcd(base[column], row[column])
+            a, b = base[column] // divisor, row[column] // divisor
+            rows[i] = _primitive([a * x - b * y for x, y in zip(row, base)])
+        pivots.append(column)
+        if len(pivots) == len(rows):
+            break
+    return rows, pivots
+
+
+def rref(rows):
+    """Reduced row echelon form over Q; returns (basis rows, pivot columns).
+
+    Production form of research/r420-rref-performance/: primitive-integer elimination
+    followed by exact pivot scaling to Fractions. Identical rational row space and
+    pivot list to the historical per-entry Fraction RREF.
+    """
+    matrix, pivots = _eliminate(rows, reduced=True)
+    return [[Fraction(x, row[column]) for x in row]
+            for row, column in zip(matrix, pivots)], pivots
 
 
 def nullspace_int(rows, ncol=8):
