@@ -44,8 +44,10 @@ verify-entrance-banks: entrance-bank-verify
 
 .PHONY: gen4-bank-verify
 gen4-bank-verify: selected-record-check
-	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-gen4.XXXXXX"); \
-	python3 -B research/five-stage-gen4-banks/verify.py --output "$$work/replay"
+	@work=$$(mktemp -d "$${TMPDIR:-/tmp}/integer-mult-gen4.XXXXXX") && \
+	python3 -B research/five-stage-gen4-banks/verify.py --output "$$work/replay" && \
+	python3 -B scripts/check_selected_replay.py --certificate "$$work/replay/certificate.json" \
+	  --verification "$$work/replay/verification.json"
 
 .PHONY: frontier531-verify
 frontier531-verify: selected-record-check

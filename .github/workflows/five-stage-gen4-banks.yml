@@ -4,10 +4,26 @@ on:
   push:
     paths:
       - 'research/five-stage-gen4-banks/**'
+      - 'certificates/selected-result.json'
+      - 'research/community-pr279-audit/certificate.json'
+      - 'research/community-pr279-audit/verification.json'
+      - 'scripts/verify_selected_result.py'
+      - 'scripts/check_selected_replay.py'
+      - 'tests/test_selected_result.py'
+      - 'tests/test_selected_replay.py'
+      - 'Makefile'
       - '.github/workflows/five-stage-gen4-banks.yml'
   pull_request:
     paths:
       - 'research/five-stage-gen4-banks/**'
+      - 'certificates/selected-result.json'
+      - 'research/community-pr279-audit/certificate.json'
+      - 'research/community-pr279-audit/verification.json'
+      - 'scripts/verify_selected_result.py'
+      - 'scripts/check_selected_replay.py'
+      - 'tests/test_selected_result.py'
+      - 'tests/test_selected_replay.py'
+      - 'Makefile'
       - '.github/workflows/five-stage-gen4-banks.yml'
   workflow_dispatch:
 
@@ -31,8 +47,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install the pinned arithmetic dependency
         run: python -m pip install --disable-pip-version-check -r research/five-stage-gen4-banks/requirements.txt
-      - name: Replay every mandatory stage (virtual, raw, bit, scalar, primes, banks, complex, math, finite)
-        run: python -B research/five-stage-gen4-banks/verify.py --output "$RUNNER_TEMP/gen4-five-stage-verification"
+      - name: Test the selected replay binding on literal data
+        run: python -B -m unittest discover -s tests -p 'test_selected_replay.py' -v
+      - name: Replay every mandatory stage and bind the selected finite certificate
+        run: make gen4-bank-verify
       - name: Regenerate the pinned bit word from the generator and both physical-layer producers
         run: python -B research/five-stage-gen4-banks/gen4bit/producer/regenerate.py --work "$RUNNER_TEMP/gen4-regeneration"
       - name: Require committed files to remain unchanged
