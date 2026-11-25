@@ -1,0 +1,78 @@
+name: Exact Lean current1094 conditional Hosting
+
+on:
+  push:
+    paths:
+      - 'research/lean-current1094-private-centre-hosting/**'
+      - '.github/workflows/current1094-hosting.yml'
+  pull_request:
+    paths:
+      - 'research/lean-current1094-private-centre-hosting/**'
+      - '.github/workflows/current1094-hosting.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-hosting:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      ELAN_TOOLCHAIN: leanprover/lean4:v4.21.0
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, same immutable base workflow pin
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Install official pinned Lean through the existing elan bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/0e36a07b9bbcc5381fa6250df109f9a4f94d7bac/elan-init.sh -o "$RUNNER_TEMP/elan-init.sh"
+          sh "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install leanprover/lean4:v4.21.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Fetch exact Mathlib and its official matching build cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/hosting-mathlib"
+          git -C "$RUNNER_TEMP/hosting-mathlib" remote add origin https://github.com/leanprover-community/mathlib4.git
+          git -C "$RUNNER_TEMP/hosting-mathlib" fetch --no-tags --depth=1 origin 308445d7985027f538e281e18df29ca16ede2ba3
+          git -C "$RUNNER_TEMP/hosting-mathlib" checkout --detach FETCH_HEAD
+          cd "$RUNNER_TEMP/hosting-mathlib"
+          lake exe cache get
+      - name: Materialize the exact two public prerequisites and new Hosting source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/hosting-prerequisites"
+          git -C "$RUNNER_TEMP/hosting-prerequisites" fetch --no-tags --depth=1 https://github.com/DreamingOfClouds/integer-mult-bounds.git 7b9c720ecc9f483c383e7cd9c2ab81f06ee5df59 1c6b6ff9366a94e1f86a6c5d661a7df75c6ff814
+          python -B research/lean-current1094-private-centre-hosting/prepare_sources.py "$RUNNER_TEMP/hosting-prerequisites" "$RUNNER_TEMP/hosting-prepared"
+      - name: Exact transitive guard and bounded three-root replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          LEAN_ROOT="$(dirname "$(dirname "$(elan which lean)")")"
+          python -B research/lean-current1094-private-centre-hosting/ci/replay.py \
+            --repo "$GITHUB_WORKSPACE" \
+            --lean-root "$LEAN_ROOT" \
+            --mathlib "$RUNNER_TEMP/hosting-mathlib" \
+            --prepared "$RUNNER_TEMP/hosting-prepared" \
+            --output "$RUNNER_TEMP/hosting-ci-check" \
+            --compiler-lock "$RUNNER_TEMP/hosting-compiler.lock" --run
+      - name: Candidate tracked files remain unchanged
+        run: git diff --exit-code
+      - name: Preserve exact plan, raw logs, objects and failure or acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # verified official v4 commit
+        with:
+          name: conditional-hosting-exact-replay
+          path: ${{ runner.temp }}/hosting-ci-check
+          if-no-files-found: warn
