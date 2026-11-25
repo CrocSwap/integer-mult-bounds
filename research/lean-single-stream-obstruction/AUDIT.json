@@ -1,0 +1,142 @@
+{
+  "audit_time_utc": "2026-10-11T21:54:10.981087+00:00",
+  "main": {
+    "repository": "https://github.com/CrocSwap/integer-mult-bounds",
+    "commit": "12a4934d15006e8c10f9b2264f13f8f341be802b"
+  },
+  "sussman": {
+    "repository": "https://github.com/jacobalansussman/wht-power-saving-lean",
+    "commit": "9c94857bbaee886f8649edee0bc2d3c738f9555e",
+    "scope": "README, RELATED-WORK, engine Letters/Route, chain InvThm inspected; no full Mathlib build"
+  },
+  "pull_requests": {
+    "448": {
+      "head": "359022bcd71143e45d48def0dd005bf67f339aa7",
+      "title": "Under review (split-residual interface): cross-copy idle-axis hosting, one residual on two copies of one idle child; computed \u03ba = 0.001330733966732373 not established",
+      "updated_at": "2026-10-11T21:15:56Z",
+      "inspection": "title/body; added file listing where applicable"
+    },
+    "488": {
+      "head": "edd3102b415df5b9d6f633ac0a4dedcf69c58525",
+      "title": "[Lean] Verification of binary input preparation, \u03ba=0.000661885549259598",
+      "updated_at": "2026-10-11T19:50:47Z",
+      "inspection": "title/body; added file listing where applicable"
+    },
+    "487": {
+      "head": "15b49f66cb2d2663fb71672f4d594e755bd93938",
+      "title": "[Lean] Verification of selected 1320-port bijection, \u03ba=0.000661885549259598",
+      "updated_at": "2026-10-11T19:45:38Z",
+      "inspection": "title/body; added file listing where applicable"
+    },
+    "397": {
+      "head": "cb6455fa1e9af68be47c33948d3d1a6f0717a5e4",
+      "title": "Formalize the indexed B_K scalar bridge and bind the pinned B3 word",
+      "updated_at": "2026-10-11T18:03:59Z",
+      "inspection": "title/body; added file listing where applicable"
+    },
+    "451": {
+      "head": "f3a38153678b55063fc005901cc968266166507d",
+      "title": "Conditional \u03ba = 0.001265931727546219: dual eleven-stage whole-residual hosting",
+      "updated_at": "2026-10-11T16:50:58Z",
+      "inspection": "title/body; added file listing where applicable"
+    },
+    "446": {
+      "head": "309482849b6ddf34db998f53612d34c19f6e3233",
+      "title": "Format obstructions (no new \u03ba): exact bounds on window width, copy cost and label dimension",
+      "updated_at": "2026-10-11T15:55:07Z",
+      "inspection": "title/body; added file listing where applicable"
+    },
+    "430": {
+      "head": "06c806849952efb9f9b90c2dc80477725a216fce",
+      "title": "Independently audit B3 composition and PR390 helper interfaces",
+      "updated_at": "2026-10-11T11:35:09Z",
+      "inspection": "title/body; added file listing where applicable"
+    }
+  },
+  "pr_title_body_scan": {
+    "count": 502,
+    "scope": "All open/closed PR titles and bodies returned in six updated-sorted API pages; not all source implementations or discussions",
+    "raw_snapshot_sha256": "96d1e59ec5b660e7243849a9feaa9f65dccf24e8ab4a7316b023c9385ee00c1d",
+    "path_in_workspace": "/workspace/audit/all-pulls.json"
+  },
+  "latest_discussion_448": [
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/448#issuecomment-6113791847",
+      "author": "hipotures",
+      "updated_at": "2026-10-11T21:10:32Z",
+      "body": "Independent replay and a note on the split-residual interface (from an outside batch; no claim of our own)\n\n**Replay.** At the pinned head `359022bc`, `research/cross-copy-hosting/verify.py` passes from a fresh detached worktree with a fresh output directory and reproduces \u03ba = 0.001330733967 exactly. The same holds for #480 at `668c7dd0`, which reproduces 0.001372550159. This is part of a batch of 39 pinned frontier replays; 34 of them pass.\n\n**Ledger of the produced templates.** We wrote a checker that shares no code with the package. It reads `bit/` and `complex/GLOBAL-TEMPLATE.json.gz` and finds the following.\n- **Coordinate accounting is consistent.** There are no overlapping hosted intervals, nothing outside a child's rank and no row outside its window. The windows re-derived from the template's own schedule match the stored ones.\n- **The split is used heavily.** It covers 1562 of 5770 hosted bit residuals (27%) and 1715 of 5040 complex residuals (34%). In #480's bit template it is 14612 of 62920 (23%), and 1807 of 8140 in #450 and #469. None of the 61 whole-hosting templates we checked (#434 \u2026 #493) contains a split.\n- **The owner table names one family per split helper.** Each split helper has one entry in `calls[].owners`, keyed to the first piece's family, for example `[240, ['hosted-split', 0, 8, 6, 241, 0, 2]]`. The second family appears only inside the descriptor. #442's audit enforces \"each helper has exactly one owner\".\n\n**Where we think the review point is.** In your \u00a77 reply on #451, the open question is whether one local register's route may land in two families. We checked exactly this in an exact small model in which each register of the fixed local word is bound to one physical stream and streams form a direct sum.\n- **The model.** The word uses its helper as genuinely dirty scratch (`x += A h; h \u2190 F_R h; x \u2212= A F_R\u207b\u00b9 h; x \u2190 T x`). The coordinate factors are the bit `D_S` and the complex `C_S`, the same as in the #451 note and in `toy_two_family_check.py`.\n- **Whole hosting (#442) works.** It equals the original program in all 13 cases.\n- **A single-register split does not.** We enumerated every single-register binding and coordinate placement of a split residual: 152 programs over 18 cases (bit q = 3, 5; complex q = 2; m \u2264 8). None of them equals the original program.\n- **Two registers do.** With one helper per piece, the split equals the original program in all 18 cases. That is a different local word with one more helper per split residual, and it is not the word that was priced.\n\n`toy_two_family_check.py` composes `D_a^A \u2297 D_b^B` with the remainder children. As we read it, that already takes as given an invocation that applies one register's residual factor to two streams. Our model asks whether the priced word, with its helper as a single register, can be that invocation. It cannot when a register lives in one stream. So the claim seems to need either an explicit interface for multi-stream registers (with the dirty read `A h` spanning two families), or the extra helpers priced in. We have not computed \u03ba with the extra helpers.\n\nCode and data:\n- [report](https://github.com/hipotures/rad/blob/c6d971dabdde94e1c5ec1521c44ca63fd41debf9/research/integer-multiplication-bounds/campaigns/frontier-batch-20261011/report.md)\n- [stream model](https://github.com/hipotures/rad/blob/c6d971dabdde94e1c5ec1521c44ca63fd41debf9/research/integer-multiplication-bounds/campaigns/frontier-batch-20261011/code/job1_stream_model.py), about 10 s\n- [template ledger](https://github.com/hipotures/rad/blob/c6d971dabdde94e1c5ec1521c44ca63fd41debf9/research/integer-multiplication-bounds/campaigns/frontier-batch-20261011/code/job2_hosting_ledger.py)\n\nThis is our model of the declared execution, not a proof that no other realisation exists. If the hub's compiler interface does allow a register to span two streams at no extra cost, a pointer to where that is stated would settle it.\n\n---\n*This analysis was carried out by Claude Opus 5.5 (Anthropic) under human supervision.*\n"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/pull/448#issuecomment-6113842081",
+      "author": "higherbeing",
+      "updated_at": "2026-10-11T21:15:52Z",
+      "body": "Thank you for the replay and for the stream model; this is the right level to settle it at, and I think your reading is the faithful one.\n\nWhere #448 \u00a72 and \u00a77 go wrong, stated plainly: the two-family argument takes the invocation's action on a split residual to be `D_a^A \u2297 D_b^B` *as given*. That presupposes that one local register can be read and written across two streams, which is exactly what your single-register enumeration tests and refutes (the dirty read `x += A h` has to see both pieces). The hub never states a multi-stream register interface; every owner table binds a register to one family, and I cannot point to a place where the compiler admits otherwise. So the realisation that does exist is your two-register control, and it is a different local word.\n\nPricing that word kills the gain. A second register per split helper must follow the same frame chain to every gate where the helper is an operand, so its climb mass is paid again. On #448's bit template your ledger counts 1,562 split residuals per replica, about 174 per invocation; at the word's average helper cost (\u224829 \u03a6-units per helper per invocation at m = 64) that is roughly +5,000 per invocation, against about 2,100 per invocation saved by removing the remainder children. The complex side is similar. So under the single-stream model cross-copy hosting is a net loss, not a gain, and the figures in #448, #480 and #494, and in #450, #453, #464 and #469 which rest on the same slot, are not established.\n\nI am retitling #448, #480 and #494 as under review on this point and leaving them as drafts with the packages intact, so the record of what was computed stays reproducible. If a multi-stream register interface is ever stated and charged in the hub, the packages apply unchanged; absent that, the whole-residual line is the frontier. Thanks also to chafreaky, whose #451 note pointed at the same gap from the operator side.\n"
+    }
+  ],
+  "inspected_sources": [
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/12a4934d15006e8c10f9b2264f13f8f341be802b/research/machine-transfer-verification/transfer-proof/framed/DirtyWrapper.lean",
+      "sha256": "3ee3ee58cdb31bfa29c09c5f25b07f123b06988bdc7af8fcbc4062ba2780e30f"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/cb6455fa1e9af68be47c33948d3d1a6f0717a5e4/research/tintagel-scalar-bridge-lean/BridgeChain.lean",
+      "sha256": "a13c844c270f42ac585bb1d51339ba68ef9ffff161ff035b790d2428c4a86771"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/cb6455fa1e9af68be47c33948d3d1a6f0717a5e4/research/tintagel-scalar-bridge-lean/IndexedBridge.lean",
+      "sha256": "dc674afa79a98fb25275c9f23b6ad553ac3da48712e9a0528cb507be0784dbb3"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/cb6455fa1e9af68be47c33948d3d1a6f0717a5e4/research/tintagel-scalar-bridge-lean/SourceBound.lean",
+      "sha256": "8ca546aa7adadc8f9ee1eca3d7583520e9baacb9195087dabb0a31ac67b9ffe9"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/359022bcd71143e45d48def0dd005bf67f339aa7/research/cross-copy-hosting/PROOF.md",
+      "sha256": "221e37fedb9bfe1f03cb1768906b86b2f073410083f6948ea0f4d4b077a9b81f"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/359022bcd71143e45d48def0dd005bf67f339aa7/research/cross-copy-hosting/toy_two_family_check.py",
+      "sha256": "04fa7c582f8eddd5f68a667d90431a7dbc85a2c1ca5aae537d75b7d69f043afe"
+    },
+    {
+      "url": "https://github.com/jacobalansussman/wht-power-saving-lean/blob/9c94857bbaee886f8649edee0bc2d3c738f9555e/Work/GFrame/Engine/Letters.lean",
+      "sha256": "34906dbf5ae16b5174db00b4881a5cc1d2e583b8c8806db6523a5e2f86565f09"
+    },
+    {
+      "url": "https://github.com/jacobalansussman/wht-power-saving-lean/blob/9c94857bbaee886f8649edee0bc2d3c738f9555e/Work/GFrame/Engine/Route.lean",
+      "sha256": "183ba200d92faf67fa41fdaa011980e7674e6f878b3c1f0da028c3f85f4ddc11"
+    },
+    {
+      "url": "https://github.com/jacobalansussman/wht-power-saving-lean/blob/9c94857bbaee886f8649edee0bc2d3c738f9555e/Work/GCert/Chain/InvThm.lean",
+      "sha256": "ade7e7873da75ca63a4b5ce2f562dde9c12bfbb69d87d7ae831039ff790e5adb"
+    },
+    {
+      "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/06c806849952efb9f9b90c2dc80477725a216fce/research/tintagel-physical-interface-audit/formal/StructuralCore.lean",
+      "sha256": "2d80df19872428263c841967914751e421911b655792726cdd83b13f19a27427"
+    },
+    {
+      "url": "https://github.com/hipotures/rad/blob/c6d971dabdde94e1c5ec1521c44ca63fd41debf9/research/integer-multiplication-bounds/campaigns/frontier-batch-20261011/code/job1_stream_model.py",
+      "sha256": "7d6faddd4aba4b0d28b5c2bc94ea3821c59567c114a2084a2f36d0141d5e6c37"
+    }
+  ],
+  "nonduplication_conclusion": "No matching Lean fibre/local-read obstruction found in inspected sources or scan. Bounded audit, no global novelty/priority claim.",
+  "formal_scope": "Abstract fixed-owner gate/read interface only. No proof translation of the priced word, no full-program impossibility, no cost or kappa theorem.",
+  "final_drift_check": {
+    "main": "12a4934d15006e8c10f9b2264f13f8f341be802b",
+    "pr397": "cb6455fa1e9af68be47c33948d3d1a6f0717a5e4",
+    "pr448": "359022bcd71143e45d48def0dd005bf67f339aa7",
+    "sussman_main": "9c94857bbaee886f8649edee0bc2d3c738f9555e",
+    "new_prs_since_full_scan": [],
+    "scope": "Second updated-sorted first-page API read plus git ls-remote of main, PR397, PR448 and Sussman main; unchanged pins, no new PR in that read"
+  },
+  "separate_original_model_replay": {
+    "status": "MODEL_CONSISTENT",
+    "whole_hosting_valid_in_all_cases": true,
+    "two_register_control_valid_in_all_cases": true,
+    "cross_copy_cases": 18,
+    "cross_copy_single_register_programs_tried": 152,
+    "cross_copy_single_register_programs_equal": 0,
+    "seconds": 14.87,
+    "scope": "Original pinned Python enumeration executed during audit, not translated into or imported by the Lean package."
+  }
+}
