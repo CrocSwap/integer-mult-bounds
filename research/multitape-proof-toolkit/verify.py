@@ -18,8 +18,12 @@ def main():
     sys.modules[control_spec.name] = control
     control_spec.loader.exec_module(control)
     construction = control.run_tests()
+    clean_spec = importlib.util.spec_from_file_location("toolkit_clean_controls", P / "clean_boundary_controls.py")
+    clean = importlib.util.module_from_spec(clean_spec)
+    clean_spec.loader.exec_module(clean)
+    extension = clean.run_tests()
     result = {"status": "PASS_SOURCE_AND_FINITE_CONTROLS", "kernel_check": "not_run",
-              "source_files": len(pins), "construction": construction, "finite": checks.finite_replay(),
+              "source_files": len(pins), "construction": construction, "extension": extension, "finite": checks.finite_replay(),
               "audit_corruptions_rejected": checks.audit_controls(),
               "manifest_sha256": checks.digest(P / "MANIFEST.json")}
     if args.out:

@@ -1,40 +1,34 @@
-# Frontier and contribution scope
+# Current source and overlap scope
 
-The pinned review covers every PR created since 2026-10-12T00:00Z in the
-2026-10-14T04:53Z public snapshot: 1072 PR titles and complete bodies through
-PR1642, across 11 API pages. Root and agents divided the full claim/scope review
-by parity and inspected relevant actual machine sources separately. This does
-not mean every diff, all historical PRs or all discussions were inspected.
-FRONTIER.json records heads and title/body hashes. The project base is
-858771bcca3b8dd5d4ef4aa682a13cc9b7e23920.
+Pinned main: `0b1cccf86e2f5132ed286a26ef0a681a495740ea`. Snapshot: 2026-10-14T07:20:36.3242431Z.
+The complete created-since census covers 1116 unique PRs since October 12,
+through #1698, with twelve fully paginated API pages.
+The initial refresh covered 1101 records, with 38 changed title/body/head records
+reviewed by four workers and 1063 unchanged records reused from earlier review.
+The final refresh added 20 current body/head reviews across those same four
+workers; 1096 records retained their already-reviewed body/head, with 65 changing
+only status. Both exact snapshot comparisons are retained in FRONTIER.json.
+FRONTIER.json records every current head and title/body hash.
 
-[PR1379](https://github.com/CrocSwap/integer-mult-bounds/pull/1379) provides the
-five-tape boundary tables and a written parking invoice. This package builds a
-fixed finite controller, proves actual all-length executions, charges every
-handoff, and proves literal full-bank restoration. It follows the already
-formalized [PR64](https://github.com/CrocSwap/integer-mult-bounds/pull/64)
-push/pop lineage, rather than claiming a new parking algorithm. PR1638's reference
-to PR1379 as closing parking does not substitute for the execution proof here.
+This is title/body scope review, not independent validation of every source diff,
+numerical receipt, discussion, written proof or novelty. The selected-result
+record remains the maintainer-reviewed conditional kappa 0.001672660197076918.
+Pending higher conditional supplier/outer claims (including #1673) retain
+all-size compiler, hosting, precision and tape obligations. Their claims are not
+used as mathematical hypotheses here. No selected-record promotion is requested.
 
-[PR1641](https://github.com/CrocSwap/integer-mult-bounds/pull/1641) contains this
-toolkit's preceding generic compiler/frame/scheduler contribution. This is its
-concrete construction extension; update that branch instead of submitting a
-duplicate generic-infrastructure PR. Earlier counter/input-preparation work
-(including PR488/526/530/566/570) is not reintroduced as a new result.
+PR1641 is the direct predecessor: marked Fin5 caller and canonical stack output.
+PR1379 and PR64 provide the credited caller/parking lineage. PR1651's dense
+integer-tape signed connector and child-query invoice do not establish the
+finite-alphabet compiler/head ABI proved here. PR1676 formalizes a distinct
+finite-image target-write injection. PR1391's paired finite frame interface is
+related motivation, with physical hosting separate. Source overlap coverage is
+bounded, and absence from current descriptions is not absence from every diff.
 
-Platypii master ba92ef280de31a45a2e1ba8271ac309684c7c799 already has
-BinaryCanonicalTrim.normalize_exists and PR2 Fast.Output.carryOut_exec already
-charges canonical emission. OutputNormalization is an independent lightweight
-toolkit interoperability component, not a claim that upstream lacks normalization.
-No platypii proof source is copied. Problem1.8 contributes the narrowed pure
-fixed-width binary lemmas; its personal RAM/TM modules are not dependencies.
-
-These universal reusable components leave kappa and the selected arithmetic
-profiles unchanged. Full multiplication, recursive routing and origin-anchored
-buffer adaptation remain separate work.
-
-Final refresh at 2026-10-14T05:41:36Z retrieved 15 additional PRs through#1662.
-All six odd and nine even full bodies were reviewed; total 1087 recent PR scopes.
-Their conditional arithmetic/supplier, algebraic tariff and replay-tooling
-results do not describe the actual finite caller/ancestor-trace theorem supplied
-here. This is bounded overlap evidence, not a novelty certification.
+Current platypii reference: 69839dbc892690d972faed2207674c1b6e73a792.
+RecoverOutputSerialize already provides clocked reverse serialization;
+RecoverPublicOutput already proves real output cleanup. The new contribution is
+the direct moving-head compiler ABI and its charged origin conversion, plus
+arbitrary finite tape-bank callers and complete unmarked-buffer lifecycle.
+No upstream serialization or multiplication mathematics is claimed as new.
+No platypii source is copied into this package.

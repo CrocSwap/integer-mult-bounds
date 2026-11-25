@@ -36,9 +36,29 @@ lineage; the tagged assembly and trace proof are supplied here.
 
 BinaryCanonicalOutput narrows fixed-width binary lemmas from our independently
 formalized Problem1.8 output adapter. The portable module contains the pure
-proofs and their Mathlib imports; personal RAM/TM modules are not shipped/imported.
+proofs and their Mathlib imports; that initial pure module needs no personal RAM/TM import. This release also
+bundles the complete arithmetic dependency closure under public module names,
+including reusable Problem1.8 RAM/TM sublemmas; no external personal library is
+required.
 PORTING.json records canonical and portable source hashes and exact import rewrites.
 
 Platypii is reference-only: no platypii implementation or proof source is copied.
 Its existing normalize_exists/carryOut_exec overlap is acknowledged in FRONTIER.md.
 No upstream normalization novelty or complete fast multiplication result is claimed.
+
+
+## Anchored compiler and arithmetic ABI extension
+
+Seven new modules implement finite tape-bank embedding, a generic physical
+caller, clean unmarked lifecycle, compiler stack anchors, a literal five-state
+serializer and a closed six-tape quadratic output example. Existing schoolbook
+arithmetic and its checked Problem1.8 support proofs are reused, with systematic
+public import/namespace renaming only. PORTING.json binds every source pair;
+the complete public closure receives fresh kernel and defining-module axiom checks.
+New routine/table/control proofs are credited to this Codex-assisted contribution,
+with three parallel agents. No new kappa or complete fast multiplier is claimed.
+
+Current platypii reference69839dbc892690d972faed2207674c1b6e73a792 already contains
+RecoverOutputSerialize and RecoverPublicOutput. Their existing serialization and
+cleanup theorems retain credit and are reference-only, not copied source here.
+The new serializer bridges our actual moving-head compiler stack to origin output.
