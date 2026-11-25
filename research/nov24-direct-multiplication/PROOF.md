@@ -32,7 +32,7 @@ Here variable-count Weak ETH rules out deterministic 3-SAT time $2^{O(v^{1-\eta}
 
 The same paper's `cor:near-root-applications` gives the corresponding single-machine, linear-space upper bounds for exact quotient and remainder and for floor integer square root. Its `cor:division-root-lower` gives the conditional $\Omega(n\sqrt{\log n})$ lower bounds even for quotient alone and floor square root, at every sufficiently large length. These are context, not additional claims of this certificate. Upstream explicitly lists those arithmetic corollaries as unformalized. [Paper corollaries](source/uniformity.tex) · [Formalization scope](https://github.com/openai/math/blob/92b516ef8e2abf66c3db7aa31438d3010bc7956f/lean/docs/379.md)
 
-The separate [0.030 supplier transfer](../nov24-retained-kappa-003/README.md) retains the grouped assembly's strict chain $\kappa<\epsilon q\le q<a<b<1/32$. Larger supplier exponents do not remove that particular assembly ceiling. The direct construction changes the overall multiplication construction and does not depend on the 0.030 transfer.
+The repository's grouped assembly has scoped ceilings. Its enforced supplier range $a<(1-\beta)b<b<1/32$ and layer balance $\kappa<a/(1+a)$ give $\kappa<1/33$, and its retained Gaussian range independently gives $\kappa<1/4$. Larger supplier savings do not remove these caps. The direct construction is a different multiplication algorithm and is not subject to them. [Assembly-domain audit](../../docs/research/assembly-domain-audit.md)
 
 ## Evidence and attribution
 
