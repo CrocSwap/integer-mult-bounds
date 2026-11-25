@@ -136,10 +136,13 @@ def construct():
             "selected certificate SHA mismatch")
     require(sha(ROOT / "research/complex-block-rank-optimum/inputs/selected.json.gz") ==
             manifest["selected_ports"]["sha256"], "selected port payload pin mismatch")
-    require(sha(ROOT / "research/complex-frame-pair-decoders/verify.py") ==
-            manifest["e8_model"]["sha256"], "E8 model pin mismatch")
+    # After research/frame-pair-enumeration-production/, the pairwise E8 model
+    # bytes live in that package's baseline.py; production verify.py ships the
+    # neighborhood enumerator. Geometry and frame_pair_solutions stay equivalent.
+    e8_path = ROOT / manifest["e8_model"]["path"]
+    require(sha(e8_path) == manifest["e8_model"]["sha256"], "E8 model pin mismatch")
 
-    e8 = load_module(ROOT / "research/complex-frame-pair-decoders/verify.py", "adapter_e8_model")
+    e8 = load_module(e8_path, "adapter_e8_model")
     with gzip.open(ROOT / "research/complex-block-rank-optimum/inputs/selected.json.gz", "rt") as stream:
         selected_word = json.load(stream)
     ports = selected_word["ports"]

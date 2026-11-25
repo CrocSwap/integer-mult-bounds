@@ -12,7 +12,6 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-PINNED = ROOT / 'research/complex-frame-pair-decoders/verify.py'
 HIT = ROOT / 'research/complex-frame-pair-decoders/inputs/pr717/P104_HIT_flip_3a.txt'
 CEILING = ROOT / 'research/complex-local-word-ceiling/ceiling.py'
 CLIQUES = [9, 15, 24, 46, 52, 66, 94, 104]
@@ -100,7 +99,12 @@ def columns(M):
 
 
 def main():
-    model = load_module(PINNED, 'p104_predecessor_model')
+    # Pairwise-era PR968 model; production verify.py ships the neighborhood enumerator.
+    sources = json.loads((HERE / 'SOURCES.json').read_text())
+    e8_model = sources['e8_model']
+    pinned = ROOT / e8_model['path']
+    assert hashlib.sha256(pinned.read_bytes()).hexdigest() == e8_model['sha256'], 'E8 model pin mismatch'
+    model = load_module(pinned, 'p104_predecessor_model')
     ceiling = load_module(CEILING, 'p104_exact_ceiling')
     P112 = [i for i in range(model.NL) if i not in model.FRAME0]
     F1 = [P112[q] for q in CLIQUES]

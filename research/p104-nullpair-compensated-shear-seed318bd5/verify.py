@@ -181,14 +181,18 @@ def run():
     selected_path = ROOT / "certificates/selected-result.json"
     selected = json.loads(selected_path.read_text())
     require(sha(selected_path) == SELECTED, "selected record pin changed")
+    sources = json.loads((HERE / "SOURCES.json").read_text())
+    e8_model = sources["e8_model"]
     pins = {
         "P104 decoder": (INPUT, "8e0178db02c14e1b29058cdbdbd50aac22f2b55a1ba21dc82f417610c9932526"),
         "ceiling engine": (ROOT / "research/complex-local-word-ceiling/ceiling.py",
                            "86a1432870b3b21d8454106ec9162fddc0471472d9214c590a1420f2426cedfc"),
         "ceiling result": (ROOT / "research/complex-local-word-ceiling/RESULT.json",
                            "d91d6c46509875abf1f61de67c2609656d3dc685451299f83caa6f922493692d"),
-        "frame-pair predecessor": (ROOT / "research/complex-frame-pair-decoders/verify.py",
-                                    "bdf7ee497dc04dfc634ee5b7848f6a2b39b0169668fb1a60a9715111dbd15395"),
+        # Pairwise-era bytes live in the production package baseline after
+        # research/frame-pair-enumeration-production/; live verify.py ships the
+        # eight-bit neighborhood enumerator and no longer matches this digest.
+        "frame-pair predecessor": (ROOT / e8_model["path"], e8_model["sha256"]),
     }
     for name, (path, expected) in pins.items():
         require(sha(path) == expected, f"{name} SHA-256 changed: {sha(path)}")

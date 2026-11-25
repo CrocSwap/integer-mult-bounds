@@ -17,7 +17,7 @@ import types
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-REL = 'research/complex-frame-pair-decoders/verify.py'
+REL = 'research/frame-pair-enumeration-fast-seed93/baseline.py'
 BASE = 'abdc6a7002abdbcd9e21bfc5e1a795784deacfdf'
 spec = importlib.util.spec_from_file_location('mask_enumerator', HERE/'fast.py')
 fast = importlib.util.module_from_spec(spec); spec.loader.exec_module(fast)

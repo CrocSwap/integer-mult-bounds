@@ -1,5 +1,8 @@
 # Faster exact frame-pair enumeration
 
+After `research/frame-pair-enumeration-production/`, the pairwise checker bytes live in [`baseline.py`](baseline.py); production `complex-frame-pair-decoders/verify.py` ships the neighborhood enumerator.
+
+
 Precomputed eight-bit neighborhoods accelerate PR968's complete frame-split
 search while preserving every ordered solution and its existing exact checks.
 On the recorded Windows CPython run, the enumeration median is **4.57x faster**;
