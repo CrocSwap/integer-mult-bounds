@@ -7,7 +7,7 @@ from fractions import Fraction as Q
 from pathlib import Path
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
 ARCHIVE='research/community-frontier1042-audit/selected-replay.tar.gz'
-CHECKER='research/complex-k492-owner-repair/code/hpe_audit_local.py'
+CHECKER='research/complex-sw4-frame8/local/hpe_audit_local.py'
 LOWER='research/complex-dyadic-lowering/lower.py'
 HORNER='research/complex-k492-owner-repair/code/hpe_emit_local.py'
 REQUIRED={ARCHIVE,CHECKER,LOWER,HORNER,'research/community-frontier1042-audit/ASSEMBLY.json'}
