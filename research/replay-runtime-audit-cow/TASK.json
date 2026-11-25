@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "task_id": "replay-runtime",
+  "priority_revision": 6,
+  "base_commit": "20ecf2891d80b5acf18d980b2164fb44ea7faa90",
+  "original_card": {
+    "id": "replay-runtime",
+    "question": "Can one measured replay bottleneck be sped up without dropping coverage?",
+    "starting_points": [
+      "scripts/run_isolated_tests.py",
+      "scripts/verify_replay_coverage.py",
+      "certificates/selected-result.json"
+    ],
+    "methods": [
+      "Profile one isolated replay and optimize the measured bottleneck.",
+      "Design source-bound reuse with explicit dependency invalidation and negative controls."
+    ],
+    "acceptance_gate": "Report before/after wall time on the same fixture, retained checks and invalidation behavior.",
+    "first_step": {
+      "command": [
+        "python3",
+        "-B",
+        "scripts/research_baseline.py"
+      ],
+      "expected": "PASS_RESEARCH_BASELINE_BINDINGS_ONLY",
+      "inspect": "Read the selected reproduction command and choose a single replay stage for profiling.",
+      "scope": "Positive control / source-bound orientation only; this is not a new construction or full cold replay."
+    },
+    "first_experiment": "Measure one unchanged fixture, preserve check coverage, and test one optimization with invalidation controls.",
+    "bottleneck_link": "Faster trustworthy replays increase review throughput and let mechanism candidates be checked sooner.",
+    "allowed_variations": [
+      "Profile one stage or design one source-bound cache boundary."
+    ],
+    "scope_change_triggers": [
+      "Skipping coverage or comparing different fixtures to claim speedup."
+    ],
+    "overlap_terms": [
+      "replay runtime",
+      "cache invalidation",
+      "isolated tests"
+    ]
+  },
+  "scope_status": "refined",
+  "actual_scope": "Use the selected PR1094 replay artifact to optimize only the T16 asynchronous audit stage: replace full deep copies for its 15 small-path negative controls with source-pinned copy-on-write clones.",
+  "scope_change_reason": "Overlap checks found prior replay-runtime work on the selected ceiling evaluation (Discussion 3657 / PR 3662) and selected-record path reuse (Discussion 2787 / PR 2793). This narrows the assigned one-stage measurement to the distinct T16 asynchronous audit, whose archived runtime and complete outputs are available as a bounded fixture.",
+  "bottleneck_link": "Faster trustworthy replay stages improve review throughput. This change saves time only in the selected T16 audit control harness and makes no mathematical or kappa claim.",
+  "budget_minutes": 60,
+  "stop_rule": "Stop if exact source pins or patch anchors differ, any retained mutation is accepted, outputs differ, the input template changes across controls, or paired timing shows no useful improvement.",
+  "outcome": "completed",
+  "evidence": "research/replay-runtime-audit-cow/README.md and MEASUREMENTS.json; isolated fixture and cProfile evidence retained under /home/cinna/int-bounds-pass/20261018-luna-xhigh/homelab-14/.",
+  "author": "OpenAI Codex (homelab-14)",
+  "ai_assistance": "Substantial OpenAI Codex assistance; no independent human review claimed.",
+  "scope_key": "b1dd41940c60d240b47a",
+  "assignment_seed": "6d3d4030d0690032a1688a6f5c70727e",
+  "open_questions": [
+    {
+      "question": "Does the same small-path cloning opportunity occur in another pinned replay stage?",
+      "why_it_matters": "A second distinct stage would show whether the result transfers beyond this exact T16 audit.",
+      "first_step": "Profile one source-pinned stage with large mutation fixtures and retain all of its original negative controls.",
+      "blocked_by": "A distinct bounded fixture and a source-owner review of that stage."
+    },
+    {
+      "question": "Should an opt-in successor of the upstream audit adopt these control clones?",
+      "why_it_matters": "The measured saving could reduce repeated audit time without changing the frozen source receipt.",
+      "first_step": "Have a maintainer review the exact generated diff and run the registered fixture in its supported environment.",
+      "blocked_by": "Maintainer provenance review and a source-pinned successor package."
+    },
+    {
+      "question": "What end-to-end savings remain in a cold PR1094 replay?",
+      "why_it_matters": "This stage-level gain is only one component of the complete selected replay.",
+      "first_step": "Measure a complete cold selected replay only when a separate resource budget is available.",
+      "blocked_by": "The predecessor chain is intentionally not rebuilt in this bounded session."
+    }
+  ]
+}
