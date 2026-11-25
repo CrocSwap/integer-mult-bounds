@@ -16,7 +16,7 @@ Workflow feedback is welcome in [discussion #1200](https://github.com/CrocSwap/i
 
 OpenAI’s November 24 direct multiplication theorem gives one fixed deterministic multitape machine with worst-case time $O_\kappa(n(\lg n)^{1-\kappa})$ and linear visited space for **every fixed $0<\kappa<1/2$**. The numeric record uses **κ = 0.4999**, giving logarithmic exponent **0.5001**. The theorem leaves the exact square-root endpoint open. Its upper bound is independent of Weak ETH. [Upstream theorem](https://github.com/openai/math/blob/92b516ef8e2abf66c3db7aa31438d3010bc7956f/preprints/The-logarithmic-exponent-of-integer-multiplication-on-tapes-November-24-2026/build/intro.tex)
 
-Run `make nov24-direct-verify` to authenticate the sources and replay the specialization. The model comparison identifies the input encoding, output width, uniform machine and worst-case quantifiers. The local evidence covers the application of the published theorem. [Selected record](certificates/selected-result.json) · [Proof and verification scope](research/nov24-direct-multiplication/PROOF.md)
+Run `make nov24-direct-verify` to check retained source hashes, explicit construction parameters and the exponent specialization. The construction note selects a concrete candidate of the upstream algorithm and traces its correctness, tape cost and space dependencies. The finite templates and the full multiplier have not been generated or executed here, and the upstream Lean proof has not been rebuilt. [Selected record](certificates/selected-result.json) · [Construction specialization](research/nov24-direct-multiplication/CONSTRUCTION.md) · [Proof and verification scope](research/nov24-direct-multiplication/PROOF.md)
 
 ## Historical reviewed result: shared native wires and helper splits
 

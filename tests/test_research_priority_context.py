@@ -1,6 +1,7 @@
 """Keep catalogue assessment provenance distinct from the selected result.
 
 Sricharan Vagvala, with substantial OpenAI Codex assistance. Apache-2.0.
+Direct-entry regressions added with OpenAI Codex assistance.
 """
 import copy
 from contextlib import contextmanager
@@ -177,3 +178,77 @@ class ResearchPriorityContextTests(unittest.TestCase):
                     old, new = invoke("choose_current_research_task.py"), invoke(SCRIPT)
                     self.assertEqual((new.returncode, new.stdout, new.stderr),
                                      (old.returncode, old.stdout, old.stderr))
+
+
+class DirectFirstStepTests(unittest.TestCase):
+    direct = "scripts/verify_nov24_direct.py"
+
+    def configure(self, root):
+        path = root / NAMES[1]
+        record = json.loads(path.read_bytes())
+        record["reproduce"] = "make nov24-direct-verify"
+        path.write_text(json.dumps(record), encoding="utf-8")
+        (root / self.direct).write_text("Inert direct entry reference.\n", encoding="utf-8")
+
+    def cli(self, root, task="portable-replay"):
+        return subprocess.run(
+            [sys.executable, "-B", str(root / "scripts" / SCRIPT),
+             "--seed", "0" * 32, "--task", task],
+            cwd=root, capture_output=True, text=True, encoding="utf-8")
+
+    def git(self, root, *args, **kwargs):
+        return subprocess.run(["git", *args], cwd=root, check=True,
+                              capture_output=True, text=True, **kwargs).stdout
+
+    def test_direct_orientation_retains_frozen_card_and_historical_followup(self):
+        with contextual_cli_tree() as root:
+            self.configure(root)
+            for task in ("portable-replay", "centre-path-sharing"):
+                with self.subTest(task=task):
+                    before = subprocess.run(
+                        [sys.executable, "-B", str(root / "scripts/choose_current_research_task.py"),
+                         "--seed", "0" * 32, "--task", task],
+                        capture_output=True, text=True, encoding="utf-8", check=True)
+                    output = self.cli(root, task)
+                    self.assertEqual(output.returncode, 0, output.stderr)
+                    result = json.loads(output.stdout)
+                    card = result["suggestions"][0]
+                    old_card = json.loads(before.stdout)["suggestions"][0]
+                    self.assertEqual(card["first_step"]["command"], ["python3", "-B", self.direct])
+                    self.assertEqual(card["catalog_first_step"], old_card["catalog_first_step"])
+                    self.assertEqual(card.get("follow_up_steps"), old_card.get("follow_up_steps"))
+                    self.assertNotIn("sparse_checkout", result)
+
+    def test_missing_direct_entry_fails_before_publishing_a_route(self):
+        with contextual_cli_tree() as root:
+            self.configure(root)
+            (root / self.direct).unlink()
+            output = self.cli(root)
+            self.assertEqual(output.returncode, 2)
+            self.assertEqual(output.stdout, "")
+            self.assertIn("missing direct first-step script: " + self.direct, output.stderr)
+
+    def test_sparse_direct_entry_is_reported_but_staged_drift_is_rejected(self):
+        with contextual_cli_tree() as root:
+            self.configure(root)
+            self.git(root, "init", "-q")
+            self.git(root, "add", ".")
+            self.git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                     "-c", "maintenance.auto=false", "-c", "gc.auto=0",
+                     "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false",
+                     "commit", "-qm", "direct routing references")
+            self.git(root, "update-index", "--skip-worktree", self.direct)
+            (root / self.direct).unlink()
+            output = self.cli(root)
+            self.assertEqual(output.returncode, 0, output.stderr)
+            result = json.loads(output.stdout)
+            self.assertEqual(result["sparse_checkout"]["omitted_current_first_step_paths"], [self.direct])
+            self.assertEqual(result["suggestions"][0]["first_step"]["command"],
+                             ["python3", "-B", self.direct])
+            changed = self.git(root, "hash-object", "-w", "--stdin", input="staged drift\n").strip()
+            self.git(root, "update-index", "--cacheinfo", "100644," + changed + "," + self.direct)
+            self.git(root, "update-index", "--skip-worktree", self.direct)
+            output = self.cli(root)
+            self.assertEqual(output.returncode, 2)
+            self.assertEqual(output.stdout, "")
+            self.assertIn("missing direct first-step script: " + self.direct, output.stderr)

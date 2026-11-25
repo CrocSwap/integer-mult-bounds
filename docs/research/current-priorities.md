@@ -2,7 +2,8 @@
 
 For the direct November selection, run `make nov24-direct-verify`. The catalogue assessment below describes the earlier community construction. [Live selection](../../certificates/selected-result.json)
 
-**Revision 8 — October 26, 2026.** This is the active diagnosis; the
+**Revision 8 — October 26, 2026.** This is the historical diagnosis for the
+grouped construction; the
 [standing procedure](agent-procedure.md) covers sessions and coordination.
 Refresh this file and the [task catalogue](agent-task-catalog.json) at each round.
 

@@ -1,8 +1,10 @@
-# Proposed selection from the November direct multiplication theorem
+# Current reviewed status
 
-The selected numeric witness is **κ = 0.4999**. The same fixed machine supports every fixed positive κ below 1/2. The endpoint is open. This selection applies OpenAI’s direct construction to the repository’s input/output and time convention. The previous grouped-assembly result has its own source, assumptions and replay below.
+**Proposed selection from the November direct multiplication theorem; maintainer admission is pending.** The selected-record edit in this branch uses the numeric witness κ = **0.4999**. The same fixed machine supports every fixed positive κ below 1/2. The endpoint is open. This proposal applies OpenAI’s direct construction to the repository’s input/output and time convention. Local verification checks the retained source bytes and exponent calculation; it does not independently build the upstream Lean proof.
 
 Run `make nov24-direct-verify` for the source and corollary replay. [Selected record](../../certificates/selected-result.json) · [Application and scope](../../research/nov24-direct-multiplication/PROOF.md)
+
+The sections below form a **historical snapshot** of the grouped construction, with their own sources, assumptions and replay commands. Their checkpoint-local wording does not describe the proposed direct selection.
 
 ## Historical maintainer-reviewed #7000 construction
 
