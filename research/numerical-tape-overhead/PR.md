@@ -1,6 +1,6 @@
-# Give numerical time and space bounds for an adaptive tape multiplier
+# An explicit all-input overhead bound for integer multiplication on tapes
 
-For one specified full-product multiplier, the written construction gives $T(n)\le n\sqrt L\,2^{63\Phi(x)}$ for every $n\ge2$ and at most $2^{32}n$ distinct visited tape cells. Here $L=1+\log_2 n$, $x=\log_2 L$ and $\Phi(x)=(x^2\log_2(x+2))^{1/3}$. Both operands may have leading zeros.
+For one specified full-product multiplier, the written construction gives $T(n)\le n\sqrt L\,2^{63\Phi(x)}$ for every $n\ge2$ and at most $2^{32}n$ distinct visited tape cells. Here $L=1+\log_2 n$, $x=\log_2 L$ and $\Phi(x)=(x^2\log_2(x+2))^{1/3}$. At $n=1$ the direct branch takes at most 4096 transitions. Both operands may have leading zeros.
 
 ## Relation to #8102
 
@@ -26,6 +26,10 @@ From the repository root, run
 python3 -I -B research/numerical-tape-overhead/verify.py
 ```
 
+## Review and next steps
+
 **Review question.** Does the full Walsh controller generate exactly the stated occupied calls, pay for every scan and child once, and keep the same head intervals across returns? The package states the missing Lean hypotheses and links the written cost for each. [Proof boundary](https://github.com/CubeJerry/integer-mult-bounds/blob/research/numerical-tape-overhead/research/numerical-tape-overhead/REVIEW.md)
+
+For exponent $0.5$, the open problem is to bound $G=\log_2(T/(n\sqrt L))$ above by a constant. The present estimate gives $G\le63\Phi(x)$. An intermediate target is $G=O(\log(x+2))$. This requires deriving a tighter cumulative cost for the recursive swaps and Walsh calls. Reaching constant overhead also requires absorbing the outer permutation and transform costs. The [package README](https://github.com/CubeJerry/integer-mult-bounds/blob/research/numerical-tape-overhead/research/numerical-tape-overhead/README.md#open-next-questions) separates these research targets from the Lean obligations for the present bound.
 
 Jerry Chen (@CubeJerry) directed this work with substantial ChatGPT research and verification assistance. OpenAI supplied the published constructions and tape model. OpenAI Codex prepared the extraction and additional Lean proofs.
