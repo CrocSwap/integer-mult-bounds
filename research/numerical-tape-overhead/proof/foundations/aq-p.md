@@ -1,0 +1,73 @@
+# A fixed tape arena and a strict clock for AQ interchange
+
+## Numerical specialization used by the integer caller
+
+At cutoff exponent \(R=240\), the fixed physical node costs at most \(2m^{120}V\) transitions before child charges, and the direct base costs at most \(256(e+1)V\). With \(A_I=5120\) and \(B_I=433/8\), the induction in the [native ledger](../address-native-staircase.md) gives the required numerical width price. The full reserve and repeated-child mass are included. The [formal contraction](https://github.com/CubeJerry/integer-mult-bounds/blob/a2a17b61d943676c757e0bbfaef3f4fae03ab8e5/research/moonshot-overhead-program/sessions/2026-11-26-S008/native-contraction.lean) proves the analytic quarter from the node-mass estimate. The [whole-input dispatch](../../CONSTRUCTION.md) gives its use in ordinary integer multiplication.
+
+The actual recursive calls of S003's adaptive interchanger (AI), including all full-volume reserve calls, consume at most a quarter of a suitable parent time allowance. Its payload passes through the recursion using fixed tape regions. These two statements instantiate the physical scheduling and analytic clock edges of S005-AS for this algorithm.
+
+**Claim.** Let V = PGS·3^(2e) be the number of independent raw bits of a native request with two radix-three fields of width e and three positive spectator ranges. Write v(e)=max(1,e), and set
+
+    Φ(y) = y^(2/3) (log₂(y+2))^(1/3)
+    P_C(V,e) = V sqrt(v(e)) 2^[C Φ(log₂ v(e))].
+
+Use the finite identities, polynomial-size local compilers and group-volume invoices of AI, CI, UP, FP, SR and PB, with AI's parameter family. There are absolute constants C,A,D, a fixed number of one-head tapes and an exact execution schedule with the following properties. At each native request x its own work w(x), excluding actual spatial children, satisfies w(x)+1 ≤ A P_C(x). The sum of P_C over the children, with multiplicity, is at most P_C(x)/4. The entire run visits at most DV cells, including output and head returns.
+
+## The actual children
+
+Let m be AI's odd arity, a its reserve count, h=ceil((log₂m)/4) its finite repair depth, β<2 the actual leading-batch expansion after including the field coordinate degree, and f=floor((e−ell)/(m+2a)). Bounded direct cases have an empty child list. A single fixed cutoff enlargement is allowed below.
+
+Inline the finite repair tree into the local interpreter. Each internal node carries out two predictor evaluations and four sequential finite phases, each operating on one sixteenth of the incoming row volume. These finite phases preserve the spatial width, so listing them as spatial children would violate AS's strict height condition. For one order-three transform the finite tree has (4^(h+1)−1)/3 = O(sqrt(m)) nodes, total row volume at most (4/3)βV and a path sum at most (16/15)βV. The final word contains three transforms. Every actual spatial call inside this finite program remains on the child ledger.
+
+Let S(x) list the spatial interchanges issued by the main word. A grouped call in a shared pencil acts at one label endpoint or on one rank intermediate. A call in a direct finite leaf acts on at most the leaf array. Let F(x) list the 2a full reserve calls made after the main result is merged and unpadded. All now have the same width f<e. For a data-bearing request, define the ordered child arguments by evaluating its finite body with each issued permutation given its mathematical meaning on the argument at that point. Later payloads may depend on earlier replies. Shapes and instruction multiplicities depend on the template. The implementing machine issues calls in this order and receives their replies incrementally.
+
+CI bounds the normalized call mass from the two predictor evaluations at one finite node by 2D_p R_pen and that of a direct leaf by m. Summing the geometric repair fractions and charging all three order-three transforms gives Q_m=8D_p R_pen+3m·4^(−h) as the upper bound before padding. Therefore
+
+    sum_{y in S(x) ++ F(x)} V_y ≤ (βQ_m+2a)V.
+
+Endpoint/rank calls have V_y ≤ βV/N, where the number of labels N≥512. Each direct finite-leaf call has V_y ≤ β16^(−h)V. Thus each main child has V_y ≤ V/2, while every reserve child has V_y=V. The number of grouped requests is polynomial in m. The labels, incidences, basis ranks, coarse repair and shift roles, predictor factors, elementary address lists and finite-tree nodes each have polynomial range. Whole module rows and outside prefix repetitions of the same role serve as complete spectator indices.
+
+## Charged selection across a complete prefix
+
+For a full stream in order [P][J coarse roles][s bits], construct a specified [P][J′ roles][s] output bank where s≥1. For one source/destination role pair, scan both streams forward. At each prefix skip to the two specified roles, transfer or accumulate the whole aligned s-bit run, and advance both heads to the next prefix. Rewind each current array after that pass. Repeat for every required pair, with zero-initialized or retained destination as appropriate. The number of full traversals is bounded by the coarse pair inventory. This constructs prefix-major output even for P>1. Concatenating global prefix-wide streams role by role would produce role-major output.
+
+Use low-end binary countdowns for runs. Ripple carries and the head returns for a complete run take amortized constant time per decrement. Loading or resetting a length takes O(log(s+1)) ≤ O(s) per nonempty run. An outer counter advances amortized, or use the end of the stream to terminate. Its descriptor is read only on setup or once per full pass. Fixed-degree integer products for extent descriptors take additive poly(m,log(V+2)) work. The suffix may contain the exponentially wide cyclic module, the physical address and field-coordinate bits. One pass never traverses a table of module indices. A coarse transfer with a subsequent spatial call collects the same role over every arbitrary outer prefix before issuing that single child. The new prefix includes the module and all untouched fields before the first selected physical field, the gap remains complete, and the old component coordinate is part of the last suffix.
+
+Use these passes in the order prescribed by UP. The combined query/rank arrays use (mr/N)V′ ≤ V′ at local volume V′, and only one rectangle's subsets and accumulators are active. SR tags one of 32B coarse roles at a time, with B≥2m+1, and removes its tags before converters. FP moves the coordinate digit field across the complete physical block to obtain contiguous records. Its h_K independent bits were already in V′. A child operating on the raw stream can select its own field and returns precisely the old coordinate bits in the permuted positions. These local schedules give a fixed number of live full-volume banks and preserve the existing common-address algebra and counted spatial calls.
+
+## Tape ownership and displaced heads
+
+Give the fixed ordinary banks a common left origin and a marked current right end on each tape. Reserve one neutral handoff bank H for a complete argument or reply and one canonical active bank A. Keep separate payload and control stacks, each with its head at its current end. Local operations may alternate producing banks. A charged sequential copy restores the canonical bank when needed, followed by clearing and rewinding the current extents. The original external input and final output can use separate tapes with linear root copies.
+
+At a contracted call, gather the argument into H, push the parent's surviving banks, store the control continuation and rewind the ordinary banks. To push one bank, append a delimiter then write its bits to the stack in reverse, scanning the bank backwards from its right marker. To pop, read backwards to the delimiter while writing forward into the restored bank. Pop multiple banks in reverse order. A finite alphabet distinguishes delimiters from all data. Move H to A, clear H, and run the child. On return move A to H **before** popping the parent banks. Consume the reply in the indicated parent slot and recycle H before the next issue. This order preserves both the reply and any independently populated former contents of A.
+
+At a full reserve call the result of the completed main word or preceding reserve is the sole surviving parent payload. Normalize it into A and rewind all ordinary heads, leaving A in place. Push only the control continuation. The child takes the same bank homes and returns the new value in A, including the charged copy if it finished on another bank. The next reserve can therefore reuse that result while its caller waits.
+
+At a handoff an ordinary head may lie at the far end of a marked current array. Its repositioning distance is bounded by the current spatial parent's volume times a fixed coefficient, plus its additive descriptor scratch. Normalize at whole scan boundaries, or save a cursor offset and restore it by a traversal of the marked bank. Each child starts with the promised ordinary heads at home; the parent has already cleared its bigger data or placed a current end marker. A small child never clears the historical maximum extent of a larger caller. The two stack heads traverse only the particular frames pushed or popped at their **current** ends. Thus head returns do not acquire a charge proportional to a larger ancestor's volume. Even charging a full-parent traversal on every separate child is affordable because the grouped-call count is polynomial in m. Together with the inlined finite program and finite compilers this gives w ≤ c m^K V for a fixed K. Enlarge K to cover these traversals before choosing AI's fixed root degree R. Additive descriptor costs also fit because every fixed power of 1+log(V+2) is bounded by an absolute multiple of V.
+
+The finite ancestors parked inside one spatial parent have total relative volume at most 16/15, as above. A contracted spatial edge can park a fixed multiple of its parent volume. A full edge parks control only. Along a path the parent volumes at contracted edges, with any intervening full edges, sum to at most 2V_root. The total control from a single spatial level, including the finite iterator and descriptors, is at most B(V)=c(1+log₂(V+2))^d for fixed c,d. Indeed m≤e^(1/R), 3^(2e)≤V, and all finite descriptors and their number have fixed polynomial degree. Spatial widths decrease, so the control stack has at most e_root+1 such frames. Consequently (e_root+1)B(V_root) ≤ D₀ V_root, after one enlargement for bounded inputs. On each ordinary tape the union of visited cells is bounded by the greatest marked extent plus its fixed boundary cells. Each stack reuses the interval vacated by a pop. Summing these per-tape maxima over the fixed tape count proves the absolute bound on all cells ever visited.
+
+The real full-volume path distinguishes this schedule from fresh allocation. Every non-base node has at least one reserve call because 2a>0. Following its first reserve keeps V fixed. AI's upper and lower constant-factor bounds on log₂ f / log₂ e imply Θ(log log e) non-base levels as the root e grows. Giving each of these calls a fresh V-bit region after the last one would visit Ω(V log log e) cells, even if every previous region were declared dead.
+
+## A single time allowance
+
+Let δ=1/R satisfy δK≤1/8, and set θ=1−δ/2<1. AI's integer-width guards and complete mass estimate yield
+
+    f≤e/m,   log₂ f≤θ log₂ e,
+    βQ_m+2a ≤ sqrt(m) 2^[C₂ Φ(log₂m)].
+
+Enlarge the direct cutoff so every non-base has f≥1 and Φ(log₂e)≥1. Monotonicity of the logarithm gives Φ(θs)≤θ^(2/3)Φ(s). Since every spatial child has width f and m≤e,
+
+    (sum_y P_C(V_y,f)) / P_C(V,e)
+      ≤ (βQ_m+2a) sqrt(f/e) 2^[C(Φ(log₂f)−Φ(log₂e))]
+      ≤ 2^{−[C(1−θ^(2/3))−C₂] Φ(log₂e)}.
+
+Choose C≥(C₂+2)/(1−θ^(2/3)). This proves the one-quarter bound. Base lists are empty. On non-base inputs m^K≤e^(1/8), while bounded direct widths take c_E V uniformly in all spectator ranges. Thus w(x)+1≤A P_C(x) uniformly. The separate height/descriptor condition and this strict slack establish AS1 and AS2 at height e with ε=3/4.
+
+The source floor-clock lemma gives an absolute natural scale D₁ with w(x)+1 plus the sum of floor(D₁P_C(y)) over the actual children bounded by floor(D₁P_C(x)). No computation of the real-valued potential is required by the machine. The initial binary-to-ternary range conversion expands the two field ranges by less than nine once; the inverse selects the genuine cells. The resulting binary interchanger and its written AQ multiplication consequence retain the earlier time envelope and absolute space bound.
+
+## Remaining formal refinement
+
+This is a fixed-tape resource proof for the specified finite suppliers. In the released Lean implementation, `InterchangeFatRecursion.Thick k a` requires `(Nat.log 2 a.rows.count+1)^k ≤ a.recordWidth+1`, and `stepAccount` uses a predetermined `lanes n` and preserves record width. For each positive thickness degree, one-bit records of unbounded row count can violate the condition. The existing native thickness adapter and fixed template therefore do not establish this changed thin-stream execution by direct substitution. Formal certification still requires a single source `Cmd` satisfying the separated `BoundedFits` body for the source query/reply encodings, ambient deck and return stack. The direct tape proof and quarter-slack inequality do not include a kernel check of that command or the full multiplier.
+
+**Source map.** The mathematical inputs are [AI, CI, B2 and FP](https://github.com/CubeJerry/integer-mult-bounds/tree/69632d87c99b5a75d0b44a7d964e6550e457e016/research/moonshot-overhead-program/sessions/2026-11-26-S003/route-b), [UP](uniform-payload-shared-pencil.md), [SR](compact-spectral-repair-executor.md), [PB](packed-batch-with-small-radix.md) and [S005-AS](adaptive-source-interface.md). The primary source supplies the [interchange identity, common coordinates and recursion](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/preprints/The-logarithmic-exponent-of-integer-multiplication-on-tapes-November-24-2026/build/interchange.tex), the [general clock](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/OAI/Computability/NearSquareRoot/InterchangeBQuestClock.lean), the [native closure](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/OAI/Computability/NearSquareRoot/InterchangeROMRecursionThick.lean) and the [thickness condition](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/OAI/Computability/NearSquareRoot/InterchangeFatRecursion.lean).
