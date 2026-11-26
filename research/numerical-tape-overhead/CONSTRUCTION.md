@@ -2,6 +2,10 @@
 
 The input is one tape holding two equally long most-significant-first words separated by one delimiter. Leading zeroes count toward the length. A fresh tape receives exactly $2n$ most-significant-first product bits from position zero. Blank cells outside the result remain blank. The alphabet, tape count and control are fixed. Each transition reads all scanned symbols, writes at each head, and moves each head by at most one. Space is the union of absolute tape positions through halt. [Original model](OAI/Computability/IntegerMultiplication/TMModel.lean) · [Output specification](OAI/Computability/NearSquareRoot/Specification.lean) · [Visited cells](OAI/Computability/NearSquareRoot/VisitedCells.lean)
 
+## From the earlier rate to the numerical construction
+
+The [adaptive-interchange derivation](proof/adaptive-rate.md) gives the earlier absolute-constant bound. It derives the logarithmic overhead from the width recurrence, pays for the selected Walsh layer and substitutes both costs into the integer caller. The calculation below fixes the machine parameters, prices its modular Walsh implementation and covers every input branch.
+
 ## Dispatcher and correctness
 
 1. Measure $n$ on the first word and return home. For $n\le2^{48}$ use the 19-state schoolbook multiplier. Its raw input test, arithmetic and fresh output fit $4096n^2$ transitions, including $4096$ at $n=1$. [Rule and bound](proof/schoolbook.md)
