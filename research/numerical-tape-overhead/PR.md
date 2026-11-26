@@ -6,7 +6,15 @@ For one specified full-product multiplier, the written construction gives $T(n)\
 
 @zxv's #8102 applies OpenAI's published theorem to get $O_\varepsilon(n(\log n)^{1/2+\varepsilon})$ for each fixed $\varepsilon>0$. Its $\kappa=0.4999$ example already gives exponent $0.5001$, closer to $1/2$ than $0.501$. Jerry Chen's earlier fork work derived the shrinking excess rate with unspecified constants. This package gives numerical constants, a computable sufficient length for each $1/2+1/q$ (integer $q\ge2$), and a sharper worked threshold. Its adaptive interchange and Fourier implementation draw directly on the November 24 papers. The code uses OpenAI's tape semantics independently of #8102. [Prior work and attribution](https://github.com/CubeJerry/integer-mult-bounds/blob/research/numerical-tape-overhead/research/numerical-tape-overhead/SOURCES.md)
 
-For $\log_2\log_2 n\ge7{,}519{,}517{,}465{,}920{,}988$, the bound is $T(n)\le n(\ln n)^{501/1000}$ with coefficient one. The preceding integer fails this particular estimate. Lean verifies the adjacent signs, the all-later implication, and the physical gather–child–scatter rule with its repeated-call space bound. The complete time, output and space argument for the multiplier remains a written proof. [Package README](https://github.com/CubeJerry/integer-mult-bounds/blob/research/numerical-tape-overhead/research/numerical-tape-overhead/README.md)
+For the same multiplier, the written proof gives $T(n)\le n(\ln n)^p$ with leading coefficient one whenever $\log_2\log_2 n\ge t$.
+
+| Exponent $p$ | Sufficient threshold $t$ | Estimate |
+| --- | ---: | --- |
+| 0.501 | 7,519,517,465,920,988 | Refined cutoff |
+| 0.5001 | 13,824,000,000,000,000,000 | General formula, $q=10{,}000$ |
+| 0.50001 | 15,984,000,000,000,000,000,000 | General formula, $q=100{,}000$ |
+
+For $p=0.501$, the preceding integer $t-1$ fails the refined estimate. Lean verifies the adjacent signs, the all-later implication, and the physical gather–child–scatter rule with its repeated-call space bound. The complete time, output and space argument for the multiplier remains a written proof. [Package README](https://github.com/CubeJerry/integer-mult-bounds/blob/research/numerical-tape-overhead/research/numerical-tape-overhead/README.md)
 
 From the repository root, run
 
