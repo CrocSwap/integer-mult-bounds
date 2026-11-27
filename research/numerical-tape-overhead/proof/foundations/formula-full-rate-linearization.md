@@ -42,17 +42,17 @@ primitive-c cyclotomic polynomial. For c=1 set xi=1.
 
 On the graded module `K^d tensor K^r`, define
 
-\[
+$$
  L_A(e_i\otimes x)=e_{i+1\bmod d}\otimes A_i x,
  \qquad Z_A(e_i\otimes x)=\xi^i e_i\otimes x.
-\]
+$$
 
 Then `L_A^d=f I`, `Z_A L_A=xi L_A Z_A`, and `Z_A^d=I`.
 Define `L_B` analogously. On their tensor product put
 
-\[
+$$
  X=L_A\otimes I,\qquad Y=Z_A\otimes L_B,\qquad L=X+Y.
-\]
+$$
 
 Here `YX=xi XY`. The Gaussian-binomial identity gives
 `(X+Y)^c=X^c+Y^c`: its mixed coefficients vanish at a primitive c-th root.
@@ -60,9 +60,9 @@ This identity holds in `Z[xi]` and after specialization; no division by c
 inside K is needed. The two resulting powers commute. Frobenius in
 characteristic two now gives
 
-\[
+$$
  L^d=(X^c+Y^c)^{2^v}=X^d+Y^d=(f+g)I.             \tag{FL1}
-\]
+$$
 
 This is the critical characteristic-two step. It does **not** ask for a
 primitive even-order root, which would be unavailable in a field of this
@@ -98,25 +98,25 @@ formal commuting variables. For a fixed shift beta, let `I_(j,b)` be the
 source affine indicator for shifted digit b in `{0,1,2}`. In characteristic
 two the local generating function becomes
 
-\[
+$$
  (1+T)^{b_j}=1+I_{j,1}T+I_{j,2}T^2.                    \tag{FL2}
-\]
+$$
 
 This is an identity at every allowed spectral tuple; its right side is
 the formal multivariate representation used to construct the predictor.
 Pad the list of m factors with constant ones to `m0=2^ceil(log2 m)`.
 For a balanced interval I define the coefficient formula
 
-\[
+$$
  F_{I,h}=[T^h]\prod_{j\in I}(1+I_{j,1}T+I_{j,2}T^2).
-\]
+$$
 
 At a leaf the coefficients are 1, `I_(j,1)`, `I_(j,2)`, then zero. At an
 internal node use the genuine formula, with copied subexpressions,
 
-\[
+$$
  F_{I,h}=\sum_{a=0}^h F_{I_L,a}F_{I_R,h-a}.             \tag{FL3}
-\]
+$$
 
 Its syntactic query degree is at most h: a coefficient of T-degree one
 or two at a leaf has query degree at most its T-degree, and the displayed
@@ -135,9 +135,9 @@ and changes neither the syntactic degree nor the row width. One explicit
 loose bound for the
 total formula size is
 
-\[
+$$
  S_m\le[8(D+1)]^{\lceil\log_2m\rceil+3}.               \tag{FL4}
-\]
+$$
 
 Its syntactic degree is at most D. Its scalar coefficients lie in `F4`:
 the generalized binomial coefficients of `(1+T)^(-u)` are reduced modulo
@@ -149,10 +149,10 @@ than invoking an unproved nonvanishing assumption.
 
 For the constant-tail window `D=6 ceil(sqrt m)`, (FL4) gives
 
-\[
+$$
  S_m=2^{O((\log(m+2))^2)},\qquad
  r_m\le D^{S_m}=2^{\,2^{O((\log(m+2))^2)}}.             \tag{FL5}
-\]
+$$
 
 The D pencils on this whole row module multiply to `P_beta I_(r_m)`.
 Direct-sum them over all `3^m` shifts and duplicate by 32. The resulting

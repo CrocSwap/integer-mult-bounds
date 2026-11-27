@@ -1,9 +1,11 @@
 # A counted short-product machine for the outer integer caller
 
 For each $w\ge1$, the [six-tape program](../checks/word-toom.py) multiplies two arbitrary independent unsigned $w$-bit words, including padded words. It writes precisely $2w$ little-endian bits, empties both argument banks and all working banks, and returns every head to its origin. On marked banks its time and total distinct tape/address cells satisfy
+
 $$
  T_{\rm word}(w)\le2^{28}(w+1)^{3/2},\qquad S_{\rm word}(w)\le256(w+1).
 $$
+
 This instantiates the full-width products in [the integer caller](../CONSTRUCTION.md#time-on-the-three-branches), including streamed prefix phases, complex pointwise products, final scaling and odd-width Walsh rounding. Retaining both inputs by copying, normalizing two signs, and returning the result to a larger stream cost at most $128(w+1)$ additional transitions by sequential sweeps. Recursive Walsh nodes use a separate short-coefficient routine.
 
 ## Rule and identity
@@ -11,10 +13,12 @@ This instantiates the full-width products in [the integer caller](../CONSTRUCTIO
 Tape F holds an end-access stack of frames. Its alphabet includes the product of 22 binary tracks, boundary symbols, and a left tag with a stage in $[0,4]$ and a sign. The other five tapes hold two inputs, the product, a unary ruler and one temporary word. Each tape has a home delimiter at position $-1$. A read, write or unit move can be compiled as a single transition. The program's control uses only local symbols and fixed finite flags. Recursion reads the continuation from tape F. Absolute positions and counters occur only in the simulator and fixtures. Installing the six initial home delimiters, if needed, costs three extra steps using simultaneous moves.
 
 For $w\le8$, the direct rule accumulates at most eight bits per input, performs eight shift/add steps on sixteen-bit control words and writes the product. Allow 2,048 steps even if these bounded additions are bit-serial. Otherwise use Toom-3 at $0,1,-1,2,\infty$ as in the [earlier arithmetic audit](foundations/review-axes-and-arithmetic.md). Each limb has $m=\lceil w/3\rceil$ bits. Each evaluation has magnitude below $7\cdot2^m<2^{m+3}$. Issue five width-$m+3$ calls with the actual signs recorded in the parent. Denote the signed replies by $v_0,v_1,v_-,v_2,v_\infty$. For true product coefficients $c_i$, $c_0=v_0$, $c_4=v_\infty$, and
+
 $$
  c_2=(v_1+v_-)/2-c_0-c_4,\quad t=(v_1-v_-)/2,\quad
  u=(v_2-c_0-4c_2-16c_4)/2,\quad c_3=(u-t)/3,\quad c_1=t-c_3 .
 $$
+
 Indeed $t=c_1+c_3$ and $u=c_1+4c_3$. All four divisions have nonnegative, exact-multiple inputs. A signed linear combination takes a low-to-high carry sweep. Division takes a high-to-low sweep. Evaluation/interpolation intermediates fit $2w+12$ magnitude bits, by the limb and evaluation bounds and the displayed fixed coefficients. Four Horner recombinations at radix $2^m$ have nonnegative partials at most the final $2w$-bit product. Thus $W=8w+64$ frame columns suffice for signed arithmetic.
 
 ## Transition and space ledger

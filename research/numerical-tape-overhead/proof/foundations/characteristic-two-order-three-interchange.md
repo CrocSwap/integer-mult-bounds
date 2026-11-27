@@ -21,23 +21,25 @@ comparison scans. The new characteristic-two geometry is proved in
 Let `F4=F2[omega]/(omega^2+omega+1)`, so `omega^3=1` and `omega!=1`.
 On a two-element orbit ordered by the smaller/larger address, set
 
-\[
+$$
  Q=\begin{pmatrix}0&1\\1&0\end{pmatrix},\quad
  C=\begin{pmatrix}0&1\\1&1\end{pmatrix},\quad
  D=\begin{pmatrix}\omega&0\\0&\omega^2\end{pmatrix}.
-\]
+$$
 
 Direct multiplication gives `C^3=D^3=I` and
 
-\[
+$$
  S=DCDC=\begin{pmatrix}1&1\\\omega&\omega^2\end{pmatrix},\qquad
  T=C^{-1}D^{-1}C^{-1}D^{-1}
    =\begin{pmatrix}\omega^2&1\\\omega&1\end{pmatrix}.       \tag{O3-1}
-\]
-\[
+$$
+
+
+$$
  TS=ST=I,\qquad TCS=D,\qquad
  Q=CDC^{-1}D^{-1}CD.                                    \tag{O3-2}
-\]
+$$
 
 On every equal-field fixed point, define **all** of `Q,C,D,S,T` to be
 the identity. Then every displayed identity remains valid. Matrices are
@@ -48,14 +50,16 @@ For `m` disjoint pairs of fields, use subscripts `j` for these operators
 and put `F=prod_j C_j`, `Delta=prod_j D_j`. Operators at different indices
 commute, so (O3-1)--(O3-2) imply
 
-\[
+$$
  \mathcal S=\prod_jS_j=\Delta F\Delta F,\qquad
  \mathcal T=\mathcal S^{-1}=F^{-1}\Delta^{-1}F^{-1}\Delta^{-1},
                                                                \tag{O3-3}
-\]
-\[
+$$
+
+
+$$
  \prod_jQ_j=F\Delta F^{-1}\Delta^{-1}F\Delta.             \tag{O3-4}
-\]
+$$
 
 The forward spectral converter is `mathcal T`, and the inverse is
 `mathcal S`. Each uses **two** transforms `F` or `F^-1` and pointwise
@@ -70,17 +74,17 @@ field pair. These are exact finite-field statements, not numerical gates.
 Let `L_j=1_{H_j>N_j}` and `U_j=1_{H_j<N_j}` be ordinary pointwise
 projections, zero on equal fields. Then
 
-\[
+$$
  C_j=Q_j+L_j,\qquad C_j^2=Q_j+U_j.                       \tag{O3-5}
-\]
+$$
 
 Consequently a source `ell=3` pencil has the exact decomposition
 
-\[
+$$
  A_0+\sum_j(A_{j1}C_j+A_{j2}C_j^2)
  =A_0+\sum_j(A_{j1}+A_{j2})Q_j
         +\sum_j(A_{j1}L_j+A_{j2}U_j).                  \tag{O3-6}
-\]
+$$
 
 The first part uses one shared-swap pencil over the new characteristic-two
 labels. The last sum is computed separately in the original physical
@@ -98,9 +102,9 @@ Use the source theorem with query order `ell=3`, independently for targets
 ordinary shifted digits independent and uniform in `{0,1,2}`. Their count
 has mean `m`. Choose
 
-\[
+$$
  B=3\lceil\sqrt m\rceil,\qquad u=m-B,\qquad v=m+B.
-\]
+$$
 
 Hoeffding gives an outside-window fraction at most
 `2 exp(-B^2/(2m))<=2 exp(-9/2)<1/32`. For the strict last inequality,
@@ -142,9 +146,9 @@ The source Hermite factor is `D_z(y)=(y-z)^2`, because
 `g(y)-z=(y-z)^4`. Recover `e_i=(p_i-z) Xhat_i` on the known outside-window
 set and choose the lift with `Zhat_i=(p_i-z)^2 e_i` there. Output
 
-\[
+$$
  PX+PZ+FZ.                                             \tag{O3-6a}
-\]
+$$
 
 Its error is `(p_i-z)(Xhat_i+Zhat_i)`. A zero gap gives zero error. A
 nonzero gap has cube one in `F4`, so `Zhat_i=Xhat_i`. Outside the exception
@@ -157,9 +161,9 @@ units in the common extension algebra.
 Let `N_lab` be the number of labels, `W0=R N_lab`, and let `R_route(m)`
 bound the shared-pencil calls per independent input stream. Put
 
-\[
+$$
  a_m=2b_{\rm pred}R_{\rm route}(m).
-\]
+$$
 
 For total depth `h`, start with `W_h=W0 16^h` independent `E`-valued
 streams, in labeled base batches. A repair node for either `F` or `F^-1`
@@ -178,11 +182,11 @@ field swap per index, hence at most `m` calls per stream.
 Correctness on arbitrary inputs in `E` and induction over the finite depth
 give, for either target, the call bound
 
-\[
+$$
  {\sigma_h\over W_h}
  \le a_m\sum_{t=0}^{h-1}4^{-t}+m4^{-h}
  \le{4\over3}a_m+m4^{-h}.                               \tag{O3-7}
-\]
+$$
 
 Indeed the four children each have row fraction `1/16`, giving total mass
 `1/4`. Their own targets are precisely the transforms in (O3-3); no
@@ -192,18 +196,18 @@ created by checks do not affect correctness of a full-rate linear identity.
 Use the three transforms in (O3-4) sequentially on this same batch. Their
 combined target is the main swap product, with
 
-\[
+$$
  {\sigma_{Q,h}\over W_h}
  \le8b_{\rm pred}R_{\rm route}(m)+3m4^{-h}.              \tag{O3-8}
-\]
+$$
 
 For `h=ceil(log2(m)/4)`,
 
-\[
+$$
  W_h\le16W0m,\qquad
  {\sigma_{Q,h}\over W_h}
        =O(\sqrt m\,(R_{\rm route}(m)+1)).               \tag{O3-9}
-\]
+$$
 
 Every original input row receives its own exact swap product. No initial
 zero workspace is counted as an independently transformed input.
@@ -213,10 +217,10 @@ zero workspace is counted as an independently transformed input.
 The characteristic-two geometry supplies, for `d=2^r`, `q=2^t` and
 `h_lab=2d-1`,
 
-\[
+$$
  R_{\rm route}(m)
    =O(D_{\rm route}(1+\lambda)(1+mr_*/N_{\rm lab})),
-\]
+$$
 
 with the explicit rank, incidence and dimension bounds in the companion
 note. Its rational endpoint maps are valid over a separately chosen odd
@@ -242,10 +246,10 @@ the main program returns, merge and clear its arrays before performing
 the `2a_route` full-volume reserve calls. With
 `f=floor((e-1)/(m+2a_route))`, the actual recurrence is
 
-\[
+$$
  T(e)\le C_{\rm template}
    +(2\sigma_{Q,h}/W_h+2a_{\rm route})T(f).              \tag{O3-10}
-\]
+$$
 
 Depth-first spatial parking has the source's geometric-volume bound; the
 full-volume reserve calls keep only a descriptor. Occupied reserves are
@@ -255,10 +259,10 @@ component with linear visited cells for each fixed parameter choice.
 Choosing the distance parameter between
 `(log m/log log(m+2))^(1/3)` and twice that value gives
 
-\[
+$$
  {\sigma_{Q,h}\over W_h}
  \le\sqrt m\,2^{O((\log m)^{2/3}(\log\log(m+2))^{1/3})},
-\]
+$$
 
 while the reserve dimension is `m^o(1)`. Thus every fixed interchange
 exponent above `1/2` can be reached using this alternative characteristic-two

@@ -5,10 +5,10 @@
 Let `Q_j` exchange the two disjoint fields `H_j,N_j`, for `j=1,...,m`.
 Use their ordinary numeric order to define pointwise diagonal operators
 
-\[
+$$
  Z_j(d)=\begin{cases}1&H_j<N_j,\\-1&H_j>N_j,\\0&H_j=N_j,\end{cases}
  \qquad E_j(d)=\mathbf1_{H_j=N_j}.
-\]
+$$
 
 On a two-element orbit, in smaller/larger address order, `Q_j=X` and
 `Z_j=diag(1,-1)`. On a fixed point, `Q_j=E_j=1` and `Z_j=0`.
@@ -17,12 +17,12 @@ Different indices act on disjoint fields.
 Fix a finite depth `h>=0`. Over `Z[1/2]`, adjoin a primitive
 `2^(h+2)`-th root `zeta`, put `i=zeta^(2^h)`, and, for `0<=t<=h`, set
 
-\[
+$$
  \zeta_t=\zeta^{2^{h-t}},\qquad
  a_t={\zeta_t-\zeta_t^{-1}\over2i},\qquad
  b_t={\zeta_t+\zeta_t^{-1}\over2},\qquad
  R_{t,j}=a_tQ_j+b_tZ_j+(1-a_t)E_j.                 \tag{RF1}
-\]
+$$
 
 The trigonometric names `a_t=sin(pi/2^(t+1))` and
 `b_t=cos(pi/2^(t+1))` describe one complex embedding, but no analytic
@@ -30,28 +30,28 @@ approximation is used. These are identities in a finite free cyclotomic
 ring and specialize to any odd characteristic. They satisfy, with the
 half-angle identities taken for `0<=t<h`,
 
-\[
+$$
  a_t^2+b_t^2=1,\quad
  a_t=2a_{t+1}b_{t+1},\quad
  b_t=b_{t+1}^2-a_{t+1}^2.                         \tag{RF2}
-\]
+$$
 
 In particular `R_{0,j}=Q_j`, and every `R_{t,j}` is an involution.
 The fixed-point correction in (RF1) is essential. On a two-element orbit,
 direct multiplication of the matrices
 `[[b_t,a_t],[a_t,-b_t]]` gives
 
-\[
+$$
  R_{t+1,j}R_{t,j}R_{t+1,j}=Z_j+E_j.              \tag{RF3}
-\]
+$$
 
 The same equality holds on fixed points because all three factors are
 the identity there. Put
 
-\[
+$$
  F_t=\prod_{j=1}^m R_{t,j},\qquad S_t=F_{t+1}
  \quad(0\le t<h).
-\]
+$$
 
 The factors with different indices commute, so `S_t^-1=S_t`, and `S_t`
 simultaneously diagonalizes all `R_{t,j}`. At an ordinary address its sign
@@ -69,11 +69,11 @@ Suppose the source label geometry implements a pencil of `m` swaps with
 at most `R(m)` recursive field-swap calls per independent input stream.
 For fixed row matrices `A_j`, the family pencil splits exactly as
 
-\[
+$$
  A_0+\sum_j A_jR_{t,j}
  =\left(A_0+a_t\sum_j A_jQ_j\right)
   +\sum_j A_j\bigl(b_tZ_j+(1-a_t)E_j\bigr).      \tag{RF4}
-\]
+$$
 
 The first summand is precisely a source shared pencil. The second is a
 pointwise map in the **original physical layout**. Evaluate it separately
@@ -102,18 +102,18 @@ Take all binary shifts with equal multiplicity. At any fixed sign tuple,
 the count `c=|k xor beta|` has the `Bin(m,1/2)` distribution over the rows.
 For `m>=4` choose
 
-\[
+$$
  B=\lceil\sqrt{2m}\rceil,\qquad
  u=\lfloor m/2-B\rfloor,\qquad v=\lceil m/2+B\rceil .
-\]
+$$
 
 The tail is at most `2 exp(-4)<1/16`. The integral count-predictor lemma
 represents parity correctly on this window by a polynomial in the
 **individual involutions** of degree
 
-\[
+$$
  D_{\rm pred}=v-u\le2\sqrt{2m}+3.
-\]
+$$
 
 Use the source matrix-root representation, with `b_pred` the least power
 of two at least `max(2,D_pred)`. It takes `b_pred` pencil stages per
@@ -147,9 +147,9 @@ change according to (RF4) and (RF3).
 Let the routing label set have size `N_lab` and set `W_0=R N_lab`.
 For a fixed total depth `h`, run on
 
-\[
+$$
  W_h=W_0\,8^h
-\]
+$$
 
 independent `E`-valued streams, arranged as `8^h` copies of the labeled
 base batch. At level `t`, invoke the repair for `F_t`. Collect pending check
@@ -167,18 +167,18 @@ is exactly at most `m` recursive field-swap calls per input stream.
 
 **Finite-family contraction theorem.** Let
 
-\[
+$$
  a_m=4b_{\rm pred}R(m).
-\]
+$$
 
 There is an exact finite physical program computing `F_0=prod_j Q_j` on
 `W_h` independent streams, with at most
 
-\[
+$$
  {\sigma_h\over W_h}
  \le a_m\sum_{d=0}^{h-1}4^{-d}+m4^{-h}
  \le {4\over3}a_m+m4^{-h}                       \tag{RF5}
-\]
+$$
 
 recursive field-swap calls per stream, and with all remaining work linear
 in input volume for these fixed parameters.
@@ -202,10 +202,10 @@ empty input padding is used. QED.
 
 Choose `h=ceil((log2 m)/4)`. Then
 
-\[
+$$
  W_h\le8W_0m^{3/4},\qquad
  {\sigma_h\over W_h}=O\!\left(\sqrt m\,(R(m)+1)\right). \tag{RF6}
-\]
+$$
 
 The constants in this call estimate are absolute once the explicit source
 pencil invoice is fixed. The physical scan constants may depend on the
@@ -239,11 +239,11 @@ then supplies full labeled batches, with each stream's volume at most
 calls on width-`f` fields. After merging and clearing its workspace, the
 source's `2a_route` full-volume reserve interchanges remain. Therefore
 
-\[
+$$
  T(e)\le C_{\rm template}
    +\left(2\sigma_h/W_h+2a_{\rm route}\right)T(f),
  \qquad f=\left\lfloor{e-1\over m+2a_{\rm route}}\right\rfloor . \tag{RF7}
-\]
+$$
 
 The existing depth-first spatial schedule still applies: main calls shrink
 volume, while full-volume reserve calls occur only after the main workspaces
@@ -253,15 +253,15 @@ data stack is hidden in the changing targets.
 For the source's fixed data prime `p` and `q` the least power of two at
 least `m^(1/p^2)`, its explicit label bounds give
 
-\[
+$$
  R(m)=O_p\!\left(m^{(3p-1)/p^2}(1+\log m)^{p^2}\right).
-\]
+$$
 
 Thus (RF7) has a main bill
 
-\[
+$$
  O_p\!\left(m^{1/2+(3p-1)/p^2}(1+\log m)^{p^2}\right),
-\]
+$$
 
 removing the factor `sqrt(log m)` from the same label family's original
 main estimate. The source's reserve term and rank/rectangle dependence are

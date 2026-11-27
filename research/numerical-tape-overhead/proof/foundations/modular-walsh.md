@@ -82,10 +82,10 @@ There is an actual rational repair block that cannot be expressed as a complete 
 
 The same incompatibility occurs at every sufficiently large odd arity. For $B=\lceil2\sqrt m\rceil$, $u_0=\lfloor m/2\rfloor-B$, $v=\lceil m/2\rceil+B$ and $d=v-u_0=2B+1$, choose a spectral key with exactly $v+2\le m$ ones. Such a key occurs in the actual Fourier coordinates by using the following assignment. In one column set each distinguished $X_j$ to the desired bit and $Z_j=1$, and set all other columns and auxiliary entries to zero. At seed zero the shifted count is $c'=v+2$. Extending the truncated Newton sum to its full binomial sum gives the correct sign. With $c'-u_0=d+2$, the omitted terms give
 
-$
+$$
 p_0-z=-\gamma\big((-2)^{d+1}(d+2)+(-2)^{d+2}\big)
      =-\gamma(-2)^{d+1}d .
-$
+$$
 
 Its inverse has an odd denominator factor since $d>1$ is odd. In the block from the first active $j=|J|$ check inputs to the first $j$ lifted outputs, set the second check vector to zero. The matrix is $T=V_J^{-\mathsf T}\operatorname{diag}(g_i^{-1})V_J^{-1}$. If every entry of $T$ were dyadic, the same would hold for $V_J^{\mathsf T}T V_J$ because $V_J$ uses the dyadic nodes $i/W_0$. But its seed-zero diagonal entry is $1/(p_0-z)$. This excludes a literal dyadic implementation of the indicated independent-register repair block. The complete ideal Walsh matrix remains dyadic, and implementations that exploit restricted intermediate inputs or refactor the full transform are outside this obstruction. [OpenAI, actual query multipliers](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/preprints/The-logarithmic-exponent-of-finite-Fourier-transforms-November-24-2026/build/kernel.tex)
 

@@ -5,10 +5,12 @@ Let $c_0,\ldots,c_{S-1}$ be the recovered nonnegative integer coefficients in or
 ## The numerical ports
 
 Put $B=2^b$ and $q_0=0$. At row $i$ the machine computes
+
 $$
   d_i=(c_i+q_i)\bmod B,\qquad
   q_{i+1}=\lfloor(c_i+q_i)/B\rfloor .
 $$
+
 If $c_i,q_i<2^u$ and $b\ge1$, then $q_{i+1}<2^u$. The $u$-bit carry representation therefore remains valid at every row, including all-one input words. Multiplication instances satisfy $q_S=0$ and their high $Sb-2n$ digit bits vanish. These are proved for the actual cyclic convolution and arbitrary input words by [the original-source assembly theorem](../S008/RecountProduct.lean).
 
 The six physical heads are the formatted source, the two alternating $u$-bit carry banks, the consecutive low-bit bank, a budget of $C$ unary marks, and the initially blank raw output. There are 15 control states. Bit addition uses the three symbols currently read and one finite carry flag. Only the finite pair of carry-bank roles swaps. The literal table also operates on arbitrary coefficient lists, returning their low $C$ bits and a full surviving carry in the last active carry bank.
@@ -22,13 +24,17 @@ The formatter takes $2u+4+S(2u+2b+6)$ transitions after its one split mask is av
 The six-tape machine first plants three left fences in two transitions. It consumes the $u$ warm marks, the colon and a rewind, taking $2u+3$ transitions. In every row it consumes $u$ source bits simultaneously with $u$ old-carry bits, erasing the old bank as it reads. Each of the $b$ low additions writes to the low bank. Each of the $u-b$ subsequent additions writes its sum bit to the new carry. The row-end transition writes the single overflow bit there. Appending the remaining $b-1$ zeroes makes the new carry exactly $u$ bits again. The closing marker starts the joint $u+2$-step rewind. This accounts for exactly $2u+b+3$ transitions per row.
 
 One transition recognizes the final marker. The low bank rewinds in $Sb+2$ transitions, the length budget positions its head in $C+1$, and $C$ actual transitions reverse-read the selected bits into increasing absolute output positions. The final consulted rule halts. Thus the complete post-formatter price is
+
 $$
  T_{\rm carry}=2+(2u+3)+S(2u+b+3)+1+(Sb+2)+(C+1)+C .
 $$
+
 The formatted source comprises $J=u+2+S(u+b+1)$ symbols. Its entire interval, both carry intervals of $u+2$ positions, the low interval of $Sb+2$ positions and two intervals of $C+1$ each include all initial and final head positions. Therefore
+
 $$
  \operatorname{VisitsAtMost}\; J+2(u+2)+(Sb+2)+2(C+1).
 $$
+
 The formatter produces its bank in one direction. Rewinding it once to present the carry reader at the origin adds $J+O(1)$ unit moves if writer and reader use the same physical head. A dedicated bank copy by the [physical neutral adapter](recount-handoff.md) adds at most $2J+O(1)$ instead. In the integer caller, $u=5k$, $b<2k$, $C\le Sb$ and $S\le N$. All these costs fit the ordinary linear-in-$Nk$ stream term. There are no searches in the coefficient table and no per-row tape allocation.
 
 ## Kernel-checked physical scope

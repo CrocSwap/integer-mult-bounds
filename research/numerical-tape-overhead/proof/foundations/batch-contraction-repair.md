@@ -15,11 +15,15 @@ The binary kernel's target and its diagonalizing Walsh transform are equivalent 
 
 Give every shift $\beta\in\{0,1\}^m$ equal row multiplicity. At each frequency the shifted count $c$ has exactly the $\operatorname{Bin}(m,1/2)$ distribution across rows. Set
 
-$$B=\lceil\sqrt{2m}\rceil,\quad u=\lfloor m/2-B\rfloor,\quad v=\lceil m/2+B\rceil.$$
+$$
+B=\lceil\sqrt{2m}\rceil,\quad u=\lfloor m/2-B\rfloor,\quad v=\lceil m/2+B\rceil.
+$$
 
 Then Hoeffding gives
 
-$$\Pr[c\notin[u,v]]\le2e^{-2B^2/m}\le2e^{-4}<1/16.$$
+$$
+\Pr[c\notin[u,v]]\le2e^{-2B^2/m}\le2e^{-4}<1/16.
+$$
 
 The strict inequality follows from $e^4>1+4+8+64/6+256/24>32$. The source integral interpolation on this window has degree $D=v-u\le2\sqrt{2m}+3$. The source matrix-root construction uses the least power of two $b\ge\max(2,D)$, hence $b<2\max(2,D)$. Four predictor applications suffice for binary Hermite repair. Thus the non-spectral part has $O(\sqrt m)$ pencil stages.
 
@@ -35,7 +39,9 @@ Fix an array size and target invertible linear map $U$. Suppose an exact finite 
 
 The bill $aW$ includes all predictor applications and every non-spectral smaller-axis call; $aW$ is an integer. For each integer $r\ge0$, there is an exact finite program on $W_r=W8^r$ independent rows with
 
-$$\frac{\sigma_r}{W_r}\le a\sum_{d=0}^{r-1}4^{-d}+A4^{-r}\le\frac43a+A4^{-r}.\tag{BC}$$
+$$
+\frac{\sigma_r}{W_r}\le a\sum_{d=0}^{r-1}4^{-d}+A4^{-r}\le\frac43a+A4^{-r}.\tag{BC}
+$$
 
 All remaining operations are finite compositions of supplied row operations and monomial maps. Uniformity in a spatial parameter is inherited from the supplied programs.
 
@@ -53,7 +59,9 @@ For phase fraction $q=1/b$ with integer $b>2$, replace $8$ by $b$ and $1/4$ by $
 
 Fix the finite routing parameters of the source, with arity $A=2(m+D_{\rm route}-1)$. For even slot width $f$, put $U=2^{-Af/2}D_2^{\otimes Af}$. The source product of queries has spectral multiplier $(-1)^{\sum_c X_c\cdot Z_c}$ and satisfies
 
-$$F=M_{\rm out}\,U\,M_{\rm in},$$
+$$
+F=M_{\rm out}\,U\,M_{\rm in},
+$$
 
 where the $M$ maps are prescribed signs and a half-address interchange. Hence a repair program for $F$ computes $U$ after inverse monomial maps at its boundaries. Forward and inverse spectral conversions are both $U$, since normalized binary Walsh is self-inverse. The closure premise is thus proved from the source identity, without assuming a new fast transform.
 
@@ -61,15 +69,21 @@ Run the constant-tail predictor and repair independently at each source routing 
 
 Let $R(m)$ bound calls per row in a routed pencil. Source equation `eq:kernel-pencil-cost` gives
 
-$$R(m)=C_{2,L}D_{\rm route}\big((1+\log q)^L+m q^{-(L-\lfloor L/2\rfloor)}\big).$$
+$$
+R(m)=C_{2,L}D_{\rm route}\big((1+\log q)^L+m q^{-(L-\lfloor L/2\rfloor)}\big).
+$$
 
 The new non-spectral bill is $a=O(\sqrt m\,R(m))$. Therefore
 
-$$\frac{\sigma_r}{W_r}\le O(\sqrt m\,R(m))+A4^{-r}.\tag{BC-F}$$
+$$
+\frac{\sigma_r}{W_r}\le O(\sqrt m\,R(m))+A4^{-r}.\tag{BC-F}
+$$
 
 If $D_{\rm route}=o(m)$ and $r=\lceil\tfrac14\log_2m\rceil$, then
 
-$$W_r\le8Wm^{3/4},\qquad \frac{\sigma_r}{W_r}=O\big(\sqrt m(R(m)+1)\big).\tag{BC-F2}$$
+$$
+W_r\le8Wm^{3/4},\qquad \frac{\sigma_r}{W_r}=O\big(\sqrt m(R(m)+1)\big).\tag{BC-F2}
+$$
 
 The source one-shot calculation has $O(\sqrt{m\log m}\,R(m))+O(Am^{-3})$ at comparable fixed routing parameters. This removes the $\sqrt{\log m}$ factor from that **finite-template call estimate**. It does not prove a new final transform exponent or tape overhead envelope.
 
@@ -131,7 +145,9 @@ row tables applied blockwise. Applying those same tables separately to
 base batches, never replacing them with a dense global $W_r\times W_r$
 table, gives
 
-$$B_r(V)\le bV+2B_{r-1}(V/8).$$
+$$
+B_r(V)\le bV+2B_{r-1}(V/8).
+$$
 
 Thus all internal non-spectral ordinary operations total at most
 $(4/3)bV$, plus leaf work. The same bound applies to any additional operation
